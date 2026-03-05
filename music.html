@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DXXTHLY — Music</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #080808; --surface: #0f0f0f; --surface2: #131313;
+      --border: #1e1e1e; --red: #c0392b; --red-glow: #e74c3c;
+      --bone: #d4c5a9; --dim: #5a4a3a; --discord: #5865f2;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--bone);
+      font-family: 'Share Tech Mono', monospace;
+      min-height: 100vh; overflow-x: hidden; cursor: crosshair;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 9999; opacity: 0.5;
+    }
+    body::after {
+      content: ''; position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+      pointer-events: none; z-index: 9998;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 62px;
+      background: rgba(8,8,8,0.97); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+    }
+    .nav-logo {
+      font-family: 'Cinzel Decorative', serif; font-size: 1.2rem;
+      font-weight: 900; letter-spacing: 0.15em; color: var(--bone); text-decoration: none;
+    }
+    .nav-logo span { color: var(--red-glow); }
+    .nav-back {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--dim); text-decoration: none; transition: color 0.3s;
+    }
+    .nav-back:hover { color: var(--bone); }
+    .nav-back svg { width: 14px; height: 14px; }
+
+    /* ── HERO ── */
+    .music-hero {
+      padding: 120px 48px 60px;
+      position: relative; overflow: hidden;
+      border-bottom: 1px solid var(--border);
+    }
+    .music-hero::before {
+      content: '';position:absolute;inset:0;
+      background: radial-gradient(ellipse 70% 80% at 50% 0%, rgba(192,57,43,0.07) 0%, transparent 70%);
+      pointer-events:none;
+    }
+    .hero-tag { font-size: 0.6rem; letter-spacing: 0.5em; color: var(--red-glow); text-transform: uppercase; margin-bottom: 16px; }
+    .hero-title {
+      font-family: 'Cinzel Decorative', serif;
+      font-size: clamp(2.5rem, 8vw, 6rem); font-weight: 900;
+      color: var(--bone); line-height: 0.95; letter-spacing: -0.02em;
+      text-shadow: 0 0 60px rgba(192,57,43,0.25), 4px 4px 0 rgba(192,57,43,0.1);
+    }
+    .hero-title span { color: var(--red-glow); }
+    .hero-sub { font-size: 0.7rem; letter-spacing: 0.3em; color: var(--dim); text-transform: uppercase; margin-top: 18px; }
+    .hero-count { font-size: 0.6rem; letter-spacing: 0.2em; color: var(--red-glow); margin-top: 8px; }
+
+    /* ── NOW PLAYING BAR ── */
+    .now-playing-bar {
+      position: sticky; top: 62px; z-index: 100;
+      background: rgba(8,8,8,0.98); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      padding: 0 32px; height: 68px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .now-playing-bar::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; background: var(--red);
+    }
+    .np-label { font-size: 0.5rem; letter-spacing: 0.4em; color: var(--red-glow); text-transform: uppercase; flex-shrink: 0; }
+
+    .np-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .np-btn {
+      background: none; border: none; cursor: pointer; color: var(--bone);
+      padding: 6px; transition: color 0.2s; display: flex; align-items: center;
+    }
+    .np-btn:hover { color: var(--red-glow); }
+    .np-btn svg { width: 18px; height: 18px; display: block; }
+
+    .np-info { flex: 1; min-width: 0; }
+    .np-title {
+      font-size: 0.75rem; letter-spacing: 0.08em; color: var(--bone);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .np-title.scrolling { animation: scrollTitle 14s linear infinite; display: inline-block; }
+    @keyframes scrollTitle { 0%,20%{transform:translateX(0)} 80%,100%{transform:translateX(-50%)} }
+    .np-artist { font-size: 0.55rem; letter-spacing: 0.2em; color: var(--dim); margin-top: 2px; }
+
+    .eq-bars { display: flex; align-items: flex-end; gap: 2px; height: 16px; flex-shrink: 0; }
+    .eq-bars span { display: block; width: 3px; background: var(--red); height: 3px; border-radius: 1px; }
+    .eq-bars.playing span:nth-child(1) { animation: eq1 0.8s ease-in-out infinite; }
+    .eq-bars.playing span:nth-child(2) { animation: eq2 0.6s ease-in-out infinite 0.1s; }
+    .eq-bars.playing span:nth-child(3) { animation: eq3 0.9s ease-in-out infinite 0.2s; }
+    .eq-bars.playing span:nth-child(4) { animation: eq1 0.7s ease-in-out infinite 0.15s; }
+    .eq-bars.playing span:nth-child(5) { animation: eq2 0.85s ease-in-out infinite 0.05s; }
+    @keyframes eq1 { 0%,100%{height:3px} 50%{height:14px} }
+    @keyframes eq2 { 0%,100%{height:8px} 50%{height:3px} }
+    @keyframes eq3 { 0%,100%{height:13px} 50%{height:4px} }
+
+    .np-vol-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .np-vol-wrap svg { width: 13px; height: 13px; color: var(--dim); flex-shrink: 0; }
+    .np-vol {
+      -webkit-appearance: none; appearance: none;
+      width: 80px; height: 2px; border-radius: 0; cursor: pointer; outline: none;
+      background: linear-gradient(90deg, var(--red) 30%, var(--border) 30%);
+    }
+    .np-vol::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; background:var(--red-glow); border-radius:0; cursor:pointer; }
+    .np-vol::-moz-range-thumb { width:12px; height:12px; background:var(--red-glow); border:none; border-radius:0; }
+
+    /* ── TRACK LIST ── */
+    .tracklist-wrap { max-width: 900px; margin: 0 auto; padding: 48px 32px 80px; }
+    .tracklist-header {
+      display: grid; grid-template-columns: 40px 1fr 80px;
+      padding: 0 16px 12px; border-bottom: 1px solid var(--border);
+      font-size: 0.52rem; letter-spacing: 0.35em; color: var(--dim); text-transform: uppercase;
+    }
+
+    .track {
+      display: grid; grid-template-columns: 40px 1fr 80px;
+      align-items: center; padding: 0 16px;
+      border-bottom: 1px solid rgba(30,30,30,0.5);
+      cursor: pointer; transition: background 0.2s; position: relative;
+      min-height: 64px;
+    }
+    .track::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; background: var(--red); transform: scaleY(0);
+      transition: transform 0.2s; transform-origin: center;
+    }
+    .track:hover { background: rgba(192,57,43,0.04); }
+    .track:hover::before, .track.active::before { transform: scaleY(1); }
+    .track.active { background: rgba(192,57,43,0.06); }
+
+    .track-num {
+      font-size: 0.65rem; color: var(--dim); letter-spacing: 0.1em;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .track.active .track-num { color: var(--red-glow); }
+
+    .track-info { padding: 0 16px; min-width: 0; }
+    .track-title {
+      font-size: 0.78rem; letter-spacing: 0.08em; color: var(--bone);
+      transition: color 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .track:hover .track-title, .track.active .track-title { color: #fff; }
+    .track-meta { font-size: 0.55rem; letter-spacing: 0.15em; color: var(--dim); margin-top: 3px; }
+    .track.active .track-meta { color: var(--red-glow); }
+
+    .track-play-icon {
+      width: 28px; height: 28px; border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--dim); transition: all 0.2s; flex-shrink: 0;
+      justify-self: end;
+    }
+    .track:hover .track-play-icon { border-color: var(--red); color: var(--red-glow); }
+    .track.active .track-play-icon { border-color: var(--red-glow); color: var(--red-glow); background: rgba(192,57,43,0.1); }
+    .track-play-icon svg { width: 11px; height: 11px; }
+
+    /* ── TAP/CLICK PROMPT ── */
+    #tap-btn {
+      display: none; position: fixed; inset: 0; z-index: 9000;
+      background: transparent; border: none; outline: none;
+      cursor: pointer; padding: 0; margin: 0;
+      -webkit-tap-highlight-color: transparent; -webkit-appearance: none;
+    }
+    #tap-btn.ready { display: block; }
+    #play-prompt {
+      display: none; position: fixed; top: 70px; left: 50%;
+      transform: translateX(-50%); z-index: 9001;
+      background: rgba(8,8,8,0.97); border: 1px solid var(--red);
+      color: var(--bone); font-family: 'Share Tech Mono', monospace;
+      font-size: 0.62rem; letter-spacing: 0.25em; text-transform: uppercase;
+      padding: 10px 22px; align-items: center; gap: 10px;
+      pointer-events: none; white-space: nowrap;
+      animation: promptPulse 1.4s ease-in-out infinite;
+    }
+    #play-prompt.ready { display: flex; }
+    #play-prompt.gone  { display: none; }
+    @keyframes promptPulse {
+      0%,100%{ box-shadow:0 0 0 rgba(192,57,43,0); border-color:var(--red); }
+      50%    { box-shadow:0 0 22px rgba(192,57,43,0.7); border-color:var(--red-glow); }
+    }
+    #play-prompt svg { width:10px; height:10px; fill:var(--red-glow); flex-shrink:0; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 28px 48px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    }
+    .footer-brand { font-family: 'Cinzel Decorative', serif; font-size: 0.9rem; font-weight: 900; color: var(--dim); letter-spacing: 0.15em; }
+    .footer-brand span { color: var(--red); }
+    .footer-copy { font-size: 0.6rem; letter-spacing: 0.15em; color: var(--dim); }
+
+    @media(max-width: 768px) {
+      nav { padding: 0 16px; }
+      .music-hero { padding: 100px 20px 40px; }
+      .now-playing-bar { padding: 0 16px; gap: 10px; }
+      .np-vol-wrap { display: none; }
+      .tracklist-wrap { padding: 32px 16px 60px; }
+      .tracklist-header, .track { grid-template-columns: 32px 1fr 48px; }
+      footer { padding: 24px 16px; flex-direction: column; align-items: center; text-align: center; }
+    }
+    @media(max-width: 480px) {
+      .np-label { display: none; }
+      .tracklist-header { display: none; }
+      .hero-title { font-size: clamp(2rem, 10vw, 3rem); }
+      #play-prompt { font-size: 0.72rem; padding: 13px 26px; top: 80px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="yt-player" style="position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;"></div>
+  <button id="tap-btn" aria-label="Play music"></button>
+  <div id="play-prompt">
+    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    <span id="prompt-text">Click anywhere to play music</span>
+  </div>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="index.html">D<span>XX</span>THLY</a>
+    <a class="nav-back" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Site
+    </a>
+  </nav>
+
+  <!-- HERO -->
+  <div class="music-hero">
+    <div class="hero-tag">// DXXTHLY · Discography</div>
+    <h1 class="hero-title">The<br/><span>Music</span></h1>
+    <p class="hero-sub">All tracks by DXXTHLY</p>
+    <p class="hero-count" id="trackCount">11 tracks</p>
+  </div>
+
+  <!-- NOW PLAYING BAR -->
+  <div class="now-playing-bar">
+    <div class="np-label">Now Playing</div>
+    <div class="eq-bars" id="eqBars">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="np-controls">
+      <button class="np-btn" onclick="prevTrack()" title="Previous">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6V6zm3.5 6 8.5 6V6l-8.5 6z"/></svg>
+      </button>
+      <button class="np-btn" onclick="togglePlay()" title="Play / Pause">
+        <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+      <button class="np-btn" onclick="nextTrack()" title="Next">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
+      </button>
+    </div>
+    <div class="np-info">
+      <div class="np-title" id="npTitle">Select a track to play</div>
+      <div class="np-artist">DXXTHLY</div>
+    </div>
+    <div class="np-vol-wrap">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+      <input type="range" class="np-vol" id="volSlider" min="0" max="100" value="30" oninput="setVol(this.value)">
+    </div>
+  </div>
+
+  <!-- TRACK LIST -->
+  <div class="tracklist-wrap">
+    <div class="tracklist-header">
+      <span>#</span>
+      <span style="padding-left:16px">Title</span>
+      <span></span>
+    </div>
+    <div id="tracklist"></div>
+  </div>
+
+  <footer>
+    <div class="footer-brand">D<span>XX</span>THLY</div>
+    <div class="footer-copy">© 2025 DXXTHLY · All rights reserved</div>
+  </footer>
+
+  <script>
+    const TRACKS = [
+      { id: 'nG_IhiQR_1w', title: 'Taste Like You'          },
+      { id: '6pldxusNg-g', title: 'To You'                   },
+      { id: '65i9a7B3SNo', title: 'You Thought I Loved You'  },
+      { id: 'YfvYkvlVUds', title: 'When I Breathe'           },
+      { id: 'OjAhq-IHH9k', title: 'Heart in the Trunk'       },
+      { id: 'XcJrQbCwi3Y', title: 'Shadows in My Veins'      },
+      { id: 'e7h938Y34ek', title: 'Sharpie'                  },
+      { id: '9RxvslEexts', title: 'Not Like You'             },
+      { id: 'Q3PSaunzvuU', title: 'Feel Again'               },
+      { id: '7RvcRBhfLJk', title: 'Reflection'               },
+      { id: 'fUwM73F-EnY', title: 'Drown Me'                 },
+    ];
+
+    let current  = 0;
+    let ytPlayer = null;
+    let spawned  = false;
+    let pendingTrack = null; // track index to play once spawned
+
+    const npTitle  = document.getElementById('npTitle');
+    const iconPlay = document.getElementById('iconPlay');
+    const iconPause= document.getElementById('iconPause');
+    const eqBars   = document.getElementById('eqBars');
+    const volSlider= document.getElementById('volSlider');
+    const tapBtn   = document.getElementById('tap-btn');
+    const prompt   = document.getElementById('play-prompt');
+    const promptTxt= document.getElementById('prompt-text');
+    const tracklistEl = document.getElementById('tracklist');
+
+    document.getElementById('trackCount').textContent = TRACKS.length + ' tracks';
+
+    const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    promptTxt.textContent = isTouch ? 'Tap anywhere to play' : 'Click anywhere to play';
+
+    // Build track list
+    TRACKS.forEach((t, i) => {
+      const row = document.createElement('div');
+      row.className = 'track';
+      row.id = 'track-' + i;
+      row.innerHTML = `
+        <div class="track-num">${String(i+1).padStart(2,'0')}</div>
+        <div class="track-info">
+          <div class="track-title">${t.title}</div>
+          <div class="track-meta">DXXTHLY</div>
+        </div>
+        <div class="track-play-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </div>`;
+      row.addEventListener('click', () => selectTrack(i));
+      tracklistEl.appendChild(row);
+    });
+
+    function updateFill(v){
+      volSlider.style.background=`linear-gradient(90deg,#c0392b ${v}%,#1e1e1e ${v}%)`;
+    }
+    updateFill(30);
+
+    function setActive(i){
+      document.querySelectorAll('.track').forEach(r=>r.classList.remove('active'));
+      const el = document.getElementById('track-'+i);
+      if(el){
+        el.classList.add('active');
+        // Update play icon to pause on active track
+        el.querySelector('.track-play-icon svg').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        // Reset others to play icon
+        document.querySelectorAll('.track:not(.active) .track-play-icon svg').forEach(svg=>{
+          svg.innerHTML = '<path d="M8 5v14l11-7z"/>';
+        });
+      }
+    }
+
+    function setUI(playing){
+      iconPlay.style.display  = playing?'none':'block';
+      iconPause.style.display = playing?'block':'none';
+      eqBars.classList.toggle('playing', playing);
+      npTitle.classList.toggle('scrolling', playing);
+    }
+
+    function dismiss(){
+      tapBtn.classList.remove('ready');
+      prompt.classList.remove('ready');
+      prompt.classList.add('gone');
+    }
+
+    function getFreshDiv(){
+      const old=document.getElementById('yt-player'); if(old) old.remove();
+      const d=document.createElement('div');
+      d.id='yt-player';
+      d.style.cssText='position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;';
+      document.body.appendChild(d);
+    }
+
+    function doSpawn(trackIndex){
+      if(spawned){
+        // Already spawned — just load the track
+        if(trackIndex !== undefined && trackIndex !== current){
+          current = trackIndex;
+          npTitle.textContent = TRACKS[current].title;
+          setActive(current);
+          ytPlayer.loadVideoById(TRACKS[current].id);
+          updateMediaSession();
+        }
+        return;
+      }
+      spawned = true;
+      dismiss();
+      if(trackIndex !== undefined) current = trackIndex;
+      npTitle.textContent = TRACKS[current].title;
+      setActive(current);
+      getFreshDiv();
+
+      ytPlayer = new YT.Player('yt-player',{
+        width:'1', height:'1',
+        videoId: TRACKS[current].id,
+        playerVars:{ autoplay:1, mute:0, controls:0, disablekb:1, fs:0, iv_load_policy:3, modestbranding:1, rel:0, playsinline:1 },
+        events:{
+          onReady(e){
+            e.target.setVolume(30); updateFill(30); volSlider.value=30;
+            e.target.playVideo();
+            updateMediaSession();
+          },
+          onStateChange(e){
+            const S=YT.PlayerState;
+            if(e.data===S.PLAYING){ setUI(true); updateMediaSession(); }
+            if(e.data===S.PAUSED)  setUI(false);
+            if(e.data===S.ENDED)   nextTrack();
+          },
+          onError(){ nextTrack(); }
+        }
+      });
+    }
+
+    function selectTrack(i){
+      if(!spawned){
+        doSpawn(i);
+      } else {
+        current = i;
+        npTitle.textContent = TRACKS[current].title;
+        setActive(current);
+        ytPlayer.loadVideoById(TRACKS[current].id);
+        updateMediaSession();
+      }
+    }
+
+    function updateMediaSession(){
+      if(!('mediaSession' in navigator)) return;
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: TRACKS[current].title, artist: 'DXXTHLY', album: 'DXXTHLY'
+      });
+      navigator.mediaSession.setActionHandler('play',          ()=>{ ytPlayer&&ytPlayer.playVideo(); });
+      navigator.mediaSession.setActionHandler('pause',         ()=>{ ytPlayer&&ytPlayer.pauseVideo(); });
+      navigator.mediaSession.setActionHandler('nexttrack',     ()=>nextTrack());
+      navigator.mediaSession.setActionHandler('previoustrack', ()=>prevTrack());
+    }
+
+    window.onYouTubeIframeAPIReady = function(){
+      tapBtn.classList.add('ready');
+      prompt.classList.add('ready');
+    };
+
+    (function(){
+      if(window.YT&&window.YT.Player){ window.onYouTubeIframeAPIReady(); return; }
+      const s=document.createElement('script');
+      s.src='https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    })();
+
+    tapBtn.addEventListener('click', function(e){
+      if(e.target.closest && e.target.closest('.now-playing-bar')) return;
+      doSpawn();
+    });
+    document.addEventListener('keydown', function(){ if(!spawned) doSpawn(); }, {once:true});
+
+    function togglePlay(){
+      if(!spawned){ doSpawn(); return; }
+      if(!ytPlayer) return;
+      ytPlayer.getPlayerState()===1 ? ytPlayer.pauseVideo() : ytPlayer.playVideo();
+    }
+    function nextTrack(){
+      current = (current+1) % TRACKS.length;
+      npTitle.textContent = TRACKS[current].title;
+      setActive(current);
+      if(spawned && ytPlayer){ ytPlayer.loadVideoById(TRACKS[current].id); updateMediaSession(); }
+    }
+    function prevTrack(){
+      current = (current-1+TRACKS.length) % TRACKS.length;
+      npTitle.textContent = TRACKS[current].title;
+      setActive(current);
+      if(spawned && ytPlayer){ ytPlayer.loadVideoById(TRACKS[current].id); updateMediaSession(); }
+    }
+    function setVol(v){
+      updateFill(v);
+      if(spawned && ytPlayer) ytPlayer.setVolume(parseInt(v));
+    }
+  </script>
+</body>
+</html>

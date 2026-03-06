@@ -223,6 +223,137 @@
       .hero-title { font-size: clamp(2rem, 10vw, 3rem); }
       #play-prompt { font-size: 0.72rem; padding: 13px 26px; top: 80px; }
     }
+
+    /* ── ARTIST SECTION ── */
+    .artist-section {
+      border-top: 1px solid var(--border);
+      max-width: 900px; margin: 0 auto; padding: 64px 32px;
+    }
+
+    .artist-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-bottom: 2px;
+    }
+
+    /* Bio card */
+    .artist-bio-card {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 40px; position: relative; overflow: hidden;
+      grid-column: 1 / -1;
+    }
+    .artist-bio-card::before {
+      content: 'DXXTHLY'; position: absolute; bottom: -30px; right: -10px;
+      font-family: 'Cinzel Decorative', serif; font-size: 8rem; font-weight: 900;
+      opacity: 0.03; pointer-events: none; line-height: 1; letter-spacing: -0.05em;
+      color: var(--bone);
+    }
+    .artist-bio-card::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--red), var(--red-glow), transparent);
+    }
+    .artist-bio-tag {
+      font-size: 0.55rem; letter-spacing: 0.5em; color: var(--red-glow);
+      text-transform: uppercase; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;
+    }
+    .artist-bio-tag::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .artist-bio-name {
+      font-family: 'Cinzel Decorative', serif; font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 900; color: var(--bone); letter-spacing: 0.05em; margin-bottom: 20px;
+      line-height: 1.1;
+    }
+    .artist-bio-name span { color: var(--red-glow); }
+    .artist-bio-text {
+      font-size: 0.72rem; color: var(--dim); line-height: 2; max-width: 640px; margin-bottom: 28px;
+    }
+    .artist-bio-text strong { color: var(--bone); }
+    .artist-tags {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .artist-tag-pill {
+      font-size: 0.55rem; letter-spacing: 0.2em; text-transform: uppercase;
+      border: 1px solid var(--border); color: var(--dim); padding: 5px 12px;
+      transition: all 0.3s;
+    }
+    .artist-tag-pill:hover { border-color: var(--red); color: var(--bone); }
+    .artist-tag-pill.highlight { border-color: rgba(192,57,43,0.4); color: var(--red-glow); }
+
+    /* Streaming cards */
+    .stream-card {
+      position: relative; padding: 36px 32px;
+      background: var(--surface); border: 1px solid var(--border);
+      text-decoration: none; color: inherit;
+      display: flex; flex-direction: column; justify-content: space-between;
+      overflow: hidden; transition: transform 0.3s, border-color 0.3s;
+      min-height: 180px;
+    }
+    .stream-card::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.4s; }
+    .stream-card:hover { transform: translateY(-3px); }
+    .stream-card:hover::before { opacity: 1; }
+
+    .stream-card.youtube::before { background: radial-gradient(ellipse at 0% 100%, rgba(255,0,0,0.08) 0%, transparent 60%); }
+    .stream-card.youtube:hover { border-color: rgba(255,0,0,0.35); }
+    .stream-card.youtube .stream-icon { color: #ff0000; }
+    .stream-card.youtube .stream-cta { border-color: rgba(255,0,0,0.3); color: #ff4444; }
+    .stream-card.youtube:hover .stream-cta { border-color: #ff0000; box-shadow: 0 0 20px rgba(255,0,0,0.2); }
+
+    .stream-card.spotify::before { background: radial-gradient(ellipse at 0% 100%, rgba(29,185,84,0.08) 0%, transparent 60%); }
+    .stream-card.spotify:hover { border-color: rgba(29,185,84,0.35); }
+    .stream-card.spotify .stream-icon { color: #1db954; }
+    .stream-card.spotify .stream-cta { border-color: rgba(29,185,84,0.3); color: #1db954; }
+    .stream-card.spotify:hover .stream-cta { border-color: #1db954; box-shadow: 0 0 20px rgba(29,185,84,0.2); }
+
+    .stream-card.apple::before { background: radial-gradient(ellipse at 0% 100%, rgba(252,60,68,0.08) 0%, transparent 60%); }
+    .stream-card.apple:hover { border-color: rgba(252,60,68,0.35); }
+    .stream-card.apple .stream-icon { color: #fc3c44; }
+    .stream-card.apple .stream-cta { border-color: rgba(252,60,68,0.3); color: #fc3c44; }
+    .stream-card.apple:hover .stream-cta { border-color: #fc3c44; box-shadow: 0 0 20px rgba(252,60,68,0.2); }
+
+    .stream-platform { font-size: 0.55rem; letter-spacing: 0.4em; text-transform: uppercase; color: var(--dim); margin-bottom: 12px; }
+    .stream-name { font-family: 'Cinzel Decorative', serif; font-size: clamp(1rem, 2vw, 1.5rem); font-weight: 700; color: var(--bone); line-height: 1.2; margin-bottom: 6px; }
+    .stream-sub { font-size: 0.6rem; letter-spacing: 0.1em; color: var(--dim); margin-bottom: 24px; }
+    .stream-icon { margin-bottom: 4px; transition: transform 0.3s; }
+    .stream-card:hover .stream-icon { transform: scale(1.1); }
+    .stream-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+      border: 1px solid; padding: 9px 16px; width: fit-content;
+      transition: all 0.3s;
+    }
+    .stream-cta svg { width: 12px; height: 12px; }
+    .stream-arrow {
+      position: absolute; top: 20px; right: 20px;
+      font-size: 1.1rem; color: var(--dim); transition: all 0.3s;
+    }
+    .stream-card:hover .stream-arrow { transform: rotate(-45deg); color: var(--bone); }
+
+    /* Albums row */
+    .albums-row {
+      display: flex; gap: 2px; margin-top: 2px; flex-wrap: wrap;
+    }
+    .album-chip {
+      flex: 1; min-width: 120px;
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 20px 24px; position: relative; overflow: hidden;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    .album-chip::before {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+      background: var(--red); transform: scaleX(0); transition: transform 0.3s;
+    }
+    .album-chip:hover::before { transform: scaleX(1); }
+    .album-chip:hover { border-color: rgba(192,57,43,0.3); background: rgba(192,57,43,0.03); }
+    .album-chip-label { font-size: 0.5rem; letter-spacing: 0.35em; color: var(--red-glow); text-transform: uppercase; margin-bottom: 6px; }
+    .album-chip-name { font-size: 0.72rem; letter-spacing: 0.08em; color: var(--bone); }
+
+    @media(max-width: 768px) {
+      .artist-section { padding: 40px 16px; }
+      .artist-grid { grid-template-columns: 1fr; }
+      .artist-bio-card { padding: 28px 24px; }
+      .stream-card { padding: 28px 24px; }
+    }
+    @media(max-width: 480px) {
+      .albums-row { flex-direction: column; }
+      .album-chip { min-width: unset; }
+    }
   </style>
 </head>
 <body>
@@ -287,6 +418,99 @@
       <span></span>
     </div>
     <div id="tracklist"></div>
+  </div>
+
+
+  <!-- ARTIST / STREAMING SECTION -->
+  <div class="artist-section">
+
+    <!-- Bio -->
+    <div style="margin-bottom:2px;">
+      <div class="artist-bio-card">
+        <div class="artist-bio-tag">// Artist</div>
+        <div class="artist-bio-name">D<span>XX</span>THLY</div>
+        <p class="artist-bio-text">
+          Hip-hop artist &amp; producer forging dark, atmospheric sounds. Known for singles like
+          <strong>"Country Tang"</strong>, <strong>"Taste Like You"</strong>, and <strong>"When I Breathe"</strong> — 
+          released via <strong>9911263 Records DK</strong>. Albums include
+          <strong>Silence Was Louder</strong>, <strong>To You</strong>, <strong>DXXD</strong>, and <strong>L1F3</strong>.
+          Also the creator of the <strong>Steam Friends Desk Display</strong> and the dark fantasy game
+          <strong>Soul Collector — Abyssal Ascension</strong>.
+        </p>
+        <div class="artist-tags">
+          <span class="artist-tag-pill highlight">Hip Hop / Rap</span>
+          <span class="artist-tag-pill highlight">Rock</span>
+          <span class="artist-tag-pill highlight">Country Pop</span>
+          <span class="artist-tag-pill">9911263 Records DK</span>
+          <span class="artist-tag-pill">Producer</span>
+          <span class="artist-tag-pill">3D Design</span>
+          <span class="artist-tag-pill">Game Dev</span>
+          <span class="artist-tag-pill">Est. 2024</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Streaming cards -->
+    <div class="artist-grid">
+      <a href="https://www.youtube.com/@dxxthly" target="_blank" class="stream-card youtube">
+        <div class="stream-arrow">↗</div>
+        <div>
+          <div class="stream-platform">☞ YouTube</div>
+          <div class="stream-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19C0 8.04 0 12 0 12s0 3.96.5 5.81a3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14C24 15.96 24 12 24 12s0-3.96-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z"/></svg>
+          </div>
+          <div class="stream-name">Watch on<br/>YouTube</div>
+          <div class="stream-sub">Music videos · Releases · @dxxthly</div>
+        </div>
+        <div class="stream-cta">
+          Open YouTube
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </a>
+
+      <a href="https://open.spotify.com/artist/04Dr3EiwyawmYRFJpR7FLX?si=O3EUs0SFQByr8ABbyMOwCA" target="_blank" class="stream-card spotify">
+        <div class="stream-arrow">↗</div>
+        <div>
+          <div class="stream-platform">☞ Spotify</div>
+          <div class="stream-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+          </div>
+          <div class="stream-name">Stream on<br/>Spotify</div>
+          <div class="stream-sub">Full discography · Follow · Save</div>
+        </div>
+        <div class="stream-cta">
+          Open Spotify
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </a>
+
+      <a href="https://music.apple.com/us/artist/dxxthly/1826808363" target="_blank" class="stream-card apple" style="grid-column: 1 / -1;">
+        <div class="stream-arrow">↗</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:24px;">
+          <div>
+            <div class="stream-platform">☞ Apple Music</div>
+            <div class="stream-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M23.994 6.124a9.23 9.23 0 0 0-.24-2.19c-.317-1.31-1.062-2.31-2.18-3.043a6.303 6.303 0 0 0-1.862-.81c-.676-.165-1.365-.21-2.055-.227-.26-.005-.507-.008-.757-.008H6.1c-.254 0-.504.003-.758.008C4.63.06 3.927.107 3.242.275a6.264 6.264 0 0 0-1.85.806C.28 1.822-.47 2.83-.18 4.15a9.23 9.23 0 0 0-.24 2.19C-.48 6.8-.48 7.254-.48 7.73v8.54c0 .476 0 .93.006 1.39a9.23 9.23 0 0 0 .24 2.19c.317 1.31 1.062 2.31 2.18 3.043a6.303 6.303 0 0 0 1.862.81c.676.165 1.365.21 2.055.227.26.005.507.008.757.008h11.76c.254 0 .504-.003.758-.008.71-.017 1.4-.062 2.086-.23a6.264 6.264 0 0 0 1.85-.806c1.112-.737 1.862-1.733 2.18-3.043a9.23 9.23 0 0 0 .24-2.19c.006-.46.006-.914.006-1.39V7.73c0-.476 0-.93-.006-1.606zM12 18.593a6.593 6.593 0 1 1 0-13.186 6.593 6.593 0 0 1 0 13.186zm6.866-11.89a1.54 1.54 0 1 1 0-3.08 1.54 1.54 0 0 1 0 3.08zm-4.52 5.297a2.346 2.346 0 1 1-4.692 0 2.346 2.346 0 0 1 4.692 0z"/></svg>
+            </div>
+            <div class="stream-name">Listen on Apple Music</div>
+            <div class="stream-sub">Full catalogue · Add to library · Spatial Audio</div>
+          </div>
+          <div class="stream-cta" style="margin-top:0;">
+            Open Apple Music
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Albums -->
+    <div class="albums-row">
+      <div class="album-chip"><div class="album-chip-label">Album</div><div class="album-chip-name">Silence Was Louder</div></div>
+      <div class="album-chip"><div class="album-chip-label">Album</div><div class="album-chip-name">To You</div></div>
+      <div class="album-chip"><div class="album-chip-label">Album</div><div class="album-chip-name">DXXD</div></div>
+      <div class="album-chip"><div class="album-chip-label">Album</div><div class="album-chip-name">L1F3</div></div>
+    </div>
+
   </div>
 
   <footer>

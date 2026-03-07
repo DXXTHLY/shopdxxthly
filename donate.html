@@ -218,7 +218,7 @@
 
     <!-- STORY BODY -->
     <div class="story-section">
-      <p>Hi, my name is Brian and I'm 33 years old.</p>
+      <p>Hi, my name is Brian and I'm <span id="brianAge">33</span> years old.</p>
 
       <p>For most of my 20s I struggled with alcoholism. I drank every day from morning to night, trying to escape severe anxiety and panic disorder. At the time, I convinced myself I just hadn't found the right medication yet — but in reality alcohol had become my way of avoiding everything.</p>
 
@@ -289,6 +289,19 @@
   </div>
 
   <script>
+    // ── AGE (Birthday: Dec 9, 1992) ──
+    function updateAge() {
+      const today = new Date();
+      const bday = new Date(1992, 11, 9); // month is 0-indexed, so 11 = December
+      let age = today.getFullYear() - bday.getFullYear();
+      const hasBirthdayPassed =
+        today.getMonth() > bday.getMonth() ||
+        (today.getMonth() === bday.getMonth() && today.getDate() >= bday.getDate());
+      if (!hasBirthdayPassed) age--;
+      document.getElementById('brianAge').textContent = age;
+    }
+    updateAge();
+
     // ── SOBER COUNTER ──
     const soberStart = new Date('2023-07-03T00:00:00');
     function updateCounter() {

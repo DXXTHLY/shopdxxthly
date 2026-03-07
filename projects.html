@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"/>
+  <title>DXXTHLY — Projects</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #080808; --surface: #0f0f0f; --border: #1e1e1e;
+      --red: #c0392b; --red-glow: #e74c3c; --bone: #d4c5a9; --dim: #5a4a3a; --discord: #5865f2;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { overflow-x: hidden; max-width: 100%; } html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--bone); font-family: 'Share Tech Mono', monospace; min-height: 100vh; overflow-x: hidden; cursor: crosshair; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 9999; opacity: 0.5; }
+    body::after { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px); pointer-events: none; z-index: 9998; }
+
+    /* NAV */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 62px; background: rgba(8,8,8,0.97); border-bottom: 1px solid var(--border); backdrop-filter: blur(10px); gap: 16px; }
+    .nav-logo { font-family: 'Cinzel Decorative', serif; font-size: 1.2rem; font-weight: 900; letter-spacing: 0.15em; color: var(--bone); text-decoration: none; flex-shrink: 0; }
+    .nav-logo span { color: var(--red-glow); }
+    .nav-links { display: flex; gap: 28px; list-style: none; align-items: center; flex-shrink: 0; }
+    .nav-links a { color: var(--dim); text-decoration: none; font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; transition: color 0.3s, text-shadow 0.3s; }
+    .nav-links a:hover { color: var(--bone); text-shadow: 0 0 12px var(--red-glow); }
+    .nav-links a.active { color: var(--bone); }
+    .nav-discord { display: flex !important; align-items: center; gap: 7px; color: rgba(88,101,242,0.7) !important; border: 1px solid rgba(88,101,242,0.25); padding: 5px 12px; }
+    .nav-discord:hover { color: #fff !important; background: rgba(88,101,242,0.12); border-color: var(--discord) !important; }
+    .nav-discord svg { width: 12px; height: 12px; }
+    .nav-toggle { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 4px; flex-shrink: 0; }
+    .nav-toggle span { display: block; width: 22px; height: 1px; background: var(--bone); }
+
+    /* MUSIC PLAYER */
+    .music-player { display: flex; align-items: center; gap: 10px; background: rgba(15,15,15,0.95); border: 1px solid var(--border); padding: 6px 14px; flex: 1; max-width: 400px; min-width: 0; position: relative; }
+    .music-player::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--red); }
+    .music-btn { background: none; border: none; cursor: pointer; color: var(--bone); padding: 4px; flex-shrink: 0; transition: color 0.2s; display: flex; align-items: center; justify-content: center; }
+    .music-btn:hover { color: var(--red-glow); }
+    .music-btn svg { width: 15px; height: 15px; display: block; }
+    .music-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .music-label { font-size: 0.44rem; letter-spacing: 0.3em; color: var(--red-glow); text-transform: uppercase; line-height: 1; }
+    .music-title-wrap { overflow: hidden; }
+    .music-title { font-size: 0.62rem; color: var(--bone); letter-spacing: 0.08em; white-space: nowrap; line-height: 1.3; display: inline-block; }
+    .music-title.scrolling { animation: scrollTitle 12s linear infinite; }
+    @keyframes scrollTitle { 0%,25%{transform:translateX(0)} 75%,100%{transform:translateX(-50%)} }
+    .music-vol-wrap { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .music-vol-wrap svg { width: 11px; height: 11px; color: var(--dim); flex-shrink: 0; }
+    .music-vol { -webkit-appearance: none; appearance: none; width: 60px; height: 2px; background: linear-gradient(90deg, var(--red) 30%, var(--border) 30%); border-radius: 0; cursor: pointer; outline: none; }
+    .music-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; background: var(--red-glow); border-radius: 0; cursor: pointer; }
+    .music-vol::-moz-range-thumb { width: 10px; height: 10px; background: var(--red-glow); border: none; border-radius: 0; }
+    .eq-bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; flex-shrink: 0; }
+    .eq-bars span { display: block; width: 2px; background: var(--red); height: 3px; }
+    .eq-bars.playing span:nth-child(1) { animation: eq1 0.8s ease-in-out infinite; }
+    .eq-bars.playing span:nth-child(2) { animation: eq2 0.6s ease-in-out infinite 0.1s; }
+    .eq-bars.playing span:nth-child(3) { animation: eq3 0.9s ease-in-out infinite 0.2s; }
+    .eq-bars.playing span:nth-child(4) { animation: eq1 0.7s ease-in-out infinite 0.15s; }
+    @keyframes eq1 { 0%,100%{height:3px} 50%{height:12px} }
+    @keyframes eq2 { 0%,100%{height:7px} 50%{height:3px} }
+    @keyframes eq3 { 0%,100%{height:11px} 50%{height:4px} }
+
+    /* PAGE HEADER */
+    .page-wrap { max-width: 1200px; margin: 0 auto; padding: 110px 48px 80px; }
+    .page-eyebrow { font-size: 0.6rem; letter-spacing: 0.4em; color: var(--red-glow); text-transform: uppercase; margin-bottom: 16px; animation: fadeUp 0.8s ease both; }
+    .page-title { font-family: 'Cinzel Decorative', serif; font-size: clamp(2rem, 7vw, 3.8rem); font-weight: 900; color: var(--bone); letter-spacing: 0.04em; line-height: 1.1; animation: fadeUp 0.8s ease 0.1s both; }
+    .page-title span { color: var(--red-glow); }
+    .page-divider { width: 60px; height: 1px; background: var(--red); margin: 24px 0 8px; animation: fadeUp 0.8s ease 0.15s both; }
+    .page-desc { color: var(--dim); font-size: 0.72rem; letter-spacing: 0.1em; line-height: 1.8; margin-bottom: 52px; animation: fadeUp 0.8s ease 0.2s both; }
+    .page-desc a { color: var(--dim); text-decoration: underline; transition: color 0.2s; }
+    .page-desc a:hover { color: var(--red-glow); }
+
+    /* FILTER TABS */
+    .filter-bar { display: flex; gap: 2px; margin-bottom: 36px; flex-wrap: wrap; animation: fadeUp 0.8s ease 0.22s both; }
+    .filter-btn { background: var(--surface); border: 1px solid var(--border); color: var(--dim); font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.25em; text-transform: uppercase; padding: 8px 16px; cursor: pointer; transition: all 0.2s; }
+    .filter-btn:hover { color: var(--bone); border-color: rgba(192,57,43,0.4); }
+    .filter-btn.active { color: var(--bone); border-color: var(--red); background: rgba(192,57,43,0.08); }
+
+    /* PROJECT GRID */
+    .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 2px; animation: fadeUp 0.8s ease 0.25s both; }
+
+    /* PROJECT CARD */
+    .proj-card { background: var(--surface); border: 1px solid var(--border); display: flex; flex-direction: column; position: relative; transition: border-color 0.3s, transform 0.3s; overflow: hidden; }
+    .proj-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform 0.3s; }
+    .proj-card:hover::before { transform: scaleX(1); }
+    .proj-card:hover { border-color: rgba(192,57,43,0.35); transform: translateY(-2px); }
+
+    .proj-card-header { padding: 24px 24px 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .proj-icon { width: 36px; height: 36px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--red-glow); }
+    .proj-icon svg { width: 18px; height: 18px; }
+    .proj-lang { font-size: 0.52rem; letter-spacing: 0.3em; text-transform: uppercase; border: 1px solid var(--border); padding: 3px 8px; color: var(--dim); white-space: nowrap; }
+
+    .proj-card-body { padding: 0 24px 20px; flex: 1; display: flex; flex-direction: column; }
+    .proj-tag { font-size: 0.52rem; letter-spacing: 0.4em; color: var(--red-glow); text-transform: uppercase; margin-bottom: 8px; }
+    .proj-name { font-family: 'Cinzel Decorative', serif; font-size: 0.95rem; color: var(--bone); font-weight: 700; margin-bottom: 12px; line-height: 1.35; }
+    .proj-desc { font-size: 0.67rem; color: var(--dim); line-height: 1.85; flex: 1; }
+
+    .proj-features { margin: 16px 0; display: flex; flex-direction: column; gap: 7px; }
+    .proj-features li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.63rem; color: var(--dim); line-height: 1.6; list-style: none; }
+    .proj-features li::before { content: '▸'; color: var(--red-glow); flex-shrink: 0; font-size: 0.6rem; margin-top: 1px; }
+
+    .proj-card-footer { padding: 16px 24px 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .proj-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .proj-tag-pill { font-size: 0.5rem; letter-spacing: 0.2em; text-transform: uppercase; border: 1px solid var(--border); padding: 3px 8px; color: var(--dim); }
+    .proj-github-btn { display: inline-flex; align-items: center; gap: 8px; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--bone); text-decoration: none; border: 1px solid var(--border); padding: 8px 14px; transition: all 0.3s; white-space: nowrap; flex-shrink: 0; }
+    .proj-github-btn:hover { border-color: var(--red); color: var(--red-glow); box-shadow: 0 0 20px rgba(192,57,43,0.2); }
+    .proj-github-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    /* GITHUB PROFILE BANNER */
+    .gh-banner { margin-top: 56px; padding: 32px 36px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; position: relative; overflow: hidden; animation: fadeUp 0.8s ease 0.3s both; }
+    .gh-banner::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--red), transparent); }
+    .gh-banner-text { display: flex; flex-direction: column; gap: 6px; }
+    .gh-banner-label { font-size: 0.55rem; letter-spacing: 0.4em; color: var(--red-glow); text-transform: uppercase; }
+    .gh-banner-name { font-family: 'Cinzel Decorative', serif; font-size: 1.3rem; color: var(--bone); font-weight: 700; }
+    .gh-banner-sub { font-size: 0.65rem; color: var(--dim); letter-spacing: 0.1em; }
+    .gh-banner-btn { display: inline-flex; align-items: center; gap: 10px; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--bone); text-decoration: none; border: 1px solid var(--red); padding: 12px 24px; transition: all 0.3s; position: relative; overflow: hidden; flex-shrink: 0; }
+    .gh-banner-btn::before { content: ''; position: absolute; inset: 0; background: var(--red); transform: translateX(-101%); transition: transform 0.3s ease; z-index: -1; }
+    .gh-banner-btn:hover::before { transform: translateX(0); }
+    .gh-banner-btn:hover { color: #fff; box-shadow: 0 0 30px rgba(192,57,43,0.4); }
+    .gh-banner-btn svg { width: 16px; height: 16px; }
+    .gh-bg-text { position: absolute; right: -10px; bottom: -20px; font-family: 'Cinzel Decorative', serif; font-size: 8rem; font-weight: 900; opacity: 0.03; pointer-events: none; line-height: 1; letter-spacing: -0.05em; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 36px 48px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-top: 60px; }
+    .footer-brand { font-family: 'Cinzel Decorative', serif; font-size: 1rem; font-weight: 900; color: var(--dim); letter-spacing: 0.15em; }
+    .footer-brand span { color: var(--red); }
+    .footer-links { display: flex; gap: 24px; flex-wrap: wrap; }
+    .footer-links a { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--dim); text-decoration: none; transition: color 0.3s; }
+    .footer-links a:hover { color: var(--bone); }
+    .footer-copy { font-size: 0.6rem; letter-spacing: 0.15em; color: var(--dim); }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* MUSIC TAP OVERLAY */
+    @keyframes playerPulse { 0%,100%{box-shadow:0 0 0 rgba(192,57,43,0)} 50%{box-shadow:0 0 18px rgba(192,57,43,0.8)} }
+    .music-player.waiting { animation: playerPulse 1.4s ease-in-out infinite; }
+    #tap-btn { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9000; background: transparent; border: none; outline: none; cursor: pointer; padding: 0; margin: 0; -webkit-tap-highlight-color: transparent; -webkit-appearance: none; }
+    #tap-btn.ready { display: block; }
+    #play-prompt { display: none; position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 9001; background: rgba(8,8,8,0.97); border: 1px solid var(--red); color: var(--bone); font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; letter-spacing: 0.25em; text-transform: uppercase; padding: 10px 22px; align-items: center; gap: 10px; pointer-events: none; white-space: nowrap; animation: promptPulse 1.4s ease-in-out infinite; transition: opacity 0.25s; }
+    #play-prompt.ready { display: flex; }
+    #play-prompt.gone { opacity:0; display:none; }
+    @keyframes promptPulse { 0%,100%{ box-shadow:0 0 0 rgba(192,57,43,0); border-color:var(--red); } 50%{ box-shadow:0 0 22px rgba(192,57,43,0.7); border-color:var(--red-glow); } }
+    #play-prompt svg { width:10px; height:10px; fill:var(--red-glow); flex-shrink:0; }
+
+    @media (max-width: 1024px) { nav { padding: 0 20px; } .music-player { max-width: 280px; } .page-wrap { padding: 110px 32px 80px; } }
+    @media (max-width: 768px) {
+      nav { padding: 0 16px; height: auto; min-height: 58px; flex-wrap: wrap; padding-top: 10px; padding-bottom: 10px; gap: 10px; }
+      .nav-logo { font-size: 1rem; }
+      .nav-links { display: none; flex-direction: column; gap: 0; position: absolute; top: 100%; left: 0; right: 0; background: rgba(8,8,8,0.98); border-bottom: 1px solid var(--border); padding: 8px 0; z-index: 200; }
+      .nav-links.open { display: flex; }
+      .nav-links li { width: 100%; }
+      .nav-links a { display: block; padding: 14px 24px; font-size: 0.8rem; border-bottom: 1px solid var(--border); }
+      .nav-links li:last-child a { border-bottom: none; }
+      .nav-discord { border: none; padding: 14px 24px; }
+      .nav-toggle { display: flex; }
+      .music-player { order: 3; width: 100%; max-width: 100%; flex-basis: 100%; }
+      .page-wrap { padding: 130px 20px 60px; }
+      .projects-grid { grid-template-columns: 1fr; }
+      .gh-banner { flex-direction: column; align-items: flex-start; }
+      .gh-bg-text { display: none; }
+      footer { padding: 28px 20px; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+      .footer-links { justify-content: center; }
+    }
+    @media (max-width: 480px) { .music-label { display: none; } .gh-banner { padding: 24px 20px; } }
+  </style>
+</head>
+<body>
+
+  <div id="yt-player" style="position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;"></div>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="index.html">D<span>XX</span>THLY</a>
+    <div class="music-player">
+      <div class="eq-bars" id="eqBars"><span></span><span></span><span></span><span></span></div>
+      <button class="music-btn" onclick="togglePlay()">
+        <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+      <button class="music-btn" onclick="skipNext()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
+      </button>
+      <div class="music-info">
+        <div class="music-label">♪ DXXTHLY</div>
+        <div class="music-title-wrap"><span class="music-title" id="musicTitle">Loading...</span></div>
+      </div>
+      <div class="music-vol-wrap">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+        <input type="range" class="music-vol" id="volSlider" min="0" max="100" value="30" oninput="setVol(this.value)">
+      </div>
+    </div>
+    <button class="nav-toggle" onclick="this.closest('nav').querySelector('.nav-links').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="music.html">Music</a></li>
+      <li><a href="game.html">Game</a></li>
+      <li><a href="projects.html" class="active">Projects</a></li>
+      <li><a href="index.html#stl">Downloads</a></li>
+      <li><a href="index.html#shop">Shop</a></li>
+      <li><a href="donate.html" style="color:#27ae60;">Donate</a></li>
+      <li>
+        <a href="https://discord.gg/dg43fxqKPq" target="_blank" class="nav-discord">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.03.056a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+          Discord
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- PAGE -->
+  <div class="page-wrap">
+
+    <p class="page-eyebrow">// GitHub &nbsp;·&nbsp; Open Source &nbsp;·&nbsp; Dev Projects</p>
+    <h1 class="page-title">My <span>Projects</span></h1>
+    <div class="page-divider"></div>
+    <p class="page-desc">Tools, utilities, and experiments I've built and open-sourced. All repos available on <a href="https://github.com/DXXTHLY" target="_blank">github.com/DXXTHLY</a>.</p>
+
+    <!-- FILTER -->
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterCards('all', this)">All</button>
+      <button class="filter-btn" onclick="filterCards('browser', this)">Browser</button>
+      <button class="filter-btn" onclick="filterCards('python', this)">Python</button>
+      <button class="filter-btn" onclick="filterCards('windows', this)">Windows</button>
+      <button class="filter-btn" onclick="filterCards('audio', this)">Audio</button>
+      <button class="filter-btn" onclick="filterCards('gaming', this)">Gaming</button>
+    </div>
+
+    <!-- CARDS -->
+    <div class="projects-grid" id="projectsGrid">
+
+      <!-- AlterPage -->
+      <div class="proj-card" data-tags="browser javascript">
+        <div class="proj-card-header">
+          <div class="proj-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+          </div>
+          <span class="proj-lang">JavaScript</span>
+        </div>
+        <div class="proj-card-body">
+          <div class="proj-tag">Browser Extension</div>
+          <div class="proj-name">AlterPage</div>
+          <div class="proj-desc">A powerful browser extension for injecting and managing custom JavaScript scripts on any website — like Tampermonkey but with a cleaner interface.</div>
+          <ul class="proj-features">
+            <li>URL pattern matching — scripts only fire on target sites</li>
+            <li>Real-time console with execution logs and errors</li>
+            <li>Syntax highlighting and dark/light mode</li>
+            <li>Enable, disable, edit and organize scripts on the fly</li>
+          </ul>
+        </div>
+        <div class="proj-card-footer">
+          <div class="proj-tags">
+            <span class="proj-tag-pill">Browser</span>
+            <span class="proj-tag-pill">JS Injection</span>
+          </div>
+          <a href="https://github.com/DXXTHLY/AlterPage" target="_blank" class="proj-github-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            View on GitHub
+          </a>
+        </div>
+      </div>
+
+      <!-- Safe HTTP Load Tester -->
+      <div class="proj-card" data-tags="python">
+        <div class="proj-card-header">
+          <div class="proj-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <span class="proj-lang">Python</span>
+        </div>
+        <div class="proj-card-body">
+          <div class="proj-tag">Dev Tool</div>
+          <div class="proj-name">Safe HTTP Load Tester</div>
+          <div class="proj-desc">A professional-grade async HTTP performance analysis tool. Understand exactly how your web app or API behaves under load — with deep, nerdy stats and a beautiful retro terminal UI.</div>
+          <ul class="proj-features">
+            <li>Latency percentiles: avg, p50, p90, p95, p99</li>
+            <li>DNS, TCP, and TTFB breakdown per request</li>
+            <li>Live progress bar + colorized ASCII report</li>
+            <li>Export raw results to JSON for further analysis</li>
+          </ul>
+        </div>
+        <div class="proj-card-footer">
+          <div class="proj-tags">
+            <span class="proj-tag-pill">Python</span>
+            <span class="proj-tag-pill">asyncio</span>
+            <span class="proj-tag-pill">CLI</span>
+          </div>
+          <a href="https://github.com/DXXTHLY/safe-http-load-tester" target="_blank" class="proj-github-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            View on GitHub
+          </a>
+        </div>
+      </div>
+
+      <!-- Best Optimizer BAT -->
+      <div class="proj-card" data-tags="windows">
+        <div class="proj-card-header">
+          <div class="proj-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg>
+          </div>
+          <span class="proj-lang">Batch / CMD</span>
+        </div>
+        <div class="proj-card-body">
+          <div class="proj-tag">Windows Utility</div>
+          <div class="proj-name">Best Optimizer</div>
+          <div class="proj-desc">A Windows batch script optimizer that cleans out temp files, junk data, and other clutter to free up space and keep your PC running clean. Simple, fast, no installs needed.</div>
+          <ul class="proj-features">
+            <li>Deletes temp files and system junk automatically</li>
+            <li>No installation required — run and done</li>
+            <li>Lightweight batch script, fully transparent</li>
+          </ul>
+        </div>
+        <div class="proj-card-footer">
+          <div class="proj-tags">
+            <span class="proj-tag-pill">Windows</span>
+            <span class="proj-tag-pill">Batch</span>
+          </div>
+          <a href="https://github.com/DXXTHLY/best-optimizer-bat" target="_blank" class="proj-github-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            View on GitHub
+          </a>
+        </div>
+      </div>
+
+      <!-- BAT to EXE -->
+      <div class="proj-card" data-tags="windows python">
+        <div class="proj-card-header">
+          <div class="proj-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          </div>
+          <span class="proj-lang">Python</span>
+        </div>
+        <div class="proj-card-body">
+          <div class="proj-tag">Windows Utility</div>
+          <div class="proj-name">BAT / CMD to EXE Converter</div>
+          <div class="proj-desc">The simplest way to package your Windows batch scripts into standalone, professional executables. Add a custom icon, hide the console window, and ship a single clean .exe file.</div>
+          <ul class="proj-features">
+            <li>Custom icon support — make it look legit</li>
+            <li>Silent mode — runs with no console window</li>
+            <li>Real-time conversion log so you see exactly what happens</li>
+            <li>No dependencies on the end user's machine</li>
+          </ul>
+        </div>
+        <div class="proj-card-footer">
+          <div class="proj-tags">
+            <span class="proj-tag-pill">Windows</span>
+            <span class="proj-tag-pill">Python</span>
+            <span class="proj-tag-pill">GUI</span>
+          </div>
+          <a href="https://github.com/DXXTHLY/BAT-CMD-to-EXE-Converter" target="_blank" class="proj-github-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            View on GitHub
+          </a>
+        </div>
+      </div>
+
+      <!-- ClickSyncFX -->
+      <div class="proj-card" data-tags="audio python">
+        <div class="proj-card-header">
+          <div class="proj-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          </div>
+          <span class="proj-lang">Python</span>
+        </div>
+        <div class="proj-card-body">
+          <div class="proj-tag">Audio Tool</div>
+          <div class="proj-name">ClickSync FX</div>
+          <div class="proj-desc">The ultimate audio engine for your mouse. Transform every click into a dynamic sound experience with real-time pitch shifting, zero latency, and full custom audio support.</div>
+          <ul class="proj-features">
+            <li>Independent pitch control for left and right mouse buttons</li>
+            <li>Drag & drop any .wav or .mp3 — universal audio support</li>
+            <li>Ghost Mode — hides to system tray, stays out of your way</li>
+            <li>Zero latency via Pygame mixer engine</li>
+          </ul>
+        </div>
+        <div class="proj-card-footer">
+          <div class="proj-tags">
+            <span class="proj-tag-pill">Audio</span>
+            <span class="proj-tag-pill">Python</span>
+            <span class="proj-tag-pill">NumPy</span>
+          </div>
+          <a href="https://github.com/DXXTHLY/ClickSyncFX" target="_blank" class="proj-github-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            View on GitHub
+          </a>
+        </div>
+      </div>
+
+      <!-- AHK Input Detector -->
+      <div class="proj-card" data-tags="gaming">
+        <div class="proj-card-header">
+          <div class="proj-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg>
+          </div>
+          <span class="proj-lang">AutoHotKey</span>
+        </div>
+        <div class="proj-card-body">
+          <div class="proj-tag">Gaming / Dev Tool</div>
+          <div class="proj-name">AHK Controller Input Detector</div>
+          <div class="proj-desc">A clean AutoHotkey GUI that monitors and displays every input from your game controller in real time — buttons, joystick axes, triggers, and the POV hat. Great for testing and debugging.</div>
+          <ul class="proj-features">
+            <li>Detects up to 32 buttons, all joystick axes, and POV hat</li>
+            <li>Live GUI updates as you press and move inputs</li>
+            <li>Useful for game dev, controller troubleshooting, and AHK learning</li>
+          </ul>
+        </div>
+        <div class="proj-card-footer">
+          <div class="proj-tags">
+            <span class="proj-tag-pill">AutoHotKey</span>
+            <span class="proj-tag-pill">Gaming</span>
+            <span class="proj-tag-pill">GUI</span>
+          </div>
+          <a href="https://github.com/DXXTHLY/AutoHotKey-Input-Detector" target="_blank" class="proj-github-btn">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            View on GitHub
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /grid -->
+
+    <!-- GITHUB PROFILE BANNER -->
+    <div class="gh-banner">
+      <div class="gh-bg-text">GH</div>
+      <div class="gh-banner-text">
+        <div class="gh-banner-label">// Open Source</div>
+        <div class="gh-banner-name">github.com/DXXTHLY</div>
+        <div class="gh-banner-sub">More projects, forks, and experiments live on GitHub.</div>
+      </div>
+      <a href="https://github.com/DXXTHLY" target="_blank" class="gh-banner-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        View GitHub Profile
+      </a>
+    </div>
+
+  </div><!-- /page-wrap -->
+
+  <footer>
+    <div class="footer-brand">D<span>XX</span>THLY</div>
+    <div class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="projects.html">Projects</a>
+      <a href="https://www.etsy.com/shop/DXXTHLY" target="_blank">Etsy</a>
+      <a href="https://www.ebay.com/usr/deathly197" target="_blank">eBay</a>
+      <a href="https://discord.gg/dg43fxqKPq" target="_blank">Discord</a>
+      <a href="donate.html" style="color:#27ae60;">Donate</a>
+    </div>
+    <div class="footer-copy">© 2025 DXXTHLY · All rights reserved</div>
+  </footer>
+
+  <button id="tap-btn" aria-label="Play music"></button>
+  <div id="play-prompt">
+    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    <span id="prompt-text">Click anywhere to play music</span>
+  </div>
+
+  <script>
+    // ── FILTER ──
+    function filterCards(tag, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.proj-card').forEach(card => {
+        const tags = card.dataset.tags || '';
+        card.style.display = (tag === 'all' || tags.includes(tag)) ? 'flex' : 'none';
+      });
+    }
+
+    // ── MUSIC ──
+    const TRACKS = [
+      { id: 'nG_IhiQR_1w', title: 'Taste Like You'         },
+      { id: '6pldxusNg-g', title: 'To You'                  },
+      { id: '65i9a7B3SNo', title: 'You Thought I Loved You' },
+      { id: 'YfvYkvlVUds', title: 'When I Breathe'          },
+      { id: 'OjAhq-IHH9k', title: 'Heart in the Trunk'      },
+    ];
+    function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
+    let playlist=shuffle(TRACKS),current=0,ytPlayer=null,spawned=false;
+    const titleEl=document.getElementById('musicTitle'),iconPlay=document.getElementById('iconPlay'),iconPause=document.getElementById('iconPause'),eqBars=document.getElementById('eqBars'),volSlider=document.getElementById('volSlider'),playerEl=document.querySelector('.music-player'),tapBtn=document.getElementById('tap-btn'),prompt=document.getElementById('play-prompt'),promptTxt=document.getElementById('prompt-text');
+    const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+    promptTxt.textContent=isTouch?'Tap anywhere to play music':'Click anywhere to play music';
+    function updateFill(v){volSlider.style.background=`linear-gradient(90deg,#c0392b ${v}%,#1e1e1e ${v}%)`;}
+    updateFill(30);
+    function setUI(p){iconPlay.style.display=p?'none':'block';iconPause.style.display=p?'block':'none';eqBars.classList.toggle('playing',p);titleEl.classList.toggle('scrolling',p);}
+    function dismiss(){tapBtn.classList.remove('ready');prompt.classList.remove('ready');prompt.classList.add('gone');playerEl.classList.remove('waiting');}
+    function getFreshDiv(){const o=document.getElementById('yt-player');if(o)o.remove();const d=document.createElement('div');d.id='yt-player';d.style.cssText='position:absolute;top:-9999px;left:-9999px;width:1px;height:1px;';document.body.appendChild(d);}
+    function doSpawn(){if(spawned)return;spawned=true;dismiss();titleEl.textContent=playlist[current].title;getFreshDiv();ytPlayer=new YT.Player('yt-player',{width:'1',height:'1',videoId:playlist[current].id,playerVars:{autoplay:1,mute:0,controls:0,disablekb:1,fs:0,iv_load_policy:3,modestbranding:1,rel:0,playsinline:1},events:{onReady(e){e.target.setVolume(30);updateFill(30);volSlider.value=30;e.target.playVideo();updateMS();},onStateChange(e){const S=YT.PlayerState;if(e.data===S.PLAYING){setUI(true);updateMS();}if(e.data===S.PAUSED)setUI(false);if(e.data===S.ENDED){current=(current+1)%playlist.length;titleEl.textContent=playlist[current].title;ytPlayer.loadVideoById(playlist[current].id);}},onError(){current=(current+1)%playlist.length;titleEl.textContent=playlist[current].title;ytPlayer.loadVideoById(playlist[current].id);}}});}
+    function updateMS(){if(!('mediaSession'in navigator))return;navigator.mediaSession.metadata=new MediaMetadata({title:playlist[current].title,artist:'DXXTHLY',album:'DXXTHLY'});navigator.mediaSession.setActionHandler('play',()=>{ytPlayer&&ytPlayer.playVideo();});navigator.mediaSession.setActionHandler('pause',()=>{ytPlayer&&ytPlayer.pauseVideo();});navigator.mediaSession.setActionHandler('nexttrack',()=>skipNext());navigator.mediaSession.setActionHandler('previoustrack',()=>{current=(current-1+playlist.length)%playlist.length;titleEl.textContent=playlist[current].title;ytPlayer&&ytPlayer.loadVideoById(playlist[current].id);updateMS();});}
+    window.onYouTubeIframeAPIReady=function(){titleEl.textContent=playlist[current].title;playerEl.classList.add('waiting');tapBtn.classList.add('ready');prompt.classList.add('ready');};
+    (function(){if(window.YT&&window.YT.Player){window.onYouTubeIframeAPIReady();return;}const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';document.head.appendChild(s);})();
+    tapBtn.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.music-player'))return;doSpawn();});
+    document.addEventListener('keydown',function(){if(!spawned)doSpawn();},{once:true});
+    function togglePlay(){if(!spawned){doSpawn();return;}if(!ytPlayer)return;ytPlayer.getPlayerState()===1?ytPlayer.pauseVideo():ytPlayer.playVideo();}
+    function skipNext(){if(!spawned){doSpawn();return;}if(!ytPlayer)return;current=(current+1)%playlist.length;titleEl.textContent=playlist[current].title;ytPlayer.loadVideoById(playlist[current].id);updateMS();}
+    function setVol(v){updateFill(v);if(!spawned){doSpawn();return;}if(!ytPlayer)return;ytPlayer.setVolume(parseInt(v));}
+  </script>
+</body>
+</html>

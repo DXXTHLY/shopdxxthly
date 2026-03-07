@@ -13,7 +13,7 @@ Personal website for **DXXTHLY (Brian)** — musician, 3D printing creator, and 
 | `index.html` | Homepage — hero, STL downloads, shop links |
 | `music.html` | Full discography with built-in music player and lyrics modal |
 | `projects.html` | GitHub project showcase with category filter |
-| `donate.html` | Brian's story, sober counter, and PayPal donation link |
+| `donate.html` | My story, sober counter, and PayPal donation link |
 | `game.html` | Game page |
 
 ---
@@ -23,7 +23,7 @@ Personal website for **DXXTHLY (Brian)** — musician, 3D printing creator, and 
 - **Music Player** — YouTube IFrame API-powered player embedded in the nav bar across all pages. Shuffles playlist on load, supports hardware media keys via MediaSession API.
 - **Lyrics Modal** — Click any track on the music page to view lyrics in a full-screen overlay.
 - **Sober Counter** — Live counter on the donate page calculating days, months, and years sober since July 3rd, 2023.
-- **Auto-updating Age** — Brian's age on the donate page updates automatically every birthday.
+- **Auto-updating Age** — My age on the donate page updates automatically every birthday.
 - **Project Filter** — Filter GitHub projects by category (Browser, Python, Windows, Audio, Gaming) with no page reload.
 - **Mobile Responsive** — Hamburger nav, touch-optimized music player, and fluid layouts across all breakpoints.
 
@@ -65,7 +65,7 @@ Personal website for **DXXTHLY (Brian)** — musician, 3D printing creator, and 
 
 ## Support
 
-If you'd like to support Brian's recovery and small business journey, donations can be made via PayPal:
+If you'd like to support my recovery and small business journey, donations can be made via PayPal:
 [paypal.com/donate](https://www.paypal.com/donate/?business=SC3RFTW5QDZJ4&no_recurring=0&currency_code=USD)
 
 ---

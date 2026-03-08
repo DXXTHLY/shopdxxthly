@@ -267,10 +267,21 @@
     }
     updateAge();
 
-    const soberStart = new Date('2023-07-03T00:00:00');
+    // Convert any Date to Eastern time as a "local" Date (handles EST/EDT automatically)
+    function toEastern(d) {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      }).formatToParts(d);
+      const p = {};
+      parts.forEach(({type, value}) => { p[type] = value; });
+      return new Date(p.year, p.month - 1, p.day, p.hour === '24' ? 0 : p.hour, p.minute, p.second);
+    }
+    const soberStartEastern = toEastern(new Date('2023-07-03T00:00:00-04:00'));
     function updateCounter() {
-      const now = new Date();
-      const diffMs = now - soberStart;
+      const nowEastern = toEastern(new Date());
+      const diffMs = nowEastern - soberStartEastern;
       const totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
       const years = Math.floor(totalDays / 365);
       const months = Math.floor((totalDays % 365) / 30);

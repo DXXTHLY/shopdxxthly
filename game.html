@@ -8258,11 +8258,11 @@ function initializeChat() {
         }
 
         function initializeFirebase(firebase) {
-            // --- App 1: Chat (chatforslither) ---
-            const chatApp = !firebase.apps.length
-                ? firebase.initializeApp(config.firebaseConfig)
-                : firebase.apps[0];
-            const db = chatApp.database();
+            // --- App 1: Chat (chatforslither) — find by name or init fresh ---
+            const chatApp = firebase.apps.find(a => a.name === 'chatApp')
+                || firebase.initializeApp(config.firebaseConfig, 'chatApp');
+            const db       = chatApp.database();
+            const chatAuth = chatApp.auth();
 
             // --- App 2: Auth + Saves (soul-collector-game) ---
             const saveConfig = {
@@ -8279,27 +8279,31 @@ function initializeChat() {
             const saveDb   = saveApp.database();
             const saveAuth = saveApp.auth();
 
-            // Expose both globally
+            // Expose globally
             window._scFirebase = { firebase, auth: saveAuth, db: saveDb, chatDb: db };
 
-            saveAuth.onAuthStateChanged(user => {
-                if (user) {
-                    // Set up chat using the chat db (different app)
-                    const chatInput = document.getElementById('chat-input');
-                    if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
-                    if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
-                    let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
-                    localStorage.setItem("slitherChatNickname", nickname);
-                    const uid = user.uid;
-                    const userRef = db.ref("onlineUsers/" + uid);
-                    userRef.onDisconnect().remove();
-                    const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
-                    userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
-                    setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
-                    listenForChatMessages(db, uid);
-                    listenForOnlineUsers(db);
-                    setupEventListeners(db, uid);
-                }
+            // Sign into chatforslither anonymously — powers online presence & chat
+            chatAuth.signInAnonymously().catch(err => console.error("Chat anon sign-in error:", err));
+
+            chatAuth.onAuthStateChanged(user => {
+                if (!user) return;
+                const uid = user.uid;
+                let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
+                localStorage.setItem("slitherChatNickname", nickname);
+
+                const chatInput = document.getElementById('chat-input');
+                if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
+                if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
+
+                const userRef = db.ref("onlineUsers/" + uid);
+                userRef.onDisconnect().remove();
+                const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
+                userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
+                setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
+
+                listenForChatMessages(db, uid);
+                listenForOnlineUsers(db);
+                setupEventListeners(db, uid);
             });
         }
 

@@ -5017,7 +5017,6 @@ function loadGame() {
             audio.sfxMuted  = localStorage.getItem('sfxMuted')   === 'true';
             document.getElementById('musicStatus').innerText = `Status: ${audio.bgm.muted ? 'OFF' : 'ON'}`;
             document.getElementById('sfxStatus').innerText   = `Status: ${audio.sfxMuted  ? 'OFF' : 'ON'}`;
-            initializeChat();
             // Show popup for existing players after intro (intro is ~8s, add 1s buffer)
             setTimeout(() => showAccountReminderPopup(), 9500);
         } catch (e) {
@@ -6689,6 +6688,9 @@ function loadAuthFirebase() {
                     }
                     updateAccountBtn();
                 });
+
+                // Now that Firebase is loaded, init chat
+                initializeChat();
             });
         });
     });
@@ -8244,6 +8246,11 @@ function initializeChat() {
         
         // --- FIREBASE & CHAT LOGIC ---
         function loadFirebaseAndInit() {
+            // If Firebase scripts already loaded by loadAuthFirebase(), use them directly
+            if (window.firebase) {
+                initializeFirebase(window.firebase);
+                return;
+            }
             const script1 = document.createElement('script'); script1.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js';
             script1.onload = () => { const script2 = document.createElement('script'); script2.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js';
                 script2.onload = () => { const script3 = document.createElement('script'); script3.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js';

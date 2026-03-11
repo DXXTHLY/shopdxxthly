@@ -21,9 +21,53 @@
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         @keyframes soulThump { 0% { transform: scale(1); } 50% { transform: scale(0.97); } 100% { transform: scale(1); } }
 
-        /* === ATMOSPHERIC ENHANCEMENTS === */
+        /* === ALTAR SCREEN ENHANCEMENTS === */
+        #altar-stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin: 10px auto 0;
+            flex-wrap: wrap;
+        }
+        .altar-stat-badge {
+            padding: 6px 18px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #2a1a3a;
+            border-bottom: 2px solid #3a0808;
+            border-radius: 3px;
+            font-family: var(--font-title);
+            font-size: 0.9rem;
+            color: var(--dim-color);
+            letter-spacing: 1px;
+        }
+        .altar-stat-badge span { color: var(--secondary-color); font-weight: bold; margin-left: 4px; }
+        #rift-container {
+            position: relative;
+            margin: 20px auto;
+            width: 340px;
+            height: 140px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        /* Decorative corner runes around rift button */
+        #rift-container::before, #rift-container::after {
+            content: '✦';
+            position: absolute;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            opacity: 0.5;
+            animation: runeRotate 4s linear infinite;
+        }
+        #rift-container::before { top: 8px; left: 18px; }
+        #rift-container::after  { bottom: 8px; right: 18px; animation-direction: reverse; }
+        @keyframes runeRotate {
+            0%   { opacity: 0.3; transform: scale(1) rotate(0deg); }
+            50%  { opacity: 0.8; transform: scale(1.3) rotate(180deg); }
+            100% { opacity: 0.3; transform: scale(1) rotate(360deg); }
+        }
         .screen { background: radial-gradient(ellipse at top center, rgba(60,20,80,0.08) 0%, transparent 70%); }
-        .btn-title { font-family: var(--font-title); font-size: 1.35rem; color: #f0e8ff; letter-spacing: 1.5px; margin-bottom: 5px; text-shadow: 0 0 8px rgba(200,160,255,0.2); }
+        
         [data-tooltip]::after { background: linear-gradient(135deg, #080510, #100d1a); border: 1px solid #2d1a40; color: var(--secondary-color); box-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 8px rgba(100,0,150,0.2); }
         #souls-display { color: #f0d8d8; text-shadow: 0 0 12px rgba(220,80,80,0.6); }
         #leaderboard-list li:first-child { border-color: #c8a800; border-left-color: #c8a800; box-shadow: 0 0 20px rgba(200,168,0,0.3), inset 0 0 10px rgba(0,0,0,0.4); }
@@ -62,11 +106,58 @@
             flex-grow: 1;
             overflow-y: auto;
         }
-        nav { display: flex; background: linear-gradient(to bottom, #080510, #05040a); border-bottom: 2px solid #1a0d26; box-shadow: 0 4px 20px rgba(0,0,0,0.8); flex-wrap: wrap; }
-        nav button { flex-grow: 1; padding: 16px 5px; font-family: var(--font-title); background: transparent; border: none; border-right: 1px solid #130d1e; color: var(--dim-color); font-size: 1.05rem; cursor: pointer; transition: all var(--transition-speed); letter-spacing: 1px; }
+        nav {
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(to bottom, #06040e, #08051a);
+            border-bottom: 2px solid #1a0d26;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        }
+        .nav-group {
+            display: flex;
+            align-items: stretch;
+            border-bottom: 1px solid #0d0920;
+        }
+        .nav-group:last-child { border-bottom: none; }
+        .nav-group-label {
+            padding: 4px 10px;
+            font-family: var(--font-title);
+            font-size: 0.6rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            background: rgba(0,0,0,0.35);
+            border-right: 1px solid #0d0920;
+            display: flex;
+            align-items: center;
+            min-width: 54px;
+            justify-content: center;
+            opacity: 0.85;
+        }
+        .nav-group-label.label-collect { color: #c06060; }
+        .nav-group-label.label-power   { color: #c0a030; }
+        .nav-group-label.label-social  { color: #6080c0; }
+        .nav-group-label.label-meta    { color: #a060c0; }
+        .nav-group-buttons { display: flex; flex-wrap: wrap; flex: 1; }
+        nav button {
+            flex-grow: 1;
+            padding: 10px 8px;
+            font-family: var(--font-title);
+            background: transparent;
+            border: none;
+            border-right: 1px solid #0d0920;
+            color: var(--dim-color);
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
         nav button:last-child { border-right: none; }
         nav button:hover { background: linear-gradient(to bottom, #1a1228, #100d1a); color: var(--accent-color); text-shadow: 0 0 12px var(--accent-glow); }
-        nav button.active { background: linear-gradient(to bottom, #3a0808, #c41818 150%); color: #fff; text-shadow: 0 0 10px rgba(255,100,100,0.7); font-size: 1.1rem; box-shadow: inset 0 -3px 8px rgba(0,0,0,0.6), 0 0 15px var(--primary-glow); }
+        nav button.active { background: linear-gradient(to bottom, #3a0808, #c41818 150%); color: #fff; text-shadow: 0 0 10px rgba(255,100,100,0.7); box-shadow: inset 0 -3px 8px rgba(0,0,0,0.6); }
+        nav button.nav-ascend { background: linear-gradient(to bottom, #2a0a3a, #5a1080); color: var(--prestige-color); letter-spacing: 2px; text-shadow: 0 0 8px rgba(200,150,255,0.5); }
+        nav button.nav-ascend:hover { background: linear-gradient(to bottom, #3a1050, #7a1aaa); color: #fff; }
+        nav button.nav-ascend.active { background: linear-gradient(to bottom, #4a0a5a, #9a20c0); }
         .screen { padding: 25px; display: none; }
         .screen.active { display: block; animation: fadeIn 0.7s; }
         /* ================================================================= */
@@ -107,7 +198,20 @@
         h1, h2, h3 { font-family: var(--font-title); color: var(--primary-color); text-shadow: 0 0 8px var(--primary-glow), 0 0 25px rgba(180,0,0,0.4), 1px 1px 0 #000, 2px 2px 8px #000; text-transform: uppercase; letter-spacing: 4px; }
         h1 { font-size: var(--font-size-xxl); } h2 { font-size: var(--font-size-xl); margin-bottom: 0; }
         h3 { color: var(--secondary-color); text-shadow: 0 0 8px rgba(180,140,220,0.3), 1px 1px 2px #000; letter-spacing: 2px; }
-        .screen p { font-size: 1.1rem; }
+        .screen p { font-size: 1.1rem; text-align: center; }
+        /* Ensure dynamically generated cards with no wrapper are also centered */
+        button.upgrade-btn > .btn-title { width: 100%; text-align: center; }
+        button.upgrade-btn > span.cost { text-align: center; width: 100%; padding: 0 12px; }
+        /* Dynamic JS-generated cards: add padding and centering to all direct children */
+        button.upgrade-btn > span,
+        button.upgrade-btn > div:not(.upgrade-btn-body):not(.upgrade-btn-footer) {
+            display: block;
+            padding: 0 14px;
+            text-align: center;
+        }
+        button.upgrade-btn > span.btn-title { padding-top: 16px; }
+        button.upgrade-btn > span.cost:last-child,
+        button.upgrade-btn > span:last-child { padding-bottom: 14px; }
         #rift-container {
             position: relative;
             margin: 25px auto;
@@ -138,12 +242,53 @@
         button.action-btn:active { transform: translate(2px, 2px); border-bottom-width: 1px; border-right-width: 1px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 10px rgba(196,24,24,0.3); }
         .action-btn.thump-animation { animation: soulThump 0.2s ease-in-out; }
         .upgrade-section, .minion-grid, .artifact-grid { display: flex; justify-content: center; gap: 20px; margin-top: 30px; flex-wrap: wrap; }
-        button.upgrade-btn { padding: 20px; background: linear-gradient(135deg, #120e1c 0%, #1c1728 100%); color: var(--secondary-color); cursor: pointer; border: 1px solid var(--border-color); border-left: 3px solid #3a0a0a; width: 260px; text-align: left; border-radius: var(--border-radius); transition: all var(--transition-speed); box-shadow: inset 0 0 15px rgba(0,0,0,0.6); line-height: 1.5; }
-        button.upgrade-btn:hover:not(:disabled) { border-color: var(--accent-color); border-left-color: var(--primary-color); background: linear-gradient(135deg, #1c1530 0%, #251e38 100%); transform: translateY(-3px); box-shadow: inset 0 0 10px rgba(0,0,0,0.4), 0 4px 20px rgba(180,100,0,0.25), 0 0 1px var(--accent-color); }
-        button.upgrade-btn.owned, button:disabled { background: #0a0910; color: #44384a; cursor: not-allowed; border-color: #1a1226; border-left-color: #1a0a0a; filter: grayscale(70%); }
-        .btn-title { font-family: var(--font-title); font-size: 1.4rem; color: white; letter-spacing: 1px; margin-bottom: 5px; }
-        .btn-level { color: var(--dim-color); font-size: 1rem; font-style: italic; }
-        .cost { font-size: 1.1rem; margin-top: 10px; display: block; }
+        button.upgrade-btn {
+            padding: 0;
+            background: linear-gradient(160deg, #0e0a1a 0%, #18122a 100%);
+            color: var(--secondary-color);
+            cursor: pointer;
+            border: 1px solid #2a1a40;
+            border-top: 3px solid #5a0a0a;
+            width: 260px;
+            text-align: center;
+            border-radius: 4px;
+            transition: all var(--transition-speed);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.4);
+            line-height: 1.6;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .upgrade-btn-body { padding: 18px 16px 12px; flex: 1; text-align: center; }
+        .upgrade-btn-footer {
+            padding: 10px 16px;
+            background: rgba(0,0,0,0.35);
+            border-top: 1px solid #1a0d26;
+            font-size: 1rem;
+            text-align: center;
+        }
+        button.upgrade-btn:hover:not(:disabled) {
+            border-top-color: var(--primary-color);
+            border-color: #3d2060;
+            background: linear-gradient(160deg, #16102a 0%, #241a3a 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.6), 0 0 15px rgba(180,100,0,0.15), inset 0 0 15px rgba(0,0,0,0.3);
+        }
+        button.upgrade-btn.owned, button:disabled {
+            background: #07050f;
+            color: #3a2a4a;
+            cursor: not-allowed;
+            border-color: #120d1e;
+            border-top-color: #1a0a0a;
+            filter: grayscale(60%);
+            box-shadow: none;
+        }
+        .btn-title { font-family: var(--font-title); font-size: 1.2rem; color: #f0e8ff; letter-spacing: 1.5px; margin-bottom: 6px; text-shadow: 0 0 8px rgba(200,160,255,0.2); display: block; }
+        .btn-level { color: var(--dim-color); font-size: 0.95rem; font-style: italic; display: block; margin-top: 4px; }
+        .cost { font-size: 1rem; margin-top: 8px; display: block; }
+        .cost-souls { color: var(--prestige-color); font-weight: bold; } 
+        .cost-essence { color: var(--accent-color); font-weight: bold; } 
+        .cost-shards { color: var(--prestige-color); font-weight: bold; }
         .cost-souls { color: var(--prestige-color); font-weight: bold; } 
         .cost-essence { color: var(--accent-color); font-weight: bold; } 
         .cost-shards { color: var(--prestige-color); font-weight: bold; }
@@ -152,8 +297,13 @@
         }
         hr { border: 0; height: 1px; background: linear-gradient(to right, transparent, var(--primary-color), var(--border-color), transparent); box-shadow: 0 0 8px rgba(196,24,24,0.35); margin: 30px 0; }
         #map-grid, #leaderboard-list, #pvp-target-list, #pvp-log-list { list-style: none; padding: 0; text-align: left; margin: 20px auto; max-width: 650px; }
-        #map-grid li, #leaderboard-list li, #pvp-target-list li, #pvp-log-list li { background: linear-gradient(135deg, #120e1c, #1c1728); border: 1px solid var(--border-color); border-left: 3px solid #3a0a0a; padding: 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-radius: var(--border-radius); font-size: 1.1rem; transition: all 0.2s; }
+        #map-grid li, #leaderboard-list li, #pvp-target-list li, #pvp-log-list li { background: linear-gradient(135deg, #120e1c, #1c1728); border: 1px solid var(--border-color); border-left: 3px solid #3a0a0a; padding: 16px 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-radius: var(--border-radius); font-size: 1.1rem; transition: all 0.2s; }
         #map-grid li:hover, #leaderboard-list li:hover { border-left-color: var(--primary-color); background: linear-gradient(135deg, #1a1428, #231d34); }
+        /* Center standalone action buttons that aren't inside the rift container */
+        .screen > button.action-btn, .screen button.action-btn:not(#rift-container *) { margin: 20px auto; display: block; }
+        /* Fix collapse/ascension screen action buttons */
+        #ascension-screen, #collapse-screen { text-align: center; }
+        #ascension-screen button, #collapse-screen button { margin: 10px auto; display: block; }
         #map-grid li.active-world { border-color: var(--primary-color); background: var(--dark-panel-color); }
         #leaderboard-list li:first-child { border-color: gold; box-shadow: 0 0 15px rgba(255,215,0,0.5); }
         #ascension-screen { border: 2px solid #5a0808; border-top: 1px solid #8a1010; background: radial-gradient(ellipse at center, rgba(100, 10, 10, 0.15), rgba(0,0,0,0) 70%); box-shadow: 0 0 40px rgba(196,24,24,0.15), inset 0 0 40px rgba(0,0,0,0.5); padding: 30px; }
@@ -857,20 +1007,63 @@
         /* NEW PLAYER STATS HEADER STYLES (GRID LAYOUT) */
         /* ================================================================= */
         #player-stats-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            padding: 15px;
-            gap: 8px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
             border-bottom: 2px solid #1a0d26;
             background: linear-gradient(to bottom, #03020a, #0a0715);
             box-shadow: 0 2px 15px rgba(0,0,0,0.7);
             font-family: var(--font-title);
-            font-size: var(--font-size-large);
         }
-
-        #player-stats-container div {
-            text-align: center;
+        #stats-row-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 18px;
+            border-bottom: 1px solid #0d0920;
+            font-size: 0.95rem;
         }
+        #stats-player-name {
+            color: var(--secondary-color);
+            letter-spacing: 2px;
+        }
+        #stats-player-name span {
+            color: #fff;
+            text-shadow: 0 0 8px rgba(255,150,150,0.4);
+        }
+        #stats-rates {
+            display: flex;
+            gap: 20px;
+            color: var(--dim-color);
+            font-size: 0.85rem;
+        }
+        #stats-rates span { color: var(--secondary-color); font-weight: bold; }
+        #stats-row-currencies {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 6px 10px;
+            gap: 6px;
+            justify-content: center;
+        }
+        .currency-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid #1a1030;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .currency-chip:hover { border-color: #3a2050; background: rgba(30,15,50,0.6); }
+        .currency-chip .chip-label { color: var(--dim-color); font-size: 0.75rem; letter-spacing: 1px; }
+        .currency-chip .chip-value { font-weight: bold; }
+        .chip-souls  .chip-label { color: #c08080; } .chip-souls  .chip-value { color: #f0d8d8; text-shadow: 0 0 8px rgba(220,80,80,0.5); }
+        .chip-essence .chip-label { color: #a07820; } .chip-essence .chip-value { color: var(--accent-color); text-shadow: 0 0 8px var(--accent-glow); }
+        .chip-shards .chip-label { color: #9090b0; } .chip-shards .chip-value { color: var(--prestige-color); text-shadow: 0 0 8px var(--prestige-glow); }
+        .chip-aether .chip-label { color: #4090a0; } .chip-aether .chip-value { color: #00e5ff; text-shadow: 0 0 8px rgba(0,229,255,0.5); }
+        .chip-frags  .chip-label { color: #6040a0; } .chip-frags  .chip-value { color: #9370db; text-shadow: 0 0 8px rgba(147,112,219,0.5); }
 
 
         /* ================================================================= */
@@ -1919,60 +2112,119 @@ text-decoration: underline; /* Adds an underline on hover */
         <!-- NEW, TWO-LINE PLAYER STATS HEADER -->
         <!-- ================================================================= -->
             <header id="player-stats-container">
-                <div>Player: <span id="playerName-display"></span></div>
-                <div>Souls: <span id="souls-display">0</span></div>
-                <div><span style="color:var(--accent-color)">Dark Essence:</span> <span id="essence-display">0</span></div>
-                <div><span style="color:var(--prestige-color)">Abyssal Shards:</span> <span id="shards-display">0</span></div>
-                <div data-tooltip="A powerful substance gained from Collapsing Reality. Its bonuses are permanent."><span style="color:#00e5ff;">Aether:</span> <span id="aether-display" style="color:#00e5ff; text-shadow: 0 0 10px #00e5ff;">0</span></div>
-                <div data-tooltip="Strange fragments found on Expeditions. Used at the Soul-Forge."><span style="color:#9370db;">Corrupted Fragments:</span> <span id="fragments-display" style="color:#9370db; text-shadow: 0 0 10px #9370db;">0</span></div>
+                <div id="stats-row-top">
+                    <div id="stats-player-name">⚰ <span id="playerName-display"></span></div>
+                    <div id="stats-rates">
+                        <span>SPS:</span> <span id="sps-display">0</span>
+                        &nbsp;&nbsp;
+                        <span>SPC:</span> <span id="spc-display">1</span>
+                    </div>
+                </div>
+                <div id="stats-row-currencies">
+                    <div class="currency-chip chip-souls">
+                        <span class="chip-label">SOULS</span>
+                        <span class="chip-value" id="souls-display">0</span>
+                    </div>
+                    <div class="currency-chip chip-essence">
+                        <span class="chip-label">ESSENCE</span>
+                        <span class="chip-value" id="essence-display">0</span>
+                    </div>
+                    <div class="currency-chip chip-shards">
+                        <span class="chip-label">SHARDS</span>
+                        <span class="chip-value" id="shards-display">0</span>
+                    </div>
+                    <div class="currency-chip chip-aether" data-tooltip="A powerful substance gained from Collapsing Reality. Its bonuses are permanent.">
+                        <span class="chip-label">AETHER</span>
+                        <span class="chip-value" id="aether-display">0</span>
+                    </div>
+                    <div class="currency-chip chip-frags" data-tooltip="Strange fragments found on Expeditions. Used at the Soul-Forge.">
+                        <span class="chip-label">FRAGMENTS</span>
+                        <span class="chip-value" id="fragments-display">0</span>
+                    </div>
+                </div>
             </header>
         <nav>
-            <button onclick="showScreen('altar')" class="active">Altar</button>
-            <button onclick="showScreen('minions')">Minions</button>
-            <button onclick="showScreen('expeditions')">Expeditions</button> 
-            <button onclick="showScreen('forge')">Soul-Forge</button>
-            <button onclick="showScreen('bestiary')">Bestiary</button>
-            <button onclick="showScreen('brewery')">Brewery</button>
-            <button onclick="showScreen('inventory')">Inventory</button>
-            <button onclick="showScreen('artifacts')">Artifacts</button>
-            <button onclick="showScreen('rituals')">Rituals</button>
-            <button onclick="showScreen('map')">Worlds</button>
-            <button onclick="showScreen('pvp')">Raids</button>
-            <button onclick="showScreen('crashgame')">Rift</button>
-            <button onclick="showScreen('market')">Market</button>
-            <button onclick="showScreen('leaderboard')">Leaderboard</button>
-            <button onclick="showScreen('provinggrounds')">Proving Grounds</button>
-            <button onclick="toggleChat()">Chat</button>
-            <button onclick="showScreen('bank')">Bank</button>
-            <button onclick="showScreen('ascension')">ASCEND</button>
-            <button onclick="showScreen('collapse')">Collapse</button>
-            <button onclick="showScreen('stats')">Stats</button>
-            <button onclick="showScreen('settings')">Settings</button>
+            <div class="nav-group">
+                <div class="nav-group-label label-collect">Collect</div>
+                <div class="nav-group-buttons">
+                    <button onclick="showScreen('altar')" class="active">Altar</button>
+                    <button onclick="showScreen('minions')">Minions</button>
+                    <button onclick="showScreen('expeditions')">Expeditions</button>
+                    <button onclick="showScreen('forge')">Soul-Forge</button>
+                    <button onclick="showScreen('bestiary')">Bestiary</button>
+                    <button onclick="showScreen('brewery')">Brewery</button>
+                    <button onclick="showScreen('inventory')">Inventory</button>
+                </div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-label label-power">Power</div>
+                <div class="nav-group-buttons">
+                    <button onclick="showScreen('artifacts')">Artifacts</button>
+                    <button onclick="showScreen('rituals')">Rituals</button>
+                    <button onclick="showScreen('map')">Worlds</button>
+                    <button onclick="showScreen('pvp')">Raids</button>
+                    <button onclick="showScreen('crashgame')">Rift</button>
+                    <button onclick="showScreen('market')">Market</button>
+                    <button onclick="showScreen('provinggrounds')">Proving Grounds</button>
+                </div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-label label-social">Social</div>
+                <div class="nav-group-buttons">
+                    <button onclick="showScreen('leaderboard')">Leaderboard</button>
+                    <button onclick="toggleChat()">Chat</button>
+                    <button onclick="showScreen('bank')">Bank</button>
+                    <button onclick="showScreen('stats')">Stats</button>
+                    <button onclick="showScreen('settings')">Settings</button>
+                </div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-label label-meta">Prestige</div>
+                <div class="nav-group-buttons">
+                    <button onclick="showScreen('ascension')" class="nav-ascend">⬆ Ascend</button>
+                    <button onclick="showScreen('collapse')" class="nav-ascend">💀 Collapse</button>
+                </div>
+            </div>
         </nav>
         <main>
             <div id="altar-screen" class="screen active">
                 <h1 id="world-title">👻 Nether Plains 👻</h1>
-                <p>Souls Per Second: <span id="sps-display">0</span> | Souls Per Click: <span id="spc-display">1</span></p>
+                <div id="altar-stats-bar">
+                    <div class="altar-stat-badge">Souls/sec<span id="sps-display-altar">0</span></div>
+                    <div class="altar-stat-badge">Souls/click<span id="spc-display-altar">1</span></div>
+                </div>
                 <div id="rift-container">
                     <canvas id="rift-canvas" width="400" height="200"></canvas>
                     <button class="action-btn" onclick="harvestSoul()">Harvest Soul</button>
                 </div>
                 <div class="upgrade-section">
                     <button class="upgrade-btn" id="clickUpgradeBtn" onclick="buyUpgrade('click')">
-                        <span class="btn-title">Empower Harvest</span><br>
-                        <span class="btn-level">Lvl: <span id="clickLevel">1</span></span><br>
-                        <span class="cost">Cost: <span id="clickCost" class="cost-souls">10</span></span>
+                        <div class="upgrade-btn-body">
+                            <span class="btn-title">Empower Harvest</span><br>
+                            <span class="btn-level">Level <span id="clickLevel">1</span></span>
+                        </div>
+                        <div class="upgrade-btn-footer">
+                            Cost: <span id="clickCost" class="cost-souls">10</span> souls
+                        </div>
                     </button>
                     <button class="upgrade-btn" id="sacrificeBtn" onclick="buyUpgrade('sacrifice')">
-                        <span class="btn-title">Sacrifice Souls</span><br>
-                        <span>Gain 1 Dark Essence</span><br>
-                        <span class="cost">Cost: <span id="sacrificeCost" class="cost-souls">1000</span></span>
-                    </button>                    
+                        <div class="upgrade-btn-body">
+                            <span class="btn-title">Sacrifice Souls</span><br>
+                            <span class="btn-level">Gain 1 Dark Essence</span>
+                        </div>
+                        <div class="upgrade-btn-footer">
+                            Cost: <span id="sacrificeCost" class="cost-souls">1000</span> souls
+                        </div>
+                    </button>
                     <button class="upgrade-btn" id="resonanceUpgradeBtn" onclick="buyUpgrade('resonance')" data-tooltip="This is a permanent upgrade that persists through Ascension. It's one of the most important upgrades for long-term growth!">
-                        <span class="btn-title">Soul Resonance</span><br>
-                        <span class="btn-level">Lvl: <span id="resonanceLevel">0</span></span><br>
-                        <span class="cost">Gain +5% Shards on Ascend per level.</span><br>
-                        <span class="cost">Cost: <span id="resonanceCost" class="cost-essence">5</span></span>
+                        <div class="upgrade-btn-body">
+                            <span class="btn-title">Soul Resonance</span><br>
+                            <span class="btn-level">Level <span id="resonanceLevel">0</span></span><br>
+                            <span style="font-size:0.9rem; color: var(--dim-color);">+5% Shards on Ascend per level</span>
+                        </div>
+                        <div class="upgrade-btn-footer">
+                            Cost: <span id="resonanceCost" class="cost-essence">5</span> essence
+                        </div>
                     </button>
                 </div>
             </div>
@@ -5239,6 +5491,10 @@ function updateDynamicDisplays() {
   document.getElementById('fragments-display').innerText = formatNumber(gameState.corruptedFragments);
   document.getElementById('sps-display').innerText = formatNumber(gameState.stats.sps);
   document.getElementById('spc-display').innerText = formatNumber(gameState.stats.spc);
+  const altarSps = document.getElementById('sps-display-altar');
+  const altarSpc = document.getElementById('spc-display-altar');
+  if (altarSps) altarSps.innerText = formatNumber(gameState.stats.sps);
+  if (altarSpc) altarSpc.innerText = formatNumber(gameState.stats.spc);
 }
 
 

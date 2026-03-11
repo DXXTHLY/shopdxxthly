@@ -2497,6 +2497,7 @@ text-decoration: underline; /* Adds an underline on hover */
                         <input type="email" id="acct-signin-email" placeholder="Email address">
                         <input type="password" id="acct-signin-password" placeholder="Password">
                         <button class="auth-btn-primary" onclick="settingsSignIn()">Sign In & Load Cloud Save</button>
+                        <button class="auth-btn-ghost" onclick="acctForgotPassword()" style="font-size:0.8rem;">Forgot password?</button>
                     </div>
                 </div>
 
@@ -3176,9 +3177,9 @@ window.onload = function() {
 
     // --- The rest of your original onload code continues below this ---
     document.getElementById('version-number').textContent = GAME_VERSION
+    // Load Firebase for auth IMMEDIATELY — don't wait for chat to init
+    loadAuthFirebase();
     loadGame();
-    // Load Firebase immediately so the auth screen works without waiting for chat
-    initializeChat();
     calculateStats();
     renderAll();
     updateCacheTimer();
@@ -6495,6 +6496,11 @@ function openAccountModal() {
     const overlay = document.getElementById('account-modal-overlay');
     overlay.style.display = 'flex';
     document.getElementById('acct-modal-error').textContent = '';
+    // Pre-fill display name with current player name
+    const nameField = document.getElementById('acct-attach-name');
+    if (nameField && gameState.playerName && gameState.playerName !== 'Unnamed') {
+        nameField.value = gameState.playerName;
+    }
     // Check if already linked
     const isLinked = window._scFirebase && window._scFirebase.auth.currentUser && !window._scFirebase.auth.currentUser.isAnonymous;
     document.getElementById('acct-panel-guest').style.display  = isLinked ? 'none' : 'block';
@@ -6502,7 +6508,6 @@ function openAccountModal() {
     if (isLinked) {
         document.getElementById('acct-linked-email').textContent = window._scFirebase.auth.currentUser.email;
     }
-    // Update settings button text
     updateAccountBtn();
 }
 
@@ -6552,19 +6557,13 @@ async function attachAccount() {
 
     try {
         const { firebase, auth, db } = window._scFirebase;
-        // Create a brand new account
         const cred = await auth.createUserWithEmailAndPassword(email, password);
         const uid = cred.user.uid;
 
-        // Check name isn't taken
-        const snap = await db.ref('accountNames/' + name.toLowerCase()).once('value');
-        if (snap.exists()) {
-            await auth.currentUser.delete();
-            return setAcctError('That name is already taken. Choose another.');
-        }
+        // Reserve the name (overwrite any stale entry from failed previous attempts)
         await db.ref('accountNames/' + name.toLowerCase()).set(uid);
 
-        // Update display name if they want
+        // Keep their existing in-game name, just link the account
         gameState.playerName = name;
         gameState.firebaseUid = uid;
         localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
@@ -6572,13 +6571,12 @@ async function attachAccount() {
         // Push current save to cloud
         await saveGameToCloud(uid, db);
 
+        setAcctLoading(false);
         closeAccountModal();
         updateAccountBtn();
         renderAll();
-        setAcctLoading(false);
-        document.getElementById('acct-modal-error').style.color = '#55ff99';
-        // Reopen to show linked panel
-        openAccountModal();
+        // Reopen to show linked confirmation
+        setTimeout(() => openAccountModal(), 100);
     } catch(e) {
         const msgs = {
             'auth/email-already-in-use': 'An account with that email already exists. Use Sign In instead.',
@@ -6586,6 +6584,18 @@ async function attachAccount() {
             'auth/weak-password':        'Password is too weak.'
         };
         setAcctError(msgs[e.code] || e.message);
+    }
+}
+
+async function acctForgotPassword() {
+    const email = document.getElementById('acct-signin-email').value.trim();
+    if (!email) return setAcctError('Enter your email above first.');
+    try {
+        await window._scFirebase.auth.sendPasswordResetEmail(email);
+        document.getElementById('acct-modal-error').style.color = '#55ff99';
+        document.getElementById('acct-modal-error').textContent = '✓ Reset email sent! Check your inbox then come back and sign in.';
+    } catch(e) {
+        setAcctError('Could not send reset email. Check the address and try again.');
     }
 }
 
@@ -6602,16 +6612,68 @@ async function settingsSignIn() {
         updateAccountBtn();
     } catch(e) {
         const msgs = {
-            'auth/user-not-found':  'No account found with that email.',
-            'auth/wrong-password':  'Incorrect password.',
-            'auth/invalid-email':   'Invalid email address.'
+            'auth/user-not-found':            'No account found with that email.',
+            'auth/wrong-password':            'Incorrect email or password.',
+            'auth/invalid-email':             'Invalid email address.',
+            'auth/invalid-credential':        'Incorrect email or password.',
+            'auth/invalid-login-credentials': 'Incorrect email or password.',
+            'auth/too-many-requests':         'Too many attempts. Try again later.',
         };
-        setAcctError(msgs[e.code] || e.message);
+        const friendly = msgs[e.code]
+            || (JSON.stringify(e.message || '').toUpperCase().includes('INVALID_LOGIN') ? 'Incorrect email or password.' : null)
+            || 'Sign in failed — check your email and password.';
+        const resetHint = (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-login-credentials' || JSON.stringify(e.message||'').toUpperCase().includes('INVALID_LOGIN'))
+            ? ' Use "Forgot password?" to reset it.' : '';
+        setAcctError(friendly + resetHint);
     }
 }
 
 // ================================================================= //
-// AUTH SYSTEM — Email/Password via Firebase                         //
+// LOAD AUTH FIREBASE IMMEDIATELY ON PAGE START                      //
+// ================================================================= //
+function loadAuthFirebase() {
+    const saveConfig = {
+        apiKey: "AIzaSyDLIh-YXolvj_jervzWe0tCq15VbsbILVE",
+        authDomain: "soul-collector-game.firebaseapp.com",
+        databaseURL: "https://soul-collector-game-default-rtdb.firebaseio.com",
+        projectId: "soul-collector-game",
+        storageBucket: "soul-collector-game.firebasestorage.app",
+        messagingSenderId: "672737997396",
+        appId: "1:672737997396:web:73664d24a697453d0273c1"
+    };
+
+    function loadScript(src, cb) {
+        const s = document.createElement('script');
+        s.src = src; s.onload = cb;
+        document.head.appendChild(s);
+    }
+
+    loadScript('https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js', () => {
+        loadScript('https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js', () => {
+            loadScript('https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js', () => {
+                const firebase = window.firebase;
+                const saveApp = firebase.apps.find(a => a.name === 'saveApp')
+                    || firebase.initializeApp(saveConfig, 'saveApp');
+                const saveDb   = saveApp.database();
+                const saveAuth = saveApp.auth();
+
+                // Make available globally for all auth functions
+                window._scFirebase = { firebase, auth: saveAuth, db: saveDb };
+
+                // If user is already signed in (persistent session), load their save
+                saveAuth.onAuthStateChanged(user => {
+                    if (user && document.getElementById('auth-screen') && 
+                        document.getElementById('auth-screen').style.display !== 'none') {
+                        // Already signed in — load save and enter game
+                        loadGameFromCloud(user.uid, saveDb);
+                    }
+                    updateAccountBtn();
+                });
+            });
+        });
+    });
+}
+
 // ================================================================= //
 
 function showAuthScreen() {
@@ -6646,6 +6708,7 @@ async function authLogin() {
     const email    = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
     if (!email || !password) return setAuthError('Please fill in all fields.');
+    if (!window._scFirebase) return setAuthError('Still connecting to the abyss, please wait a moment...');
     setAuthLoading(true);
     document.getElementById('auth-error').textContent = '';
     try {
@@ -6654,12 +6717,20 @@ async function authLogin() {
         await loadGameFromCloud(cred.user.uid, db);
     } catch (e) {
         const msgs = {
-            'auth/user-not-found':   'No account found with that email.',
-            'auth/wrong-password':   'Incorrect password.',
-            'auth/invalid-email':    'Invalid email address.',
-            'auth/too-many-requests':'Too many attempts. Try again later.'
+            'auth/user-not-found':            'No account found with that email.',
+            'auth/wrong-password':            'Incorrect email or password.',
+            'auth/invalid-email':             'Invalid email address.',
+            'auth/too-many-requests':         'Too many attempts. Try again later.',
+            'auth/invalid-credential':        'Incorrect email or password.',
+            'auth/invalid-login-credentials': 'Incorrect email or password.',
+            'auth/user-disabled':             'This account has been disabled.',
         };
-        setAuthError(msgs[e.code] || e.message);
+        const friendly = msgs[e.code]
+            || (JSON.stringify(e.message || '').toUpperCase().includes('INVALID_LOGIN') ? 'Incorrect email or password.' : null)
+            || 'Sign in failed — check your email and password and try again.';
+        const resetHint = (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-login-credentials' || JSON.stringify(e.message||'').toUpperCase().includes('INVALID_LOGIN'))
+            ? ' Use "Forgot password?" to reset it.' : '';
+        setAuthError(friendly + resetHint);
     }
 }
 
@@ -6676,9 +6747,9 @@ async function authSignup() {
         const { auth, db } = window._scFirebase;
         const cred = await auth.createUserWithEmailAndPassword(email, password);
         const uid = cred.user.uid;
-        // Check name isn't taken
+        // Check name isn't taken by someone else
         const snap = await db.ref('accountNames/' + name.toLowerCase()).once('value');
-        if (snap.exists()) {
+        if (snap.exists() && snap.val() !== uid) {
             await auth.currentUser.delete();
             return setAuthError('That name is already taken. Choose another.');
         }
@@ -8154,18 +8225,36 @@ function initializeChat() {
         }
 
         function initializeFirebase(firebase) {
-            if (!firebase.apps.length) firebase.initializeApp(config.firebaseConfig);
-            const auth = firebase.auth(); const db = firebase.database();
+            // --- App 1: Chat (chatforslither) ---
+            const chatApp = !firebase.apps.length
+                ? firebase.initializeApp(config.firebaseConfig)
+                : firebase.apps[0];
+            const db = chatApp.database();
 
-            // Store db globally so auth functions can use it
-            window._scFirebase = { firebase, auth, db };
+            // --- App 2: Auth + Saves (soul-collector-game) ---
+            const saveConfig = {
+                apiKey: "AIzaSyDLIh-YXolvj_jervzWe0tCq15VbsbILVE",
+                authDomain: "soul-collector-game.firebaseapp.com",
+                databaseURL: "https://soul-collector-game-default-rtdb.firebaseio.com",
+                projectId: "soul-collector-game",
+                storageBucket: "soul-collector-game.firebasestorage.app",
+                messagingSenderId: "672737997396",
+                appId: "1:672737997396:web:73664d24a697453d0273c1"
+            };
+            const saveApp = firebase.apps.find(a => a.name === 'saveApp')
+                || firebase.initializeApp(saveConfig, 'saveApp');
+            const saveDb   = saveApp.database();
+            const saveAuth = saveApp.auth();
 
-            auth.onAuthStateChanged(user => {
-                if (user && !user.isAnonymous) {
-                    // Signed in with real account — set up chat
+            // Expose both globally
+            window._scFirebase = { firebase, auth: saveAuth, db: saveDb, chatDb: db };
+
+            saveAuth.onAuthStateChanged(user => {
+                if (user) {
+                    // Set up chat using the chat db (different app)
                     const chatInput = document.getElementById('chat-input');
                     if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
-                    document.getElementById('chat-body').innerHTML = '';
+                    if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
                     let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
                     localStorage.setItem("slitherChatNickname", nickname);
                     const uid = user.uid;

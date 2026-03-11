@@ -2460,7 +2460,6 @@ text-decoration: underline; /* Adds an underline on hover */
             </div>
         </div>
 
-        <!-- Keep old profile-setup hidden — no longer used but referenced by JS -->
         <div id="profile-setup" style="display: none;">
             <div id="profile-setup-inner">
                 <h2>Create Your Profile</h2>
@@ -5018,6 +5017,8 @@ function loadGame() {
             audio.sfxMuted  = localStorage.getItem('sfxMuted')   === 'true';
             document.getElementById('musicStatus').innerText = `Status: ${audio.bgm.muted ? 'OFF' : 'ON'}`;
             document.getElementById('sfxStatus').innerText   = `Status: ${audio.sfxMuted  ? 'OFF' : 'ON'}`;
+            // Show popup for existing players after intro (intro is ~8s, add 1s buffer)
+            setTimeout(() => showAccountReminderPopup(), 9500);
         } catch (e) {
             console.error("Error parsing save. Starting fresh.", e);
             gameState = defaultState;
@@ -6547,6 +6548,21 @@ function updateAccountBtn() {
     }
 }
 
+function showAccountReminderPopup() {
+    if (localStorage.getItem('sc_account_popup_dismissed')) return;
+    const popup   = document.getElementById('account-reminder-popup');
+    const overlay = document.getElementById('account-reminder-overlay');
+    if (!popup) return;
+    popup.style.display   = 'block';
+    overlay.style.display = 'block';
+}
+
+function dismissAccountPopup() {
+    document.getElementById('account-reminder-popup').style.display   = 'none';
+    document.getElementById('account-reminder-overlay').style.display = 'none';
+    localStorage.setItem('sc_account_popup_dismissed', '1');
+}
+
 async function attachAccount() {
     const name     = document.getElementById('acct-attach-name').value.trim();
     const email    = document.getElementById('acct-attach-email').value.trim();
@@ -6556,26 +6572,29 @@ async function attachAccount() {
     setAcctLoading(true);
 
     try {
-        const { firebase, auth, db } = window._scFirebase;
+        const { auth, db } = window._scFirebase;
         const cred = await auth.createUserWithEmailAndPassword(email, password);
         const uid = cred.user.uid;
 
-        // Reserve the name (overwrite any stale entry from failed previous attempts)
+        // Check name isn't already taken by a DIFFERENT player
+        const snap = await db.ref('accountNames/' + name.toLowerCase()).once('value');
+        if (snap.exists() && snap.val() !== uid) {
+            await auth.currentUser.delete(); // roll back the created account
+            return setAcctError('That name belongs to another player. Use your existing in-game name.');
+        }
+
+        // Reserve/overwrite the name under this uid
         await db.ref('accountNames/' + name.toLowerCase()).set(uid);
 
-        // Keep their existing in-game name, just link the account
         gameState.playerName = name;
         gameState.firebaseUid = uid;
         localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
-
-        // Push current save to cloud
         await saveGameToCloud(uid, db);
 
         setAcctLoading(false);
         closeAccountModal();
         updateAccountBtn();
         renderAll();
-        // Reopen to show linked confirmation
         setTimeout(() => openAccountModal(), 100);
     } catch(e) {
         const msgs = {
@@ -6785,10 +6804,13 @@ async function authForgotPassword() {
 }
 
 async function authSignOut() {
+    // Close any open modal first so confirm isn't blocked behind overlay
+    closeAccountModal();
     if (!confirm('Sign out? Your progress is saved to the cloud.')) return;
     try {
         if (window._scFirebase) await window._scFirebase.auth.signOut();
         document.getElementById('game-container').style.display = 'none';
+        updateAccountBtn();
         showAuthScreen();
     } catch(e) { console.error('Sign out error:', e); }
 }
@@ -6848,6 +6870,9 @@ function enterGame() {
     audio.sfxMuted  = localStorage.getItem('sfxMuted')   === 'true';
     document.getElementById('musicStatus').innerText = `Status: ${audio.bgm.muted ? 'OFF' : 'ON'}`;
     document.getElementById('sfxStatus').innerText   = `Status: ${audio.sfxMuted  ? 'OFF' : 'ON'}`;
+
+    // Show account reminder popup
+    setTimeout(() => showAccountReminderPopup(), 2000);
 }
 
 function hardReset() {
@@ -10417,5 +10442,38 @@ async function arenaEndBattle(playerWon) {
 })();
 </script>
 
+<!-- Account reminder popup — lives at body level so nothing can clip it -->
+<style>
+@keyframes popupFadeIn {
+    from { opacity: 0; transform: translate(-50%, -48%); }
+    to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+#account-reminder-popup {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 999999;
+    width: 92%;
+    max-width: 380px;
+    animation: popupFadeIn 0.35s ease-out;
+}
+#account-reminder-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.75);
+    z-index: 999998;
+}
+</style>
+<div id="account-reminder-overlay" onclick="dismissAccountPopup()"></div>
+<div id="account-reminder-popup">
+    <div style="background:linear-gradient(160deg,#0e0a1a,#18122a); border:1px solid #3d2a4a; border-top:3px solid #c41818; padding:32px 28px 24px; box-shadow:0 0 60px rgba(80,0,140,0.7), 0 0 20px rgba(196,24,24,0.3); text-align:center;">
+        <div style="font-size:2.2rem; margin-bottom:12px;">⚰</div>
+        <div style="font-family:'Metamorphous',serif; color:#c41818; font-size:1.15rem; letter-spacing:2px; margin-bottom:10px; text-shadow:0 0 12px rgba(196,24,24,0.5);">Save Your Progress</div>
+        <div style="color:#aaa; font-size:0.88rem; line-height:1.6; margin-bottom:22px;">Go to <strong style="color:#fff;">Settings</strong> to create a free account.<br>Your save will sync across any device.</div>
+        <button onclick="dismissAccountPopup()" style="background:linear-gradient(160deg,#8a0f0f,#c41818,#8a0f0f); border:1px solid #3d0808; border-bottom:3px solid #000; color:#ffe8e8; font-family:'Metamorphous',serif; font-size:1rem; letter-spacing:2px; padding:12px 40px; cursor:pointer; text-transform:uppercase; box-shadow:0 0 20px rgba(196,24,24,0.3);">OK</button>
+    </div>
+</div>
 </body>
 </html>

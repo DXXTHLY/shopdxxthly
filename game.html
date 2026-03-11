@@ -313,10 +313,99 @@
         #leaderboard-list li:first-child { border-color: gold; box-shadow: 0 0 15px rgba(255,215,0,0.5); }
         #ascension-screen { border: 2px solid #5a0808; border-top: 1px solid #8a1010; background: radial-gradient(ellipse at center, rgba(100, 10, 10, 0.15), rgba(0,0,0,0) 70%); box-shadow: 0 0 40px rgba(196,24,24,0.15), inset 0 0 40px rgba(0,0,0,0.5); padding: 30px; }
         #ascension-screen h2 { color: var(--primary-color); } .ascend-btn { background: var(--prestige-color); color: #000; font-family: var(--font-title); font-weight: bold; font-size: 1.3rem; border: 2px solid #000; }
-        #profile-setup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(5px); }
-        #profile-setup div { padding: 40px; background: var(--dark-panel-color); border: 2px solid #000; box-shadow: 0 0 40px rgba(0,0,0,0.7); }
-        #profile-setup input { padding: 10px; font-size: 1.1rem; background: #111; border: 1px solid #333; color: white; margin-right: 10px; border-radius: 0; font-family: var(--font-body); }
-        #profile-setup input:focus { border-color: var(--primary-color); outline: none; }
+        #profile-setup {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(ellipse at center, #0d0520 0%, #060010 60%, #000 100%);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100;
+        }
+        #profile-setup-inner {
+            padding: 50px 60px;
+            background: linear-gradient(160deg, #0e0a1a 0%, #18122a 100%);
+            border: 1px solid #2a1a40;
+            border-top: 3px solid #3a0a0a;
+            box-shadow: 0 0 60px rgba(80,0,140,0.4), 0 0 20px rgba(196,24,24,0.2), inset 0 0 40px rgba(0,0,0,0.6);
+            text-align: center;
+            max-width: 440px;
+            width: 90%;
+        }
+        #profile-setup-inner h2 {
+            font-family: var(--font-title);
+            color: var(--primary-color);
+            font-size: 2rem;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px var(--primary-glow), 0 0 30px rgba(180,0,0,0.4);
+            margin-bottom: 10px;
+        }
+        #profile-setup-inner p {
+            color: var(--dim-color);
+            font-size: 1.05rem;
+            font-style: italic;
+            margin-bottom: 28px;
+            letter-spacing: 1px;
+        }
+        #profile-setup-inner input {
+            width: 100%;
+            padding: 13px 16px;
+            font-size: 1.1rem;
+            font-family: var(--font-body);
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #2a1a40;
+            border-bottom: 2px solid #3a0a0a;
+            color: var(--secondary-color);
+            border-radius: 3px;
+            outline: none;
+            text-align: center;
+            letter-spacing: 2px;
+            box-sizing: border-box;
+            margin-bottom: 18px;
+            caret-color: var(--primary-color);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #profile-setup-inner input:focus {
+            border-color: #3d2060;
+            border-bottom-color: var(--primary-color);
+            box-shadow: 0 0 15px rgba(196,24,24,0.2), inset 0 0 10px rgba(0,0,0,0.4);
+        }
+        #profile-setup-inner input::placeholder { color: #3a2a4a; }
+        #profile-setup-inner .upgrade-btn {
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 1.1rem;
+            font-family: var(--font-title);
+            letter-spacing: 3px;
+            background: linear-gradient(160deg, #8a0f0f 0%, #c41818 45%, #8a0f0f 100%);
+            color: #ffe8e8;
+            border: 1px solid #3d0808;
+            border-bottom: 3px solid #000;
+            border-right: 3px solid #000;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(196,24,24,0.3), inset 0 0 15px rgba(0,0,0,0.5);
+        }
+        #profile-setup-inner .upgrade-btn:hover {
+            background: linear-gradient(160deg, #a01212 0%, #e01a1a 45%, #a01212 100%);
+            box-shadow: 0 0 30px rgba(196,24,24,0.5), inset 0 0 10px rgba(0,0,0,0.4);
+        }
+        /* Decorative rune line above title */
+        #profile-setup-inner::before {
+            content: '';
+            display: block;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #7b3fff, #c41818, #7b3fff, transparent);
+            margin-bottom: 24px;
+            opacity: 0.6;
+        }
+        #profile-setup-inner::after {
+            content: '';
+            display: block;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #7b3fff, #c41818, #7b3fff, transparent);
+            margin-top: 24px;
+            opacity: 0.6;
+        }
         [data-tooltip] { position: relative; }
         [data-tooltip]::after { content: attr(data-tooltip); position: absolute; left: 50%; bottom: 110%; transform: translateX(-50%); background: #000; border: 1px solid var(--border-color); color: var(--secondary-color); padding: 10px 15px; border-radius: var(--border-radius); font-size: 1rem; font-family: var(--font-body); pointer-events: none; opacity: 0; transition: opacity var(--transition-speed); width: max-content; max-width: 320px; z-index: 10; line-height: 1.4; }
         [data-tooltip]:hover::after { opacity: 1; }
@@ -2256,7 +2345,7 @@ text-decoration: underline; /* Adds an underline on hover */
 
         <!-- The profile setup screen is still needed for new games -->
         <div id="profile-setup" style="display: none;">
-            <div>
+            <div id="profile-setup-inner">
                 <h2>Create Your Profile</h2>
                 <p>Enter your name, Soul Collector.</p>
                 <input type="text" id="playerNameInput" placeholder="BoneLordX" maxlength="15">

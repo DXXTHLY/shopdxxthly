@@ -313,8 +313,87 @@
         #leaderboard-list li:first-child { border-color: gold; box-shadow: 0 0 15px rgba(255,215,0,0.5); }
         #ascension-screen { border: 2px solid #5a0808; border-top: 1px solid #8a1010; background: radial-gradient(ellipse at center, rgba(100, 10, 10, 0.15), rgba(0,0,0,0) 70%); box-shadow: 0 0 40px rgba(196,24,24,0.15), inset 0 0 40px rgba(0,0,0,0.5); padding: 30px; }
         #ascension-screen h2 { color: var(--primary-color); } .ascend-btn { background: var(--prestige-color); color: #000; font-family: var(--font-title); font-weight: bold; font-size: 1.3rem; border: 2px solid #000; }
-        #profile-setup {
+        /* ================================================================= */
+        /* AUTH SCREEN                                                       */
+        /* ================================================================= */
+        #auth-screen {
             position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(ellipse at center, #0d0520 0%, #060010 60%, #000 100%);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 200;
+        }
+        #auth-inner {
+            padding: 44px 52px 36px;
+            background: linear-gradient(160deg, #0e0a1a 0%, #18122a 100%);
+            border: 1px solid #2a1a40;
+            border-top: 3px solid #3a0a0a;
+            box-shadow: 0 0 60px rgba(80,0,140,0.4), 0 0 20px rgba(196,24,24,0.2), inset 0 0 40px rgba(0,0,0,0.6);
+            text-align: center;
+            max-width: 420px;
+            width: 92%;
+            box-sizing: border-box;
+        }
+        #auth-logo { font-size: 2.4rem; margin-bottom: 6px; opacity: 0.7; }
+        #auth-title {
+            font-family: var(--font-title);
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px var(--primary-glow), 0 0 30px rgba(180,0,0,0.4);
+            margin: 0 0 4px;
+        }
+        #auth-subtitle { color: var(--dim-color); font-style: italic; font-size: 0.95rem; margin: 0 0 14px; }
+        .auth-rune-line {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #7b3fff, #c41818, #7b3fff, transparent);
+            margin: 0 0 20px;
+            opacity: 0.5;
+        }
+        #auth-tabs { display: flex; margin-bottom: 20px; border: 1px solid #2a1a40; border-radius: 3px; overflow: hidden; }
+        .auth-tab {
+            flex: 1; padding: 10px; background: transparent;
+            border: none; color: var(--dim-color);
+            font-family: var(--font-title); font-size: 0.85rem; letter-spacing: 1px;
+            cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+        }
+        .auth-tab.active { background: rgba(196,24,24,0.15); color: var(--secondary-color); border-bottom: 2px solid var(--primary-color); }
+        .auth-tab:hover:not(.active) { background: rgba(255,255,255,0.03); color: var(--secondary-color); }
+        .auth-form { display: flex; flex-direction: column; gap: 10px; }
+        .auth-form input {
+            width: 100%; padding: 12px 14px;
+            font-size: 1rem; font-family: var(--font-body);
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #2a1a40; border-bottom: 2px solid #3a0a0a;
+            color: var(--secondary-color); border-radius: 3px; outline: none;
+            box-sizing: border-box; caret-color: var(--primary-color);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .auth-form input:focus {
+            border-color: #3d2060; border-bottom-color: var(--primary-color);
+            box-shadow: 0 0 12px rgba(196,24,24,0.15);
+        }
+        .auth-form input::placeholder { color: #3a2a4a; }
+        .auth-btn-primary {
+            padding: 13px; margin-top: 4px;
+            font-family: var(--font-title); font-size: 1rem; letter-spacing: 2px;
+            text-transform: uppercase;
+            background: linear-gradient(160deg, #8a0f0f 0%, #c41818 45%, #8a0f0f 100%);
+            color: #ffe8e8; border: 1px solid #3d0808;
+            border-bottom: 3px solid #000; border-right: 3px solid #000;
+            cursor: pointer; transition: all 0.15s;
+            box-shadow: 0 0 20px rgba(196,24,24,0.3);
+        }
+        .auth-btn-primary:hover { background: linear-gradient(160deg, #a01212 0%, #e01a1a 45%, #a01212 100%); }
+        .auth-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .auth-btn-ghost {
+            background: none; border: none; color: var(--dim-color);
+            font-size: 0.85rem; cursor: pointer; padding: 4px;
+            transition: color 0.2s; font-family: var(--font-body);
+        }
+        .auth-btn-ghost:hover { color: var(--accent-color); }
+        .auth-error { color: #ff5555; font-size: 0.9rem; margin-top: 10px; min-height: 20px; }
+        .auth-loading { color: var(--dim-color); font-style: italic; font-size: 0.9rem; margin-top: 10px; }
             width: 100%; height: 100%;
             background: radial-gradient(ellipse at center, #0d0520 0%, #060010 60%, #000 100%);
             display: flex; justify-content: center; align-items: center;
@@ -2343,13 +2422,93 @@ text-decoration: underline; /* Adds an underline on hover */
 
 
 
-        <!-- The profile setup screen is still needed for new games -->
+        <!-- AUTH SCREEN - replaces old profile setup -->
+        <div id="auth-screen" style="display:none;">
+            <div id="auth-inner">
+                <div id="auth-logo">⚰</div>
+                <h2 id="auth-title">Soul Collector</h2>
+                <p id="auth-subtitle">Sign in to save your progress across devices</p>
+                <div class="auth-rune-line"></div>
+
+                <!-- Tab switcher -->
+                <div id="auth-tabs">
+                    <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
+                    <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
+                </div>
+
+                <!-- Login form -->
+                <div id="auth-form-login" class="auth-form">
+                    <input type="email" id="login-email" placeholder="Email address" autocomplete="email">
+                    <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+                    <button class="auth-btn-primary" onclick="authLogin()">Enter the Abyss</button>
+                    <button class="auth-btn-ghost" onclick="authForgotPassword()">Forgot password?</button>
+                </div>
+
+                <!-- Signup form -->
+                <div id="auth-form-signup" class="auth-form" style="display:none;">
+                    <input type="text" id="signup-name" placeholder="Your soul's name (display name)" maxlength="15">
+                    <input type="email" id="signup-email" placeholder="Email address" autocomplete="email">
+                    <input type="password" id="signup-password" placeholder="Password (min 6 characters)" autocomplete="new-password">
+                    <button class="auth-btn-primary" onclick="authSignup()">Begin the Harvest</button>
+                </div>
+
+                <div id="auth-error" class="auth-error"></div>
+                <div id="auth-loading" class="auth-loading" style="display:none;">Communing with the abyss...</div>
+
+                <div class="auth-rune-line" style="margin-top:16px;"></div>
+                <button class="auth-btn-ghost" onclick="authPlayAsGuest()" style="margin-top:8px; font-size:0.8rem;">Play without an account →</button>
+            </div>
+        </div>
+
+        <!-- Keep old profile-setup hidden — no longer used but referenced by JS -->
         <div id="profile-setup" style="display: none;">
             <div id="profile-setup-inner">
                 <h2>Create Your Profile</h2>
                 <p>Enter your name, Soul Collector.</p>
                 <input type="text" id="playerNameInput" placeholder="BoneLordX" maxlength="15">
                 <button class="upgrade-btn" onclick="createProfile()">Begin the Harvest</button>
+            </div>
+        </div>
+
+        <!-- Account modal — attach or sign in from settings -->
+        <div id="account-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:500; display:none; justify-content:center; align-items:center;">
+            <div id="account-modal" style="background:linear-gradient(160deg,#0e0a1a,#18122a); border:1px solid #2a1a40; border-top:3px solid #3a0a0a; padding:40px 48px; max-width:400px; width:92%; box-sizing:border-box; text-align:center; box-shadow:0 0 60px rgba(80,0,140,0.4);">
+                <h2 style="font-family:var(--font-title); color:var(--primary-color); font-size:1.4rem; letter-spacing:3px; margin:0 0 6px;">Account</h2>
+                <div class="auth-rune-line" style="margin-bottom:16px;"></div>
+
+                <div id="acct-panel-guest">
+                    <p style="color:var(--dim-color); font-size:0.9rem; margin-bottom:16px;">Link your progress to an account so you can sign in on any device.</p>
+                    <div id="acct-tabs" style="display:flex; margin-bottom:16px; border:1px solid #2a1a40; border-radius:3px; overflow:hidden;">
+                        <button class="auth-tab active" id="acct-tab-attach" onclick="switchAcctTab('attach')">Create Account</button>
+                        <button class="auth-tab" id="acct-tab-signin" onclick="switchAcctTab('signin')">Sign In</button>
+                    </div>
+
+                    <!-- Attach existing save to new account -->
+                    <div id="acct-form-attach" class="auth-form">
+                        <input type="text" id="acct-attach-name" placeholder="Display name" maxlength="15">
+                        <input type="email" id="acct-attach-email" placeholder="Email address">
+                        <input type="password" id="acct-attach-password" placeholder="Password (min 6 chars)">
+                        <button class="auth-btn-primary" onclick="attachAccount()">Link My Progress</button>
+                    </div>
+
+                    <!-- Sign into existing account (loads cloud save) -->
+                    <div id="acct-form-signin" class="auth-form" style="display:none;">
+                        <p style="color:#ffaa44; font-size:0.82rem; margin:0 0 10px;">⚠️ Signing in will replace your current local save with your cloud save.</p>
+                        <input type="email" id="acct-signin-email" placeholder="Email address">
+                        <input type="password" id="acct-signin-password" placeholder="Password">
+                        <button class="auth-btn-primary" onclick="settingsSignIn()">Sign In & Load Cloud Save</button>
+                    </div>
+                </div>
+
+                <div id="acct-panel-linked" style="display:none;">
+                    <p style="color:#55ff99; margin-bottom:6px;">✓ Account linked</p>
+                    <p id="acct-linked-email" style="color:var(--dim-color); font-size:0.85rem; margin-bottom:20px;"></p>
+                    <button class="auth-btn-primary" onclick="authSignOut()">Sign Out</button>
+                </div>
+
+                <div id="acct-modal-error" class="auth-error"></div>
+                <div id="acct-modal-loading" class="auth-loading" style="display:none;">Communing with the abyss...</div>
+                <button class="auth-btn-ghost" onclick="closeAccountModal()" style="margin-top:14px;">Close</button>
             </div>
         </div>
     <div id="game-container" style="display: none;">
@@ -2803,6 +2962,10 @@ text-decoration: underline; /* Adds an underline on hover */
                         <span class="btn-title">Hard Reset</span>
                         <span>Erase all progress and start over.</span>
                     </button>
+                    <button class="upgrade-btn" id="account-btn" onclick="openAccountModal()" style="border-top-color: #1a4a6a;">
+                        <span class="btn-title" style="color:#60aaff;" id="account-btn-title">🔗 Save to Account</span>
+                        <span id="account-btn-sub">Create an account to sync across devices</span>
+                    </button>
                     <a href="https://www.paypal.com/donate/?business=SC3RFTW5QDZJ4&no_recurring=0&item_name=Support+Soul+Collector%E2%80%99s+development%21+Help+fund+servers%2C+tools%2C+and+resources+to+bring+the+game+to+life.&currency_code=USD" target="_blank" class="upgrade-btn" style="text-align: center; border-color: var(--accent-color); text-decoration: none;">
                         <span class="btn-title" style="color: var(--accent-color);">❤️ Donate ❤️</span>
                         <span style="color: white;">Support the game's development!</span>
@@ -3003,12 +3166,7 @@ window.onload = function() {
         introOverlay.style.opacity = '0';
         introOverlay.addEventListener('transitionend', () => {
             introOverlay.style.display = 'none';
-            const savedGame = localStorage.getItem('soulCollectorSave_v3');
-            if (savedGame) {
-                gameContainer.style.display = 'flex';
-            } else {
-                profileSetup.style.display = 'flex';
-            }
+            // loadGame already handled showing game vs auth screen
         }, { once: true });
     }
 
@@ -3019,6 +3177,8 @@ window.onload = function() {
     // --- The rest of your original onload code continues below this ---
     document.getElementById('version-number').textContent = GAME_VERSION
     loadGame();
+    // Load Firebase immediately so the auth screen works without waiting for chat
+    initializeChat();
     calculateStats();
     renderAll();
     updateCacheTimer();
@@ -4810,33 +4970,22 @@ async function createProfile() {
         createButton.innerText = "Begin the Harvest";
     }
 }
-// NEW, UPGRADED saveGame FUNCTION
-// NEW AND IMPROVED saveGame FUNCTION
 async function saveGame() {
-    // Save to the browser's local storage first (this is for single-player progress)
     localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
-    
-    // --- Start of Online Save Logic ---
-    console.log("Attempting to save player data online..."); // Checkpoint 1
 
-    // This is the most important check. If the player hasn't created a profile, we stop.
-    if (gameState.playerName === "Unnamed") {
-        console.log("Save stopped: Player name is 'Unnamed'. Profile has not been created yet.");
-        return; 
+    if (gameState.playerName === "Unnamed") return;
+
+    // Cloud save via Firebase if signed in
+    if (window._scFirebase && window._scFirebase.auth.currentUser) {
+        const uid = window._scFirebase.auth.currentUser.uid;
+        saveGameToCloud(uid, window._scFirebase.db);
     }
 
-    // This check ensures the Supabase connection is ready.
-    if (!supabaseClient) {
-        console.error("Save failed: Supabase client is not ready. Check URL and Key.");
-        return;
-    }
-
-    console.log(`Preparing to save data for player: ${gameState.playerName}`); // Checkpoint 2
-
-    // Prepare the data to be sent to the database.
+    // Supabase leaderboard save (public data only — unchanged)
+    if (!supabaseClient) return;
     const publicData = {
         name: gameState.playerName,
-        user_id: gameState.playerName, // Using name as a simple unique ID for guest accounts
+        user_id: gameState.playerName,
         lifetimeSouls: gameState.lifetimeSouls,
         ascensions: gameState.ascensions,
         aether: gameState.aether,
@@ -4845,57 +4994,41 @@ async function saveGame() {
         dark_essence: gameState.darkEssence,
         corrupted_fragments: gameState.corruptedFragments,
         bin_id: gameState.playerName,
-        totalCollapses: gameState.totalCollapses 
+        totalCollapses: gameState.totalCollapses
     };
-
     try {
-        console.log("Sending data to Supabase:", publicData); // Checkpoint 3
-        
-        // Use 'upsert' to either create a new player row or update an existing one based on the 'name'.
-        const { error } = await supabaseClient
-            .from('players')
-            .upsert(publicData, { onConflict: 'name' }); 
-
-        // If Supabase returns an error, we will see it here.
-        if (error) {
-            throw error;
-        }
-
-        console.log("SUCCESS: Player data was saved to Supabase successfully."); // Final Checkpoint
-
+        const { error } = await supabaseClient.from('players').upsert(publicData, { onConflict: 'name' });
+        if (error) throw error;
     } catch (error) {
-        // If anything goes wrong during the 'try' block, it will be caught and displayed here.
-        console.error("CRITICAL SAVE ERROR:", error.message);
-        console.error("Full error details:", error);
+        console.error("Supabase save error:", error.message);
     }
 }
 function loadGame() {
-  const savedGame = localStorage.getItem('soulCollectorSave_v3');
-  const defaultState = getDefaultGameState();
+    const savedGame = localStorage.getItem('soulCollectorSave_v3');
+    const defaultState = getDefaultGameState();
 
-  if (savedGame) {
-    try {
-      let loadedState = JSON.parse(savedGame);
-      gameState = deepMerge(defaultState, loadedState);
-      document.getElementById('game-container').style.display = 'block';
-      initializeChat();
-    } catch (e) {
-      console.error("Error parsing save. Starting fresh.", e);
-      gameState = defaultState;
-      document.getElementById('profile-setup').style.display = 'flex';
+    if (savedGame) {
+        try {
+            let loadedState = JSON.parse(savedGame);
+            gameState = deepMerge(defaultState, loadedState);
+            // Existing player — go straight into the game
+            document.getElementById('game-container').style.display = 'block';
+            audio.bgm.muted = localStorage.getItem('musicMuted') === 'true';
+            audio.sfxMuted  = localStorage.getItem('sfxMuted')   === 'true';
+            document.getElementById('musicStatus').innerText = `Status: ${audio.bgm.muted ? 'OFF' : 'ON'}`;
+            document.getElementById('sfxStatus').innerText   = `Status: ${audio.sfxMuted  ? 'OFF' : 'ON'}`;
+        } catch (e) {
+            console.error("Error parsing save. Starting fresh.", e);
+            gameState = defaultState;
+            showAuthScreen();
+        }
+    } else {
+        // New player — show auth/signup screen
+        gameState = defaultState;
+        showAuthScreen();
     }
-
-    // Load audio settings
-    audio.bgm.muted = localStorage.getItem('musicMuted') === 'true';
-    audio.sfxMuted = localStorage.getItem('sfxMuted') === 'true';
-    document.getElementById('musicStatus').innerText = `Status: ${audio.bgm.muted ? 'OFF' : 'ON'}`;
-    document.getElementById('sfxStatus').innerText = `Status: ${audio.sfxMuted ? 'OFF' : 'ON'}`;
-  } else {
-    gameState = defaultState;
-    document.getElementById('profile-setup').style.display = 'flex';
-  }
-  loadFontSetting();
-  syncCurrency();
+    loadFontSetting();
+    syncCurrency();
 }
 
 function deepMerge(target, source) {
@@ -5775,7 +5908,9 @@ function showScreen(screenId) {
     if(navButton) navButton.classList.add('active');
     
     // Handle screen-specific loading
-    if (screenId === 'leaderboard')
+    if (screenId === 'settings') {
+        updateAccountBtn();
+    }
     {
         fetchLeaderboard();
     }
@@ -6350,10 +6485,309 @@ function playSound(soundName) {
 }
 function closeLoreModal() { document.getElementById('lore-modal-overlay').style.display = 'none'; }
 // --- SETTINGS FUNCTIONS ---
+function authPlayAsGuest() {
+    // New player choosing to play without account — show name setup
+    hideAuthScreen();
+    document.getElementById('profile-setup').style.display = 'flex';
+}
+
+function openAccountModal() {
+    const overlay = document.getElementById('account-modal-overlay');
+    overlay.style.display = 'flex';
+    document.getElementById('acct-modal-error').textContent = '';
+    // Check if already linked
+    const isLinked = window._scFirebase && window._scFirebase.auth.currentUser && !window._scFirebase.auth.currentUser.isAnonymous;
+    document.getElementById('acct-panel-guest').style.display  = isLinked ? 'none' : 'block';
+    document.getElementById('acct-panel-linked').style.display = isLinked ? 'block' : 'none';
+    if (isLinked) {
+        document.getElementById('acct-linked-email').textContent = window._scFirebase.auth.currentUser.email;
+    }
+    // Update settings button text
+    updateAccountBtn();
+}
+
+function closeAccountModal() {
+    document.getElementById('account-modal-overlay').style.display = 'none';
+}
+
+function switchAcctTab(tab) {
+    document.getElementById('acct-form-attach').style.display = tab === 'attach' ? 'flex' : 'none';
+    document.getElementById('acct-form-signin').style.display = tab === 'signin' ? 'flex' : 'none';
+    document.getElementById('acct-tab-attach').classList.toggle('active', tab === 'attach');
+    document.getElementById('acct-tab-signin').classList.toggle('active', tab === 'signin');
+    document.getElementById('acct-modal-error').textContent = '';
+}
+
+function setAcctLoading(on) {
+    document.getElementById('acct-modal-loading').style.display = on ? 'block' : 'none';
+    document.querySelectorAll('#account-modal .auth-btn-primary').forEach(b => b.disabled = on);
+}
+
+function setAcctError(msg) {
+    document.getElementById('acct-modal-error').textContent = msg;
+    setAcctLoading(false);
+}
+
+function updateAccountBtn() {
+    const isLinked = window._scFirebase && window._scFirebase.auth.currentUser && !window._scFirebase.auth.currentUser.isAnonymous;
+    const titleEl = document.getElementById('account-btn-title');
+    const subEl   = document.getElementById('account-btn-sub');
+    if (!titleEl) return;
+    if (isLinked) {
+        titleEl.textContent = '✓ Account Linked';
+        subEl.textContent   = window._scFirebase.auth.currentUser.email;
+    } else {
+        titleEl.textContent = '🔗 Save to Account';
+        subEl.textContent   = 'Create an account to sync across devices';
+    }
+}
+
+async function attachAccount() {
+    const name     = document.getElementById('acct-attach-name').value.trim();
+    const email    = document.getElementById('acct-attach-email').value.trim();
+    const password = document.getElementById('acct-attach-password').value;
+    if (!name || !email || !password) return setAcctError('Please fill in all fields.');
+    if (password.length < 6) return setAcctError('Password must be at least 6 characters.');
+    setAcctLoading(true);
+
+    try {
+        const { firebase, auth, db } = window._scFirebase;
+        // Create a brand new account
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        const uid = cred.user.uid;
+
+        // Check name isn't taken
+        const snap = await db.ref('accountNames/' + name.toLowerCase()).once('value');
+        if (snap.exists()) {
+            await auth.currentUser.delete();
+            return setAcctError('That name is already taken. Choose another.');
+        }
+        await db.ref('accountNames/' + name.toLowerCase()).set(uid);
+
+        // Update display name if they want
+        gameState.playerName = name;
+        gameState.firebaseUid = uid;
+        localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
+
+        // Push current save to cloud
+        await saveGameToCloud(uid, db);
+
+        closeAccountModal();
+        updateAccountBtn();
+        renderAll();
+        setAcctLoading(false);
+        document.getElementById('acct-modal-error').style.color = '#55ff99';
+        // Reopen to show linked panel
+        openAccountModal();
+    } catch(e) {
+        const msgs = {
+            'auth/email-already-in-use': 'An account with that email already exists. Use Sign In instead.',
+            'auth/invalid-email':        'Invalid email address.',
+            'auth/weak-password':        'Password is too weak.'
+        };
+        setAcctError(msgs[e.code] || e.message);
+    }
+}
+
+async function settingsSignIn() {
+    const email    = document.getElementById('acct-signin-email').value.trim();
+    const password = document.getElementById('acct-signin-password').value;
+    if (!email || !password) return setAcctError('Please fill in all fields.');
+    setAcctLoading(true);
+    try {
+        const { auth, db } = window._scFirebase;
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+        await loadGameFromCloud(cred.user.uid, db);
+        closeAccountModal();
+        updateAccountBtn();
+    } catch(e) {
+        const msgs = {
+            'auth/user-not-found':  'No account found with that email.',
+            'auth/wrong-password':  'Incorrect password.',
+            'auth/invalid-email':   'Invalid email address.'
+        };
+        setAcctError(msgs[e.code] || e.message);
+    }
+}
+
+// ================================================================= //
+// AUTH SYSTEM — Email/Password via Firebase                         //
+// ================================================================= //
+
+function showAuthScreen() {
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('game-container').style.display = 'none';
+    document.getElementById('profile-setup').style.display = 'none';
+}
+
+function hideAuthScreen() {
+    document.getElementById('auth-screen').style.display = 'none';
+}
+
+function switchAuthTab(tab) {
+    document.getElementById('auth-form-login').style.display  = tab === 'login'  ? 'flex' : 'none';
+    document.getElementById('auth-form-signup').style.display = tab === 'signup' ? 'flex' : 'none';
+    document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
+    document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+    document.getElementById('auth-error').textContent = '';
+}
+
+function setAuthLoading(on) {
+    document.getElementById('auth-loading').style.display = on ? 'block' : 'none';
+    document.querySelectorAll('.auth-btn-primary').forEach(b => b.disabled = on);
+}
+
+function setAuthError(msg) {
+    document.getElementById('auth-error').textContent = msg;
+    setAuthLoading(false);
+}
+
+async function authLogin() {
+    const email    = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) return setAuthError('Please fill in all fields.');
+    setAuthLoading(true);
+    document.getElementById('auth-error').textContent = '';
+    try {
+        const { auth, db } = window._scFirebase;
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+        await loadGameFromCloud(cred.user.uid, db);
+    } catch (e) {
+        const msgs = {
+            'auth/user-not-found':   'No account found with that email.',
+            'auth/wrong-password':   'Incorrect password.',
+            'auth/invalid-email':    'Invalid email address.',
+            'auth/too-many-requests':'Too many attempts. Try again later.'
+        };
+        setAuthError(msgs[e.code] || e.message);
+    }
+}
+
+async function authSignup() {
+    const name     = document.getElementById('signup-name').value.trim();
+    const email    = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    if (!name || !email || !password) return setAuthError('Please fill in all fields.');
+    if (name.length < 2)  return setAuthError('Name must be at least 2 characters.');
+    if (password.length < 6) return setAuthError('Password must be at least 6 characters.');
+    setAuthLoading(true);
+    document.getElementById('auth-error').textContent = '';
+    try {
+        const { auth, db } = window._scFirebase;
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        const uid = cred.user.uid;
+        // Check name isn't taken
+        const snap = await db.ref('accountNames/' + name.toLowerCase()).once('value');
+        if (snap.exists()) {
+            await auth.currentUser.delete();
+            return setAuthError('That name is already taken. Choose another.');
+        }
+        // Reserve the name
+        await db.ref('accountNames/' + name.toLowerCase()).set(uid);
+        // Set up fresh game state
+        gameState = getDefaultGameState();
+        gameState.playerName = name;
+        gameState.firebaseUid = uid;
+        localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
+        await saveGameToCloud(uid, db);
+        enterGame();
+    } catch (e) {
+        const msgs = {
+            'auth/email-already-in-use': 'An account with that email already exists.',
+            'auth/invalid-email':        'Invalid email address.',
+            'auth/weak-password':        'Password is too weak.'
+        };
+        setAuthError(msgs[e.code] || e.message);
+    }
+}
+
+async function authForgotPassword() {
+    const email = document.getElementById('login-email').value.trim();
+    if (!email) return setAuthError('Enter your email above first.');
+    try {
+        await window._scFirebase.auth.sendPasswordResetEmail(email);
+        document.getElementById('auth-error').style.color = '#55ff99';
+        document.getElementById('auth-error').textContent = 'Reset email sent! Check your inbox.';
+    } catch (e) {
+        setAuthError('Could not send reset email: ' + e.message);
+    }
+}
+
+async function authSignOut() {
+    if (!confirm('Sign out? Your progress is saved to the cloud.')) return;
+    try {
+        if (window._scFirebase) await window._scFirebase.auth.signOut();
+        document.getElementById('game-container').style.display = 'none';
+        showAuthScreen();
+    } catch(e) { console.error('Sign out error:', e); }
+}
+
+async function saveGameToCloud(uid, db) {
+    if (!uid || !db) return;
+    try {
+        const saveData = JSON.parse(JSON.stringify(gameState)); // clean clone
+        await db.ref('gameSaves/' + uid).set({
+            state: JSON.stringify(saveData),
+            savedAt: Date.now(),
+            playerName: gameState.playerName
+        });
+    } catch(e) { console.error('Cloud save failed:', e); }
+}
+
+async function loadGameFromCloud(uid, db) {
+    try {
+        const snap = await db.ref('gameSaves/' + uid).once('value');
+        const defaultState = getDefaultGameState();
+        if (snap.exists()) {
+            const data = snap.val();
+            const loaded = JSON.parse(data.state);
+            gameState = deepMerge(defaultState, loaded);
+            gameState.firebaseUid = uid;
+            localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
+        } else {
+            // New account on a new device — try localStorage
+            const localSave = localStorage.getItem('soulCollectorSave_v3');
+            if (localSave) {
+                gameState = deepMerge(defaultState, JSON.parse(localSave));
+            } else {
+                gameState = defaultState;
+            }
+            gameState.firebaseUid = uid;
+            await saveGameToCloud(uid, db); // push whatever we have up
+        }
+        enterGame();
+    } catch(e) {
+        console.error('Cloud load failed:', e);
+        setAuthError('Failed to load your save. Please try again.');
+        setAuthLoading(false);
+    }
+}
+
+function enterGame() {
+    hideAuthScreen();
+    document.getElementById('game-container').style.display = 'block';
+    document.getElementById('profile-setup').style.display = 'none';
+    tryStartMusic();
+    calculateStats();
+    renderAll();
+    initializeChat();
+    updateAccountBtn();
+    // Load audio settings
+    audio.bgm.muted = localStorage.getItem('musicMuted') === 'true';
+    audio.sfxMuted  = localStorage.getItem('sfxMuted')   === 'true';
+    document.getElementById('musicStatus').innerText = `Status: ${audio.bgm.muted ? 'OFF' : 'ON'}`;
+    document.getElementById('sfxStatus').innerText   = `Status: ${audio.sfxMuted  ? 'OFF' : 'ON'}`;
+}
+
 function hardReset() {
     if (confirm("ARE YOU SURE? This will completely erase your save file and cannot be undone.")) {
         if (confirm("FINAL WARNING: Are you absolutely certain you want to delete everything?")) {
             localStorage.removeItem('soulCollectorSave_v3');
+            // Also wipe cloud save if signed in
+            if (window._scFirebase && window._scFirebase.auth.currentUser) {
+                const uid = window._scFirebase.auth.currentUser.uid;
+                window._scFirebase.db.ref('gameSaves/' + uid).remove();
+            }
             window.location.reload();
         }
     }
@@ -7722,23 +8156,27 @@ function initializeChat() {
         function initializeFirebase(firebase) {
             if (!firebase.apps.length) firebase.initializeApp(config.firebaseConfig);
             const auth = firebase.auth(); const db = firebase.database();
-            auth.signInAnonymously().catch(err => console.error("Firebase Sign-In Error:", err));
+
+            // Store db globally so auth functions can use it
+            window._scFirebase = { firebase, auth, db };
+
             auth.onAuthStateChanged(user => {
-                if (user) {
-                    const chatInput = document.getElementById('chat-input'); chatInput.disabled = false; chatInput.placeholder = 'Type and press Enter...'; document.getElementById('chat-body').innerHTML = '';
-                    let nickname = localStorage.getItem("slitherChatNickname") || gameState.playerName; // USE GAME NAME
+                if (user && !user.isAnonymous) {
+                    // Signed in with real account — set up chat
+                    const chatInput = document.getElementById('chat-input');
+                    if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
+                    document.getElementById('chat-body').innerHTML = '';
+                    let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
                     localStorage.setItem("slitherChatNickname", nickname);
-                    
-                    const userRef = db.ref("onlineUsers/" + user.uid);
+                    const uid = user.uid;
+                    const userRef = db.ref("onlineUsers/" + uid);
                     userRef.onDisconnect().remove();
                     const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
-                    userRef.set({ ...localData, uid: user.uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
-                    // Heartbeat — refresh lastActive every 3 min so active players stay green
+                    userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
                     setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
-                    
-                    listenForChatMessages(db, user.uid);
+                    listenForChatMessages(db, uid);
                     listenForOnlineUsers(db);
-                    setupEventListeners(db, user.uid);
+                    setupEventListeners(db, uid);
                 }
             });
         }

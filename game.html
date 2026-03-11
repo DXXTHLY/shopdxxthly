@@ -208,6 +208,8 @@
             display: block;
             padding: 0 14px;
             text-align: center;
+            word-break: break-word;
+            white-space: normal;
         }
         button.upgrade-btn > span.btn-title { padding-top: 16px; }
         button.upgrade-btn > span.cost:last-child,
@@ -258,14 +260,17 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            word-break: break-word;
+            white-space: normal;
         }
-        .upgrade-btn-body { padding: 18px 16px 12px; flex: 1; text-align: center; }
+        .upgrade-btn-body { padding: 18px 16px 12px; flex: 1; text-align: center; word-break: break-word; }
         .upgrade-btn-footer {
             padding: 10px 16px;
             background: rgba(0,0,0,0.35);
             border-top: 1px solid #1a0d26;
             font-size: 1rem;
             text-align: center;
+            word-break: break-word;
         }
         button.upgrade-btn:hover:not(:disabled) {
             border-top-color: var(--primary-color);
@@ -545,19 +550,165 @@
             text-decoration: underline;
         }
         /* --- ABYSSAL GRIMOIRE (CHAT) STYLES --- */
-        #chat-container { position: fixed; left: 20px; top: 100px; width: 380px; height: 400px; z-index: 999; display: flex; flex-direction: column; background-color: var(--dark-panel-color); border: 2px solid #111; border-radius: var(--border-radius); box-shadow: 0 0 25px rgba(0,0,0,0.8); overflow: hidden; user-select: none; resize: both; min-width: 320px; min-height: 250px; font-family: var(--font-body); }
-        #chat-header { display: flex; align-items: center; border-bottom: 2px solid #111; background: #000; cursor: move; }
-        .chat-tab { flex: 1; padding: 12px 10px; text-align: center; cursor: pointer; font-family: var(--font-title); color: var(--dim-color); font-size: 1.1rem; transition: all var(--transition-speed); }
-        #chat-tab-main { background: var(--light-panel-color); color: var(--secondary-color); }
-        #chat-tab-users { background: transparent; color: var(--dim-color); }
-        #chat-settings-btn, #chat-hide-btn { background: none; border: none; color: var(--dim-color); font-size: 20px; padding: 0 12px; cursor: pointer; transition: color 0.2s; border-left: 1px solid #000; }
-        #chat-settings-btn:hover, #chat-hide-btn:hover { color: white; }
+        /* ================================================================= */
+        /* CHAT - FULL VISUAL OVERHAUL                                      */
+        /* ================================================================= */
+        #chat-container {
+            position: fixed;
+            left: 20px;
+            top: 100px;
+            width: 360px;
+            height: 460px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(170deg, #08050f 0%, #0d0818 100%);
+            border: 1px solid #2a1440;
+            border-top: 2px solid #3a0a0a;
+            border-radius: 4px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.9), 0 0 20px rgba(80,0,120,0.2), inset 0 0 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+            user-select: none;
+            resize: both;
+            min-width: 300px;
+            min-height: 250px;
+            font-family: var(--font-body);
+        }
+
+        /* Header */
+        #chat-header {
+            display: flex;
+            align-items: stretch;
+            background: linear-gradient(to bottom, #0d0516, #080310);
+            border-bottom: 1px solid #1a0d2a;
+            cursor: move;
+            flex-shrink: 0;
+        }
+        .chat-tab {
+            flex: 1;
+            padding: 11px 8px;
+            text-align: center;
+            cursor: pointer;
+            font-family: var(--font-title);
+            color: var(--dim-color);
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            transition: all var(--transition-speed);
+            border-right: 1px solid #0d0920;
+        }
+        .chat-tab:hover { color: var(--secondary-color); background: rgba(255,255,255,0.03); }
+        #chat-tab-main {
+            color: var(--secondary-color);
+            background: rgba(180,0,0,0.12);
+            border-bottom: 2px solid var(--primary-color);
+            text-shadow: 0 0 8px rgba(196,24,24,0.4);
+        }
+        #chat-tab-users { color: var(--dim-color); }
+        #chat-settings-btn, #chat-hide-btn {
+            background: none;
+            border: none;
+            border-left: 1px solid #0d0920;
+            color: var(--dim-color);
+            font-size: 16px;
+            padding: 0 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        #chat-settings-btn:hover { color: var(--accent-color); background: rgba(232,168,0,0.08); }
+        #chat-hide-btn:hover { color: var(--primary-color); background: rgba(196,24,24,0.1); }
+
+        /* Message area */
         #chat-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        #chat-body, #online-users { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; scrollbar-width: thin; scrollbar-color: var(--primary-color) var(--dark-panel-color); }
-        #online-users { display: none; }
-        #chat-input-container { display: flex; align-items: center; border-top: 2px solid #111; background: #000; }
-        #chat-input { flex-grow: 1; padding: 12px 15px; border: none; background: transparent; color: var(--secondary-color); outline: none; font-size: 1em; font-family: var(--font-body); }
-        #chat-input:focus { box-shadow: inset 0 0 8px var(--primary-glow); }
+        #chat-body, #online-users {
+            flex: 1;
+            padding: 12px 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: #3a0a0a #050309;
+        }
+        #online-users { display: none; gap: 6px; }
+
+        /* Individual message bubbles */
+        .chat-msg {
+            padding: 4px 11px;
+            border-radius: 3px;
+            word-break: break-word;
+            font-size: 13.5px;
+            line-height: 1.6;
+            border-left: 2px solid #1a0d2a;
+            background: rgba(0,0,0,0.2);
+            transition: background 0.15s;
+        }
+        .chat-msg:hover { background: rgba(255,255,255,0.03); }
+        .chat-msg.msg-mine { background: rgba(30,60,30,0.2); border-left-color: var(--accent-color); }
+        .chat-msg.msg-dev { background: rgba(196,24,24,0.07); border-left-color: var(--primary-color); box-shadow: inset 0 0 15px rgba(196,24,24,0.05); }
+        .chat-msg.msg-system { background: rgba(100,0,0,0.12); border-left-color: #c41818; text-align: center; font-style: italic; }
+        .chat-msg-time { color: #3a2a4a; font-size: 0.78em; font-family: var(--font-body); margin-right: 4px; }
+        .chat-msg-text { color: var(--secondary-color); }
+        .chat-username { font-weight: bold; cursor: pointer; }
+        .chat-username:hover { text-decoration: underline dotted; }
+
+        /* Online souls list */
+        .online-user-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 6px 10px;
+            border-radius: 3px;
+            background: rgba(0,0,0,0.2);
+            transition: background 0.15s;
+            cursor: pointer;
+            text-align: left;
+        }
+        .online-user-row:hover { background: rgba(255,255,255,0.04); }
+        .status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .status-dot.online { background: #2ecc71; box-shadow: 0 0 6px rgba(46,204,113,0.8); }
+        .status-dot.away   { background: #e67e22; box-shadow: 0 0 5px rgba(230,126,34,0.6); }
+        .online-user-name  { font-size: 0.95rem; }
+
+        /* Input area */
+        #chat-input-container {
+            display: flex;
+            align-items: center;
+            border-top: 1px solid #1a0d2a;
+            background: #04020a;
+            flex-shrink: 0;
+            padding: 2px 0;
+        }
+        #chat-input {
+            flex-grow: 1;
+            padding: 11px 14px;
+            border: none;
+            background: transparent;
+            color: var(--secondary-color);
+            outline: none;
+            font-size: 0.95em;
+            font-family: var(--font-body);
+            caret-color: var(--primary-color);
+        }
+        #chat-input::placeholder { color: #3a2a4a; font-style: italic; }
+        #chat-input:focus { background: rgba(180,0,0,0.04); }
+        /* Send button */
+        #chat-send-btn {
+            background: none;
+            border: none;
+            border-left: 1px solid #1a0d2a;
+            color: var(--dim-color);
+            padding: 11px 14px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        #chat-send-btn:hover { color: var(--primary-color); background: rgba(196,24,24,0.1); }
         .chat-username { font-weight: bold; cursor: pointer; text-decoration: underline dotted; }
         .chat-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 400; backdrop-filter: blur(5px); }
         .chat-modal-content { padding: 30px; background: var(--dark-panel-color); border: 2px solid var(--accent-color); text-align: left; box-shadow: 0 0 30px var(--accent-glow); min-width: 400px; }
@@ -7488,6 +7639,8 @@ function initializeChat() {
                     userRef.onDisconnect().remove();
                     const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
                     userRef.set({ ...localData, uid: user.uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
+                    // Heartbeat — refresh lastActive every 3 min so active players stay green
+                    setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
                     
                     listenForChatMessages(db, user.uid);
                     listenForOnlineUsers(db);
@@ -7592,13 +7745,20 @@ function initializeChat() {
 
             // --- 4. ASSEMBLE AND RENDER THE FINAL ELEMENT ---
             const el = document.createElement('div');
-            const borderColor = (msg.uid === currentUid) ? 'var(--accent-color)' : 'var(--border-color)';
-            const bgColor = (msg.uid === currentUid) ? 'rgba(80, 160, 80, 0.15)' : 'rgba(0,0,0,0.2)';
-
-            el.style.cssText = `margin-bottom: 8px; word-break: break-word; background: ${bgColor}; padding: 8px 12px; border-radius: 4px; color: var(--secondary-color); font-family: inherit; font-size: 14px; line-height: 1.5; border-left: 3px solid ${borderColor};`;
+            const isMine = msg.uid === currentUid;
+            let msgClass = 'chat-msg';
+            if (isMine) msgClass += ' msg-mine';
+            else if (isDev(msg.uid)) msgClass += ' msg-dev';
+            else if (isSystemMessage) msgClass += ' msg-system';
+            el.className = msgClass;
 
             const timestamp = new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            el.innerHTML = `<span style="color:var(--dim-color); font-size:0.9em; margin-right:5px;">[${timestamp}]</span> <b>${nameHtml}${roleTagHTML}:</b> ${finalMessage}`;
+
+            if (isSystemMessage) {
+                el.innerHTML = `<span class="chat-msg-text">${finalMessage}</span>`;
+            } else {
+                el.innerHTML = `<span class="chat-msg-time">[${timestamp}]</span><b>${nameHtml}${roleTagHTML}:</b> <span class="chat-msg-text">${finalMessage}</span>`;
+            }
 
             chatBodyElement.appendChild(el);
 
@@ -7614,14 +7774,32 @@ function initializeChat() {
                 if (!onlineUsersDiv) return;
                 onlineUsersDiv.innerHTML = '';
                 let userCount = 0;
+                const now = Date.now();
+                const AWAY_THRESHOLD = 5 * 60 * 1000; // 5 minutes
                 if (snapshot.exists()) {
-                    snapshot.forEach(child => {
-                        const user = child.val();
-                        if (!user || !user.name) return; userCount++;
-                        const userEl = document.createElement('div'); userEl.className = 'chat-username'; userEl.dataset.uid = user.uid;
+                    const users = [];
+                    snapshot.forEach(child => { const u = child.val(); if (u && u.name) users.push(u); });
+                    // Sort: online first, then away; devs always top
+                    users.sort((a, b) => {
+                        const aOnline = !a.lastActive || (now - a.lastActive < AWAY_THRESHOLD);
+                        const bOnline = !b.lastActive || (now - b.lastActive < AWAY_THRESHOLD);
+                        if (aOnline !== bOnline) return bOnline - aOnline;
+                        return 0;
+                    });
+                    users.forEach(user => {
+                        userCount++;
+                        const isOnline = !user.lastActive || (now - user.lastActive < AWAY_THRESHOLD);
+                        const userEl = document.createElement('div');
+                        userEl.className = 'online-user-row chat-username';
+                        userEl.dataset.uid = user.uid;
                         const userColor = (user.chatNameColor && /^#([0-9a-fA-F]{3}){1,2}$/.test(user.chatNameColor)) ? user.chatNameColor : '#FFFFFF';
-                        const nameDisplay = isDev(user.uid) ? rainbowTextStyle(escapeHTML(user.name)) : `<span style="color:${userColor};">${escapeHTML(user.name)}</span>`;
-                        userEl.innerHTML = nameDisplay;
+                        const nameDisplay = isDev(user.uid)
+                            ? rainbowTextStyle(escapeHTML(user.name))
+                            : `<span style="color:${userColor};">${escapeHTML(user.name)}</span>`;
+                        userEl.innerHTML = `
+                            <span class="status-dot ${isOnline ? 'online' : 'away'}"></span>
+                            <span class="online-user-name">${nameDisplay}</span>
+                        `;
                         onlineUsersDiv.appendChild(userEl);
                     });
                 }
@@ -7721,13 +7899,23 @@ function initializeChat() {
                     const name = localStorage.getItem("slitherChatNickname"); 
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700"; 
                     db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color }); 
-                    // --- THIS IS THE NEW LINE YOU ARE ADDING ---
                     db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP }); 
-                    // ------------------------------------------
                     e.target.value = ''; 
                 } 
             } 
         });
+            document.getElementById('chat-send-btn').addEventListener('click', () => {
+                const input = document.getElementById('chat-input');
+                const text = input.value.trim();
+                if (text) {
+                    const name = localStorage.getItem("slitherChatNickname");
+                    const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
+                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color });
+                    db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP });
+                    input.value = '';
+                    input.focus();
+                }
+            });
 
             const settingsOverlay = document.getElementById('settings-modal-overlay');
             document.getElementById('chat-settings-btn').addEventListener('click', () => {
@@ -7763,10 +7951,10 @@ function toggleChat() {
 
     if (chatContainer.style.display === 'none') {
         chatContainer.style.display = 'flex';
-        // When opening the chat, remove the notification
-        if (chatButton) {
-            chatButton.classList.remove('has-notification');
-        }
+        // Scroll to bottom after display kicks in
+        const chatBody = document.getElementById('chat-body');
+        setTimeout(() => { chatBody.scrollTop = chatBody.scrollHeight; }, 50);
+        if (chatButton) chatButton.classList.remove('has-notification');
     } else {
         chatContainer.style.display = 'none';
     }
@@ -8890,7 +9078,8 @@ function endCombat(isWin) {
         <div id="chat-body"></div>
         <div id="online-users"></div>
         <div id="chat-input-container">
-            <input id="chat-input" type="text" placeholder="Connecting..." disabled>
+            <input id="chat-input" type="text" placeholder="Speak into the abyss..." disabled>
+            <button id="chat-send-btn" title="Send">↵</button>
         </div>
     </div>
 </div>

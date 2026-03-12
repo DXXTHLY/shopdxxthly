@@ -6881,85 +6881,107 @@ function enterGame() {
     document.getElementById('sfxStatus').innerText   = `Status: ${audio.sfxMuted  ? 'OFF' : 'ON'}`;
 
     // ── SESSION LEADER SYSTEM ──────────────────────────────────────────────────
-    // Only one tab (the "leader") ticks souls and saves to cloud.
-    // A second tab detects the conflict, shows a warning banner, and becomes
-    // a read-only viewer that syncs from cloud in real-time.
+    // Uses the CHAT database (chatforslither) for session tracking — anonymous
+    // auth always works there, so no database-rules surprises.
+    // Approach: write a heartbeat, wait 600ms, then read back. If we see a
+    // *different* tabId with a fresh heartbeat, we lost the race → follower.
     // ─────────────────────────────────────────────────────────────────────────
-    if (window._scFirebase && window._scFirebase.auth.currentUser) {
-        const uid = window._scFirebase.auth.currentUser.uid;
-        const db  = window._scFirebase.db;
+    (function initSessionLeader() {
+        // We need the save-uid AND the chat db. Both become available at different
+        // times, so poll until ready (max 8s).
         const tabId = Math.random().toString(36).slice(2);
         window._scTabId = tabId;
+        window._scSessionLeader = true; // optimistic default until we know better
 
-        const sessionRef = db.ref('activeSessions/' + uid);
+        let attempts = 0;
+        const poll = setInterval(() => {
+            attempts++;
+            const saveUid  = window._scFirebase && window._scFirebase.auth.currentUser
+                ? window._scFirebase.auth.currentUser.uid : null;
+            const chatDb   = window._scFirebase && window._scFirebase.chatDb
+                ? window._scFirebase.chatDb : null;
+            const saveDb   = window._scFirebase && window._scFirebase.db
+                ? window._scFirebase.db : null;
 
-        function claimLeadership() {
-            window._scSessionLeader = true;
-            sessionRef.set({ tabId, heartbeat: Date.now(), origin: location.hostname });
-            sessionRef.onDisconnect().remove();
-            clearInterval(window._scHeartbeatInterval);
-            window._scHeartbeatInterval = setInterval(() => {
-                sessionRef.update({ heartbeat: Date.now(), tabId, origin: location.hostname });
-            }, 10000);
-            // Real-time listener: sync from another device if it saves ahead
-            db.ref('gameSaves/' + uid).on('value', cloudSnap => {
-                if (!cloudSnap.exists() || !window._scSessionLeader) return;
-                try {
-                    const cloudData = JSON.parse(cloudSnap.val().state);
-                    const cloudLeader = cloudSnap.val().leaderId;
-                    if (cloudLeader !== tabId && (cloudData.lifetimeSouls || 0) > (gameState.lifetimeSouls || 0)) {
-                        const defaultState = getDefaultGameState();
-                        gameState = deepMerge(defaultState, cloudData);
-                        gameState.firebaseUid = uid;
-                        localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
-                        calculateStats();
-                        renderAll();
-                        console.log('[Soul Collector] Leader merged newer cloud save from another device.');
-                    }
-                } catch(e) {}
-            });
-            console.log('[Soul Collector] This tab is the LEADER (' + tabId + ')');
-        }
-
-        // Use a Firebase transaction — atomic check-and-claim.
-        // Only one tab can win even if both try at the exact same millisecond.
-        sessionRef.transaction(existing => {
-            const now = Date.now();
-            const isStale = !existing || (now - (existing.heartbeat || 0)) > 15000;
-            if (isStale) {
-                // Slot is free — claim it
-                return { tabId, heartbeat: now, origin: location.hostname };
-            }
-            // Slot is taken — abort transaction (return undefined)
-            return undefined;
-        }, (error, committed) => {
-            if (error) {
-                console.warn('[Soul Collector] Session transaction error:', error);
-                claimLeadership(); // fallback: just become leader
+            if (!saveUid || !chatDb || !saveDb) {
+                if (attempts > 40) { clearInterval(poll); } // give up after 8s
                 return;
             }
-            if (committed) {
-                // Transaction committed — we claimed the slot
-                claimLeadership();
-            } else {
-                // Transaction aborted — another tab already owns the slot
-                window._scSessionLeader = false;
-                console.log('[Soul Collector] This tab is a FOLLOWER (' + tabId + ')');
-                showDuplicateTabBanner(sessionRef, tabId, uid, db, claimLeadership);
-            }
-        }, false); // false = don't use local cache, always read from server
+            clearInterval(poll);
 
-    } else {
-        // Guest / not signed in — always leader
-        window._scSessionLeader = true;
-    }
+            // Use chatDb for session slot — rules are open for anonymous users
+            const sessionRef = chatDb.ref('scSessions/' + saveUid);
+
+            function claimLeadership() {
+                window._scSessionLeader = true;
+                sessionRef.set({ tabId, heartbeat: Date.now(), origin: location.hostname });
+                sessionRef.onDisconnect().remove();
+                clearInterval(window._scHeartbeatInterval);
+                window._scHeartbeatInterval = setInterval(() => {
+                    sessionRef.update({ heartbeat: Date.now(), tabId, origin: location.hostname });
+                }, 8000);
+                // Watch the save DB in real-time — if another device saves ahead, sync it
+                saveDb.ref('gameSaves/' + saveUid).on('value', cloudSnap => {
+                    if (!cloudSnap.exists() || !window._scSessionLeader) return;
+                    try {
+                        const cloudData = JSON.parse(cloudSnap.val().state);
+                        const cloudLeader = cloudSnap.val().leaderId;
+                        if (cloudLeader !== tabId && (cloudData.lifetimeSouls || 0) > (gameState.lifetimeSouls || 0)) {
+                            const defaultState = getDefaultGameState();
+                            gameState = deepMerge(defaultState, cloudData);
+                            gameState.firebaseUid = saveUid;
+                            localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
+                            calculateStats();
+                            renderAll();
+                            console.log('[SC] Leader merged newer save from another device.');
+                        }
+                    } catch(e) {}
+                });
+                console.log('[SC] LEADER tab:', tabId, '| origin:', location.hostname);
+            }
+
+            // Step 1: Write our candidacy
+            sessionRef.once('value', snap => {
+                const existing = snap.val();
+                const now = Date.now();
+                const existingAge = now - (existing ? existing.heartbeat || 0 : 0);
+                const isStale = !existing || existingAge > 20000;
+
+                if (isStale) {
+                    // Slot is free — write our heartbeat and wait to see if anyone races us
+                    sessionRef.set({ tabId, heartbeat: now, origin: location.hostname }, () => {
+                        // Step 2: After 700ms re-read — if someone overwrote us, we lost
+                        setTimeout(() => {
+                            sessionRef.once('value', confirmSnap => {
+                                const confirmed = confirmSnap.val();
+                                if (confirmed && confirmed.tabId === tabId) {
+                                    claimLeadership();
+                                } else {
+                                    // Another tab wrote over us — we're the follower
+                                    window._scSessionLeader = false;
+                                    console.log('[SC] FOLLOWER tab:', tabId, '(lost race to', confirmed && confirmed.tabId, ')');
+                                    showDuplicateTabBanner(sessionRef, tabId, saveUid, saveDb, chatDb, claimLeadership);
+                                }
+                            });
+                        }, 700);
+                    });
+                } else {
+                    // Slot clearly taken by a live session
+                    window._scSessionLeader = false;
+                    console.log('[SC] FOLLOWER tab:', tabId, '(slot owned by', existing.tabId, ', age', existingAge, 'ms)');
+                    showDuplicateTabBanner(sessionRef, tabId, saveUid, saveDb, chatDb, claimLeadership);
+                }
+            });
+
+        }, 200); // poll every 200ms
+    })();
     // ──────────────────────────────────────────────────────────────────────────
 
     // Show account reminder popup
     setTimeout(() => showAccountReminderPopup(), 2000);
 }
 
-function showDuplicateTabBanner(sessionRef, myTabId, uid, db, claimLeadership) {
+function showDuplicateTabBanner(sessionRef, myTabId, uid, saveDb, chatDb, claimLeadership) {
     // Remove any existing banner
     const existing = document.getElementById('duplicate-tab-banner');
     if (existing) existing.remove();
@@ -7013,7 +7035,7 @@ function showDuplicateTabBanner(sessionRef, myTabId, uid, db, claimLeadership) {
     };
 
     // Real-time cloud sync for the follower tab
-    db.ref('gameSaves/' + uid).on('value', snap => {
+    saveDb.ref('gameSaves/' + uid).on('value', snap => {
         if (!snap.exists() || window._scSessionLeader) return;
         try {
             const cloudData = JSON.parse(snap.val().state);
@@ -7024,6 +7046,7 @@ function showDuplicateTabBanner(sessionRef, myTabId, uid, db, claimLeadership) {
                 localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
                 calculateStats();
                 renderAll();
+                console.log('[SC] Follower synced from cloud — souls:', gameState.lifetimeSouls);
             }
         } catch(e) {}
     });
@@ -8384,7 +8407,9 @@ function initializeChat() {
         ],
         vipMembers: [
             { uid: "crcOY9hoRrfayStCxMVm7Zdx2W92", name: "stevao" },
-            { uid: "DhGhICAZwkRa7wuMsyquM9a5uO92", name: "LUANBLAYNER" }
+            { uid: "DhGhICAZwkRa7wuMsyquM9a5uO92", name: "LUANBLAYNER" },
+            { uid: "AQfZZxXypaNRGBKLVlY57MtPdJE2" },
+            { uid: "DBnyEv193hSCCANwdvRAgES8alq1" }
         ]
         };
 
@@ -8393,7 +8418,8 @@ function initializeChat() {
         // --- HELPER FUNCTIONS ---
         const escapeHTML = (str) => { const p = document.createElement('p'); p.appendChild(document.createTextNode(str)); return p.innerHTML; };
         const isDev = (uid) => config.devList.some(dev => dev.uid === uid);
-        const isVip = (uid, name) => config.vipMembers.some(vip => vip.uid === uid && vip.name.toLowerCase() === (name || '').toLowerCase());
+        // If a vipMember has no name set, UID alone is enough to match
+        const isVip = (uid, name) => config.vipMembers.some(vip => vip.uid === uid && (!vip.name || vip.name.toLowerCase() === (name || '').toLowerCase()));
         // Inject dev name flash animation into the page once
         if (!document.getElementById('dev-flash-style')) {
             const s = document.createElement('style');
@@ -8457,30 +8483,52 @@ function initializeChat() {
             // Expose globally
             window._scFirebase = { firebase, auth: saveAuth, db: saveDb, chatDb: db };
 
-            // Sign into chatforslither anonymously — powers online presence & chat
+            // Sign into chatforslither anonymously — only needed to satisfy Firebase auth rules.
+            // We do NOT use the anonymous UID as the chat identity.
+            // Instead we use the game account UID (saveAuth) so both tabs show the same person.
             chatAuth.signInAnonymously().catch(err => console.error("Chat anon sign-in error:", err));
 
-            chatAuth.onAuthStateChanged(user => {
-                if (!user) return;
-                const uid = user.uid;
-                let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
-                localStorage.setItem("slitherChatNickname", nickname);
+            chatAuth.onAuthStateChanged(chatUser => {
+                if (!chatUser) return;
 
-                const chatInput = document.getElementById('chat-input');
-                if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
-                if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
+                // Prefer the game account UID so identity is consistent across all tabs/devices.
+                // Fall back to the anonymous UID only if the player hasn't signed into a game account.
+                function startChatWithUid(uid) {
+                    let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
+                    localStorage.setItem("slitherChatNickname", nickname);
 
-                const userRef = db.ref("onlineUsers/" + uid);
-                userRef.onDisconnect().remove();
-                const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
-                userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
-                // Also write to persistent profile store so profile is viewable even after disconnect
-                db.ref("userProfiles/" + uid).set({ ...localData, uid: uid });
-                setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
+                    const chatInput = document.getElementById('chat-input');
+                    if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
+                    if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
 
-                listenForChatMessages(db, uid);
-                listenForOnlineUsers(db);
-                setupEventListeners(db, uid);
+                    const userRef = db.ref("onlineUsers/" + uid);
+                    userRef.onDisconnect().remove();
+                    const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
+                    userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
+                    // Also write to persistent profile store so profile is viewable even after disconnect
+                    db.ref("userProfiles/" + uid).set({ ...localData, uid: uid });
+                    setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
+
+                    listenForChatMessages(db, uid);
+                    listenForOnlineUsers(db);
+                    setupEventListeners(db, uid);
+                }
+
+                // If the game account is already signed in, use its UID immediately
+                if (saveAuth.currentUser && !saveAuth.currentUser.isAnonymous) {
+                    startChatWithUid(saveAuth.currentUser.uid);
+                } else {
+                    // Wait for the game auth state — it may still be resolving (e.g. persistent session)
+                    const unsubscribe = saveAuth.onAuthStateChanged(saveUser => {
+                        unsubscribe(); // only fire once
+                        if (saveUser && !saveUser.isAnonymous) {
+                            startChatWithUid(saveUser.uid);
+                        } else {
+                            // Genuinely a guest — use the anonymous chat UID
+                            startChatWithUid(chatUser.uid);
+                        }
+                    });
+                }
             });
         }
 

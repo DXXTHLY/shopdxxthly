@@ -6820,12 +6820,18 @@ async function authSignOut() {
 
 async function saveGameToCloud(uid, db) {
     if (!uid || !db) return;
+    // Only the leader tab saves — prevents two tabs overwriting each other
+    if (window._scSessionLeader === false) {
+        console.log('[Soul Collector] Non-leader tab skipped cloud save.');
+        return;
+    }
     try {
         const saveData = JSON.parse(JSON.stringify(gameState)); // clean clone
         await db.ref('gameSaves/' + uid).set({
             state: JSON.stringify(saveData),
             savedAt: Date.now(),
-            playerName: gameState.playerName
+            playerName: gameState.playerName,
+            leaderId: window._scTabId || 'unknown'
         });
     } catch(e) { console.error('Cloud save failed:', e); }
 }
@@ -6874,8 +6880,175 @@ function enterGame() {
     document.getElementById('musicStatus').innerText = `Status: ${audio.bgm.muted ? 'OFF' : 'ON'}`;
     document.getElementById('sfxStatus').innerText   = `Status: ${audio.sfxMuted  ? 'OFF' : 'ON'}`;
 
+    // ── SESSION LEADER SYSTEM ──────────────────────────────────────────────────
+    // Only one tab (the "leader") ticks souls and saves to cloud.
+    // A second tab detects the conflict, shows a warning banner, and becomes
+    // a read-only viewer that syncs from cloud in real-time.
+    // ─────────────────────────────────────────────────────────────────────────
+    if (window._scFirebase && window._scFirebase.auth.currentUser) {
+        const uid = window._scFirebase.auth.currentUser.uid;
+        const db  = window._scFirebase.db;
+        const tabId = Math.random().toString(36).slice(2);
+        window._scTabId = tabId;
+
+        const sessionRef = db.ref('activeSessions/' + uid);
+
+        function claimLeadership() {
+            window._scSessionLeader = true;
+            sessionRef.set({ tabId, heartbeat: Date.now(), origin: location.hostname });
+            sessionRef.onDisconnect().remove();
+            clearInterval(window._scHeartbeatInterval);
+            window._scHeartbeatInterval = setInterval(() => {
+                sessionRef.update({ heartbeat: Date.now(), tabId, origin: location.hostname });
+            }, 10000);
+            // Real-time listener: sync from another device if it saves ahead
+            db.ref('gameSaves/' + uid).on('value', cloudSnap => {
+                if (!cloudSnap.exists() || !window._scSessionLeader) return;
+                try {
+                    const cloudData = JSON.parse(cloudSnap.val().state);
+                    const cloudLeader = cloudSnap.val().leaderId;
+                    if (cloudLeader !== tabId && (cloudData.lifetimeSouls || 0) > (gameState.lifetimeSouls || 0)) {
+                        const defaultState = getDefaultGameState();
+                        gameState = deepMerge(defaultState, cloudData);
+                        gameState.firebaseUid = uid;
+                        localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
+                        calculateStats();
+                        renderAll();
+                        console.log('[Soul Collector] Leader merged newer cloud save from another device.');
+                    }
+                } catch(e) {}
+            });
+            console.log('[Soul Collector] This tab is the LEADER (' + tabId + ')');
+        }
+
+        // Use a Firebase transaction — atomic check-and-claim.
+        // Only one tab can win even if both try at the exact same millisecond.
+        sessionRef.transaction(existing => {
+            const now = Date.now();
+            const isStale = !existing || (now - (existing.heartbeat || 0)) > 15000;
+            if (isStale) {
+                // Slot is free — claim it
+                return { tabId, heartbeat: now, origin: location.hostname };
+            }
+            // Slot is taken — abort transaction (return undefined)
+            return undefined;
+        }, (error, committed) => {
+            if (error) {
+                console.warn('[Soul Collector] Session transaction error:', error);
+                claimLeadership(); // fallback: just become leader
+                return;
+            }
+            if (committed) {
+                // Transaction committed — we claimed the slot
+                claimLeadership();
+            } else {
+                // Transaction aborted — another tab already owns the slot
+                window._scSessionLeader = false;
+                console.log('[Soul Collector] This tab is a FOLLOWER (' + tabId + ')');
+                showDuplicateTabBanner(sessionRef, tabId, uid, db, claimLeadership);
+            }
+        }, false); // false = don't use local cache, always read from server
+
+    } else {
+        // Guest / not signed in — always leader
+        window._scSessionLeader = true;
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     // Show account reminder popup
     setTimeout(() => showAccountReminderPopup(), 2000);
+}
+
+function showDuplicateTabBanner(sessionRef, myTabId, uid, db, claimLeadership) {
+    // Remove any existing banner
+    const existing = document.getElementById('duplicate-tab-banner');
+    if (existing) existing.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'duplicate-tab-banner';
+    banner.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+        background: linear-gradient(135deg, #1a0a0a, #2d1010);
+        border-bottom: 2px solid #c41818;
+        padding: 12px 20px;
+        display: flex; align-items: center; justify-content: space-between;
+        font-family: var(--font-body, sans-serif);
+        color: #f0d0d0; font-size: 0.9rem;
+        box-shadow: 0 2px 20px rgba(196,24,24,0.5);
+    `;
+    banner.innerHTML = `
+        <span>⚠️ <strong>Soul Collector is open in another tab.</strong>
+        This tab is read-only — souls are syncing live but not being saved here.</span>
+        <div style="display:flex;gap:10px;flex-shrink:0">
+            <button id="dtb-takeover" style="background:#c41818;color:#fff;border:none;padding:6px 14px;cursor:pointer;border-radius:4px;font-weight:bold;">
+                Play Here Instead
+            </button>
+            <button id="dtb-close" style="background:transparent;color:#aaa;border:1px solid #555;padding:6px 12px;cursor:pointer;border-radius:4px;">
+                Keep as Viewer
+            </button>
+        </div>
+    `;
+    document.body.prepend(banner);
+
+    // "Play Here Instead" — forcibly claim leadership
+    document.getElementById('dtb-takeover').onclick = () => {
+        banner.remove();
+        if (typeof claimLeadership === 'function') {
+            claimLeadership();
+        } else {
+            window._scSessionLeader = true;
+            sessionRef.set({ tabId: myTabId, heartbeat: Date.now(), origin: location.hostname });
+            sessionRef.onDisconnect().remove();
+            clearInterval(window._scHeartbeatInterval);
+            window._scHeartbeatInterval = setInterval(() => {
+                sessionRef.update({ heartbeat: Date.now(), tabId: myTabId });
+            }, 10000);
+        }
+    };
+
+    // "Keep as Viewer" — stay read-only but sync live
+    document.getElementById('dtb-close').onclick = () => {
+        banner.style.opacity = '0.6';
+        banner.style.pointerEvents = 'none';
+    };
+
+    // Real-time cloud sync for the follower tab
+    db.ref('gameSaves/' + uid).on('value', snap => {
+        if (!snap.exists() || window._scSessionLeader) return;
+        try {
+            const cloudData = JSON.parse(snap.val().state);
+            if ((cloudData.lifetimeSouls || 0) >= (gameState.lifetimeSouls || 0)) {
+                const defaultState = getDefaultGameState();
+                gameState = deepMerge(defaultState, cloudData);
+                gameState.firebaseUid = uid;
+                localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
+                calculateStats();
+                renderAll();
+            }
+        } catch(e) {}
+    });
+
+    // Check if the leader dies — if so, auto-promote this tab
+    const leaderWatchInterval = setInterval(() => {
+        sessionRef.once('value', snap => {
+            if (!snap.exists() || (Date.now() - (snap.val().heartbeat || 0)) > 20000) {
+                clearInterval(leaderWatchInterval);
+                const b = document.getElementById('duplicate-tab-banner');
+                if (b) b.remove();
+                if (typeof claimLeadership === 'function') {
+                    claimLeadership();
+                } else {
+                    window._scSessionLeader = true;
+                    sessionRef.set({ tabId: myTabId, heartbeat: Date.now(), origin: location.hostname });
+                    sessionRef.onDisconnect().remove();
+                    window._scHeartbeatInterval = setInterval(() => {
+                        sessionRef.update({ heartbeat: Date.now(), tabId: myTabId });
+                    }, 10000);
+                }
+                console.log('[Soul Collector] Promoted to leader — previous tab closed.');
+            }
+        });
+    }, 12000);
 }
 
 function hardReset() {
@@ -8301,6 +8474,8 @@ function initializeChat() {
                 userRef.onDisconnect().remove();
                 const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
                 userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
+                // Also write to persistent profile store so profile is viewable even after disconnect
+                db.ref("userProfiles/" + uid).set({ ...localData, uid: uid });
                 setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
 
                 listenForChatMessages(db, uid);
@@ -8467,47 +8642,43 @@ function initializeChat() {
             });
         }
 
-        // NEW, UPGRADED showUserProfile FUNCTION
-        function showUserProfile(db, uid) {
+        // FIXED showUserProfile — works for online AND offline users, no firebase.auth() call
+        function showUserProfile(db, targetUid, currentChatUid) {
             if (document.querySelector('.profile-popup')) return; // Prevent multiple popups
+            if (!targetUid) return;
 
-            const currentUserId = firebase.auth().currentUser.uid;
-            const isCurrentUserDev = isDev(currentUserId);
+            // Use the passed-in currentChatUid instead of the broken firebase.auth() call
+            const isCurrentUserDev = isDev(currentChatUid || '');
 
-            db.ref(`onlineUsers/${uid}`).once('value', (snapshot) => {
-                if (!snapshot.exists()) {
-                    alert("User is no longer online.");
-                    return;
-                }
-                const userData = snapshot.val();
+            function buildAndShowPopup(userData) {
                 const popup = document.createElement('div');
                 popup.className = 'profile-popup';
 
                 const avatarUrl = (userData.profileAvatar || '').trim() || 'https://i.imgur.com/M6NYjjO.jpeg';
+                const isOnline = userData.lastActive && (Date.now() - userData.lastActive < 10 * 60 * 1000);
+                const onlineBadge = isOnline
+                    ? `<span style="color:#4caf50; font-size:0.75rem;">● Online</span>`
+                    : `<span style="color:#888; font-size:0.75rem;">○ Offline</span>`;
 
-                // --- Build the HTML for the popup ---
                 let popupHTML = `
                     <button class="close-btn">×</button>
                     <img src="${escapeHTML(avatarUrl)}" class="avatar">
-                    <h3 style="color: ${escapeHTML(userData.chatNameColor || '#fff')};">${escapeHTML(userData.name)}</h3>
+                    <h3 style="color: ${escapeHTML(userData.chatNameColor || '#fff')};">${escapeHTML(userData.name || 'Unknown')}</h3>
+                    ${onlineBadge}
                     <p style="color: #bbb; font-style: italic;">"${escapeHTML(userData.profileMotto || 'No motto.')}"</p>
                 `;
 
-                // --- If the viewer is a DEV, add moderation tools ---
                 if (isCurrentUserDev) {
                     popupHTML += `
                         <hr style="border-color: var(--border-color); margin: 15px 0;">
                         <div style="text-align: left; font-family: var(--font-body);">
                             <h4 style="text-align: center; color: var(--primary-color);">DEV MODERATION</h4>
                             <label style="color: var(--dim-color);">Nickname:</label>
-                            <input type="text" id="mod-nickname" value="${escapeHTML(userData.name)}" style="width: 95%; background: #111; border: 1px solid #333; color: white; padding: 5px;">
-                            
+                            <input type="text" id="mod-nickname" value="${escapeHTML(userData.name || '')}" style="width: 95%; background: #111; border: 1px solid #333; color: white; padding: 5px;">
                             <label style="color: var(--dim-color); margin-top: 10px; display: block;">Motto:</label>
                             <input type="text" id="mod-motto" value="${escapeHTML(userData.profileMotto || '')}" style="width: 95%; background: #111; border: 1px solid #333; color: white; padding: 5px;">
-                            
                             <label style="color: var(--dim-color); margin-top: 10px; display: block;">Avatar URL:</label>
                             <input type="text" id="mod-avatar" value="${escapeHTML(userData.profileAvatar || '')}" style="width: 95%; background: #111; border: 1px solid #333; color: white; padding: 5px;">
-                            
                             <button id="mod-save-btn" class="upgrade-btn" style="width: 100%; margin-top: 15px; background: var(--primary-color);">Save Changes</button>
                         </div>
                     `;
@@ -8515,35 +8686,40 @@ function initializeChat() {
 
                 popup.innerHTML = popupHTML;
                 document.body.appendChild(popup);
-
-                // --- Add event listeners for the buttons ---
                 popup.querySelector('.close-btn').addEventListener('click', () => popup.remove());
 
                 if (isCurrentUserDev) {
                     popup.querySelector('#mod-save-btn').addEventListener('click', () => {
                         if (!confirm("Are you sure you want to apply these changes to the user's profile?")) return;
-
-                        const newName = document.getElementById('mod-nickname').value.trim();
-                        const newMotto = document.getElementById('mod-motto').value.trim();
-                        const newAvatar = document.getElementById('mod-avatar').value.trim();
-
-                        // Create the update object
                         const updates = {
-                            name: newName,
-                            profileMotto: newMotto,
-                            profileAvatar: newAvatar
+                            name: document.getElementById('mod-nickname').value.trim(),
+                            profileMotto: document.getElementById('mod-motto').value.trim(),
+                            profileAvatar: document.getElementById('mod-avatar').value.trim()
                         };
+                        // Update both nodes so the change persists
+                        Promise.all([
+                            db.ref(`onlineUsers/${targetUid}`).update(updates),
+                            db.ref(`userProfiles/${targetUid}`).update(updates)
+                        ]).then(() => { alert("User profile updated successfully."); popup.remove(); })
+                          .catch(err => { alert("Failed to update profile."); console.error(err); });
+                    });
+                }
+            }
 
-                        // Push the changes to Firebase
-                        db.ref(`onlineUsers/${uid}`).update(updates)
-                            .then(() => {
-                                alert("User profile updated successfully.");
-                                popup.remove();
-                            })
-                            .catch((error) => {
-                                alert("Failed to update profile. See console for details.");
-                                console.error("Moderation update error:", error);
-                            });
+            // Try onlineUsers first (has lastActive), fall back to persistent userProfiles
+            db.ref(`onlineUsers/${targetUid}`).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    buildAndShowPopup(snapshot.val());
+                } else {
+                    db.ref(`userProfiles/${targetUid}`).once('value', (snap2) => {
+                        if (snap2.exists()) {
+                            buildAndShowPopup(snap2.val());
+                        } else {
+                            // Last resort: show a minimal popup with whatever we can get from the chat element
+                            const el = document.querySelector(`.chat-username[data-uid="${targetUid}"]`);
+                            const fallbackName = el ? (el.querySelector('.online-user-name') || el).textContent.trim() : 'Unknown';
+                            buildAndShowPopup({ name: fallbackName, chatNameColor: '#fff', profileMotto: '', profileAvatar: '' });
+                        }
                     });
                 }
             });
@@ -8586,9 +8762,9 @@ function initializeChat() {
                 settingsOverlay.style.display = 'flex';
             });
             document.getElementById('settings-cancel-btn').addEventListener('click', () => settingsOverlay.style.display = 'none');
-            document.getElementById('settings-save-btn').addEventListener('click', () => { const newData = { name: document.getElementById('settings-nickname').value.trim().slice(0, 20) || 'Anon', chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: document.getElementById('settings-avatar').value.trim(), profileMotto: document.getElementById('settings-motto').value.trim() }; localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto); db.ref("onlineUsers/" + uid).update(newData); settingsOverlay.style.display = 'none'; });
+            document.getElementById('settings-save-btn').addEventListener('click', () => { const newData = { name: document.getElementById('settings-nickname').value.trim().slice(0, 20) || 'Anon', chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: document.getElementById('settings-avatar').value.trim(), profileMotto: document.getElementById('settings-motto').value.trim() }; localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto); db.ref("onlineUsers/" + uid).update(newData); db.ref("userProfiles/" + uid).update(newData); settingsOverlay.style.display = 'none'; });
             document.getElementById('chat-hide-btn').addEventListener('click', () => document.getElementById('chat-container').style.display = 'none');
-            document.body.addEventListener('click', e => { const userElement = e.target.closest('.chat-username'); if (userElement) showUserProfile(db, userElement.dataset.uid); });
+            document.body.addEventListener('click', e => { const userElement = e.target.closest('.chat-username'); if (userElement) showUserProfile(db, userElement.dataset.uid, uid); });
             makeDraggable(document.getElementById('chat-container'), document.getElementById('chat-header'));
         }
 

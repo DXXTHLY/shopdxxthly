@@ -8516,26 +8516,12 @@ function initializeChat() {
                 db.ref("userProfiles/" + presenceUid).set({ ...localData, uid: presenceUid });
                 setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
 
-                // Pass presenceUid for "is this my message" highlighting.
-                // Chat messages are only sent by the LEADER tab to avoid duplicates in slither.
+                // anonUid MUST be used for all Firebase writes — chatforslither auth rules require it.
+                // presenceUid is passed separately just for "is this my message" highlighting.
                 listenForChatMessages(db, presenceUid);
                 listenForOnlineUsers(db);
-                setupEventListeners(db, presenceUid);
+                setupEventListeners(db, anonUid, presenceUid);
 
-                // If this tab is a follower, update the chat input placeholder to explain
-                // why messages won't send. Re-check every 2s since session detection is async.
-                const inputHintInterval = setInterval(() => {
-                    const inp = document.getElementById('chat-input');
-                    if (!inp) return;
-                    if (window._scSessionLeader === false) {
-                        inp.placeholder = 'Chat active in your other tab — click "Play Here Instead" to switch';
-                        inp.style.opacity = '0.5';
-                    } else {
-                        inp.placeholder = 'Speak into the abyss...';
-                        inp.style.opacity = '';
-                        clearInterval(inputHintInterval);
-                    }
-                }, 2000);
             });
         }
 
@@ -8782,19 +8768,26 @@ function initializeChat() {
             });
         }
         
-        function setupEventListeners(db, uid) {
+        function setupEventListeners(db, uid, presenceUid) {
+            // uid = anonymous UID (chatforslither auth) — MUST be used for all DB writes
+            // presenceUid = game account UID — used only for profile lookups and settings updates
             document.getElementById('chat-tab-main').addEventListener('click', () => { document.getElementById('chat-body').style.display = 'flex'; document.getElementById('online-users').style.display = 'none'; document.getElementById('chat-tab-main').style.background='var(--light-panel-color)'; document.getElementById('chat-tab-users').style.background='transparent';});
             document.getElementById('chat-tab-users').addEventListener('click', () => { document.getElementById('chat-body').style.display = 'none'; document.getElementById('online-users').style.display = 'flex'; document.getElementById('chat-tab-users').style.background='var(--light-panel-color)'; document.getElementById('chat-tab-main').style.background='transparent';});
             document.getElementById('chat-input').addEventListener('keydown', (e) => { 
             if (e.key === 'Enter') { 
                 const text = e.target.value.trim(); 
                 if (text) { 
-                    // Only the leader tab sends to shared databases — prevents duplicate messages in slither
-                    if (window._scSessionLeader === false) { e.target.value = ''; return; }
                     const name = localStorage.getItem("slitherChatNickname"); 
-                    const color = localStorage.getItem("slitherChatNameColor") || "#FFD700"; 
-                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid }); 
-                    db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP }); 
+                    const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
+                    // Dedup: ignore if this exact message was sent by this device in the last 3s
+                    const dedupKey = (window._scGameUid || uid) + '|' + text;
+                    const lastSent = window._scLastSent || {};
+                    if (!lastSent[dedupKey] || Date.now() - lastSent[dedupKey] > 3000) {
+                        lastSent[dedupKey] = Date.now();
+                        window._scLastSent = lastSent;
+                        db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid }); 
+                        db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP });
+                    }
                     e.target.value = ''; 
                 } 
             } 
@@ -8803,12 +8796,17 @@ function initializeChat() {
                 const input = document.getElementById('chat-input');
                 const text = input.value.trim();
                 if (text) {
-                    // Only the leader tab sends to shared databases — prevents duplicate messages in slither
-                    if (window._scSessionLeader === false) { input.value = ''; input.focus(); return; }
                     const name = localStorage.getItem("slitherChatNickname");
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
-                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid });
-                    db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP });
+                    // Dedup: ignore if this exact message was sent by this device in the last 3s
+                    const dedupKey = (window._scGameUid || uid) + '|' + text;
+                    const lastSent = window._scLastSent || {};
+                    if (!lastSent[dedupKey] || Date.now() - lastSent[dedupKey] > 3000) {
+                        lastSent[dedupKey] = Date.now();
+                        window._scLastSent = lastSent;
+                        db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid });
+                        db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP });
+                    }
                     input.value = '';
                     input.focus();
                 }
@@ -8823,9 +8821,9 @@ function initializeChat() {
                 settingsOverlay.style.display = 'flex';
             });
             document.getElementById('settings-cancel-btn').addEventListener('click', () => settingsOverlay.style.display = 'none');
-            document.getElementById('settings-save-btn').addEventListener('click', () => { const newData = { name: document.getElementById('settings-nickname').value.trim().slice(0, 20) || 'Anon', chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: document.getElementById('settings-avatar').value.trim(), profileMotto: document.getElementById('settings-motto').value.trim() }; localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto); db.ref("onlineUsers/" + uid).update(newData); db.ref("userProfiles/" + uid).update(newData); settingsOverlay.style.display = 'none'; });
+            document.getElementById('settings-save-btn').addEventListener('click', () => { const newData = { name: document.getElementById('settings-nickname').value.trim().slice(0, 20) || 'Anon', chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: document.getElementById('settings-avatar').value.trim(), profileMotto: document.getElementById('settings-motto').value.trim() }; localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto); db.ref("onlineUsers/" + (presenceUid || uid)).update(newData); db.ref("userProfiles/" + (presenceUid || uid)).update(newData); settingsOverlay.style.display = 'none'; });
             document.getElementById('chat-hide-btn').addEventListener('click', () => document.getElementById('chat-container').style.display = 'none');
-            document.body.addEventListener('click', e => { const userElement = e.target.closest('.chat-username'); if (userElement) showUserProfile(db, userElement.dataset.uid, uid); });
+            document.body.addEventListener('click', e => { const userElement = e.target.closest('.chat-username'); if (userElement) showUserProfile(db, userElement.dataset.uid, presenceUid || uid); });
             makeDraggable(document.getElementById('chat-container'), document.getElementById('chat-header'));
         }
 

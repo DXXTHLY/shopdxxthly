@@ -6820,18 +6820,12 @@ async function authSignOut() {
 
 async function saveGameToCloud(uid, db) {
     if (!uid || !db) return;
-    // Only the leader tab saves — prevents two tabs overwriting each other
-    if (window._scSessionLeader === false) {
-        console.log('[Soul Collector] Non-leader tab skipped cloud save.');
-        return;
-    }
     try {
         const saveData = JSON.parse(JSON.stringify(gameState)); // clean clone
         await db.ref('gameSaves/' + uid).set({
             state: JSON.stringify(saveData),
             savedAt: Date.now(),
-            playerName: gameState.playerName,
-            leaderId: window._scTabId || 'unknown'
+            playerName: gameState.playerName
         });
     } catch(e) { console.error('Cloud save failed:', e); }
 }
@@ -6880,198 +6874,8 @@ function enterGame() {
     document.getElementById('musicStatus').innerText = `Status: ${audio.bgm.muted ? 'OFF' : 'ON'}`;
     document.getElementById('sfxStatus').innerText   = `Status: ${audio.sfxMuted  ? 'OFF' : 'ON'}`;
 
-    // ── SESSION LEADER SYSTEM ──────────────────────────────────────────────────
-    // Uses the CHAT database (chatforslither) for session tracking — anonymous
-    // auth always works there, so no database-rules surprises.
-    // Approach: write a heartbeat, wait 600ms, then read back. If we see a
-    // *different* tabId with a fresh heartbeat, we lost the race → follower.
-    // ─────────────────────────────────────────────────────────────────────────
-    (function initSessionLeader() {
-        // We need the save-uid AND the chat db. Both become available at different
-        // times, so poll until ready (max 8s).
-        const tabId = Math.random().toString(36).slice(2);
-        window._scTabId = tabId;
-        window._scSessionLeader = true; // optimistic default until we know better
-
-        let attempts = 0;
-        const poll = setInterval(() => {
-            attempts++;
-            const saveUid  = window._scFirebase && window._scFirebase.auth.currentUser
-                ? window._scFirebase.auth.currentUser.uid : null;
-            const chatDb   = window._scFirebase && window._scFirebase.chatDb
-                ? window._scFirebase.chatDb : null;
-            const saveDb   = window._scFirebase && window._scFirebase.db
-                ? window._scFirebase.db : null;
-
-            if (!saveUid || !chatDb || !saveDb) {
-                if (attempts > 40) { clearInterval(poll); } // give up after 8s
-                return;
-            }
-            clearInterval(poll);
-
-            // Use chatDb for session slot — rules are open for anonymous users
-            const sessionRef = chatDb.ref('scSessions/' + saveUid);
-
-            function claimLeadership() {
-                window._scSessionLeader = true;
-                sessionRef.set({ tabId, heartbeat: Date.now(), origin: location.hostname });
-                sessionRef.onDisconnect().remove();
-                clearInterval(window._scHeartbeatInterval);
-                window._scHeartbeatInterval = setInterval(() => {
-                    sessionRef.update({ heartbeat: Date.now(), tabId, origin: location.hostname });
-                }, 8000);
-                // Watch the save DB in real-time — if another device saves ahead, sync it
-                saveDb.ref('gameSaves/' + saveUid).on('value', cloudSnap => {
-                    if (!cloudSnap.exists() || !window._scSessionLeader) return;
-                    try {
-                        const cloudData = JSON.parse(cloudSnap.val().state);
-                        const cloudLeader = cloudSnap.val().leaderId;
-                        if (cloudLeader !== tabId && (cloudData.lifetimeSouls || 0) > (gameState.lifetimeSouls || 0)) {
-                            const defaultState = getDefaultGameState();
-                            gameState = deepMerge(defaultState, cloudData);
-                            gameState.firebaseUid = saveUid;
-                            localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
-                            calculateStats();
-                            renderAll();
-                            console.log('[SC] Leader merged newer save from another device.');
-                        }
-                    } catch(e) {}
-                });
-                console.log('[SC] LEADER tab:', tabId, '| origin:', location.hostname);
-            }
-
-            // Step 1: Write our candidacy
-            sessionRef.once('value', snap => {
-                const existing = snap.val();
-                const now = Date.now();
-                const existingAge = now - (existing ? existing.heartbeat || 0 : 0);
-                const isStale = !existing || existingAge > 20000;
-
-                if (isStale) {
-                    // Slot is free — write our heartbeat and wait to see if anyone races us
-                    sessionRef.set({ tabId, heartbeat: now, origin: location.hostname }, () => {
-                        // Step 2: After 700ms re-read — if someone overwrote us, we lost
-                        setTimeout(() => {
-                            sessionRef.once('value', confirmSnap => {
-                                const confirmed = confirmSnap.val();
-                                if (confirmed && confirmed.tabId === tabId) {
-                                    claimLeadership();
-                                } else {
-                                    // Another tab wrote over us — we're the follower
-                                    window._scSessionLeader = false;
-                                    console.log('[SC] FOLLOWER tab:', tabId, '(lost race to', confirmed && confirmed.tabId, ')');
-                                    showDuplicateTabBanner(sessionRef, tabId, saveUid, saveDb, chatDb, claimLeadership);
-                                }
-                            });
-                        }, 700);
-                    });
-                } else {
-                    // Slot clearly taken by a live session
-                    window._scSessionLeader = false;
-                    console.log('[SC] FOLLOWER tab:', tabId, '(slot owned by', existing.tabId, ', age', existingAge, 'ms)');
-                    showDuplicateTabBanner(sessionRef, tabId, saveUid, saveDb, chatDb, claimLeadership);
-                }
-            });
-
-        }, 200); // poll every 200ms
-    })();
-    // ──────────────────────────────────────────────────────────────────────────
-
     // Show account reminder popup
     setTimeout(() => showAccountReminderPopup(), 2000);
-}
-
-function showDuplicateTabBanner(sessionRef, myTabId, uid, saveDb, chatDb, claimLeadership) {
-    // Remove any existing banner
-    const existing = document.getElementById('duplicate-tab-banner');
-    if (existing) existing.remove();
-
-    const banner = document.createElement('div');
-    banner.id = 'duplicate-tab-banner';
-    banner.style.cssText = `
-        position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
-        background: linear-gradient(135deg, #1a0a0a, #2d1010);
-        border-bottom: 2px solid #c41818;
-        padding: 12px 20px;
-        display: flex; align-items: center; justify-content: space-between;
-        font-family: var(--font-body, sans-serif);
-        color: #f0d0d0; font-size: 0.9rem;
-        box-shadow: 0 2px 20px rgba(196,24,24,0.5);
-    `;
-    banner.innerHTML = `
-        <span>⚠️ <strong>Soul Collector is open in another tab.</strong>
-        This tab is view-only — souls sync live, but chat &amp; saving happen in your other tab.</span>
-        <div style="display:flex;gap:10px;flex-shrink:0">
-            <button id="dtb-takeover" style="background:#c41818;color:#fff;border:none;padding:6px 14px;cursor:pointer;border-radius:4px;font-weight:bold;">
-                Play Here Instead
-            </button>
-            <button id="dtb-close" style="background:transparent;color:#aaa;border:1px solid #555;padding:6px 12px;cursor:pointer;border-radius:4px;">
-                Keep as Viewer
-            </button>
-        </div>
-    `;
-    document.body.prepend(banner);
-
-    // "Play Here Instead" — forcibly claim leadership
-    document.getElementById('dtb-takeover').onclick = () => {
-        banner.remove();
-        if (typeof claimLeadership === 'function') {
-            claimLeadership();
-        } else {
-            window._scSessionLeader = true;
-            sessionRef.set({ tabId: myTabId, heartbeat: Date.now(), origin: location.hostname });
-            sessionRef.onDisconnect().remove();
-            clearInterval(window._scHeartbeatInterval);
-            window._scHeartbeatInterval = setInterval(() => {
-                sessionRef.update({ heartbeat: Date.now(), tabId: myTabId });
-            }, 10000);
-        }
-    };
-
-    // "Keep as Viewer" — stay read-only but sync live
-    document.getElementById('dtb-close').onclick = () => {
-        banner.style.opacity = '0.6';
-        banner.style.pointerEvents = 'none';
-    };
-
-    // Real-time cloud sync for the follower tab
-    saveDb.ref('gameSaves/' + uid).on('value', snap => {
-        if (!snap.exists() || window._scSessionLeader) return;
-        try {
-            const cloudData = JSON.parse(snap.val().state);
-            if ((cloudData.lifetimeSouls || 0) >= (gameState.lifetimeSouls || 0)) {
-                const defaultState = getDefaultGameState();
-                gameState = deepMerge(defaultState, cloudData);
-                gameState.firebaseUid = uid;
-                localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
-                calculateStats();
-                renderAll();
-                console.log('[SC] Follower synced from cloud — souls:', gameState.lifetimeSouls);
-            }
-        } catch(e) {}
-    });
-
-    // Check if the leader dies — if so, auto-promote this tab
-    const leaderWatchInterval = setInterval(() => {
-        sessionRef.once('value', snap => {
-            if (!snap.exists() || (Date.now() - (snap.val().heartbeat || 0)) > 20000) {
-                clearInterval(leaderWatchInterval);
-                const b = document.getElementById('duplicate-tab-banner');
-                if (b) b.remove();
-                if (typeof claimLeadership === 'function') {
-                    claimLeadership();
-                } else {
-                    window._scSessionLeader = true;
-                    sessionRef.set({ tabId: myTabId, heartbeat: Date.now(), origin: location.hostname });
-                    sessionRef.onDisconnect().remove();
-                    window._scHeartbeatInterval = setInterval(() => {
-                        sessionRef.update({ heartbeat: Date.now(), tabId: myTabId });
-                    }, 10000);
-                }
-                console.log('[Soul Collector] Promoted to leader — previous tab closed.');
-            }
-        });
-    }, 12000);
 }
 
 function hardReset() {
@@ -8418,7 +8222,6 @@ function initializeChat() {
         // --- HELPER FUNCTIONS ---
         const escapeHTML = (str) => { const p = document.createElement('p'); p.appendChild(document.createTextNode(str)); return p.innerHTML; };
         const isDev = (uid) => config.devList.some(dev => dev.uid === uid);
-        // If a vipMember has no name set, UID alone is enough to match
         const isVip = (uid, name) => config.vipMembers.some(vip => vip.uid === uid && (!vip.name || vip.name.toLowerCase() === (name || '').toLowerCase()));
         // Inject dev name flash animation into the page once
         if (!document.getElementById('dev-flash-style')) {
@@ -8488,40 +8291,27 @@ function initializeChat() {
 
             chatAuth.onAuthStateChanged(user => {
                 if (!user) return;
-                const anonUid = user.uid; // anon UID — used ONLY for Firebase auth (rules require it)
-
-                // Always derive the stable game UID — same account = same UID across every tab.
-                // Anonymous UID is deliberately NOT used as identity so two tabs = one presence entry.
+                const uid = user.uid;
+                // Set game UID globally for dev/VIP checks — same account = same UID everywhere
                 window._scGameUid = (saveAuth.currentUser && !saveAuth.currentUser.isAnonymous)
-                    ? saveAuth.currentUser.uid
-                    : anonUid;
-                const presenceUid = window._scGameUid;
-
-                // Always use the canonical in-game name (from cloud save), not stale localStorage.
-                // This fixes the "dev" vs "DEV" mismatch between tabs.
-                const nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
+                    ? saveAuth.currentUser.uid : uid;
+                let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
                 localStorage.setItem("slitherChatNickname", nickname);
 
                 const chatInput = document.getElementById('chat-input');
                 if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
                 if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
 
-                // Write presence under the STABLE presenceUid so both tabs share one entry.
-                // onDisconnect sets lastActive=0 (marks offline) rather than removing, so the
-                // other tab's heartbeat can revive it without a second remove racing it.
-                const userRef = db.ref("onlineUsers/" + presenceUid);
-                userRef.onDisconnect().update({ lastActive: 0 });
+                const userRef = db.ref("onlineUsers/" + uid);
+                userRef.onDisconnect().remove();
                 const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
-                userRef.set({ ...localData, uid: presenceUid, lastActive: firebase.database.ServerValue.TIMESTAMP });
-                db.ref("userProfiles/" + presenceUid).set({ ...localData, uid: presenceUid });
+                userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
+                db.ref("userProfiles/" + uid).set({ ...localData, uid: uid });
                 setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
 
-                // anonUid MUST be used for all Firebase writes — chatforslither auth rules require it.
-                // presenceUid is passed separately just for "is this my message" highlighting.
-                listenForChatMessages(db, presenceUid);
+                listenForChatMessages(db, uid);
                 listenForOnlineUsers(db);
-                setupEventListeners(db, anonUid, presenceUid);
-
+                setupEventListeners(db, uid);
             });
         }
 
@@ -8571,21 +8361,20 @@ function initializeChat() {
 
             const isSystemMessage = systemAccounts.includes(msg.uid);
             const isDiscordBot = msg.uid === 'discord_bot'; // <-- This is the check for Discord messages
+            const roleUid = msg.gameUid || msg.uid; // use game account UID for dev/VIP checks if available
             const displayName = escapeHTML(msg.name || 'Anon');
 
             let nameHtml;
             let roleTagHTML = '';
 
             // --- 2. BUILD THE NAME HTML BASED ON USER TYPE ---
-            // Use gameUid (game account) for role checks — falls back to msg.uid for guests
-            const roleUid = msg.gameUid || msg.uid;
             if (isDiscordBot) {
                 nameHtml = `<span style="color:${userColor};font-weight:bold;">${displayName}</span>`;
                 roleTagHTML = ` <span style="background: #7289DA; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">DISCORD</span>`;
-            } else if (isDev(roleUid)) {
+            } else if (isDev(msg.uid)) {
                 nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="cursor:pointer;">${rainbowTextStyle(displayName)}</span>`;
                 roleTagHTML = ` <span style="background: #E91E63; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">DEV</span>`;
-            } else if (isVip(roleUid, msg.name)) {
+            } else if (isVip(msg.uid, msg.name)) {
                 nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="cursor:pointer;">${vipGlowStyle(displayName, userColor)}</span>`;
                 roleTagHTML = ` <span style="background: #9C27B0; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">VIP</span>`;
             } else if (isSystemMessage) {
@@ -8603,7 +8392,7 @@ function initializeChat() {
             if (imageMatch) {
                 const textPart = escapeHTML(msg.text.replace(imageRegex, '').trim());
                 finalMessage = `${textPart}<br><img src="${imageMatch[0]}" style="max-width:90%; border-radius:6px; margin-top:5px; cursor:pointer;" onclick="window.open('${imageMatch[0]}', '_blank')">`;
-            } else if (isSystemMessage || isDev(roleUid)) {
+            } else if (isSystemMessage || isDev(msg.uid)) {
                 // Make URLs in dev/system messages clickable
                 const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
                 finalMessage = msg.text.replace(urlRegex, url =>
@@ -8685,43 +8474,47 @@ function initializeChat() {
             });
         }
 
-        // FIXED showUserProfile — works for online AND offline users, no firebase.auth() call
-        function showUserProfile(db, targetUid, currentChatUid) {
+        // NEW, UPGRADED showUserProfile FUNCTION
+        function showUserProfile(db, uid) {
             if (document.querySelector('.profile-popup')) return; // Prevent multiple popups
-            if (!targetUid) return;
 
-            // Use the passed-in currentChatUid instead of the broken firebase.auth() call
-            const isCurrentUserDev = isDev(currentChatUid || '');
+            const currentUserId = firebase.auth().currentUser.uid;
+            const isCurrentUserDev = isDev(currentUserId);
 
-            function buildAndShowPopup(userData) {
+            db.ref(`onlineUsers/${uid}`).once('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    alert("User is no longer online.");
+                    return;
+                }
+                const userData = snapshot.val();
                 const popup = document.createElement('div');
                 popup.className = 'profile-popup';
 
                 const avatarUrl = (userData.profileAvatar || '').trim() || 'https://i.imgur.com/M6NYjjO.jpeg';
-                const isOnline = userData.lastActive && (Date.now() - userData.lastActive < 10 * 60 * 1000);
-                const onlineBadge = isOnline
-                    ? `<span style="color:#4caf50; font-size:0.75rem;">● Online</span>`
-                    : `<span style="color:#888; font-size:0.75rem;">○ Offline</span>`;
 
+                // --- Build the HTML for the popup ---
                 let popupHTML = `
                     <button class="close-btn">×</button>
                     <img src="${escapeHTML(avatarUrl)}" class="avatar">
-                    <h3 style="color: ${escapeHTML(userData.chatNameColor || '#fff')};">${escapeHTML(userData.name || 'Unknown')}</h3>
-                    ${onlineBadge}
+                    <h3 style="color: ${escapeHTML(userData.chatNameColor || '#fff')};">${escapeHTML(userData.name)}</h3>
                     <p style="color: #bbb; font-style: italic;">"${escapeHTML(userData.profileMotto || 'No motto.')}"</p>
                 `;
 
+                // --- If the viewer is a DEV, add moderation tools ---
                 if (isCurrentUserDev) {
                     popupHTML += `
                         <hr style="border-color: var(--border-color); margin: 15px 0;">
                         <div style="text-align: left; font-family: var(--font-body);">
                             <h4 style="text-align: center; color: var(--primary-color);">DEV MODERATION</h4>
                             <label style="color: var(--dim-color);">Nickname:</label>
-                            <input type="text" id="mod-nickname" value="${escapeHTML(userData.name || '')}" style="width: 95%; background: #111; border: 1px solid #333; color: white; padding: 5px;">
+                            <input type="text" id="mod-nickname" value="${escapeHTML(userData.name)}" style="width: 95%; background: #111; border: 1px solid #333; color: white; padding: 5px;">
+                            
                             <label style="color: var(--dim-color); margin-top: 10px; display: block;">Motto:</label>
                             <input type="text" id="mod-motto" value="${escapeHTML(userData.profileMotto || '')}" style="width: 95%; background: #111; border: 1px solid #333; color: white; padding: 5px;">
+                            
                             <label style="color: var(--dim-color); margin-top: 10px; display: block;">Avatar URL:</label>
                             <input type="text" id="mod-avatar" value="${escapeHTML(userData.profileAvatar || '')}" style="width: 95%; background: #111; border: 1px solid #333; color: white; padding: 5px;">
+                            
                             <button id="mod-save-btn" class="upgrade-btn" style="width: 100%; margin-top: 15px; background: var(--primary-color);">Save Changes</button>
                         </div>
                     `;
@@ -8729,48 +8522,41 @@ function initializeChat() {
 
                 popup.innerHTML = popupHTML;
                 document.body.appendChild(popup);
+
+                // --- Add event listeners for the buttons ---
                 popup.querySelector('.close-btn').addEventListener('click', () => popup.remove());
 
                 if (isCurrentUserDev) {
                     popup.querySelector('#mod-save-btn').addEventListener('click', () => {
                         if (!confirm("Are you sure you want to apply these changes to the user's profile?")) return;
-                        const updates = {
-                            name: document.getElementById('mod-nickname').value.trim(),
-                            profileMotto: document.getElementById('mod-motto').value.trim(),
-                            profileAvatar: document.getElementById('mod-avatar').value.trim()
-                        };
-                        // Update both nodes so the change persists
-                        Promise.all([
-                            db.ref(`onlineUsers/${targetUid}`).update(updates),
-                            db.ref(`userProfiles/${targetUid}`).update(updates)
-                        ]).then(() => { alert("User profile updated successfully."); popup.remove(); })
-                          .catch(err => { alert("Failed to update profile."); console.error(err); });
-                    });
-                }
-            }
 
-            // Try onlineUsers first (has lastActive), fall back to persistent userProfiles
-            db.ref(`onlineUsers/${targetUid}`).once('value', (snapshot) => {
-                if (snapshot.exists()) {
-                    buildAndShowPopup(snapshot.val());
-                } else {
-                    db.ref(`userProfiles/${targetUid}`).once('value', (snap2) => {
-                        if (snap2.exists()) {
-                            buildAndShowPopup(snap2.val());
-                        } else {
-                            // Last resort: show a minimal popup with whatever we can get from the chat element
-                            const el = document.querySelector(`.chat-username[data-uid="${targetUid}"]`);
-                            const fallbackName = el ? (el.querySelector('.online-user-name') || el).textContent.trim() : 'Unknown';
-                            buildAndShowPopup({ name: fallbackName, chatNameColor: '#fff', profileMotto: '', profileAvatar: '' });
-                        }
+                        const newName = document.getElementById('mod-nickname').value.trim();
+                        const newMotto = document.getElementById('mod-motto').value.trim();
+                        const newAvatar = document.getElementById('mod-avatar').value.trim();
+
+                        // Create the update object
+                        const updates = {
+                            name: newName,
+                            profileMotto: newMotto,
+                            profileAvatar: newAvatar
+                        };
+
+                        // Push the changes to Firebase
+                        db.ref(`onlineUsers/${uid}`).update(updates)
+                            .then(() => {
+                                alert("User profile updated successfully.");
+                                popup.remove();
+                            })
+                            .catch((error) => {
+                                alert("Failed to update profile. See console for details.");
+                                console.error("Moderation update error:", error);
+                            });
                     });
                 }
             });
         }
         
-        function setupEventListeners(db, uid, presenceUid) {
-            // uid = anonymous UID (chatforslither auth) — MUST be used for all DB writes
-            // presenceUid = game account UID — used only for profile lookups and settings updates
+        function setupEventListeners(db, uid) {
             document.getElementById('chat-tab-main').addEventListener('click', () => { document.getElementById('chat-body').style.display = 'flex'; document.getElementById('online-users').style.display = 'none'; document.getElementById('chat-tab-main').style.background='var(--light-panel-color)'; document.getElementById('chat-tab-users').style.background='transparent';});
             document.getElementById('chat-tab-users').addEventListener('click', () => { document.getElementById('chat-body').style.display = 'none'; document.getElementById('online-users').style.display = 'flex'; document.getElementById('chat-tab-users').style.background='var(--light-panel-color)'; document.getElementById('chat-tab-main').style.background='transparent';});
             document.getElementById('chat-input').addEventListener('keydown', (e) => { 
@@ -8778,16 +8564,9 @@ function initializeChat() {
                 const text = e.target.value.trim(); 
                 if (text) { 
                     const name = localStorage.getItem("slitherChatNickname"); 
-                    const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
-                    // Dedup: ignore if this exact message was sent by this device in the last 3s
-                    const dedupKey = (window._scGameUid || uid) + '|' + text;
-                    const lastSent = window._scLastSent || {};
-                    if (!lastSent[dedupKey] || Date.now() - lastSent[dedupKey] > 3000) {
-                        lastSent[dedupKey] = Date.now();
-                        window._scLastSent = lastSent;
-                        db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid }); 
-                        db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP });
-                    }
+                    const color = localStorage.getItem("slitherChatNameColor") || "#FFD700"; 
+                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid }); 
+                    db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP }); 
                     e.target.value = ''; 
                 } 
             } 
@@ -8798,15 +8577,8 @@ function initializeChat() {
                 if (text) {
                     const name = localStorage.getItem("slitherChatNickname");
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
-                    // Dedup: ignore if this exact message was sent by this device in the last 3s
-                    const dedupKey = (window._scGameUid || uid) + '|' + text;
-                    const lastSent = window._scLastSent || {};
-                    if (!lastSent[dedupKey] || Date.now() - lastSent[dedupKey] > 3000) {
-                        lastSent[dedupKey] = Date.now();
-                        window._scLastSent = lastSent;
-                        db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid });
-                        db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP });
-                    }
+                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid });
+                    db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP });
                     input.value = '';
                     input.focus();
                 }
@@ -8821,9 +8593,9 @@ function initializeChat() {
                 settingsOverlay.style.display = 'flex';
             });
             document.getElementById('settings-cancel-btn').addEventListener('click', () => settingsOverlay.style.display = 'none');
-            document.getElementById('settings-save-btn').addEventListener('click', () => { const newData = { name: document.getElementById('settings-nickname').value.trim().slice(0, 20) || 'Anon', chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: document.getElementById('settings-avatar').value.trim(), profileMotto: document.getElementById('settings-motto').value.trim() }; localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto); db.ref("onlineUsers/" + (presenceUid || uid)).update(newData); db.ref("userProfiles/" + (presenceUid || uid)).update(newData); settingsOverlay.style.display = 'none'; });
+            document.getElementById('settings-save-btn').addEventListener('click', () => { const newData = { name: document.getElementById('settings-nickname').value.trim().slice(0, 20) || 'Anon', chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: document.getElementById('settings-avatar').value.trim(), profileMotto: document.getElementById('settings-motto').value.trim() }; localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto); db.ref("onlineUsers/" + uid).update(newData); settingsOverlay.style.display = 'none'; });
             document.getElementById('chat-hide-btn').addEventListener('click', () => document.getElementById('chat-container').style.display = 'none');
-            document.body.addEventListener('click', e => { const userElement = e.target.closest('.chat-username'); if (userElement) showUserProfile(db, userElement.dataset.uid, presenceUid || uid); });
+            document.body.addEventListener('click', e => { const userElement = e.target.closest('.chat-username'); if (userElement) showUserProfile(db, userElement.dataset.uid); });
             makeDraggable(document.getElementById('chat-container'), document.getElementById('chat-header'));
         }
 

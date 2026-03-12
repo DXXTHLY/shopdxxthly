@@ -8292,6 +8292,7 @@ function initializeChat() {
             chatAuth.onAuthStateChanged(user => {
                 if (!user) return;
                 const uid = user.uid;
+                window._scChatUid = uid; // store for profile popups
                 let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
                 localStorage.setItem("slitherChatNickname", nickname);
 
@@ -8473,7 +8474,8 @@ function initializeChat() {
         function showUserProfile(db, uid) {
             if (document.querySelector('.profile-popup')) return; // Prevent multiple popups
 
-            const currentUserId = firebase.auth().currentUser.uid;
+            // Use game account UID for dev check, fall back to chat UID
+            const currentUserId = (window._scFirebase && window._scFirebase.auth.currentUser && window._scFirebase.auth.currentUser.uid) || window._scChatUid || '';
             const isCurrentUserDev = isDev(currentUserId);
 
             db.ref(`onlineUsers/${uid}`).once('value', (snapshot) => {

@@ -8483,17 +8483,21 @@ function initializeChat() {
             // Expose globally
             window._scFirebase = { firebase, auth: saveAuth, db: saveDb, chatDb: db };
 
-            // Sign into chatforslither anonymously — only needed to satisfy Firebase auth rules.
-            // We do NOT use the anonymous UID as the chat identity.
-            // Instead we use the game account UID (saveAuth) so both tabs show the same person.
+            // Sign into chatforslither anonymously — the anonymous UID is used for all
+            // Firebase writes (required by chat DB security rules).
+            // We also attach the game account UID (gameUid) to every message/presence entry
+            // so that dev/VIP checks match correctly across tabs.
             chatAuth.signInAnonymously().catch(err => console.error("Chat anon sign-in error:", err));
 
             chatAuth.onAuthStateChanged(chatUser => {
                 if (!chatUser) return;
+                const anonUid = chatUser.uid; // used for Firebase writes (auth rules require this)
 
-                // Prefer the game account UID so identity is consistent across all tabs/devices.
-                // Fall back to the anonymous UID only if the player hasn't signed into a game account.
-                function startChatWithUid(uid) {
+                // Resolve the game account UID — may arrive slightly after chat auth
+                function startChat(gameUid) {
+                    // Store game UID globally so send handlers can attach it to messages
+                    window._scGameUid = gameUid;
+
                     let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
                     localStorage.setItem("slitherChatNickname", nickname);
 
@@ -8501,38 +8505,32 @@ function initializeChat() {
                     if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
                     if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
 
-                    const userRef = db.ref("onlineUsers/" + uid);
+                    // Write presence under the anonymous UID (rules require it)
+                    // but include gameUid so others can resolve dev/VIP status
+                    const userRef = db.ref("onlineUsers/" + anonUid);
                     userRef.onDisconnect().remove();
                     const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
-                    userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
-                    // Also write to persistent profile store so profile is viewable even after disconnect
-                    db.ref("userProfiles/" + uid).set({ ...localData, uid: uid });
+                    userRef.set({ ...localData, uid: anonUid, gameUid: gameUid, lastActive: firebase.database.ServerValue.TIMESTAMP });
+                    db.ref("userProfiles/" + anonUid).set({ ...localData, uid: anonUid, gameUid: gameUid });
                     setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
 
-                    listenForChatMessages(db, uid);
+                    listenForChatMessages(db, anonUid, gameUid);
                     listenForOnlineUsers(db);
-                    setupEventListeners(db, uid);
+                    setupEventListeners(db, anonUid);
                 }
 
-                // If the game account is already signed in, use its UID immediately
                 if (saveAuth.currentUser && !saveAuth.currentUser.isAnonymous) {
-                    startChatWithUid(saveAuth.currentUser.uid);
+                    startChat(saveAuth.currentUser.uid);
                 } else {
-                    // Wait for the game auth state — it may still be resolving (e.g. persistent session)
                     const unsubscribe = saveAuth.onAuthStateChanged(saveUser => {
-                        unsubscribe(); // only fire once
-                        if (saveUser && !saveUser.isAnonymous) {
-                            startChatWithUid(saveUser.uid);
-                        } else {
-                            // Genuinely a guest — use the anonymous chat UID
-                            startChatWithUid(chatUser.uid);
-                        }
+                        unsubscribe();
+                        startChat(saveUser && !saveUser.isAnonymous ? saveUser.uid : anonUid);
                     });
                 }
             });
         }
 
-        function listenForChatMessages(db, currentUid) {
+        function listenForChatMessages(db, currentUid, gameUid) {
             const chatBody = document.getElementById('chat-body');
             let chatMessagesArray = [];
             let latestTimeLoaded = 0;
@@ -8542,7 +8540,7 @@ function initializeChat() {
                 chatMessagesArray.sort((a, b) => a.time - b.time);
                 if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
                 chatBody.innerHTML = '';
-                chatMessagesArray.forEach(msg => renderChatMessage(msg, chatBody, currentUid));
+                chatMessagesArray.forEach(msg => renderChatMessage(msg, chatBody, currentUid, false, gameUid));
                 chatBody.scrollTop = chatBody.scrollHeight;
                 db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded + 1).on("child_added", (newSnapshot) => {
                     const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
@@ -8550,13 +8548,13 @@ function initializeChat() {
                     chatMessagesArray.push(newMsg);
                     if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
                     while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); }
-                    renderChatMessage(newMsg, chatBody, currentUid, true);
+                    renderChatMessage(newMsg, chatBody, currentUid, true, gameUid);
                 });
             });
         }
         
        
-        function renderChatMessage(msg, chatBodyElement, currentUid, shouldScroll = false) {
+        function renderChatMessage(msg, chatBodyElement, currentUid, shouldScroll = false, callerGameUid) {
             // --- NEW NOTIFICATION LOGIC ---
             const chatContainer = document.getElementById('chat-container');
             // Only show notification if chat is hidden AND the message isn't from the current user
@@ -8584,13 +8582,15 @@ function initializeChat() {
             let roleTagHTML = '';
 
             // --- 2. BUILD THE NAME HTML BASED ON USER TYPE ---
+            // Use gameUid (game account) for role checks — falls back to msg.uid for guests
+            const roleUid = msg.gameUid || msg.uid;
             if (isDiscordBot) {
                 nameHtml = `<span style="color:${userColor};font-weight:bold;">${displayName}</span>`;
                 roleTagHTML = ` <span style="background: #7289DA; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">DISCORD</span>`;
-            } else if (isDev(msg.uid)) {
+            } else if (isDev(roleUid)) {
                 nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="cursor:pointer;">${rainbowTextStyle(displayName)}</span>`;
                 roleTagHTML = ` <span style="background: #E91E63; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">DEV</span>`;
-            } else if (isVip(msg.uid, msg.name)) {
+            } else if (isVip(roleUid, msg.name)) {
                 nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="cursor:pointer;">${vipGlowStyle(displayName, userColor)}</span>`;
                 roleTagHTML = ` <span style="background: #9C27B0; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">VIP</span>`;
             } else if (isSystemMessage) {
@@ -8608,7 +8608,7 @@ function initializeChat() {
             if (imageMatch) {
                 const textPart = escapeHTML(msg.text.replace(imageRegex, '').trim());
                 finalMessage = `${textPart}<br><img src="${imageMatch[0]}" style="max-width:90%; border-radius:6px; margin-top:5px; cursor:pointer;" onclick="window.open('${imageMatch[0]}', '_blank')">`;
-            } else if (isSystemMessage || isDev(msg.uid)) {
+            } else if (isSystemMessage || isDev(roleUid)) {
                 // Make URLs in dev/system messages clickable
                 const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
                 finalMessage = msg.text.replace(urlRegex, url =>
@@ -8631,7 +8631,7 @@ function initializeChat() {
             const isMine = msg.uid === currentUid;
             let msgClass = 'chat-msg';
             if (isMine) msgClass += ' msg-mine';
-            else if (isDev(msg.uid)) msgClass += ' msg-dev';
+            else if (isDev(roleUid)) msgClass += ' msg-dev';
             else if (isSystemMessage) msgClass += ' msg-system';
             el.className = msgClass;
 
@@ -8782,7 +8782,7 @@ function initializeChat() {
                 if (text) { 
                     const name = localStorage.getItem("slitherChatNickname"); 
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700"; 
-                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color }); 
+                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid }); 
                     db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP }); 
                     e.target.value = ''; 
                 } 
@@ -8794,7 +8794,7 @@ function initializeChat() {
                 if (text) {
                     const name = localStorage.getItem("slitherChatNickname");
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
-                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color });
+                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid });
                     db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP });
                     input.value = '';
                     input.focus();

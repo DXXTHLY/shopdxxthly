@@ -8483,54 +8483,42 @@ function initializeChat() {
             // Expose globally
             window._scFirebase = { firebase, auth: saveAuth, db: saveDb, chatDb: db };
 
-            // Sign into chatforslither anonymously — the anonymous UID is used for all
-            // Firebase writes (required by chat DB security rules).
-            // We also attach the game account UID (gameUid) to every message/presence entry
-            // so that dev/VIP checks match correctly across tabs.
+            // Sign into chatforslither anonymously — powers online presence & chat
             chatAuth.signInAnonymously().catch(err => console.error("Chat anon sign-in error:", err));
 
-            chatAuth.onAuthStateChanged(chatUser => {
-                if (!chatUser) return;
-                const anonUid = chatUser.uid; // used for Firebase writes (auth rules require this)
+            chatAuth.onAuthStateChanged(user => {
+                if (!user) return;
+                const uid = user.uid;
 
-                // Resolve the game account UID — may arrive slightly after chat auth
-                function startChat(gameUid) {
-                    // Store game UID globally so send handlers can attach it to messages
-                    window._scGameUid = gameUid;
+                // Store the game account UID globally so messages can carry it for dev/VIP checks.
+                // Falls back to anonymous UID for guests. This is a read-only lookup — all writes
+                // still use the anonymous UID so Firebase rules are satisfied.
+                window._scGameUid = (saveAuth.currentUser && !saveAuth.currentUser.isAnonymous)
+                    ? saveAuth.currentUser.uid
+                    : uid;
 
-                    let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
-                    localStorage.setItem("slitherChatNickname", nickname);
+                let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
+                localStorage.setItem("slitherChatNickname", nickname);
 
-                    const chatInput = document.getElementById('chat-input');
-                    if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
-                    if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
+                const chatInput = document.getElementById('chat-input');
+                if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
+                if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
 
-                    // Write presence under the anonymous UID (rules require it)
-                    // but include gameUid so others can resolve dev/VIP status
-                    const userRef = db.ref("onlineUsers/" + anonUid);
-                    userRef.onDisconnect().remove();
-                    const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
-                    userRef.set({ ...localData, uid: anonUid, gameUid: gameUid, lastActive: firebase.database.ServerValue.TIMESTAMP });
-                    db.ref("userProfiles/" + anonUid).set({ ...localData, uid: anonUid, gameUid: gameUid });
-                    setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
+                const userRef = db.ref("onlineUsers/" + uid);
+                userRef.onDisconnect().remove();
+                const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
+                userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
+                // Also write to persistent profile store so profile is viewable even after disconnect
+                db.ref("userProfiles/" + uid).set({ ...localData, uid: uid });
+                setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
 
-                    listenForChatMessages(db, anonUid, gameUid);
-                    listenForOnlineUsers(db);
-                    setupEventListeners(db, anonUid);
-                }
-
-                if (saveAuth.currentUser && !saveAuth.currentUser.isAnonymous) {
-                    startChat(saveAuth.currentUser.uid);
-                } else {
-                    const unsubscribe = saveAuth.onAuthStateChanged(saveUser => {
-                        unsubscribe();
-                        startChat(saveUser && !saveUser.isAnonymous ? saveUser.uid : anonUid);
-                    });
-                }
+                listenForChatMessages(db, uid);
+                listenForOnlineUsers(db);
+                setupEventListeners(db, uid);
             });
         }
 
-        function listenForChatMessages(db, currentUid, gameUid) {
+        function listenForChatMessages(db, currentUid) {
             const chatBody = document.getElementById('chat-body');
             let chatMessagesArray = [];
             let latestTimeLoaded = 0;
@@ -8540,7 +8528,7 @@ function initializeChat() {
                 chatMessagesArray.sort((a, b) => a.time - b.time);
                 if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
                 chatBody.innerHTML = '';
-                chatMessagesArray.forEach(msg => renderChatMessage(msg, chatBody, currentUid, false, gameUid));
+                chatMessagesArray.forEach(msg => renderChatMessage(msg, chatBody, currentUid));
                 chatBody.scrollTop = chatBody.scrollHeight;
                 db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded + 1).on("child_added", (newSnapshot) => {
                     const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
@@ -8548,13 +8536,13 @@ function initializeChat() {
                     chatMessagesArray.push(newMsg);
                     if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
                     while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); }
-                    renderChatMessage(newMsg, chatBody, currentUid, true, gameUid);
+                    renderChatMessage(newMsg, chatBody, currentUid, true);
                 });
             });
         }
         
        
-        function renderChatMessage(msg, chatBodyElement, currentUid, shouldScroll = false, callerGameUid) {
+        function renderChatMessage(msg, chatBodyElement, currentUid, shouldScroll = false) {
             // --- NEW NOTIFICATION LOGIC ---
             const chatContainer = document.getElementById('chat-container');
             // Only show notification if chat is hidden AND the message isn't from the current user

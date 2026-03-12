@@ -8292,9 +8292,6 @@ function initializeChat() {
             chatAuth.onAuthStateChanged(user => {
                 if (!user) return;
                 const uid = user.uid;
-                // Set game UID globally for dev/VIP checks — same account = same UID everywhere
-                window._scGameUid = (saveAuth.currentUser && !saveAuth.currentUser.isAnonymous)
-                    ? saveAuth.currentUser.uid : uid;
                 let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
                 localStorage.setItem("slitherChatNickname", nickname);
 
@@ -8306,7 +8303,6 @@ function initializeChat() {
                 userRef.onDisconnect().remove();
                 const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
                 userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP });
-                db.ref("userProfiles/" + uid).set({ ...localData, uid: uid });
                 setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP }), 3 * 60 * 1000);
 
                 listenForChatMessages(db, uid);
@@ -8361,7 +8357,6 @@ function initializeChat() {
 
             const isSystemMessage = systemAccounts.includes(msg.uid);
             const isDiscordBot = msg.uid === 'discord_bot'; // <-- This is the check for Discord messages
-            const roleUid = msg.gameUid || msg.uid; // use game account UID for dev/VIP checks if available
             const displayName = escapeHTML(msg.name || 'Anon');
 
             let nameHtml;
@@ -8415,7 +8410,7 @@ function initializeChat() {
             const isMine = msg.uid === currentUid;
             let msgClass = 'chat-msg';
             if (isMine) msgClass += ' msg-mine';
-            else if (isDev(roleUid)) msgClass += ' msg-dev';
+            else if (isDev(msg.uid)) msgClass += ' msg-dev';
             else if (isSystemMessage) msgClass += ' msg-system';
             el.className = msgClass;
 
@@ -8565,7 +8560,7 @@ function initializeChat() {
                 if (text) { 
                     const name = localStorage.getItem("slitherChatNickname"); 
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700"; 
-                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid }); 
+                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color }); 
                     db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP }); 
                     e.target.value = ''; 
                 } 
@@ -8577,7 +8572,7 @@ function initializeChat() {
                 if (text) {
                     const name = localStorage.getItem("slitherChatNickname");
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
-                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color, gameUid: window._scGameUid || uid });
+                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color });
                     db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP });
                     input.value = '';
                     input.focus();

@@ -8526,6 +8526,7 @@ function initializeChat() {
         // --- HELPER FUNCTIONS ---
         const escapeHTML = (str) => { const p = document.createElement('p'); p.appendChild(document.createTextNode(str)); return p.innerHTML; };
         const isDev = (uid) => config.devList.some(dev => dev.uid === uid);
+        window._scIsDev = isDev; // expose globally for ghost/chat commands
         const isVip = (uid, name) => config.vipMembers.some(vip => vip.uid === uid && (!vip.name || vip.name.toLowerCase() === (name || '').toLowerCase()));
         // Inject dev name flash animation into the page once
         if (!document.getElementById('dev-flash-style')) {
@@ -10093,7 +10094,7 @@ function setupGhostAbsorbListener() {
                 tryAbsorbGhost(snap.key);
             }
             // Dev-only: force a test ghost into chat by typing !ghost
-            if (msg.name === gameState.playerName && cmd === '!ghost' && isDev(msg.uid)) {
+            if (msg.name === gameState.playerName && cmd === '!ghost' && window._scIsDev && window._scIsDev(msg.uid)) {
                 postGhostEvent('ascension');
             }
         });

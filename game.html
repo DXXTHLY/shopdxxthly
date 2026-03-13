@@ -12089,13 +12089,16 @@ async function arenaEndBattle(playerWon) {
     if (playerWon) {
         const reward = 25;
         gameState.darkEssence += reward;
+        gameState.pvpWins++;
         Toastify({ text: `VICTORY! You defeated ${opponentName} and earned ${reward} Dark Essence!`, duration: 5000, style: { background: "linear-gradient(to right, #4caf50, #2e7d32)" } }).showToast();
     } else {
+        gameState.pvpLosses++;
         Toastify({ text: `DEFEAT. Your forces were overwhelmed by ${opponentName}.`, duration: 5000, style: { background: "var(--primary-color)" } }).showToast();
     }
     try {
         await supabaseClient.from('arena_logs').insert({ attacker_name: gameState.playerName, defender_name: opponentName, winner_name: playerWon ? gameState.playerName : opponentName });
     } catch(e) { console.error("Failed to save log:", e); }
+    saveGame();
     setTimeout(() => arenaInitialize(), 3000);
 }
 

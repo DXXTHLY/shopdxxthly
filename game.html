@@ -2608,35 +2608,61 @@ text-decoration: underline; /* Adds an underline on hover */
                     <canvas id="rift-canvas" width="400" height="200"></canvas>
                     <button class="action-btn" onclick="harvestSoul()">Harvest Soul</button>
                 </div>
-                <div class="upgrade-section">
-                    <button class="upgrade-btn" id="clickUpgradeBtn" onclick="buyUpgrade('click')">
-                        <div class="upgrade-btn-body">
-                            <span class="btn-title">Empower Harvest</span><br>
-                            <span class="btn-level">Level <span id="clickLevel">1</span></span>
+
+                <!-- Altar upgrade cards -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin-top:24px; max-width:900px; margin-left:auto; margin-right:auto;">
+
+                    <!-- Empower Harvest -->
+                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #e8c46a44; border-top:3px solid #e8c46a; border-radius:12px; padding:18px;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <span style="font-size:1.8em;">👆</span>
+                            <div>
+                                <div style="color:#e8c46a; font-weight:bold;">Empower Harvest</div>
+                                <div style="color:#666; font-size:0.75em;">Manual click power</div>
+                            </div>
+                            <div style="margin-left:auto; color:#e8c46a; font-size:0.85em;">Lv.<span id="clickLevel">1</span></div>
                         </div>
-                        <div class="upgrade-btn-footer">
-                            Cost: <span id="clickCost" class="cost-souls">10</span> souls
+                        <p style="color:#aaa; font-size:0.82em; margin:0 0 12px;">Increases souls gained per click.</p>
+                        <button class="upgrade-btn" id="clickUpgradeBtn" onclick="buyUpgrade('click')" style="width:100%; border-color:#e8c46a66; background:linear-gradient(135deg,#e8c46a15,transparent);">
+                            <span style="color:#e8c46a;">⬆ Upgrade</span>
+                            <span class="cost" style="display:block; font-size:0.8em; margin-top:2px;">Cost: <span id="clickCost" class="cost-souls">10</span> souls</span>
+                        </button>
+                    </div>
+
+                    <!-- Sacrifice Souls -->
+                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #9944cc44; border-top:3px solid #9944cc; border-radius:12px; padding:18px;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <span style="font-size:1.8em;">🌑</span>
+                            <div>
+                                <div style="color:#9944cc; font-weight:bold;">Sacrifice Souls</div>
+                                <div style="color:#666; font-size:0.75em;">Convert souls → Dark Essence</div>
+                            </div>
                         </div>
-                    </button>
-                    <button class="upgrade-btn" id="sacrificeBtn" onclick="buyUpgrade('sacrifice')">
-                        <div class="upgrade-btn-body">
-                            <span class="btn-title">Sacrifice Souls</span><br>
-                            <span class="btn-level">Gain 1 Dark Essence</span>
+                        <p style="color:#aaa; font-size:0.82em; margin:0 0 12px;">Burn souls to gain 1 Dark Essence.</p>
+                        <button class="upgrade-btn" id="sacrificeBtn" onclick="buyUpgrade('sacrifice')" style="width:100%; border-color:#9944cc66; background:linear-gradient(135deg,#9944cc15,transparent);">
+                            <span style="color:#9944cc;">🔥 Sacrifice</span>
+                            <span class="cost" style="display:block; font-size:0.8em; margin-top:2px;">Cost: <span id="sacrificeCost" class="cost-souls">1000</span> souls</span>
+                        </button>
+                    </div>
+
+                    <!-- Soul Resonance -->
+                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #44aaff44; border-top:3px solid #44aaff; border-radius:12px; padding:18px;" data-tooltip="This is a permanent upgrade that persists through Ascension.">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <span style="font-size:1.8em;">💠</span>
+                            <div>
+                                <div style="color:#44aaff; font-weight:bold;">Soul Resonance</div>
+                                <div style="color:#666; font-size:0.75em;">Permanent — survives Ascension</div>
+                            </div>
+                            <div style="margin-left:auto; color:#44aaff; font-size:0.85em;">Lv.<span id="resonanceLevel">0</span></div>
                         </div>
-                        <div class="upgrade-btn-footer">
-                            Cost: <span id="sacrificeCost" class="cost-souls">1000</span> souls
-                        </div>
-                    </button>
-                    <button class="upgrade-btn" id="resonanceUpgradeBtn" onclick="buyUpgrade('resonance')" data-tooltip="This is a permanent upgrade that persists through Ascension. It's one of the most important upgrades for long-term growth!">
-                        <div class="upgrade-btn-body">
-                            <span class="btn-title">Soul Resonance</span><br>
-                            <span class="btn-level">Level <span id="resonanceLevel">0</span></span><br>
-                            <span style="font-size:0.9rem; color: var(--dim-color);">+5% Shards on Ascend per level</span>
-                        </div>
-                        <div class="upgrade-btn-footer">
-                            Cost: <span id="resonanceCost" class="cost-essence">5</span> essence
-                        </div>
-                    </button>
+                        <p style="color:#aaa; font-size:0.82em; margin:0 0 4px;">+5% Abyssal Shards on Ascend per level.</p>
+                        <p style="color:#44aaff88; font-size:0.75em; margin:0 0 12px; font-style:italic;">★ Persists through resets</p>
+                        <button class="upgrade-btn" id="resonanceUpgradeBtn" onclick="buyUpgrade('resonance')" style="width:100%; border-color:#44aaff66; background:linear-gradient(135deg,#44aaff15,transparent);">
+                            <span style="color:#44aaff;">⬆ Upgrade</span>
+                            <span class="cost" style="display:block; font-size:0.8em; margin-top:2px;">Cost: <span id="resonanceCost" class="cost-essence">5</span> Dark Essence</span>
+                        </button>
+                    </div>
+
                 </div>
             </div>
             <div id="brewery-screen" class="screen">
@@ -2658,8 +2684,9 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div id="inventory-items-grid" class="ritual-grid"></div>
             </div>
             <div id="minions-screen" class="screen">
-                <h2>😈 Demonic Minions 😈</h2><p>Enslave creatures to passively harvest souls for you.</p>
-                <div id="minion-grid" class="minion-grid"></div>
+                <h2 style="letter-spacing:3px; color:#ff6644;">😈 DEMONIC MINIONS 😈</h2>
+                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Enslave creatures from the abyss to passively harvest souls. Each level increases their power.</p>
+                <div id="minion-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; max-width:1000px; margin:0 auto;"></div>
             </div>
 
             <!-- ================================================================= -->
@@ -2702,11 +2729,10 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- SOUL-FORGE SCREEN (NEW!) -->
             <!-- ================================================================= -->
             <div id="forge-screen" class="screen">
-                <h2>🔥 The Soul-Forge 🔥</h2>
-                <p>Use Corrupted Fragments and Souls to manipulate the essence of your items.</p>
-                <div id="infusion-container">
-                    <!-- Infusion options will be generated here by JavaScript -->
-                </div>
+                <h2 style="letter-spacing:3px; color:#ff6622;">🔥 THE SOUL-FORGE 🔥</h2>
+                <p style="color:var(--dim-color); max-width:500px; margin:0 auto 6px;">Sacrifice three items of the same rarity into the forge. The flames will reforge them into something far more powerful.</p>
+                <p style="color:#ff662266; font-size:0.8em; max-width:500px; margin:0 auto 28px; font-style:italic;">⚠ The three items consumed are chosen at random from your inventory.</p>
+                <div id="infusion-container" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; max-width:1000px; margin:0 auto;"></div>
             </div>
 
 
@@ -2799,84 +2825,92 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- MARKETPLACE SCREEN (NEW & WORKING) -->
             <!-- ================================================================= -->
             <div id="market-screen" class="screen">
-                <h2>💎 Abyssal Marketplace 💎</h2>
-                <p>Trade with other Soul Collectors. Listings are server-wide.</p>
+                <h2 style="letter-spacing:3px; color:#c8a800;">💎 ABYSSAL MARKETPLACE 💎</h2>
+                <p style="color:var(--dim-color); max-width:500px; margin:0 auto 28px;">Trade with other Soul Collectors. All listings are server-wide.</p>
 
-                <!-- ================================================================= -->
-                <!-- HOURLY ITEM SHOP (NEW & IMPROVED) -->
-                <!-- ================================================================= -->
-                <div class="shop-section">
-                    <h3>Hourly Offerings</h3>
-                    <p>A rift in reality offers these items for a limited time. A new selection appears in: <strong id="shop-timer" style="color:var(--accent-color);">--:--</strong></p>
-                    <div id="hourly-shop-grid" class="minion-grid">
-                        <!-- The 3 shop items will be generated here by JavaScript -->
-                    </div>
-                </div>
-                <hr> <!-- This adds a separator line -->
-
-                <div class="upgrade-section">
-                    <button class="upgrade-btn" onclick="fetchMarketListings()">Refresh Listings</button>
-                </div>
-
-                <h3>Current Listings</h3>
-                <ul id="market-listing-list" class="leaderboard-list">
-                    <!-- Listings will be loaded here by JavaScript -->
-                </ul>
-
-                <hr>
-
-                <h3>Sell an Item</h3>
-                <p>Select an item from your inventory to sell.</p>
-                <div id="market-sell-grid" class="minion-grid">
-                    <!-- Your sellable inventory will appear here -->
-                </div>
-
-                <hr>
-                <!-- BARTER MARKET -->
-                <h2>🔀 Abyss Barter</h2>
-                <p style="color:var(--dim-color);">Trade resources directly with other players. Post what you offer and what you want in return.</p>
-
-                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; justify-content:center;">
-                    <button class="upgrade-btn" id="barter-tab-browse" onclick="showBarterTab('browse')" style="border-color:#c8a800;">📜 Browse Trades</button>
-                    <button class="upgrade-btn" id="barter-tab-post" onclick="showBarterTab('post')">➕ Post a Trade</button>
-                    <button class="upgrade-btn" onclick="fetchBarterListings()">🔄 Refresh</button>
-                </div>
-
-                <!-- Browse Panel -->
-                <div id="barter-browse-panel">
-                    <ul id="barter-listing-list" class="leaderboard-list">
-                        <li><em>Loading trades...</em></li>
-                    </ul>
-                </div>
-
-                <!-- Post Trade Panel -->
-                <div id="barter-post-panel" style="display:none;">
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; padding:20px; border-radius:8px; max-width:500px; margin:0 auto;">
-                        <h3 style="margin:0 0 14px;">Post a Barter Trade</h3>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
-                            <div>
-                                <label style="color:var(--dim-color); font-size:0.85em;">I'm offering:</label>
-                                <select id="barter-offer-type" style="width:100%; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:4px; font-family:inherit; margin-top:4px;">
-                                    <option value="souls">👻 Souls</option>
-                                    <option value="darkEssence">🌑 Dark Essence</option>
-                                    <option value="abyssalShards">💎 Abyssal Shards</option>
-                                    <option value="corruptedFragments">🔮 Corrupted Fragments</option>
-                                </select>
-                                <input id="barter-offer-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:4px; font-family:inherit; margin-top:6px;">
-                            </div>
-                            <div>
-                                <label style="color:var(--dim-color); font-size:0.85em;">I want in return:</label>
-                                <select id="barter-want-type" style="width:100%; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:4px; font-family:inherit; margin-top:4px;">
-                                    <option value="darkEssence">🌑 Dark Essence</option>
-                                    <option value="souls">👻 Souls</option>
-                                    <option value="abyssalShards">💎 Abyssal Shards</option>
-                                    <option value="corruptedFragments">🔮 Corrupted Fragments</option>
-                                </select>
-                                <input id="barter-want-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:4px; font-family:inherit; margin-top:6px;">
-                            </div>
+                <!-- HOURLY OFFERINGS -->
+                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #c8a80044; border-top:3px solid #c8a800; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+                        <div>
+                            <h3 style="margin:0; color:#c8a800; letter-spacing:2px;">⏳ HOURLY OFFERINGS</h3>
+                            <p style="margin:4px 0 0; color:#666; font-size:0.82em;">A rift in reality offers these items for a limited time.</p>
                         </div>
-                        <button class="upgrade-btn" onclick="postBarterListing()" style="width:100%;">📜 Post Trade Offer</button>
-                        <div id="barter-post-msg" style="color:#ff9944; margin-top:8px; font-size:0.85em;"></div>
+                        <div style="background:#c8a80022; border:1px solid #c8a80055; border-radius:8px; padding:6px 16px; text-align:center;">
+                            <div style="color:#888; font-size:0.7em; text-transform:uppercase; letter-spacing:1px;">Next refresh in</div>
+                            <div id="shop-timer" style="color:#c8a800; font-size:1.3em; font-weight:bold; font-family:monospace;">--:--</div>
+                        </div>
+                    </div>
+                    <div id="hourly-shop-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;"></div>
+                </div>
+
+                <!-- PLAYER LISTINGS -->
+                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #4488ff44; border-top:3px solid #4488ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+                        <div>
+                            <h3 style="margin:0; color:#4488ff; letter-spacing:2px;">🏪 CURRENT LISTINGS</h3>
+                            <p style="margin:4px 0 0; color:#666; font-size:0.82em;">Items listed by other Soul Collectors for Dark Essence.</p>
+                        </div>
+                        <button class="upgrade-btn" onclick="fetchMarketListings()" style="border-color:#4488ff66; background:linear-gradient(135deg,#4488ff15,transparent);">
+                            <span style="color:#4488ff;">🔄 Refresh</span>
+                        </button>
+                    </div>
+                    <ul id="market-listing-list" class="leaderboard-list" style="margin:0;"></ul>
+                </div>
+
+                <!-- SELL AN ITEM -->
+                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #44cc8844; border-top:3px solid #44cc88; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
+                    <h3 style="margin:0 0 6px; color:#44cc88; letter-spacing:2px;">📤 SELL AN ITEM</h3>
+                    <p style="margin:0 0 16px; color:#666; font-size:0.82em;">Select an item from your inventory to list on the market.</p>
+                    <div id="market-sell-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px;"></div>
+                </div>
+
+                <!-- BARTER -->
+                <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #aa44ff44; border-top:3px solid #aa44ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto;">
+                    <h3 style="margin:0 0 4px; color:#aa44ff; letter-spacing:2px;">🔀 ABYSS BARTER</h3>
+                    <p style="margin:0 0 18px; color:#666; font-size:0.82em;">Trade resources directly with other players.</p>
+
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;">
+                        <button class="upgrade-btn" id="barter-tab-browse" onclick="showBarterTab('browse')" style="border-color:#c8a80066;">📜 Browse Trades</button>
+                        <button class="upgrade-btn" id="barter-tab-post" onclick="showBarterTab('post')" style="border-color:#aa44ff66;">➕ Post a Trade</button>
+                        <button class="upgrade-btn" onclick="fetchBarterListings()" style="border-color:#44444466;">🔄 Refresh</button>
+                    </div>
+
+                    <div id="barter-browse-panel">
+                        <ul id="barter-listing-list" class="leaderboard-list" style="margin:0;">
+                            <li><em>Loading trades...</em></li>
+                        </ul>
+                    </div>
+
+                    <div id="barter-post-panel" style="display:none;">
+                        <div style="background:#0a0812; border:1px solid #3d2a4a; padding:20px; border-radius:10px; max-width:500px; margin:0 auto;">
+                            <h4 style="margin:0 0 14px; color:#aa44ff;">Post a Barter Trade</h4>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+                                <div>
+                                    <label style="color:#888; font-size:0.8em; text-transform:uppercase; letter-spacing:1px;">I'm offering</label>
+                                    <select id="barter-offer-type" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:6px;">
+                                        <option value="souls">👻 Souls</option>
+                                        <option value="darkEssence">🌑 Dark Essence</option>
+                                        <option value="abyssalShards">💎 Abyssal Shards</option>
+                                        <option value="corruptedFragments">🔮 Corrupted Fragments</option>
+                                    </select>
+                                    <input id="barter-offer-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:8px;">
+                                </div>
+                                <div>
+                                    <label style="color:#888; font-size:0.8em; text-transform:uppercase; letter-spacing:1px;">I want in return</label>
+                                    <select id="barter-want-type" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:6px;">
+                                        <option value="darkEssence">🌑 Dark Essence</option>
+                                        <option value="souls">👻 Souls</option>
+                                        <option value="abyssalShards">💎 Abyssal Shards</option>
+                                        <option value="corruptedFragments">🔮 Corrupted Fragments</option>
+                                    </select>
+                                    <input id="barter-want-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:8px;">
+                                </div>
+                            </div>
+                            <button class="upgrade-btn" onclick="postBarterListing()" style="width:100%; border-color:#aa44ff66; background:linear-gradient(135deg,#aa44ff15,transparent);">
+                                <span style="color:#aa44ff;">📜 Post Trade Offer</span>
+                            </button>
+                            <div id="barter-post-msg" style="color:#ff9944; margin-top:10px; font-size:0.85em; text-align:center;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -3156,7 +3190,7 @@ text-decoration: underline; /* Adds an underline on hover */
             </div>
 
             <!-- Manage Item Modal -->
-            <div id="manage-item-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:none; justify-content:center; align-items:center; z-index:300; backdrop-filter:blur(5px);">
+            <div id="manage-item-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); justify-content:center; align-items:center; z-index:300; backdrop-filter:blur(5px);">
                 <div id="manage-item-modal-content" style="background:var(--dark-panel-color); border:2px solid var(--accent-color); padding:30px; max-width:420px; width:90%; border-radius:12px; box-shadow:0 0 30px var(--accent-glow); text-align:center;">
                     <div id="manage-item-icon" style="font-size:2.5em; margin-bottom:8px;"></div>
                     <h2 id="manage-item-title" style="margin:0 0 4px;"></h2>
@@ -6211,69 +6245,96 @@ function renderAltar() { document.getElementById('clickLevel').innerText = gameS
 
 function renderMinions() {
     const grid = document.getElementById('minion-grid');
+    if (!grid) return;
     grid.innerHTML = '';
 
+    // World-based color themes
+    const worldColors = {
+        nether_plains:       { color:'#ff6644', glow:'#ff664422' },
+        ashen_wastes:        { color:'#ff9944', glow:'#ff994422' },
+        stygian_depths:      { color:'#4488ff', glow:'#4488ff22' },
+        burning_hells:       { color:'#ff4444', glow:'#ff444422' },
+        frozen_abyss:        { color:'#44ccff', glow:'#44ccff22' },
+        celestial_ruins:     { color:'#aa44ff', glow:'#aa44ff22' },
+        void_threshold:      { color:'#00ffcc', glow:'#00ffcc22' },
+        nexus_of_all_realities: { color:'#ffcc00', glow:'#ffcc0022' },
+    };
+
+    let anyRendered = false;
     for (const id in minions) {
-        if (gameState.unlockedWorlds.includes(minions[id].requiredWorld)) {
-            const m = minions[id];
-            const p = gameState.minions[id];
-            let buttonHtml = '';
+        if (!gameState.unlockedWorlds.includes(minions[id].requiredWorld)) continue;
+        anyRendered = true;
+        const m = minions[id];
+        const p = gameState.minions[id];
+        const theme = worldColors[m.requiredWorld] || { color:'#aaa', glow:'#aaa2' };
 
-            // --- NEW: Calculate the effective SPS for display ---
-            let effectiveSps = m.baseSps; // Start with the base value (e.g., 15 for the Golem)
-
-            // Check for minion-specific artifact bonuses, just for this minion
-            for (const artifactId in gameState.ownedArtifacts) {
-                const artifactBonus = artifacts[artifactId]?.bonus;
-                if (artifactBonus && artifactBonus.type === 'minion_specific_multiplier' && artifactBonus.target.includes(id)) {
-                    // Apply the multiplier for each level of the artifact
-                    effectiveSps *= Math.pow(artifactBonus.value, gameState.ownedArtifacts[artifactId].level);
-                }
+        // Calculate effective SPS with artifact bonuses
+        let effectiveSps = m.baseSps;
+        for (const artifactId in gameState.ownedArtifacts) {
+            const ab = artifacts[artifactId]?.bonus;
+            if (ab?.type === 'minion_specific_multiplier' && ab.target.includes(id)) {
+                effectiveSps *= Math.pow(ab.value, gameState.ownedArtifacts[artifactId].level);
             }
-            // Now, effectiveSps will be 30 for the Golem if you own Brazier of Cinders.
-            // --- END OF NEW CODE ---
-
-
-            const nextPromotion = m.promotions ? m.promotions[p.promotionTier] : null;
-
-            if (nextPromotion && p.level >= nextPromotion.level) {
-                // Show the Promote button
-                const canAfford = gameState.souls >= nextPromotion.soulCost && gameState.darkEssence >= nextPromotion.essenceCost;
-                buttonHtml = `
-                    <button class="upgrade-btn" style="border-color: var(--accent-color);" onclick="promoteMinion('${id}')" ${!canAfford ? 'disabled' : ''}>
-                        <span class="btn-title" style="color: var(--accent-color);">PROMOTE</span><br>
-                        <span>Permanently enhance this minion.</span><br>
-                        <span class="cost">
-                            Cost: <span class="cost-souls">${formatNumber(nextPromotion.soulCost)}</span>
-                            + <span class="cost-essence">${formatNumber(nextPromotion.essenceCost)} DE</span>
-                        </span>
-                    </button>
-                `;
-            } else {
-                // Show the regular Buy button, now using our new 'effectiveSps' variable
-                buttonHtml = `
-                    <button class="upgrade-btn" id="minion-btn-${id}" onclick="buyMinion('${id}')" ${gameState.souls < p.cost ? 'disabled' : ''}>
-                        <span class="btn-title">${m.name}</span> (+${formatNumber(effectiveSps)} SPS/lvl)<br>
-                        <span class="cost">Cost: <span class="cost-souls">${formatNumber(p.cost)}</span></span>
-                    </button>
-                `;
-            }
-
-            const minionCard = document.createElement('div');
-            let tierDisplay = '';
-            if (p.promotionTier > 0) {
-                tierDisplay = ` <span style="color: var(--accent-color); font-style: italic;">[Tier ${p.promotionTier}]</span>`;
-            }
-
-            minionCard.innerHTML = `
-                <div style="background: var(--dark-panel-color); padding: 15px; border-radius: var(--border-radius); border: 1px solid #111; margin-bottom: 5px;">
-                    <span>Level: ${p.level}${tierDisplay}</span>
-                </div>
-                ${buttonHtml} 
-            `;
-
-            grid.appendChild(minionCard);
         }
+
+        const nextPromotion = m.promotions ? m.promotions[p.promotionTier] : null;
+        const canPromote = nextPromotion && p.level >= nextPromotion.level;
+        const canAffordPromote = canPromote && gameState.souls >= nextPromotion.soulCost && gameState.darkEssence >= nextPromotion.essenceCost;
+        const canAffordBuy = gameState.souls >= p.cost;
+
+        // Promotion tier stars
+        const tierStars = p.promotionTier > 0
+            ? `<span style="color:#c8a800; font-size:0.8em; margin-left:6px;">${'★'.repeat(p.promotionTier)}</span>` : '';
+
+        // Progress to next promotion
+        let progressBar = '';
+        if (nextPromotion && !canPromote) {
+            const pct = Math.min(100, (p.level / nextPromotion.level) * 100);
+            progressBar = `<div style="margin:8px 0 2px; background:#ffffff10; border-radius:4px; height:5px; overflow:hidden;">
+                <div style="height:100%; width:${pct}%; background:${theme.color}; border-radius:4px;"></div></div>
+                <div style="color:#666; font-size:0.72em; text-align:right;">Promote at Lv.${nextPromotion.level}</div>`;
+        }
+
+        let actionBtn = '';
+        if (canPromote) {
+            actionBtn = `<button class="upgrade-btn" onclick="promoteMinion('${id}')" ${!canAffordPromote ? 'disabled' : ''}
+                style="width:100%; border-color:#c8a80088; background:linear-gradient(135deg,#c8a80022,transparent); ${!canAffordPromote?'opacity:0.5;':''}">
+                <span style="color:#c8a800;">⬆ PROMOTE to Tier ${p.promotionTier+1}</span>
+                <span style="display:block; font-size:0.75em; margin-top:2px; color:#888;">
+                    ${formatNumber(nextPromotion.soulCost)} souls + ${formatNumber(nextPromotion.essenceCost)} DE
+                </span>
+            </button>`;
+        } else {
+            actionBtn = `<button class="upgrade-btn" id="minion-btn-${id}" onclick="buyMinion('${id}')" ${!canAffordBuy ? 'disabled' : ''}
+                style="width:100%; border-color:${theme.color}66; background:${canAffordBuy?`linear-gradient(135deg,${theme.color}18,transparent)`:''}; ${!canAffordBuy?'opacity:0.5;':''}">
+                <span style="color:${canAffordBuy?theme.color:'#555'};">+ Buy Level</span>
+                <span style="display:block; font-size:0.75em; margin-top:2px; color:${canAffordBuy?'#e8c46a':'#555'};">${formatNumber(p.cost)} souls</span>
+            </button>`;
+        }
+
+        grid.innerHTML += `
+        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${theme.color}44; border-top:3px solid ${theme.color}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:0 0 16px ${theme.glow};">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-size:2.2em; line-height:1;">${m.icon || '👿'}</span>
+                <div style="flex:1;">
+                    <div style="color:${theme.color}; font-weight:bold; font-size:1em;">${m.name}${tierStars}</div>
+                    <div style="display:flex; gap:8px; align-items:center; margin-top:2px; flex-wrap:wrap;">
+                        <span style="background:${theme.color}22; border:1px solid ${theme.color}44; border-radius:8px; padding:1px 8px; font-size:0.7em; color:${theme.color};">Lv. ${p.level}</span>
+                        <span style="color:#666; font-size:0.75em;">⚡ ${formatNumber(effectiveSps * p.level)} SPS total</span>
+                    </div>
+                </div>
+                <div style="text-align:right; flex-shrink:0;">
+                    <div style="color:#aaa; font-size:0.75em;">per level</div>
+                    <div style="color:${theme.color}; font-weight:bold; font-size:0.9em;">+${formatNumber(effectiveSps)}</div>
+                </div>
+            </div>
+            ${progressBar}
+            ${actionBtn}
+        </div>`;
+    }
+
+    if (!anyRendered) {
+        grid.innerHTML = `<div style="color:var(--dim-color); text-align:center; padding:40px; grid-column:1/-1;">No minions unlocked yet.</div>`;
     }
 }
 
@@ -8189,52 +8250,63 @@ function generateHourlyShopItems() {
         shopItems.push(selectedItem);
     }
 
-    // --- Render the Items ---
-    grid.innerHTML = '';
-    shopItems.forEach((shopItem, index) => {
-        const { id, type } = shopItem;
-        let itemData; // This will hold the details of the item, artifact, or potion.
+        grid.innerHTML = '';
 
-        // Get the correct data based on the item's type
-        if (type === 'item') itemData = items[id];
-        if (type === 'artifact') itemData = artifacts[id];
-        if (type === 'potion') itemData = potions[id];
+        // Type icons & colours
+        const typeTheme = {
+            item:     { icon:'⚔️',  color:'#4488ff', label:'Item'     },
+            artifact: { icon:'💠',  color:'#aa44ff', label:'Artifact' },
+            potion:   { icon:'⚗️',  color:'#44cc88', label:'Potion'   },
+        };
+        const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
 
-        // If an artifact is already owned, we shouldn't show it. Let's find a replacement.
-        if (type === 'artifact' && gameState.ownedArtifacts[id]) {
-            // This is a simple way to get a different item if a duplicate is found.
-            const replacementIndex = (seed + 40 + i) % availableItems.length;
-            const replacement = availableItems.splice(replacementIndex, 1)[0];
-            shopItem.id = replacement.id;
-            shopItem.type = replacement.type;
-            if (replacement.type === 'item') itemData = items[replacement.id];
-            if (replacement.type === 'artifact') itemData = artifacts[replacement.id];
-            if (replacement.type === 'potion') itemData = potions[replacement.id];
-        }
-        
-        // --- Price Calculation (NEW & IMPROVED) ---
-        // This generates a random price between 1 and 20, influenced by the seed.
-        // This is the NEW, smarter pricing logic
-        let finalPrice;
-        if (shopItem.id === 'mark_of_the_first') {
-            // If the item is "Mark of the First", give it a special high price.
-            finalPrice = 150; // price of mark of the first
-        } else {
-            // Otherwise, use the normal random price between 1 and 20.
-            const pseudoRandom = (seed + index * 13) % 20;
-            finalPrice = pseudoRandom + 1;
-        }
+        shopItems.forEach((shopItem, index) => {
+            const { id, type } = shopItem;
+            let itemData;
+            if (type === 'item') itemData = items[id];
+            if (type === 'artifact') itemData = artifacts[id];
+            if (type === 'potion') itemData = potions[id];
 
-        const canAfford = gameState.darkEssence >= finalPrice;
+            if (type === 'artifact' && gameState.ownedArtifacts[id]) {
+                const replacementIndex = (seed + 40 + index) % availableItems.length;
+                const replacement = availableItems.splice(replacementIndex, 1)[0];
+                shopItem.id = replacement.id; shopItem.type = replacement.type;
+                if (replacement.type === 'item') itemData = items[replacement.id];
+                if (replacement.type === 'artifact') itemData = artifacts[replacement.id];
+                if (replacement.type === 'potion') itemData = potions[replacement.id];
+            }
 
-        grid.innerHTML += `
-            <button class="upgrade-btn" onclick="buyHourlyShopItem('${shopItem.id}', '${shopItem.type}', ${finalPrice})" ${!canAfford ? 'disabled' : ''}>
-                <span class="btn-title">${itemData.name}</span><br>
-                <span>${itemData.desc}</span><br>
-                <span class="cost">Cost: <span class="cost-essence">${formatNumber(finalPrice)}</span></span>
-            </button>
-        `;
-    });
+            let finalPrice = shopItem.id === 'mark_of_the_first' ? 150 : ((seed + index * 13) % 20) + 1;
+
+            const canAfford = gameState.darkEssence >= finalPrice;
+            const theme = typeTheme[shopItem.type] || typeTheme.item;
+            const rc = rarityColor[itemData?.rarity] || theme.color;
+
+            grid.innerHTML += `
+            <div onclick="${canAfford ? `buyHourlyShopItem('${shopItem.id}','${shopItem.type}',${finalPrice})` : ''}"
+                 style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${theme.color}${canAfford?'66':'22'}; border-top:3px solid ${theme.color}${canAfford?'':'44'}; border-radius:12px; padding:18px; cursor:${canAfford?'pointer':'default'}; opacity:${canAfford?'1':'0.6'}; transition:all 0.2s; position:relative; overflow:hidden;"
+                 onmouseover="if(${canAfford}) this.style.background='linear-gradient(135deg,${theme.color}15,#1a1020)'"
+                 onmouseout="this.style.background='linear-gradient(135deg,#0e0a1a,#1a1020)'">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                    <span style="font-size:1.8em; line-height:1;">${theme.icon}</span>
+                    <div style="display:flex; gap:5px; align-items:center;">
+                        <span style="background:${theme.color}22; border:1px solid ${theme.color}44; border-radius:8px; padding:2px 8px; font-size:0.68em; color:${theme.color}; text-transform:uppercase; letter-spacing:1px;">${theme.label}</span>
+                        ${itemData?.rarity ? `<span style="background:${rc}22; border:1px solid ${rc}44; border-radius:8px; padding:2px 8px; font-size:0.68em; color:${rc}; text-transform:uppercase;">${itemData.rarity}</span>` : ''}
+                    </div>
+                </div>
+                <div style="color:${rc}; font-weight:bold; font-size:1em; margin-bottom:6px;">${itemData?.name || 'Unknown'}</div>
+                <div style="color:#888; font-size:0.8em; line-height:1.4; margin-bottom:14px;">${itemData?.desc || ''}</div>
+                <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #ffffff0a; padding-top:10px;">
+                    <div>
+                        <div style="color:#666; font-size:0.7em;">COST</div>
+                        <div style="color:${canAfford?'#9944cc':'#664466'}; font-weight:bold;">${formatNumber(finalPrice)} <span style="font-size:0.75em;">Dark Essence</span></div>
+                    </div>
+                    <div style="background:${canAfford?theme.color+'33':'#33333333'}; border:1px solid ${canAfford?theme.color+'66':'#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${canAfford?theme.color:'#555'};">
+                        ${canAfford ? '🛒 Buy' : '🔒 Need More'}
+                    </div>
+                </div>
+            </div>`;
+        });
 }
 
 // =================================================================
@@ -8541,19 +8613,30 @@ async function cancelMarketListing(listingId) {
 
 function renderSellableInventory() {
     const grid = document.getElementById('market-sell-grid');
-    grid.innerHTML = '';
+    if (!grid) return;
+    const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+    const typeIcon = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
     if (gameState.inventory.length === 0) {
-        grid.innerHTML = `<p style="color:var(--dim-color)">Your inventory is empty.</p>`;
+        grid.innerHTML = `<div style="color:var(--dim-color); text-align:center; padding:30px; grid-column:1/-1;">Your inventory is empty. Open caches or win items to list them here.</div>`;
         return;
     }
+    grid.innerHTML = '';
     gameState.inventory.forEach(itemId => {
         const item = items[itemId];
-        if(item != null)
-            grid.innerHTML += `
-                <button class="upgrade-btn" onclick="promptSellItem('${itemId}')">
-                    <span class="btn-title">${item.name}</span><br>
-                    <span>${item.desc}</span>
-                </button>`;
+        if (!item) return;
+        const rc = rarityColor[item.rarity] || '#aaa';
+        grid.innerHTML += `
+        <div onclick="promptSellItem('${itemId}')" style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${rc}44; border-top:3px solid ${rc}; border-radius:10px; padding:14px; cursor:pointer; transition:all 0.2s;"
+             onmouseover="this.style.background='linear-gradient(135deg,${rc}10,#1a1020)'"
+             onmouseout="this.style.background='linear-gradient(135deg,#0e0a1a,#1a1020)'">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                <span style="font-size:1.4em;">${typeIcon[item.type] || '🔮'}</span>
+                <span style="background:${rc}22; border:1px solid ${rc}44; border-radius:6px; padding:1px 7px; font-size:0.68em; color:${rc}; text-transform:uppercase;">${item.rarity}</span>
+            </div>
+            <div style="color:${rc}; font-weight:bold; font-size:0.9em; margin-bottom:4px;">${item.name}</div>
+            <div style="color:#666; font-size:0.75em; line-height:1.4; margin-bottom:10px;">${item.desc}</div>
+            <div style="background:#44cc8822; border:1px solid #44cc8844; border-radius:6px; padding:4px 10px; text-align:center; font-size:0.78em; color:#44cc88;">📤 List for Sale</div>
+        </div>`;
     });
 }
 
@@ -9591,55 +9674,72 @@ function renderSoulForge() {
         costMultiplier = items[helmId].bonus.value;
     }
 
-    const rarities = ['common', 'uncommon', 'epic', 'legendary']; // Add 'legendary'
-    const nextRarity = {
-        common: 'uncommon',
-        uncommon: 'epic',
-        epic: 'legendary',
-        legendary: 'forged' // Legendary now crafts Forged
-    };
-    const costs = {
-        common: { souls: 100000, fragments: 5 },
-        uncommon: { souls: 1000000, fragments: 15 },
-        epic: { souls: 50000000, fragments: 50 },
-        legendary: { souls: 1e9, fragments: 100 } // High cost for a high reward!
-    };
+    const rarities = ['common', 'uncommon', 'epic', 'legendary'];
+    const nextRarity  = { common:'uncommon', uncommon:'epic', epic:'legendary', legendary:'forged' };
+    const costs       = { common:{souls:100000,fragments:5}, uncommon:{souls:1000000,fragments:15}, epic:{souls:50000000,fragments:50}, legendary:{souls:1e9,fragments:100} };
+    const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+    const rarityEmoji = { common:'⬜', uncommon:'🟩', epic:'🟣', legendary:'🟡', forged:'🔴' };
 
     rarities.forEach(rarity => {
         if (!nextRarity[rarity]) return;
-
         const currentCost = {
             souls: Math.floor(costs[rarity].souls * costMultiplier),
             fragments: Math.floor(costs[rarity].fragments * costMultiplier)
         };
+        const itemsOfRarity = gameState.inventory.filter(id => items[id]?.rarity === rarity);
+        const count = itemsOfRarity.length;
+        const canInfuse = count >= 3 && gameState.souls >= currentCost.souls && gameState.corruptedFragments >= currentCost.fragments;
+        const rc  = rarityColor[rarity]  || '#aaa';
+        const nrc = rarityColor[nextRarity[rarity]] || '#fff';
+        const pct = Math.min(100, (count / 3) * 100);
 
-        const itemsOfRarity = gameState.inventory.filter(itemId => items[itemId].rarity === rarity);
-        const canInfuse = itemsOfRarity.length >= 3 && gameState.souls >= currentCost.souls && gameState.corruptedFragments >= currentCost.fragments;
-        
-        let itemHtml = '';
-        if (itemsOfRarity.length > 0) {
-            itemsOfRarity.forEach(itemId => {
-                itemHtml += `<div class="infusion-item item-name ${items[itemId].rarity}">${items[itemId].name}</div>`;
-            });
-        } else {
-            itemHtml = `<p style="color: var(--dim-color); font-style: italic; margin-left: 10px;">No ${rarity} items in inventory.</p>`;
-        }
+        // List up to 6 items in inventory
+        const itemPills = itemsOfRarity.slice(0, 6).map(id =>
+            `<span style="background:${rc}22; border:1px solid ${rc}44; border-radius:6px; padding:2px 8px; font-size:0.7em; color:${rc}; white-space:nowrap;">${items[id].name}</span>`
+        ).join('');
+        const moreCount = count > 6 ? `<span style="color:#666; font-size:0.7em;">+${count-6} more</span>` : '';
 
         container.innerHTML += `
-            <div class="infusion-section">
-                <h3>Infuse 3 <span class="item-name ${rarity}">${rarity.charAt(0).toUpperCase() + rarity.slice(1)}</span> Items (${itemsOfRarity.length}/3)</h3>
-                <p>Combine three items of this rarity to forge one random item of <span class="item-name ${nextRarity[rarity]}">${nextRarity[rarity]}</span> rarity.</p>
-                <div class="infusion-grid">${itemHtml}</div>
-                <div class="infusion-controls">
-                    <span class="infusion-cost">
-                        Cost: ${formatNumber(currentCost.souls)} Souls + ${currentCost.fragments} Fragments
-                    </span>
-                    <button class="upgrade-btn" style="width: 150px;" onclick="performInfusion('${rarity}')" ${!canInfuse ? 'disabled' : ''}>
-                        Infuse
-                    </button>
+        <div style="background:linear-gradient(160deg,#100810,#1a0e0a); border:1px solid ${rc}44; border-top:3px solid ${rc}; border-radius:14px; padding:20px; display:flex; flex-direction:column; gap:12px; position:relative; overflow:hidden;">
+
+            <!-- Flame bg decoration -->
+            <div style="position:absolute; bottom:-20px; right:-10px; font-size:5em; opacity:0.05; pointer-events:none; user-select:none;">🔥</div>
+
+            <!-- Header -->
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.8em;">${rarityEmoji[rarity]}</span>
+                <div>
+                    <div style="color:${rc}; font-weight:bold; text-transform:capitalize;">${rarity} Infusion</div>
+                    <div style="color:#666; font-size:0.75em;">3 ${rarity} → 1 random <span style="color:${nrc};">${nextRarity[rarity]}</span></div>
+                </div>
+                <div style="margin-left:auto; text-align:right;">
+                    <div style="font-size:1.4em; font-weight:bold; color:${count >= 3 ? rc : '#555'};">${count}<span style="color:#444; font-size:0.7em;">/3</span></div>
+                    <div style="color:#555; font-size:0.7em;">items</div>
                 </div>
             </div>
-        `;
+
+            <!-- Progress bar -->
+            <div style="background:#ffffff0a; border-radius:6px; height:6px; overflow:hidden;">
+                <div style="height:100%; width:${pct}%; background:${rc}; border-radius:6px; transition:width 0.4s;"></div>
+            </div>
+
+            <!-- Items in inventory -->
+            <div style="display:flex; flex-wrap:wrap; gap:5px; min-height:26px;">
+                ${count > 0 ? itemPills + moreCount : `<span style="color:#444; font-size:0.75em; font-style:italic;">No ${rarity} items in inventory</span>`}
+            </div>
+
+            <!-- Cost + Button -->
+            <div style="border-top:1px solid #ffffff0a; padding-top:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                <div style="font-size:0.78em; color:#666; line-height:1.6;">
+                    <div>💀 <span style="color:${gameState.souls >= currentCost.souls ? '#aaa' : '#ff4444'}">${formatNumber(currentCost.souls)} Souls</span></div>
+                    <div>🔮 <span style="color:${gameState.corruptedFragments >= currentCost.fragments ? '#aaa' : '#ff4444'}">${currentCost.fragments} Fragments</span></div>
+                </div>
+                <button onclick="performInfusion('${rarity}')" ${!canInfuse ? 'disabled' : ''}
+                    style="background:${canInfuse ? `linear-gradient(135deg,${rc}33,${rc}11)` : 'transparent'}; border:1px solid ${canInfuse ? rc : '#333'}; border-radius:8px; padding:8px 20px; color:${canInfuse ? rc : '#444'}; cursor:${canInfuse ? 'pointer' : 'not-allowed'}; font-family:inherit; font-weight:bold; font-size:0.85em; transition:all 0.2s; white-space:nowrap;">
+                    🔥 Forge ${count >= 3 ? '' : `(need ${3 - count} more)`}
+                </button>
+            </div>
+        </div>`;
     });
 }
 

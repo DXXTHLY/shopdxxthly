@@ -9445,44 +9445,44 @@ async function fetchMarketListings() {
 
 async function refreshMarketTicker() {
     const inner = document.getElementById('market-ticker-inner');
-    if (!inner || !supabaseClient) return;
+    if (!inner) return;
+    if (!supabaseClient) { setTimeout(refreshMarketTicker, 2000); return; }
     try {
-        let result = await supabaseClient
-            .from('market_listings')
-            .select('item_id, price, seller_name')
-            .eq('is_sold', false)
-            .order('created_at', { ascending: false })
-            .limit(20);
-        if (result.error) {
-            result = await supabaseClient
-                .from('market_listings')
-                .select('item_id, price, seller_name')
-                .order('created_at', { ascending: false })
-                .limit(20);
+        let marketData = [], barterData = [];
+
+        // Market item listings
+        let mRes = await supabaseClient.from('market_listings').select('item_id,price,seller_name').eq('is_sold',false).order('created_at',{ascending:false}).limit(15);
+        if (!mRes.error && mRes.data) marketData = mRes.data;
+        else {
+            let m2 = await supabaseClient.from('market_listings').select('item_id,price,seller_name').order('created_at',{ascending:false}).limit(15);
+            if (!m2.error && m2.data) marketData = m2.data;
         }
-        const data = result.data;
-        if (!data || !data.length) {
-            inner.innerHTML = '<span style="padding:0 30px; font-size:0.75em; color:#4488ff88; letter-spacing:2px;">✦ NO LISTINGS YET — BE THE FIRST TO SELL AN ITEM ✦</span>';
+
+        // Barter listings
+        let bRes = await supabaseClient.from('barter_listings').select('offer_type,offer_amt,want_type,want_amt,poster_name').eq('is_complete',false).order('created_at',{ascending:false}).limit(10);
+        if (!bRes.error && bRes.data) barterData = bRes.data;
+
+        const rarityColor = { legendary:'#ff9900', epic:'#cc44ff', rare:'#4488ff', uncommon:'#44cc88', common:'#ccc' };
+        const cIcon = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' };
+        let chips = '';
+
+        marketData.forEach(l => {
+            const item  = items[l.item_id];
+            const name  = item ? item.name : (l.item_id || 'Item');
+            const color = item ? (rarityColor[item.rarity] || '#ccc') : '#ccc';
+            chips += `<span style="padding:0 24px; font-size:0.78em;"><span style="color:#888; font-size:0.8em; margin-right:6px; letter-spacing:1px;">ITEM</span><span style="color:${color}; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">${name}</span><span style="color:#555; margin:0 8px;">BY</span><span style="color:#bbb;">${l.seller_name||'?'}</span><span style="color:#c8a800; font-weight:bold; margin-left:10px;">${formatNumber(l.price)} DE</span><span style="color:#2a1a44; margin-left:24px;">◆</span></span>`;
+        });
+
+        barterData.forEach(l => {
+            chips += `<span style="padding:0 24px; font-size:0.78em;"><span style="color:#aa44ff; font-size:0.8em; margin-right:6px; letter-spacing:1px;">TRADE</span><span style="color:#c8a800; font-weight:bold;">${cIcon[l.offer_type]||''} ${formatNumber(l.offer_amt)}</span><span style="color:#555; margin:0 8px;">⇄</span><span style="color:#aa44ff; font-weight:bold;">${cIcon[l.want_type]||''} ${formatNumber(l.want_amt)}</span><span style="color:#555; margin:0 8px;">BY</span><span style="color:#bbb;">${l.poster_name||'?'}</span><span style="color:#2a1a44; margin-left:24px;">◆</span></span>`;
+        });
+
+        if (!chips) {
+            inner.innerHTML = '<span style="padding:0 30px; font-size:0.75em; color:#4488ff55; letter-spacing:2px;">✦ NO LISTINGS YET ✦</span>';
             return;
         }
-        const rarityColor = { legendary:'#ff9900', epic:'#cc44ff', rare:'#4488ff', uncommon:'#44cc88', common:'#ccc' };
-        const chips = data.map(l => {
-            const item = items[l.item_id];
-            const name  = item ? item.name  : l.item_id;
-            const color = item ? (rarityColor[item.rarity] || '#ccc') : '#ccc';
-            return `<span style="padding:0 24px; font-size:0.78em;">` +
-                `<span style="color:#666; font-size:0.9em; margin-right:8px;">NEW</span>` +
-                `<span style="color:${color}; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">${name}</span>` +
-                `<span style="color:#555; margin:0 8px;">BY</span>` +
-                `<span style="color:#bbb;">${l.seller_name || '?'}</span>` +
-                `<span style="color:#c8a800; font-weight:bold; margin-left:10px;">${formatNumber(l.price)} DE</span>` +
-                `<span style="color:#2a1a44; margin-left:24px;">◆</span>` +
-                `</span>`;
-        }).join('');
-        // Duplicate for seamless infinite scroll
         inner.innerHTML = chips + chips;
-        const totalWidth = inner.scrollWidth / 2;
-        const speed = Math.max(12, totalWidth / 90);
+        const speed = Math.max(12, (inner.scrollWidth / 2) / 90);
         inner.style.animationDuration = speed + 's';
     } catch(e) { console.warn('Ticker error:', e); }
 }
@@ -12485,6 +12485,7 @@ async function postBarterListing() {
         saveGame();
         if(statusEl) statusEl.textContent = '';
         Toastify({ text: `📜 Trade posted! Waiting for a taker...`, duration: 4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'} }).showToast();
+        refreshMarketTicker();
         showBarterTab('browse');
         fetchBarterListings();
     } catch(e) {

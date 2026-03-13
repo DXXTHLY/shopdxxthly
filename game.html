@@ -2835,7 +2835,7 @@ text-decoration: underline; /* Adds an underline on hover */
 
                 <!-- Post Trade Panel -->
                 <div id="barter-post-panel" style="display:none;">
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; padding:20px; border-radius:8px; max-width:500px;">
+                    <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; padding:20px; border-radius:8px; max-width:500px; margin:0 auto;">
                         <h3 style="margin:0 0 14px;">Post a Barter Trade</h3>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
                             <div>
@@ -10027,7 +10027,6 @@ function postGhostEvent(type) {
 
         const rewardCurrencies = ['souls','darkEssence','abyssalShards','corruptedFragments'];
         const rewardType       = rewardCurrencies[Math.floor(Math.random() * rewardCurrencies.length)];
-        const rewardAmt        = Math.max(1, Math.floor(souls * (0.001 + Math.random() * 0.004)));
 
         const currencyIcon = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' }[rewardType];
 
@@ -10035,14 +10034,15 @@ function postGhostEvent(type) {
             ? `💀 ${name} has COLLAPSED REALITY! A tortured ghost wails through the abyss...`
             : `⬆️ ${name} has Ascended! A spectral echo lingers behind...`;
 
-        const ghostText = `${flavor} ${currencyIcon} Absorb their ghost for ${formatNumber(rewardAmt)} ${GHOST_CURRENCY_LABELS[rewardType]}! Type !absorb in chat within 5 minutes.`;
+        // Reward type labels for the teaser (amount shown at claim time)
+        const rewardLabel = { souls:'Souls', darkEssence:'Dark Essence', abyssalShards:'Abyssal Shards', corruptedFragments:'Corrupted Fragments' }[rewardType];
+        const ghostText = `${flavor} ${currencyIcon} A ghost containing ${rewardLabel} lingers! Type !absorb to claim your share — 5 minutes remaining!`;
 
         const expiresAt = Date.now() + 5 * 60 * 1000;
 
         const ghostRef = chatDb.ref('activeGhosts').push({
             posterName: name,
             rewardType,
-            rewardAmt,
             expiresAt,
             claimedBy: null,
             reminderText: ghostText
@@ -10068,10 +10068,12 @@ function postGhostEvent(type) {
             }
             const secsLeft = Math.max(0, Math.floor((ghost.expiresAt - Date.now()) / 1000));
             const minsLeft = Math.ceil(secsLeft / 60);
+            const rLabel = { souls:'Souls', darkEssence:'Dark Essence', abyssalShards:'Abyssal Shards', corruptedFragments:'Corrupted Fragments' }[ghost.rewardType] || 'rewards';
+            const rIcon  = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' }[ghost.rewardType] || '✨';
             chatDb.ref('slitherChat').push({
                 uid,
                 name: '👻 Soul Echo',
-                text: `👻 A ghost still wanders unclaimed! ${currencyIcon} ${formatNumber(rewardAmt)} ${GHOST_CURRENCY_LABELS[rewardType]} up for grabs. Type !absorb — ${minsLeft} min${minsLeft !== 1 ? 's' : ''} remaining!`,
+                text: `👻 A ghost still wanders unclaimed! ${rIcon} ${rLabel} up for grabs — yours is based on YOUR stash. Type !absorb — ${minsLeft} min${minsLeft !== 1 ? 's' : ''} remaining!`,
                 time: window._scFirebase.firebase.database.ServerValue.TIMESTAMP,
                 chatNameColor: '#8855ff'
             });
@@ -10128,21 +10130,44 @@ async function tryAbsorbGhost(msgKey) {
 
         if (!claimResult.committed) return;
 
-        // Apply reward
-        const amt = ghost.rewardAmt || 0;
-        switch(ghost.rewardType) {
-            case 'souls':              gameState.souls += amt; gameState.lifetimeSouls += amt; break;
-            case 'darkEssence':        gameState.darkEssence += amt; break;
-            case 'abyssalShards':      gameState.abyssalShards += amt; break;
-            case 'corruptedFragments': gameState.corruptedFragments += amt; break;
-        }
+        // Pick 2 unique random reward types
+        const allCurrencies = ['souls','darkEssence','abyssalShards','corruptedFragments'];
+        const shuffled = allCurrencies.sort(() => Math.random() - 0.5);
+        const rewardTypes = [shuffled[0], shuffled[1]];
+
+        const rewardLines = [];
+        rewardTypes.forEach(rType => {
+            let amt;
+            switch(rType) {
+                case 'souls':
+                    amt = Math.max(1000000, Math.floor(gameState.lifetimeSouls * 0.10));
+                    gameState.souls += amt;
+                    gameState.lifetimeSouls += amt;
+                    break;
+                case 'darkEssence':
+                    amt = Math.max(10, Math.floor((gameState.darkEssence || 0) * 0.15));
+                    gameState.darkEssence += amt;
+                    break;
+                case 'abyssalShards':
+                    amt = Math.max(3, Math.floor((gameState.abyssalShards || 0) * 0.20));
+                    gameState.abyssalShards += amt;
+                    break;
+                case 'corruptedFragments':
+                    amt = Math.max(2, Math.floor((gameState.corruptedFragments || 0) * 0.15));
+                    gameState.corruptedFragments += amt;
+                    break;
+            }
+            const icon = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' }[rType];
+            rewardLines.push(`${icon} +${formatNumber(amt)} ${GHOST_CURRENCY_LABELS[rType]}`);
+        });
+
         calculateStats();
         renderAll();
         saveGame();
 
         Toastify({
-            text: `👻 You absorbed ${ghost.posterName}'s ghost! +${formatNumber(amt)} ${GHOST_CURRENCY_LABELS[ghost.rewardType]}`,
-            duration: 6000, gravity: 'top', position: 'center',
+            text: `👻 You absorbed ${ghost.posterName}'s ghost!\n${rewardLines.join('  ·  ')}`,
+            duration: 7000, gravity: 'top', position: 'center',
             style: { background: 'linear-gradient(135deg,#4a0a8a,#8855ff)' }
         }).showToast();
 
@@ -10150,7 +10175,7 @@ async function tryAbsorbGhost(msgKey) {
         const uid = window._scChatUid;
         chatDb.ref('slitherChat').push({
             uid, name: '👻 Soul Echo',
-            text: `✨ ${gameState.playerName} absorbed ${ghost.posterName}'s ghost and claimed ${formatNumber(amt)} ${GHOST_CURRENCY_LABELS[ghost.rewardType]}!`,
+            text: `✨ ${gameState.playerName} absorbed ${ghost.posterName}'s ghost! Claimed: ${rewardLines.join(' · ')}`,
             time: window._scFirebase.firebase.database.ServerValue.TIMESTAMP,
             chatNameColor: '#8855ff'
         });

@@ -7173,12 +7173,41 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
                     <span style="color:#666;margin-left:8px;">/ ${formatNumber(a)} Aether</span>
                 </span>`;
             } else if (type === 'ascensions') {
-                valueHTML = `<span>${formatNumber(player.ascensions || 0)} Ascensions</span>`;
+                const asc = player.ascensions || 0;
+                // Color tiers based on ascension count
+                const ascColor = asc >= 10 ? '#ff4444'   // red — legendary
+                               : asc >= 7  ? '#ff8c00'   // orange
+                               : asc >= 5  ? '#ffd700'   // gold
+                               : asc >= 3  ? '#c0c0c0'   // silver
+                               : asc >= 1  ? '#cd7f32'   // bronze
+                               :             '#555';      // none
+                const ascGlow  = asc >= 10 ? '0 0 12px #ff444488'
+                               : asc >= 7  ? '0 0 10px #ff8c0066'
+                               : asc >= 5  ? '0 0 10px #ffd70066'
+                               :             'none';
+                // Star icons (fill up to max 10)
+                const stars    = asc > 0 ? '✦'.repeat(Math.min(asc, 10)) : '—';
+                const starsEl  = asc > 0
+                    ? `<span style="color:${ascColor};font-size:0.7em;letter-spacing:1px;opacity:0.7;">${stars}</span> `
+                    : '';
+                valueHTML = `<span style="text-align:right;">
+                    ${starsEl}<span style="color:${ascColor};font-weight:bold;font-size:1.1em;text-shadow:${ascGlow};">${asc}</span>
+                    <span style="color:#666;font-size:0.85em;margin-left:4px;">ascension${asc !== 1 ? 's' : ''}</span>
+                </span>`;
+                // Style the whole row based on tier
+                if (!isMe) {
+                    if      (asc >= 10) li.style.cssText = 'border-left-color:#ff4444;background:linear-gradient(135deg,#1a0a0a,#2a0a0a);';
+                    else if (asc >= 7)  li.style.cssText = 'border-left-color:#ff8c00;background:linear-gradient(135deg,#1a110a,#261508);';
+                    else if (asc >= 5)  li.style.cssText = 'border-left-color:#ffd700;background:linear-gradient(135deg,#141208,#1e1b08);';
+                    else if (asc >= 3)  li.style.cssText = 'border-left-color:#c0c0c0;';
+                }
             } else {
                 valueHTML = `<span>${formatNumber(player.pvpWins || 0)} Wins</span>`;
             }
 
-            li.innerHTML = `<span>#${index + 1} ${player.name}</span> ${valueHTML}`;
+            // Rank medal for top 3
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+            li.innerHTML = `<span>${medal} ${player.name}</span> ${valueHTML}`;
             if (isMe) li.style.cssText = 'color:var(--primary-color);font-weight:bold;border-color:var(--primary-color);';
             list.appendChild(li);
         });

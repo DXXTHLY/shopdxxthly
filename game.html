@@ -8598,7 +8598,7 @@ function initializeChat() {
                 if (!user) return;
                 const uid = user.uid;
                 window._scChatUid = uid; // store for profile popups
-                let nickname = gameState.playerName || localStorage.getItem("slitherChatNickname") || "Soul";
+                let nickname = (gameState.playerName && gameState.playerName !== 'Unnamed' ? gameState.playerName : null) || localStorage.getItem("slitherChatNickname") || "Soul Wanderer";
                 localStorage.setItem("slitherChatNickname", nickname);
 
                 const chatInput = document.getElementById('chat-input');
@@ -10046,6 +10046,9 @@ function postGhostEvent(type) {
             expiresAt,
             claimedBy: null,
             reminderText: ghostText
+        }, (err) => {
+            if (err) console.error('👻 Ghost write FAILED (check Firebase rules for activeGhosts):', err);
+            else console.log('👻 Ghost written successfully, id:', ghostRef.key);
         });
 
         // Post initial chat message

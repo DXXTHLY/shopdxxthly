@@ -5644,7 +5644,7 @@ async function createProfile() {
         tryStartMusic();
         renderAll(); // Render first to show the game
         initializeChat();
-        setTimeout(() => refreshMarketTicker(), 500);
+        setTimeout(() => refreshMarketTicker(), 3000);
         await saveGame(); // Save the new profile to the database
         
     } catch (e) {
@@ -8003,7 +8003,7 @@ function enterGame() {
     setTimeout(() => showAccountReminderPopup(), 2000);
 
     // Market ticker — load immediately then refresh every 2 minutes
-    setTimeout(() => refreshMarketTicker(), 500);
+    setTimeout(() => refreshMarketTicker(), 3000);
     setInterval(() => refreshMarketTicker(), 2 * 60 * 1000);
 
     // --- SESSION LOCK ---
@@ -9494,11 +9494,18 @@ async function refreshMarketTicker() {
         // Duplicate enough times to always fill the screen
         const repeated = chips.repeat(3);
         inner.innerHTML = repeated;
-        // Use requestAnimationFrame to get accurate scrollWidth after render
-        requestAnimationFrame(() => {
-            const speed = Math.max(15, (inner.scrollWidth / 3) / 80);
-            inner.style.animationDuration = speed + 's';
-        });
+        // Retry setting speed until element is visible and scrollWidth is readable
+        const setSpeed = (attempts) => {
+            requestAnimationFrame(() => {
+                const w = inner.scrollWidth / 3;
+                if (w > 0) {
+                    inner.style.animationDuration = Math.max(15, w / 80) + 's';
+                } else if (attempts > 0) {
+                    setTimeout(() => setSpeed(attempts - 1), 200);
+                }
+            });
+        };
+        setSpeed(10);
     } catch(e) { console.warn('Ticker error:', e); }
 }
 

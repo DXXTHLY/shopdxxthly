@@ -5370,7 +5370,15 @@ async function saveGame() {
     };
     try {
         const { error } = await supabaseClient.from('players').upsert(publicData, { onConflict: 'name' });
-        if (error) throw error;
+        if (error) {
+            console.error("Supabase save error:", error.message);
+            // If pvpWins column missing, try without it to at least save other data
+            if (error.message && error.message.includes('pvpWins')) {
+                const { pvpWins, pvpLosses, ...safeData } = publicData;
+                await supabaseClient.from('players').upsert(safeData, { onConflict: 'name' });
+                console.warn('⚠️ pvpWins/pvpLosses columns missing from Supabase players table. Run: ALTER TABLE players ADD COLUMN IF NOT EXISTS "pvpWins" integer DEFAULT 0, ADD COLUMN IF NOT EXISTS "pvpLosses" integer DEFAULT 0;');
+            }
+        }
     } catch (error) {
         console.error("Supabase save error:", error.message);
     }
@@ -7924,18 +7932,24 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
 
         let players = data || [];
 
-        // Inject local player if missing from results
-        if (!players.some(p => p.name === gameState.playerName)) {
-            players.push({
-                name:             gameState.playerName,
-                lifetimeSouls:    gameState.lifetimeSouls,
-                soulsLog:         Math.log10(Math.max(1, gameState.lifetimeSouls)),
-                ascensions:       gameState.ascensions,
-                aether:           gameState.aether,
-                totalAetherEarned: gameState.totalAetherEarned,
-                pvpWins:          gameState.pvpWins,
-                totalCollapses:   gameState.totalCollapses
-            });
+        // Always sync local player's live stats from gameState (Supabase may have stale/missing pvpWins)
+        const localPlayerIdx = players.findIndex(p => p.name === gameState.playerName);
+        const localPlayerData = {
+            name:              gameState.playerName,
+            lifetimeSouls:     gameState.lifetimeSouls,
+            soulsLog:          Math.log10(Math.max(1, gameState.lifetimeSouls)),
+            ascensions:        gameState.ascensions,
+            aether:            gameState.aether,
+            totalAetherEarned: gameState.totalAetherEarned,
+            pvpWins:           gameState.pvpWins,
+            pvpLosses:         gameState.pvpLosses,
+            totalCollapses:    gameState.totalCollapses
+        };
+        if (localPlayerIdx >= 0) {
+            // Merge — use local value if Supabase has 0 or null for pvpWins
+            players[localPlayerIdx] = { ...players[localPlayerIdx], ...localPlayerData };
+        } else {
+            players.push(localPlayerData);
         }
 
         // Client-side re-sort by true numeric value (guards against Supabase ordering gaps)

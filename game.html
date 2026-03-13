@@ -12562,11 +12562,12 @@ async function arenaEndBattle(playerWon) {
         let crashHistory    = [];
         let multiplierInterval = null;
         let waitInterval    = null;
-        let riftDB          = null;  // Firebase db ref (set once Firebase ready)
+        let localRoundTimer = null;  // track local setTimeout so Firebase can cancel it
+        let riftDB          = null;
+        let usingFirebase   = false; // true once Firebase sync is active
 
         // ── Seeded RNG for reproducible crash point ───────────────────
         function seededRandom(seed) {
-            // Simple mulberry32
             let t = seed + 0x6D2B79F5;
             t = Math.imul(t ^ t >>> 15, t | 1);
             t ^= t + Math.imul(t ^ t >>> 7, t | 61);
@@ -12577,55 +12578,46 @@ async function arenaEndBattle(playerWon) {
             return Math.max(1.01, 1 / (1 - r * 0.99));
         }
 
-        // ── Round sync via Firebase ───────────────────────────────────
-        function initRiftSync(db) {
-            riftDB = db;
-            const roundRef = db.ref('rift_round');
-
-            // Listen for round state changes broadcast by any client or server
-            roundRef.on('value', snap => {
-                const data = snap.val();
-                if (!data) {
-                    // No round exists yet — first client creates one
-                    broadcastNewRound(db);
-                    return;
-                }
-                syncToRound(data);
-            });
-        }
-
+        // ── Firebase broadcast helpers ────────────────────────────────
         function broadcastNewRound(db) {
-            const now    = Date.now();
-            const newId  = now.toString(36);
-            const seed   = now % 2147483647;
+            const now   = Date.now();
+            const newId = now.toString(36);
+            const seed  = now % 2147483647;
             db.ref('rift_round').set({
-                id:         newId,
-                phase:      'WAITING',
-                startedAt:  now,        // when WAITING phase began
-                gameStart:  now + WAITING_TIME,
-                seed:       seed,
-                crash:      crashPointFromSeed(seed)
+                id:        newId,
+                phase:     'WAITING',
+                startedAt: now,
+                gameStart: now + WAITING_TIME,
+                seed:      seed,
+                crash:     crashPointFromSeed(seed)
             });
         }
 
+        // ── syncToRound: called whenever Firebase round data changes ──
         function syncToRound(data) {
             const now = Date.now();
 
             if (data.id !== roundId) {
-                // New round — reset local state
-                roundId = data.id;
+                // Brand new round — cancel any pending local timer
+                if (localRoundTimer) { clearTimeout(localRoundTimer); localRoundTimer = null; }
+                roundId    = data.id;
                 crashPoint = data.crash;
                 roundStartTime = data.gameStart;
 
                 if (data.phase === 'CRASHED') {
-                    enterCrashed(data.crash);
+                    enterCrashed(data.crash, /*fromFirebase=*/true);
                 } else if (now >= data.gameStart) {
+                    // We joined mid-round — jump straight in at current multiplier
                     enterRunning(data.gameStart);
                 } else {
-                    enterWaiting(data.gameStart - now);
+                    const msUntilStart = data.gameStart - now;
+                    enterWaiting(msUntilStart);
+                    localRoundTimer = setTimeout(() => {
+                        if (gameStateRift === 'WAITING') enterRunning(data.gameStart);
+                    }, msUntilStart);
                 }
             } else if (data.phase === 'CRASHED' && gameStateRift !== 'CRASHED') {
-                enterCrashed(data.crash);
+                enterCrashed(data.crash, /*fromFirebase=*/true);
             }
         }
 
@@ -12722,7 +12714,7 @@ async function arenaEndBattle(playerWon) {
             }, 100);
         }
 
-        function enterCrashed(atMultiplier) {
+        function enterCrashed(atMultiplier, fromFirebase) {
             clearInterval(multiplierInterval);
             clearInterval(waitInterval);
             gameStateRift = 'CRASHED';
@@ -12739,10 +12731,17 @@ async function arenaEndBattle(playerWon) {
             statusBar.style.borderLeftColor = '#ff4444';
             statusBar.style.color = '#ff6666';
 
-            // Record in history
-            crashHistory.unshift(Number(atMultiplier));
-            if (crashHistory.length > 8) crashHistory.pop();
-            renderHistory();
+            // Push crash to shared history in Firebase (only once per round — the broadcaster)
+            const crashed = Number(atMultiplier);
+            if (riftDB && !fromFirebase) {
+                // We're the one who triggered the crash — push to shared history
+                riftDB.ref('rift_history').push({ v: crashed, t: Date.now() });
+            } else if (!riftDB) {
+                // Local mode — maintain local history
+                crashHistory.unshift(crashed);
+                if (crashHistory.length > 8) crashHistory.pop();
+                renderHistory();
+            }
 
             // Handle bet outcome
             const myBet = livePlayers[myDBId];
@@ -12756,7 +12755,7 @@ async function arenaEndBattle(playerWon) {
 
             // Schedule next round
             setTimeout(() => {
-                if (riftDB) {
+                if (usingFirebase && riftDB) {
                     broadcastNewRound(riftDB);
                 } else {
                     startLocalRound();
@@ -12867,44 +12866,55 @@ async function arenaEndBattle(playerWon) {
 
         listenForPlayerUpdates();
 
-        // Start a local game immediately so the screen is never stuck on "Connecting..."
+        // Start locally immediately so screen is never stuck
         startLocalRound();
 
-        // Then try to attach to Firebase for shared sync — if it connects, it takes over
+        // Try to attach Firebase — once connected it takes over permanently
         function tryAttachFirebase(attempts) {
             const db = window._scFirebase?.chatDb;
             if (db) {
                 riftDB = db;
-                // Only take over if we're still in the waiting phase (safe to hand off)
-                db.ref('rift_round').once('value', snap => {
+                usingFirebase = true;
+
+                // Cancel any pending local timer — Firebase is now in control
+                if (localRoundTimer) { clearTimeout(localRoundTimer); localRoundTimer = null; }
+
+                // Listen to shared round state (real-time)
+                db.ref('rift_round').on('value', snap => {
                     const data = snap.val();
-                    if (!data || data.phase === 'CRASHED') {
+                    if (!data) {
                         broadcastNewRound(db);
+                    } else {
+                        syncToRound(data);
                     }
-                    // Set up the live listener going forward
-                    db.ref('rift_round').on('value', snap2 => {
-                        const d = snap2.val();
-                        if (d) syncToRound(d);
-                    });
                 });
+
+                // Listen to shared crash history — newest 8 entries, all players see same list
+                db.ref('rift_history').orderByChild('t').limitToLast(8).on('value', snap => {
+                    const entries = [];
+                    snap.forEach(child => entries.push(child.val().v));
+                    crashHistory = entries.reverse();
+                    renderHistory();
+                });
+
+                if (syncBadge) { syncBadge.textContent = '🔗 SYNCED'; syncBadge.style.color = '#44cc8888'; }
+
             } else if (attempts > 0) {
                 setTimeout(() => tryAttachFirebase(attempts - 1), 800);
             }
-            // If firebase never connects, local mode keeps running — no stuck state
         }
         tryAttachFirebase(25);
 
         function startLocalRound() {
-            // Kick off a fully local round immediately
-            const now    = Date.now();
-            const seed   = now % 2147483647;
-            roundId      = now.toString(36);
-            crashPoint   = crashPointFromSeed(seed);
+            if (usingFirebase) return; // Firebase is in control
+            const now       = Date.now();
+            const seed      = now % 2147483647;
+            roundId         = now.toString(36);
+            crashPoint      = crashPointFromSeed(seed);
             const gameStart = now + WAITING_TIME;
             enterWaiting(gameStart - now);
-            // Schedule game start locally
-            setTimeout(() => {
-                if (gameStateRift === 'WAITING') enterRunning(gameStart);
+            localRoundTimer = setTimeout(() => {
+                if (gameStateRift === 'WAITING' && !usingFirebase) enterRunning(gameStart);
             }, WAITING_TIME);
         }
     });

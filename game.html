@@ -2820,7 +2820,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 <h2>🔀 Abyss Barter</h2>
                 <p style="color:var(--dim-color);">Trade resources directly with other players. Post what you offer and what you want in return.</p>
 
-                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; justify-content:center;">
                     <button class="upgrade-btn" id="barter-tab-browse" onclick="showBarterTab('browse')" style="border-color:#c8a800;">📜 Browse Trades</button>
                     <button class="upgrade-btn" id="barter-tab-post" onclick="showBarterTab('post')">➕ Post a Trade</button>
                     <button class="upgrade-btn" onclick="fetchBarterListings()">🔄 Refresh</button>
@@ -8141,7 +8141,7 @@ function renderBank() {
 // =================================================================
 async function fetchMarketListings() {
     const list = document.getElementById('market-listing-list');
-    list.innerHTML = '<li><em>Contacting the abyssal brokers...</em></li>';
+    list.innerHTML = '<li style="text-align:center; color:var(--dim-color);"><em>Contacting the abyssal brokers...</em></li>';
     try {
         const { data, error } = await supabaseClient
             .from('market_listings')
@@ -8150,31 +8150,61 @@ async function fetchMarketListings() {
             .order('created_at', { ascending: false });
         if (error) throw error;
         if (data.length === 0) {
-            list.innerHTML = '<li>The marketplace is currently empty.</li>';
+            list.innerHTML = '<li style="text-align:center; color:var(--dim-color);">The marketplace is currently empty.</li>';
             return;
         }
         list.innerHTML = '';
-        data.forEach(listing => {
+        data.forEach((listing, idx) => {
             const item = items[listing.item_id];
             if (!item) return;
             const canAfford = gameState.darkEssence >= listing.price;
-            const isMyItem = gameState.playerName === listing.seller_name;
+            const isMyItem  = gameState.playerName === listing.seller_name;
+            const rarityColor = { legendary:'#ff9900', epic:'#a855f7', rare:'#3b82f6', uncommon:'#22c55e', common:'#aaa' }[item.rarity] || '#aaa';
             const li = document.createElement('li');
+            li.style.cssText = 'display:block; padding:0; overflow:hidden; border-left-color:' + rarityColor + ';';
             li.innerHTML = `
-            <div>
-                <strong>${item.name}</strong> <small>(Sold by: ${listing.seller_name})</small><br>
-                <small style="color:var(--dim-color)">${item.desc}</small>
-            </div>
-            <button class="upgrade-btn" style="width: 150px;" onclick="promptBuyItem(${listing.id}, ${listing.price})" ${!canAfford || isMyItem ? 'disabled' : ''}>
-                Buy for <br>
-                <span class="cost-essence">${formatNumber(listing.price)} Dark Essence</span>
-            </button>`;
+            <div style="padding:14px 18px; border-bottom:1px solid #1e1630;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:180px;">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                            <span style="color:${rarityColor}; font-weight:bold; font-size:1.05em;">${item.name}</span>
+                            <span style="background:${rarityColor}22; color:${rarityColor}; border:1px solid ${rarityColor}44; border-radius:4px; font-size:0.68em; padding:1px 6px; text-transform:uppercase; letter-spacing:1px;">${item.rarity || 'common'}</span>
+                            <span style="background:#ffffff11; color:#888; border-radius:4px; font-size:0.68em; padding:1px 6px; text-transform:capitalize;">${item.type}</span>
+                        </div>
+                        <div style="color:#888; font-size:0.83em; margin-bottom:6px;">${item.desc}</div>
+                        <div style="color:#555; font-size:0.75em;">Listed by <span style="color:#999;">${listing.seller_name}</span></div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:130px;">
+                        <div style="color:#00c875; font-size:1.1em; font-weight:bold;">${formatNumber(listing.price)}</div>
+                        <div style="color:#888; font-size:0.75em; margin-top:-4px;">Dark Essence</div>
+                        ${isMyItem
+                            ? `<button class="upgrade-btn" style="font-size:0.8em; background:#3a0a0a; border-color:#8a0000; margin-top:4px;" onclick="cancelMarketListing(${listing.id})">❌ Cancel</button>`
+                            : `<button class="upgrade-btn" style="font-size:0.85em; margin-top:4px; ${canAfford ? '' : 'opacity:0.45;'}" onclick="promptBuyItem(${listing.id}, ${listing.price})" ${!canAfford ? 'disabled' : ''}>${canAfford ? '🛒 Buy Item' : 'Need More Essence'}</button>`
+                        }
+                    </div>
+                </div>
+            </div>`;
             list.appendChild(li);
         });
     } catch (e) {
         list.innerHTML = `<li>Error fetching listings: ${e.message}</li>`;
         console.error("Market Fetch Error:", e);
     }
+}
+
+async function cancelMarketListing(listingId) {
+    if (!confirm('Cancel this listing? The item will be returned to your inventory.')) return;
+    try {
+        const { data, error } = await supabaseClient.from('market_listings').select('*').eq('id', listingId).single();
+        if (error || !data) { alert('Could not find listing.'); return; }
+        await supabaseClient.from('market_listings').update({ is_sold: true }).eq('id', listingId);
+        gameState.inventory.push(data.item_id);
+        renderSellableInventory();
+        renderInventory();
+        saveGame();
+        fetchMarketListings();
+        Toastify({ text: 'Listing cancelled. Item returned to inventory.', duration: 3000, gravity:'top', position:'center' }).showToast();
+    } catch(e) { alert('Error cancelling: ' + e.message); }
 }
 
 function renderSellableInventory() {
@@ -9994,36 +10024,57 @@ function postGhostEvent(type) {
         const name   = gameState.playerName || 'A Soul Collector';
         const souls  = gameState.lifetimeSouls || 0;
 
-        // What reward does the ghost drop?
         const rewardCurrencies = ['souls','darkEssence','abyssalShards','corruptedFragments'];
         const rewardType       = rewardCurrencies[Math.floor(Math.random() * rewardCurrencies.length)];
         const rewardAmt        = Math.max(1, Math.floor(souls * (0.001 + Math.random() * 0.004)));
 
+        const currencyIcon = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' }[rewardType];
+
         const flavor = type === 'collapse'
-            ? `💀 **${name}** has COLLAPSED REALITY! A tortured ghost wails through the abyss...`
-            : `⬆️ **${name}** has Ascended! A spectral echo lingers behind...`;
+            ? `💀 ${name} has COLLAPSED REALITY! A tortured ghost wails through the abyss...`
+            : `⬆️ ${name} has Ascended! A spectral echo lingers behind...`;
 
-        const ghostText = `${flavor}\n👻 Absorb their ghost for **${formatNumber(rewardAmt)} ${GHOST_CURRENCY_LABELS[rewardType]}**! Type !absorb in chat within 5 minutes.`;
+        const ghostText = `${flavor} ${currencyIcon} Absorb their ghost for ${formatNumber(rewardAmt)} ${GHOST_CURRENCY_LABELS[rewardType]}! Type !absorb in chat within 5 minutes.`;
 
-        // Store ghost in Firebase (expires after 5 min)
+        const expiresAt = Date.now() + 5 * 60 * 1000;
+
         const ghostRef = chatDb.ref('activeGhosts').push({
             posterName: name,
             rewardType,
             rewardAmt,
-            expiresAt: Date.now() + 5 * 60 * 1000,
-            claimedBy: null
+            expiresAt,
+            claimedBy: null,
+            reminderText: ghostText
         });
 
-        // Post event to chat as system-style message
+        // Post initial chat message
         chatDb.ref('slitherChat').push({
             uid,
             name: '👻 Soul Echo',
             text: ghostText,
             time: window._scFirebase.firebase.database.ServerValue.TIMESTAMP,
-            chatNameColor: '#8855ff',
-            type: 'ghost_event',
-            ghostId: ghostRef.key
+            chatNameColor: '#8855ff'
         });
+
+        // Repeat reminder every 60s until claimed or expired
+        const ghostId = ghostRef.key;
+        const reminderInterval = setInterval(async () => {
+            const snap = await chatDb.ref(`activeGhosts/${ghostId}`).once('value');
+            const ghost = snap.val();
+            if (!ghost || ghost.claimedBy || Date.now() > ghost.expiresAt) {
+                clearInterval(reminderInterval);
+                return;
+            }
+            const secsLeft = Math.max(0, Math.floor((ghost.expiresAt - Date.now()) / 1000));
+            const minsLeft = Math.ceil(secsLeft / 60);
+            chatDb.ref('slitherChat').push({
+                uid,
+                name: '👻 Soul Echo',
+                text: `👻 A ghost still wanders unclaimed! ${currencyIcon} ${formatNumber(rewardAmt)} ${GHOST_CURRENCY_LABELS[rewardType]} up for grabs. Type !absorb — ${minsLeft} min${minsLeft !== 1 ? 's' : ''} remaining!`,
+                time: window._scFirebase.firebase.database.ServerValue.TIMESTAMP,
+                chatNameColor: '#8855ff'
+            });
+        }, 60 * 1000); // remind every 60 seconds
 
     } catch(e) { console.warn('Ghost post error:', e); }
 }
@@ -10037,8 +10088,13 @@ function setupGhostAbsorbListener() {
         chatDb.ref('slitherChat').limitToLast(5).on('child_added', snap => {
             const msg = snap.val();
             if (!msg || !msg.text) return;
-            if (msg.name === gameState.playerName && msg.text.trim().toLowerCase() === '!absorb') {
+            const cmd = msg.text.trim().toLowerCase();
+            if (msg.name === gameState.playerName && cmd === '!absorb') {
                 tryAbsorbGhost(snap.key);
+            }
+            // Dev-only: force a test ghost into chat by typing !ghost
+            if (msg.name === gameState.playerName && cmd === '!ghost' && isDev(msg.uid)) {
+                postGhostEvent('ascension');
             }
         });
     } catch(e) {}
@@ -10093,7 +10149,7 @@ async function tryAbsorbGhost(msgKey) {
         const uid = window._scChatUid;
         chatDb.ref('slitherChat').push({
             uid, name: '👻 Soul Echo',
-            text: `✨ **${gameState.playerName}** absorbed ${ghost.posterName}'s ghost and claimed ${formatNumber(amt)} ${GHOST_CURRENCY_LABELS[ghost.rewardType]}!`,
+            text: `✨ ${gameState.playerName} absorbed ${ghost.posterName}'s ghost and claimed ${formatNumber(amt)} ${GHOST_CURRENCY_LABELS[ghost.rewardType]}!`,
             time: window._scFirebase.firebase.database.ServerValue.TIMESTAMP,
             chatNameColor: '#8855ff'
         });
@@ -10294,33 +10350,55 @@ async function fetchBarterListings() {
             .limit(20);
         if (error) throw error;
         if (!data || data.length === 0) { list.innerHTML = '<li>No active barter offers. Post one!</li>'; return; }
-
         list.innerHTML = '';
         data.forEach(listing => {
             const li       = document.createElement('li');
             const isMe     = listing.poster_name === gameState.playerName;
             const canFill  = !isMe && hasEnough(listing.want_type, listing.want_amt);
 
-            li.innerHTML = `<div>
-                <strong style="color:${isMe ? 'var(--primary-color)' : '#c8a800'}">${listing.poster_name}</strong>
-                <div style="margin-top:4px; font-size:0.9em;">
-                    Offers <span style="color:#88ff88;">${formatNumber(listing.offer_amt)} ${BARTER_LABELS[listing.offer_type]}</span>
-                    &nbsp;for&nbsp;
-                    <span style="color:#ff9944;">${formatNumber(listing.want_amt)} ${BARTER_LABELS[listing.want_type]}</span>
+            const currencyIcons = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' };
+            const currencyColors = { souls:'#c8a800', darkEssence:'#a855f7', abyssalShards:'#3b82f6', corruptedFragments:'#22c55e' };
+
+            const offerColor = currencyColors[listing.offer_type] || '#aaa';
+            const wantColor  = currencyColors[listing.want_type]  || '#aaa';
+
+            li.style.cssText = 'display:block; padding:0; overflow:hidden; border-left-color:' + (isMe ? 'var(--primary-color)' : offerColor) + ';';
+            li.innerHTML = `
+            <div style="padding:14px 18px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:200px;">
+                        <div style="color:#888; font-size:0.75em; margin-bottom:8px;">
+                            Posted by <span style="color:${isMe ? 'var(--primary-color)' : '#ccc'}; font-weight:bold;">${listing.poster_name}</span>${isMe ? ' <em style="color:#666;">(you)</em>' : ''}
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <div style="background:${offerColor}18; border:1px solid ${offerColor}44; border-radius:8px; padding:8px 14px; text-align:center;">
+                                <div style="font-size:1.4em; line-height:1;">${currencyIcons[listing.offer_type]}</div>
+                                <div style="color:${offerColor}; font-weight:bold; font-size:1em; margin-top:2px;">${formatNumber(listing.offer_amt)}</div>
+                                <div style="color:#666; font-size:0.7em;">${BARTER_LABELS[listing.offer_type].replace(/^.\s/,'')}</div>
+                            </div>
+                            <div style="color:#555; font-size:1.3em;">⇄</div>
+                            <div style="background:${wantColor}18; border:1px solid ${wantColor}44; border-radius:8px; padding:8px 14px; text-align:center;">
+                                <div style="font-size:1.4em; line-height:1;">${currencyIcons[listing.want_type]}</div>
+                                <div style="color:${wantColor}; font-weight:bold; font-size:1em; margin-top:2px;">${formatNumber(listing.want_amt)}</div>
+                                <div style="color:#666; font-size:0.7em;">${BARTER_LABELS[listing.want_type].replace(/^.\s/,'')}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                        ${isMe
+                            ? `<button class="upgrade-btn" style="font-size:0.82em; background:#3a0a0a; border-color:#8a0000;" onclick="cancelBarterListing(${listing.id})">❌ Cancel</button>`
+                            : `<button class="upgrade-btn" style="font-size:0.85em; ${canFill ? '' : 'opacity:0.45;'}" onclick="acceptBarterListing(${listing.id})" ${!canFill ? 'disabled' : ''}>
+                                ${canFill ? '🤝 Accept Trade' : 'Need More'}
+                            </button>`
+                        }
+                        ${!isMe && !canFill ? `<div style="color:#555; font-size:0.72em;">Need ${formatNumber(listing.want_amt)} ${currencyIcons[listing.want_type]}</div>` : ''}
+                    </div>
                 </div>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
-                ${isMe
-                    ? `<button class="upgrade-btn" style="font-size:0.8em; background:#3a0a0a; border-color:#8a0000;" onclick="cancelBarterListing(${listing.id})">Cancel</button>`
-                    : `<button class="upgrade-btn" style="font-size:0.8em;" onclick="acceptBarterListing(${listing.id})" ${!canFill ? 'disabled' : ''}>
-                        ${canFill ? 'Accept Trade' : 'Can\'t Afford'}
-                    </button>`
-                }
             </div>`;
             list.appendChild(li);
         });
     } catch(e) {
-        list.innerHTML = `<li>Error loading barter listings: ${e.message}</li>`;
+        list.innerHTML = `<li style="color:#ff9944;">⚠️ Barter table not set up yet. Run the SQL in Supabase to enable this feature.</li>`;
     }
 }
 

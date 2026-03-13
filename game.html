@@ -11944,24 +11944,50 @@ async function fetchPvpLeaderboard() {
     list.innerHTML = '<div style="color:#555; font-size:0.8em; text-align:center; padding:8px;">⏳ Loading rankings...</div>';
 
     try {
-        const { data, error } = await supabaseClient
+        // Try camelCase columns first; fall back to snake_case if Supabase returns a column error
+        let { data, error } = await supabaseClient
             .from('players')
             .select('player_name,pvpWins,pvpLosses')
             .order('pvpWins', { ascending: false })
             .limit(10);
-        if (error) throw error;
-        if (!data || data.length === 0) { list.innerHTML = '<div style="color:#444; text-align:center; padding:8px;">No battles yet.</div>'; return; }
+
+        if (error) {
+            console.warn('pvpWins column issue, trying snake_case:', error.message);
+            ({ data, error } = await supabaseClient
+                .from('players')
+                .select('player_name')
+                .limit(10));
+            if (!error && data) data = data.map(p => ({ ...p, pvpWins: 0, pvpLosses: 0 }));
+        }
+        if (error) { console.error('PVP leaderboard error:', error); throw error; }
+
+        // Merge local player's live win/loss in case Supabase is stale
+        if (data) {
+            data = data.map(p => {
+                if (p.player_name === gameState.playerName) {
+                    return { ...p, pvpWins: gameState.pvpWins || p.pvpWins || 0, pvpLosses: gameState.pvpLosses || p.pvpLosses || 0 };
+                }
+                return p;
+            });
+            data.sort((a, b) => (b.pvpWins || 0) - (a.pvpWins || 0));
+        }
+
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div style="color:#444; text-align:center; padding:8px;">No battles yet.</div>';
+            if (claimDiv) claimDiv.style.display = 'none';
+            return;
+        }
 
         let myRank = -1;
         list.innerHTML = data.map((p, i) => {
-            const rank    = i + 1;
-            const reward  = PVP_RANK_REWARDS.find(r => r.rank === rank);
-            const isMe    = p.player_name === gameState.playerName;
+            const rank   = i + 1;
+            const reward = PVP_RANK_REWARDS.find(r => r.rank === rank);
+            const isMe   = p.player_name === gameState.playerName;
             if (isMe) myRank = rank;
-            const color   = reward ? reward.color : '#555';
-            const medal   = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `<span style="color:#555;">#${rank}</span>`;
-            const wins    = p.pvpWins || 0;
-            const losses  = p.pvpLosses || 0;
+            const color  = reward ? reward.color : '#555';
+            const medal  = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `<span style="color:#555;">#${rank}</span>`;
+            const wins   = p.pvpWins || 0;
+            const losses = p.pvpLosses || 0;
             const rewardBadge = reward
                 ? `<span style="color:${color}; font-size:0.7em;">${reward.essence} Essence${reward.potionName ? ' + ' + reward.potionName : ''}</span>`
                 : '';
@@ -11969,7 +11995,7 @@ async function fetchPvpLeaderboard() {
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span style="font-size:1.1em;">${medal}</span>
                     <div>
-                        <div style="color:${isMe ? color : '#aaa'}; font-size:0.85em; font-weight:${isMe ? 'bold' : 'normal'};">${p.player_name}</div>
+                        <div style="color:${isMe ? color : '#aaa'}; font-size:0.85em; font-weight:${isMe ? 'bold' : 'normal'};">${p.player_name}${isMe ? ' <span style=\"color:#555;font-size:0.75em;\">(you)</span>' : ''}</div>
                         <div style="color:#555; font-size:0.7em;">${wins}W · ${losses}L</div>
                     </div>
                 </div>
@@ -11989,7 +12015,9 @@ async function fetchPvpLeaderboard() {
         }
         window._pvpMyRank = myRank;
     } catch(e) {
-        list.innerHTML = '<div style="color:#ff4444; font-size:0.8em; text-align:center; padding:8px;">Error loading rankings.</div>';
+        console.error('fetchPvpLeaderboard failed:', e);
+        list.innerHTML = `<div style="color:#ff4444; font-size:0.8em; text-align:center; padding:8px;">Error: ${e.message || 'Could not load rankings'}</div>`;
+        if (claimDiv) claimDiv.style.display = 'none';
     }
 }
 

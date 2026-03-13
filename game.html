@@ -2690,13 +2690,13 @@ text-decoration: underline; /* Adds an underline on hover */
         <!-- ================================================================= -->
         <!-- MARKET TICKER BANNER -->
         <!-- ================================================================= -->
-        <div id="market-ticker-wrap" style="background:#080612; border-bottom:1px solid #c8a80022; overflow:hidden; height:26px; display:flex; align-items:center; position:relative;">
-            <div style="flex-shrink:0; background:#c8a80018; border-right:1px solid #c8a80033; padding:0 10px; height:100%; display:flex; align-items:center; z-index:2;">
-                <span style="color:#c8a800; font-size:0.68em; font-weight:bold; letter-spacing:2px; white-space:nowrap;">📜 MARKET</span>
+        <div id="market-ticker-wrap" style="background:linear-gradient(90deg,#0d0920,#080612,#0d0920); border-bottom:1px solid #4488ff22; overflow:hidden; height:30px; display:flex; align-items:center; position:relative;">
+            <div style="flex-shrink:0; background:linear-gradient(135deg,#4488ff22,#4488ff11); border-right:1px solid #4488ff33; padding:0 14px; height:100%; display:flex; align-items:center; z-index:2; min-width:80px; justify-content:center;">
+                <span style="color:#4488ff; font-size:0.7em; font-weight:bold; letter-spacing:3px; white-space:nowrap; text-transform:uppercase; font-family:var(--font-title);">📜 MARKET</span>
             </div>
             <div style="overflow:hidden; flex:1; position:relative; height:100%;">
                 <div id="market-ticker-inner" style="display:flex; align-items:center; height:100%; white-space:nowrap; animation:ticker-scroll 40s linear infinite; will-change:transform;">
-                    <span style="color:#555; font-size:0.75em; padding:0 20px;">Loading market listings...</span>
+                    <span style="color:#555; font-size:0.75em; padding:0 20px; letter-spacing:2px;">LOADING MARKET LISTINGS...</span>
                 </div>
             </div>
         </div>
@@ -3200,14 +3200,12 @@ text-decoration: underline; /* Adds an underline on hover */
                 <h3 id="leaderboard-title">Ranking by Total Souls</h3><ul id="leaderboard-list"></ul>
                 <!-- PLAYER LISTINGS -->
                 <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #4488ff44; border-top:3px solid #4488ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
-                        <div>
-                            <h3 style="margin:0; color:#4488ff; letter-spacing:2px;">🏪 CURRENT LISTINGS</h3>
-                            <p style="margin:4px 0 0; color:#666; font-size:0.82em;">Items listed by other Soul Collectors for Dark Essence.</p>
+                    <div style="margin-bottom:16px;">
+                        <div style="background:linear-gradient(90deg,#4488ff22,#4488ff08); border:1px solid #4488ff33; border-radius:8px; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                            <span style="color:#4488ff; font-weight:bold; font-size:1em; letter-spacing:3px; text-transform:uppercase; font-family:var(--font-title);">🏪 CURRENT LISTINGS</span>
+                            <button onclick="fetchMarketListings()" style="background:#4488ff18; border:1px solid #4488ff44; border-radius:7px; padding:5px 14px; color:#4488ff; cursor:pointer; font-family:inherit; font-size:0.78em; font-weight:bold; letter-spacing:1px;">🔄 REFRESH</button>
                         </div>
-                        <button class="upgrade-btn" onclick="fetchMarketListings()" style="border-color:#4488ff66; background:linear-gradient(135deg,#4488ff15,transparent);">
-                            <span style="color:#4488ff;">🔄 Refresh</span>
-                        </button>
+                        <p style="margin:8px 0 0; color:#555; font-size:0.78em;">Items listed by other Soul Collectors for Dark Essence.</p>
                     </div>
                     <ul id="market-listing-list" class="leaderboard-list" style="margin:0;"></ul>
                 </div>
@@ -9366,20 +9364,31 @@ function renderBank() {
 // =================================================================
 async function fetchMarketListings() {
     const list = document.getElementById('market-listing-list');
+    if (!list) return;
     list.innerHTML = '<li style="text-align:center; color:var(--dim-color);"><em>Contacting the abyssal brokers...</em></li>';
     try {
-        const { data, error } = await supabaseClient
+        let data, error;
+        // Try with is_sold filter first
+        ({ data, error } = await supabaseClient
             .from('market_listings')
             .select('*')
             .eq('is_sold', false)
-            .order('created_at', { ascending: false });
-        if (error) throw error;
-        if (data.length === 0) {
+            .order('created_at', { ascending: false }));
+        // If is_sold column doesn't exist, fetch without it
+        if (error) {
+            console.warn('market_listings is_sold issue:', error.message);
+            ({ data, error } = await supabaseClient
+                .from('market_listings')
+                .select('*')
+                .order('created_at', { ascending: false }));
+        }
+        if (error) { console.error('Market listings error:', error); throw error; }
+        if (!data || data.length === 0) {
             list.innerHTML = '<li style="text-align:center; color:var(--dim-color);">The marketplace is currently empty.</li>';
             return;
         }
         list.innerHTML = '';
-        data.forEach((listing, idx) => {
+        data.forEach((listing) => {
             const item = items[listing.item_id];
             if (!item) return;
             const canAfford = gameState.darkEssence >= listing.price;
@@ -9412,8 +9421,8 @@ async function fetchMarketListings() {
             list.appendChild(li);
         });
     } catch (e) {
-        list.innerHTML = `<li>Error fetching listings: ${e.message}</li>`;
-        console.error("Market Fetch Error:", e);
+        console.error('Market Fetch Error:', e);
+        list.innerHTML = `<li style="color:#ff4444; padding:12px; text-align:center;">⚠️ ${e.message || 'Could not load listings'}</li>`;
     }
 }
 
@@ -9421,36 +9430,48 @@ async function refreshMarketTicker() {
     const inner = document.getElementById('market-ticker-inner');
     if (!inner || !supabaseClient) return;
     try {
-        const { data } = await supabaseClient
+        // Try is_sold first, fall back if column doesn't exist
+        let data;
+        let result = await supabaseClient
             .from('market_listings')
             .select('item_id, price, seller_name')
             .eq('is_sold', false)
             .order('created_at', { ascending: false })
             .limit(20);
-        if (!data || !data.length) return;
+        if (result.error) {
+            // Try without the is_sold filter
+            result = await supabaseClient
+                .from('market_listings')
+                .select('item_id, price, seller_name')
+                .order('created_at', { ascending: false })
+                .limit(20);
+        }
+        data = result.data;
+        if (!data || !data.length) {
+            inner.innerHTML = '<span style="padding:0 20px; font-size:0.75em; color:#4488ff; letter-spacing:2px;">NO LISTINGS YET — BE THE FIRST TO SELL AN ITEM</span>';
+            return;
+        }
 
-        const rarityColor = { legendary:'#ff9900', epic:'#a855f7', rare:'#3b82f6', uncommon:'#22c55e', common:'#888' };
+        const rarityColor = { legendary:'#ff9900', epic:'#cc44ff', rare:'#4488ff', uncommon:'#44cc88', common:'#aaa' };
         const chips = data.map(l => {
             const item = items[l.item_id];
             if (!item) return '';
-            const color = rarityColor[item.rarity] || '#888';
-            return `<span style="padding:0 18px; font-size:0.72em; color:#666;">
-                <span style="color:${color}; font-weight:bold;">${item.name}</span>
-                <span style="color:#555; margin:0 4px;">by</span>
-                <span style="color:#888;">${l.seller_name}</span>
-                <span style="color:#c8a800; margin-left:6px;">${formatNumber(l.price)} DE</span>
-                <span style="color:#2a2040; margin-left:12px;">•</span>
-            </span>`;
+            const color = rarityColor[item.rarity] || '#aaa';
+            return `<span style="padding:0 22px; font-size:0.78em; letter-spacing:0.5px;">` +
+                `<span style="color:${color}; font-weight:bold; text-transform:uppercase;">${item.name}</span>` +
+                `<span style="color:#555; margin:0 6px;">BY</span>` +
+                `<span style="color:#ccc;">${l.seller_name}</span>` +
+                `<span style="color:#c8a800; font-weight:bold; margin-left:8px;">${formatNumber(l.price)} DE</span>` +
+                `<span style="color:#3a2a55; margin-left:18px; font-size:1.2em;">◆</span>` +
+                `</span>`;
         }).filter(Boolean).join('');
 
         if (!chips) return;
-        // Duplicate content for seamless loop
-        inner.innerHTML = chips + chips;
-        // Adjust animation speed based on content width
+        inner.innerHTML = chips + chips; // duplicate for seamless loop
         const totalWidth = inner.scrollWidth / 2;
-        const speed = Math.max(20, totalWidth / 60); // ~60px per second
+        const speed = Math.max(15, totalWidth / 80);
         inner.style.animationDuration = speed + 's';
-    } catch(e) { /* fail silently */ }
+    } catch(e) { console.warn('Ticker error:', e); }
 }
 
 async function cancelMarketListing(listingId) {

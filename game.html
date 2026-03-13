@@ -6811,6 +6811,12 @@ async function authSignOut() {
     closeAccountModal();
     if (!confirm('Sign out? Your progress is saved to the cloud.')) return;
     try {
+        // Clear our session lock before signing out
+        if (window._scFirebase && window._scFirebase.auth.currentUser) {
+            const uid = window._scFirebase.auth.currentUser.uid;
+            await window._scFirebase.db.ref('activeSessions/' + uid).remove();
+        }
+        window._scSessionToken = null;
         if (window._scFirebase) await window._scFirebase.auth.signOut();
         document.getElementById('game-container').style.display = 'none';
         updateAccountBtn();
@@ -6876,6 +6882,87 @@ function enterGame() {
 
     // Show account reminder popup
     setTimeout(() => showAccountReminderPopup(), 2000);
+
+    // --- SESSION LOCK ---
+    // Generates a unique token for this tab, writes it to Firebase.
+    // If another tab logs into the same account, it overwrites the token,
+    // and this tab detects the mismatch and gets locked out.
+    if (window._scFirebase && window._scFirebase.auth.currentUser) {
+        const uid = window._scFirebase.auth.currentUser.uid;
+        const db  = window._scFirebase.db;
+        const myToken = Math.random().toString(36).slice(2) + Date.now();
+        window._scSessionToken = myToken;
+
+        const sessionRef = db.ref('activeSessions/' + uid);
+
+        // Write our token (overwrites any existing session from another tab)
+        sessionRef.set({ token: myToken, at: Date.now() })
+            .then(() => {
+                // Remove from Firebase when this tab closes
+                sessionRef.onDisconnect().remove();
+            });
+
+        // Watch for our token being replaced by another tab
+        sessionRef.on('value', snap => {
+            if (!snap.exists()) return; // we just logged out, ignore
+            const data = snap.val();
+            if (data.token !== window._scSessionToken) {
+                // Another tab claimed this account — lock this tab
+                lockDuplicateTab();
+            }
+        });
+    }
+}
+
+function lockDuplicateTab() {
+    // Save before locking so nothing is lost
+    if (window._scFirebase && window._scFirebase.auth.currentUser) {
+        saveGameToCloud(window._scFirebase.auth.currentUser.uid, window._scFirebase.db);
+    }
+
+    // Stop all game intervals
+    clearInterval(window._gameTickInterval);
+
+    // Build the overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'session-lock-overlay';
+    overlay.style.cssText = `
+        position: fixed; inset: 0; z-index: 9999999;
+        background: rgba(5,2,12,0.97);
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        font-family: var(--font-body, sans-serif);
+        text-align: center; padding: 30px;
+    `;
+    overlay.innerHTML = `
+        <div style="font-size:3rem; margin-bottom:16px;">⚠️</div>
+        <h2 style="color:#c41818; font-family:var(--font-title,serif); font-size:1.6rem; margin-bottom:10px;">
+            Session Conflict
+        </h2>
+        <p style="color:#aaa; max-width:380px; line-height:1.7; margin-bottom:28px;">
+            Your account was opened in another tab or browser.<br>
+            <strong style="color:#fff;">Only one active session is allowed per account.</strong><br>
+            Your progress has been saved.
+        </p>
+        <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center;">
+            <button onclick="window.location.reload()" style="
+                background: linear-gradient(160deg,#c41818,#8b0000);
+                color:#fff; border:none; padding:12px 28px;
+                font-size:1rem; border-radius:4px; cursor:pointer; font-weight:700;">
+                Reclaim This Tab
+            </button>
+            <button onclick="document.getElementById('session-lock-overlay').remove()" style="
+                background: #1a1228; color:#aaa;
+                border:1px solid #333; padding:12px 28px;
+                font-size:1rem; border-radius:4px; cursor:pointer;">
+                Keep as Viewer
+            </button>
+        </div>
+        <p style="color:#555; font-size:0.8rem; margin-top:20px;">
+            "Reclaim" will reload this tab and take over as the active session.
+        </p>
+    `;
+    document.body.appendChild(overlay);
 }
 
 function hardReset() {
@@ -8417,7 +8504,7 @@ function initializeChat() {
 
             const timestamp = new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            if (isSystemMessage) {
+            if (isSystemMessage && !isDiscordBot) {
                 el.innerHTML = `<span class="chat-msg-text">${finalMessage}</span>`;
             } else {
                 el.innerHTML = `<span class="chat-msg-time">[${timestamp}]</span><b>${nameHtml}${roleTagHTML}:</b> <span class="chat-msg-text">${finalMessage}</span>`;

@@ -1114,6 +1114,12 @@
             margin-top: 20px;
             flex-wrap: wrap;
         }
+        .ritual-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 8px;
+        }
         .exchange-offer {
             width: 280px;
             padding: 20px;
@@ -2634,14 +2640,22 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
             </div>
             <div id="brewery-screen" class="screen">
-                <h2>The Alchemical Brewery</h2><p>Concoct powerful, single-use potions for potent effects.</p>
-                <h3>Your Inventory</h3><div id="potion-inventory" class="minion-grid"></div><hr>
-                <h3>Available Recipes</h3><div id="potion-recipe-grid" class="minion-grid"></div>
+                <h2 style="letter-spacing:3px; color:#9944cc;">⚗️ ALCHEMICAL BREWERY ⚗️</h2>
+                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Concoct powerful potions from souls and rare materials. Brew them, then use them from your potion shelf.</p>
+                <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:12px;">🧪 YOUR POTION SHELF</h3>
+                <div id="potion-inventory" class="ritual-grid"></div>
+                <hr style="border-color:#3d2a4a; margin:24px 0;">
+                <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:12px;">📜 AVAILABLE RECIPES</h3>
+                <div id="potion-recipe-grid" class="ritual-grid"></div>
             </div>
             <div id="inventory-screen" class="screen">
-                <h2>Inventory & Equipment</h2><p>Equip items from your Abyssal Caches to gain their powerful bonuses.</p>
-                <h3>Equipped Items</h3><div id="equipped-items-grid" class="minion-grid"></div><hr>
-                <h3>Stored Items</h3><div id="inventory-items-grid" class="minion-grid"></div>
+                <h2 style="letter-spacing:3px;">⚔️ INVENTORY & EQUIPMENT ⚔️</h2>
+                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Equip powerful items from your Abyssal Caches. Each slot grants unique bonuses to your soul harvest.</p>
+                <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:12px;">🛡️ EQUIPPED</h3>
+                <div id="equipped-items-grid" class="ritual-grid"></div>
+                <hr style="border-color:#3d2a4a; margin:24px 0;">
+                <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:12px;">🎒 STORED ITEMS</h3>
+                <div id="inventory-items-grid" class="ritual-grid"></div>
             </div>
             <div id="minions-screen" class="screen">
                 <h2>😈 Demonic Minions 😈</h2><p>Enslave creatures to passively harvest souls for you.</p>
@@ -2697,11 +2711,13 @@ text-decoration: underline; /* Adds an underline on hover */
 
 
             <div id="artifacts-screen" class="screen">
-                <h2>💎 Abyssal Artifacts 💎</h2><p>Spend Dark Essence on powerful, permanent items.</p>
-                <div id="artifact-grid" class="artifact-grid"></div>
+                <h2 style="letter-spacing:3px; color:#00bbff;">💎 ABYSSAL ARTIFACTS 💎</h2>
+                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Spend Abyssal Shards or Dark Essence on powerful permanent upgrades. Each artifact scales infinitely with level.</p>
+                <div id="artifact-grid" class="ritual-grid"></div>
             </div>
             <div id="rituals-screen" class="screen">
-                <h2>🔮 Dark Rituals 🔮</h2><p>Perform costly rituals for immense, temporary power.</p>
+                <h2 style="letter-spacing:3px; color:#cc3333;">🔮 DARK RITUALS 🔮</h2>
+                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Channel forbidden power through blood and sacrifice. Each ritual costs souls and enters a cooldown before it can be performed again.</p>
                 <div id="ritual-grid" class="ritual-grid"></div>
             </div>
             <div id="map-screen" class="screen">
@@ -6306,156 +6322,250 @@ function renderInventory() {
     const inventoryGrid = document.getElementById('inventory-items-grid');
     if (!equippedGrid || !inventoryGrid) return;
 
-    equippedGrid.innerHTML = '';
-    inventoryGrid.innerHTML = '';
+    const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+    const rarityGlow  = { common:'#aaaaaa22', uncommon:'#44cc4422', rare:'#4488ff22', epic:'#aa44ff22', legendary:'#ffaa0022', forged:'#ff444422' };
+    const typeIcon    = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
 
-    if (Object.values(gameState.equipped).every(val => val === null)) {
-        equippedGrid.innerHTML = `<p style="color:var(--dim-color)">No items equipped.</p>`;
-    } else {
-        for (const slot in gameState.equipped) {
-            const itemId = gameState.equipped[slot];
-            if (itemId) {
-                const item = items[itemId];
-                let itemHTML = '';
+    function itemCard(itemId, isEquipped) {
+        const item = items[itemId];
+        if (!item) return '';
+        const rc = rarityColor[item.rarity] || '#aaa';
+        const rg = rarityGlow[item.rarity] || '#aaa2';
+        const icon = typeIcon[item.type] || '🔮';
 
-                if (item.activatable) {
-                    const ability = item.activatable;
-                    const cooldownEndTime = gameState.itemCooldowns[ability.id];
-                    const isOnCooldown = cooldownEndTime && Date.now() < cooldownEndTime;
-                    let buttonText = 'Activate';
-                    
-                    if (isOnCooldown) {
-                        const timeLeft = Math.ceil((cooldownEndTime - Date.now()) / 1000);
-                        const hours = Math.floor(timeLeft / 3600);
-                        const minutes = Math.floor((timeLeft % 3600) / 60);
-                        buttonText = `Recharging (${hours}h ${minutes}m)`;
-                    }
-
-                    itemHTML = `
-                        <div class="upgrade-btn owned" data-tooltip="${item.desc}">
-                            <span class="btn-title ${item.rarity}">${item.name} (Equipped)</span>
-                            <button class="action-btn" style="width: 100%; margin-top: 10px; font-size: 1.1rem;" onclick="activateItemAbility('${itemId}')" ${isOnCooldown ? 'disabled' : ''}>
-                                ${buttonText}
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    itemHTML = `<div class="upgrade-btn owned" data-tooltip="${item.desc}"><span class="btn-title ${item.rarity}">${item.name} (Equipped)</span><br><span>Type: ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span></div>`;
-                }
-                equippedGrid.innerHTML += itemHTML;
+        if (isEquipped && item.activatable) {
+            const ability = item.activatable;
+            const cooldownEndTime = gameState.itemCooldowns[ability.id];
+            const isOnCooldown = cooldownEndTime && Date.now() < cooldownEndTime;
+            let btnText = `<span style="color:${rc};">⚡ Activate</span>`;
+            let cooldownBar = '';
+            if (isOnCooldown) {
+                const timeLeft = Math.ceil((cooldownEndTime - Date.now()) / 1000);
+                const pct = Math.max(0, (timeLeft / ability.cooldown) * 100);
+                const h = Math.floor(timeLeft / 3600), m = Math.floor((timeLeft % 3600) / 60);
+                cooldownBar = `<div style="margin:8px 0 2px; background:#ffffff10; border-radius:4px; height:5px; overflow:hidden;">
+                    <div style="height:100%; width:${pct}%; background:${rc}; border-radius:4px;"></div></div>
+                    <div style="color:${rc}; font-size:0.75em; text-align:right;">⏳ ${h}h ${m}m</div>`;
+                btnText = `<span style="color:#666;">Recharging</span>`;
             }
+            return `<div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${rc}55; border-top:3px solid ${rc}; border-radius:12px; padding:16px; box-shadow:0 0 16px ${rg}; display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.6em;">${icon}</span>
+                    <div>
+                        <div style="color:${rc}; font-weight:bold; font-size:0.95em;">${item.name}</div>
+                        <div style="display:flex; gap:4px; margin-top:2px;">
+                            <span style="background:${rc}22; border:1px solid ${rc}44; border-radius:8px; padding:1px 7px; font-size:0.68em; color:${rc}; text-transform:uppercase;">${item.rarity}</span>
+                            <span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa; text-transform:capitalize;">✦ Equipped</span>
+                        </div>
+                    </div>
+                </div>
+                <p style="color:#aaa; font-size:0.82em; margin:2px 0;">${item.desc}</p>
+                ${cooldownBar}
+                <button class="upgrade-btn" style="margin-top:6px; width:100%; border-color:${rc}66;" onclick="activateItemAbility('${itemId}')" ${isOnCooldown ? 'disabled' : ''}>${btnText}</button>
+            </div>`;
         }
+
+        const onclick = isEquipped ? '' : `onclick="openItemModal('${itemId}')"`;
+        const badge = isEquipped ? `<span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa;">✦ Equipped</span>` : `<span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa; text-transform:capitalize;">${item.type}</span>`;
+        const btn = isEquipped ? '' : `<button class="upgrade-btn" style="margin-top:8px; width:100%; border-color:${rc}66;" onclick="openItemModal('${itemId}')"><span style="color:${rc};">Manage →</span></button>`;
+        return `<div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${rc}55; border-top:3px solid ${rc}; border-radius:12px; padding:16px; box-shadow:0 0 16px ${rg}; display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.6em;">${icon}</span>
+                <div>
+                    <div style="color:${rc}; font-weight:bold; font-size:0.95em;">${item.name}</div>
+                    <div style="display:flex; gap:4px; margin-top:2px; flex-wrap:wrap;">
+                        <span style="background:${rc}22; border:1px solid ${rc}44; border-radius:8px; padding:1px 7px; font-size:0.68em; color:${rc}; text-transform:uppercase;">${item.rarity}</span>
+                        ${badge}
+                    </div>
+                </div>
+            </div>
+            <p style="color:#aaa; font-size:0.82em; margin:2px 0; line-height:1.4;">${item.desc}</p>
+            ${btn}
+        </div>`;
     }
 
-    if (gameState.inventory.length === 0) {
-        inventoryGrid.innerHTML = `<p style="color:var(--dim-color)">Your inventory is empty. Open an Abyssal Cache!</p>`;
+    // Equipped
+    const equippedItems = Object.values(gameState.equipped).filter(Boolean);
+    if (equippedItems.length === 0) {
+        equippedGrid.innerHTML = `<div style="color:var(--dim-color); padding:20px; grid-column:1/-1;">No items equipped. Open Abyssal Caches from the main altar!</div>`;
     } else {
-        gameState.inventory.forEach(itemId => {
-            const item = items[itemId];
-            if(item!=null)
-                inventoryGrid.innerHTML += `<button class="upgrade-btn" onclick="equipItem('${itemId}')"><span class="btn-title ${item.rarity}">${item.name}</span><br><span>${item.desc}</span><br><span class="cost">Type: <span class="cost-essence">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span></span></button>`;
-        });
+        equippedGrid.innerHTML = equippedItems.map(id => itemCard(id, true)).join('');
+    }
+
+    // Inventory
+    if (gameState.inventory.length === 0) {
+        inventoryGrid.innerHTML = `<div style="color:var(--dim-color); padding:20px; grid-column:1/-1;"><div style="font-size:2em; margin-bottom:8px;">🎒</div>Your inventory is empty. Open an Abyssal Cache to find items!</div>`;
+    } else {
+        inventoryGrid.innerHTML = gameState.inventory.filter(id => items[id]).map(id => itemCard(id, false)).join('');
     }
 }
 
 function equipItem(itemId) { const itemToEquip = items[itemId]; if (!itemToEquip) return; const itemIndex = gameState.inventory.indexOf(itemId); if (itemIndex === -1) return; const slot = itemToEquip.type; const currentlyEquippedId = gameState.equipped[slot]; if (currentlyEquippedId) gameState.inventory.push(currentlyEquippedId); gameState.inventory.splice(itemIndex, 1); gameState.equipped[slot] = itemId; audio.click.play().catch(e => {}); playSound('click'); calculateStats(); renderAll(); saveGame(); }
-// NEW, CORRECTED renderArtifacts FUNCTION
 function renderArtifacts() {
     const grid = document.getElementById('artifact-grid');
+    if (!grid) return;
     grid.innerHTML = '';
+
+    const bonusIcons = {
+        spc_multiplier: '👆', sps_multiplier: '⏱', minion_cost_reducer: '💀',
+        minion_specific_multiplier: '👹', upgrade_cost_reducer: '🔧', essence_multiplier: '🌑',
+        global_multiplier_per_world: '🌐', global_multiplier_per_artifact: '💎',
+        ritual_duration_multiplier: '⏳', ritual_cooldown_reducer: '🔄',
+        ascension_shard_bonus: '💠', global_multiplier: '🔥', prestige_bonus_enhancer: '✨',
+        essence_retention_on_ascend: '♻️', lingering_ritual_permanent: '🕯️',
+        spc_to_sps: '🔗', upgrade_cost_reducer_altar: '⬇️'
+    };
+
+    let anyRendered = false;
     for (const id in artifacts) {
-        if (gameState.unlockedWorlds.includes(artifacts[id].requiredWorld)) {
-            const a = artifacts[id];
-            
-            const level = gameState.ownedArtifacts[id]?.level || 0;
-            const baseCost = a.shardsCost || a.cost;
-            const costType = a.shardsCost ? 'shards' : 'essence';
-            const costMultiplier = a.costMultiplier || 1.5;
-            
-            // Calculate cost for the next level
-            const nextLevelCost = Math.floor(baseCost * Math.pow(costMultiplier, level));
+        if (!gameState.unlockedWorlds.includes(artifacts[id].requiredWorld)) continue;
+        anyRendered = true;
+        const a = artifacts[id];
+        const level = gameState.ownedArtifacts[id]?.level || 0;
+        const baseCost = a.shardsCost || a.cost;
+        const costType = a.shardsCost ? 'shards' : 'essence';
+        const costMultiplier = a.costMultiplier || 1.5;
+        const nextLevelCost = Math.floor(baseCost * Math.pow(costMultiplier, level));
+        const canAfford = costType === 'shards' ? gameState.abyssalShards >= nextLevelCost : gameState.darkEssence >= nextLevelCost;
 
-            let costString = '';
-            let canAfford = false;
+        const costColor = costType === 'shards' ? '#44aaff' : '#9944cc';
+        const costIcon  = costType === 'shards' ? '💎' : '🌑';
+        const bonusIcon = bonusIcons[a.bonus?.type] || '✦';
+        const levelColor = level === 0 ? '#666' : level < 3 ? '#888' : level < 7 ? '#c8a800' : '#ff6600';
 
-            // THIS IS THE FIXED PART: We now use 'nextLevelCost' for both types
-            if (costType === 'shards') {
-                costString = `<span class="cost">Cost: <span class="cost-shards">${formatNumber(nextLevelCost)} Abyssal Shards</span></span>`;
-                canAfford = gameState.abyssalShards >= nextLevelCost;
-            } else {
-                costString = `<span class="cost">Cost: <span class="cost-essence">${formatNumber(nextLevelCost)} Dark Essence</span></span>`;
-                canAfford = gameState.darkEssence >= nextLevelCost;
-            }
+        grid.innerHTML += `
+        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${canAfford ? costColor+'55' : '#3d2a4a'}; border-top:3px solid ${canAfford ? costColor : '#3d2a4a'}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:${canAfford ? `0 0 16px ${costColor}22` : 'none'}; transition:all 0.2s;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.8em;">${bonusIcon}</span>
+                    <div>
+                        <div style="color:${canAfford ? costColor : '#aaa'}; font-weight:bold; font-size:0.95em;">${a.name}</div>
+                        <div style="color:${costColor}88; font-size:0.72em; text-transform:uppercase; letter-spacing:1px;">${costType === 'shards' ? 'Shard Artifact' : 'Essence Artifact'}</div>
+                    </div>
+                </div>
+                <div style="text-align:right; flex-shrink:0;">
+                    <div style="color:${levelColor}; font-size:1.2em; font-weight:bold;">Lv.${level}</div>
+                    ${level > 0 ? `<div style="font-size:0.65em; color:#555;">${'★'.repeat(Math.min(level,5))}${'☆'.repeat(Math.max(0,5-level))}</div>` : ''}
+                </div>
+            </div>
+            <p style="color:#aaa; font-size:0.82em; margin:0; line-height:1.4;">${a.desc}</p>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px; flex-wrap:wrap; gap:6px;">
+                <div style="font-size:0.8em; color:${canAfford ? costColor : '#555'}; font-weight:bold;">${costIcon} ${formatNumber(nextLevelCost)} ${costType === 'shards' ? 'Shards' : 'Dark Essence'}</div>
+                ${level > 0 ? `<div style="font-size:0.72em; color:#555;">Next: ${formatNumber(Math.floor(nextLevelCost * costMultiplier))}</div>` : ''}
+            </div>
+            <button id="artifact-btn-${id}" class="upgrade-btn" onclick="buyArtifact('${id}')" ${!canAfford ? 'disabled' : ''}
+                style="width:100%; border-color:${costColor}66; ${canAfford ? `background:linear-gradient(135deg,${costColor}18,transparent);` : 'opacity:0.5;'}">
+                ${canAfford ? `<span style="color:${costColor};">↑ Upgrade${level > 0 ? ' to Lv.'+(level+1) : ''}</span>` : `<span style="color:#555;">⚠️ Need more ${costType === 'shards' ? 'Shards' : 'Essence'}</span>`}
+            </button>
+        </div>`;
+    }
 
-            const isDisabled = !canAfford;
-
-            grid.innerHTML += `
-                <button class="upgrade-btn" id="artifact-btn-${id}" onclick="buyArtifact('${id}')" ${isDisabled ? 'disabled' : ''}>
-                    <span class="btn-title">${a.name}</span>
-                    <span class="btn-level">Level: ${level}</span><br>
-                    <span>${a.desc}</span><br>
-                    ${costString}
-                </button>
-            `;
-        }
+    if (!anyRendered) {
+        grid.innerHTML = `<div style="color:var(--dim-color); text-align:center; padding:40px; grid-column:1/-1;">
+            <div style="font-size:2em; margin-bottom:10px;">🔒</div>
+            Unlock more worlds to discover Abyssal Artifacts.
+        </div>`;
     }
 }
 function renderBrewery() {
     const recipeGrid = document.getElementById('potion-recipe-grid');
     const inventoryGrid = document.getElementById('potion-inventory');
     if (!recipeGrid || !inventoryGrid) return;
-    
+
     recipeGrid.innerHTML = '';
     inventoryGrid.innerHTML = '';
 
-    // Render the recipes
+    // Potion visual config
+    const potionMeta = {
+        draught_of_might:           { icon:'💪', color:'#ff6644' },
+        ichor_of_wealth:            { icon:'💰', color:'#ffcc00' },
+        elixir_of_wisdom:           { icon:'📚', color:'#44aaff' },
+        brew_of_the_void:           { icon:'🌑', color:'#9944cc' },
+        tincture_of_rage:           { icon:'😡', color:'#ff4444' },
+        essence_of_avarice:         { icon:'💎', color:'#44ccff' },
+        draught_of_the_hoarder:     { icon:'🪙', color:'#ffaa00' },
+        flask_of_temporal_flux:     { icon:'⏱', color:'#00ccaa' },
+        philter_of_forgotten_souls: { icon:'👻', color:'#aa88ff' },
+        elixir_of_resonance:        { icon:'🔮', color:'#ff88cc' },
+        brew_of_shattered_stars:    { icon:'⭐', color:'#ffffaa' },
+    };
+
+    // Render recipes
     for (const id in potions) {
         const p = potions[id];
-        let canAfford = gameState.souls >= p.cost;
-        let costString = `Cost: <span class="cost-souls">${formatNumber(p.cost)}</span>`;
-        if (p.costType === 'souls_and_shards') {
-            canAfford = gameState.souls >= p.cost && gameState.abyssalShards >= p.shardsCost;
-            costString += ` + <span class="cost-shards">${formatNumber(p.shardsCost)} Shards</span>`;
-        }
+        const meta = potionMeta[id] || { icon:'⚗️', color:'#9944cc' };
+        const canAffordSouls = gameState.souls >= p.cost;
+        const canAffordShards = !p.shardsCost || gameState.abyssalShards >= p.shardsCost;
+        const canAfford = canAffordSouls && canAffordShards;
 
-        // --- NEW COOLDOWN LOGIC ---
-        let isOnCooldown = false;
-        let cooldownRemainingText = '';
         const cooldownEndTime = gameState.potionCooldowns[id];
-
-        if (cooldownEndTime && Date.now() < cooldownEndTime) {
-            isOnCooldown = true;
+        const isOnCooldown = cooldownEndTime && Date.now() < cooldownEndTime;
+        let cooldownBar = '';
+        if (isOnCooldown) {
             const timeLeft = Math.ceil((cooldownEndTime - Date.now()) / 1000);
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = (timeLeft % 60).toString().padStart(2, '0');
-            cooldownRemainingText = `On Cooldown (${minutes}m ${seconds}s)`;
+            const pct = Math.max(0, (timeLeft / (p.cooldown || 1)) * 100);
+            const m = Math.floor(timeLeft / 60), s = (timeLeft % 60).toString().padStart(2,'0');
+            cooldownBar = `<div style="margin:8px 0 2px; background:#ffffff10; border-radius:4px; height:5px; overflow:hidden;">
+                <div style="height:100%; width:${pct}%; background:${meta.color}; border-radius:4px;"></div></div>
+                <div style="color:${meta.color}; font-size:0.75em; text-align:right;">⏳ ${m}:${s} remaining</div>`;
         }
-        
-        const isDisabled = !canAfford || isOnCooldown;
 
+        const isDisabled = !canAfford || isOnCooldown;
         recipeGrid.innerHTML += `
-            <button class="upgrade-btn" onclick="brewPotion('${id}')" ${isDisabled ? 'disabled' : ''}>
-                <span class="btn-title">${p.name}</span><br>
-                <span>${p.desc}</span><br>
-                <span class="cost">${isOnCooldown ? cooldownRemainingText : costString}</span>
-            </button>`;
+        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${meta.color}44; border-top:3px solid ${meta.color}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:6px; box-shadow:0 0 16px ${meta.color}18;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:2em;">${meta.icon}</span>
+                <div>
+                    <div style="color:${meta.color}; font-weight:bold; font-size:0.95em;">${p.name}</div>
+                    ${p.cooldown ? `<div style="color:#666; font-size:0.7em;">🕐 Cooldown: ${p.cooldown >= 3600 ? (p.cooldown/3600)+'h' : (p.cooldown/60)+'m'}</div>` : ''}
+                </div>
+            </div>
+            <p style="color:#aaa; font-size:0.82em; margin:0; line-height:1.4;">${p.desc}</p>
+            ${cooldownBar}
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+                <span style="color:${canAffordSouls?'#e8c46a':'#ff4444'}; font-size:0.82em;">👻 ${formatNumber(p.cost)}</span>
+                ${p.shardsCost ? `<span style="color:${canAffordShards?'#44aaff':'#ff4444'}; font-size:0.82em;">💎 ${formatNumber(p.shardsCost)} Shards</span>` : ''}
+            </div>
+            <button class="upgrade-btn" onclick="brewPotion('${id}')" ${isDisabled ? 'disabled' : ''}
+                style="width:100%; border-color:${meta.color}66; ${!isDisabled ? `background:linear-gradient(135deg,${meta.color}18,transparent);` : 'opacity:0.5;'}">
+                ${isOnCooldown ? `<span style="color:#666;">On Cooldown</span>` : !canAfford ? `<span style="color:#555;">⚠️ Can't Afford</span>` : `<span style="color:${meta.color};">⚗️ Brew</span>`}
+            </button>
+        </div>`;
     }
 
-    // Render the player's inventory (this part is unchanged)
+    // Render potion inventory
     let hasPotions = false;
     for (const id in gameState.potions) {
         if (gameState.potions[id] > 0) {
             hasPotions = true;
             const count = gameState.potions[id];
             const isActive = gameState.activePotions[id] && Date.now() < gameState.activePotions[id];
-            let buttonContent = isActive ? `<span style="color:var(--prestige-color); font-style:italic;">Active...</span>` : `<span style="color:var(--accent-color); font-style:italic;">Click to Use</span>`;
+            const meta = potionMeta[id] || { icon:'⚗️', color:'#9944cc' };
+            const timeLeftActive = isActive ? Math.ceil((gameState.activePotions[id] - Date.now()) / 1000) : 0;
+            const statusText = isActive
+                ? `<span style="color:${meta.color}; font-style:italic;">✦ Active — ${Math.floor(timeLeftActive/60)}:${(timeLeftActive%60).toString().padStart(2,'0')} left</span>`
+                : `<span style="color:#aaa;">Click to use</span>`;
             if (potions[id]) {
-                inventoryGrid.innerHTML += `<button class="upgrade-btn" onclick="usePotion('${id}')" ${isActive ? 'disabled' : ''}><span class="btn-title">${potions[id].name} (x${count})</span><br>${buttonContent}</button>`;
+                inventoryGrid.innerHTML += `
+                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${meta.color}${isActive?'99':'44'}; border-top:3px solid ${meta.color}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:${isActive?`0 0 20px ${meta.color}44`:'none'};">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:1.8em;">${meta.icon}</span>
+                        <div>
+                            <div style="color:${meta.color}; font-weight:bold;">${potions[id].name}</div>
+                            <div style="background:${meta.color}22; border:1px solid ${meta.color}44; border-radius:8px; padding:1px 8px; display:inline-block; font-size:0.7em; color:${meta.color}; margin-top:2px;">x${count} owned</div>
+                        </div>
+                    </div>
+                    <div style="font-size:0.82em;">${statusText}</div>
+                    <button class="upgrade-btn" onclick="usePotion('${id}')" ${isActive ? 'disabled' : ''}
+                        style="width:100%; border-color:${meta.color}66; ${!isActive ? `background:linear-gradient(135deg,${meta.color}18,transparent);` : 'opacity:0.4;'}">
+                        ${isActive ? `<span style="color:#666;">Active</span>` : `<span style="color:${meta.color};">⚡ Use Potion</span>`}
+                    </button>
+                </div>`;
             }
         }
     }
     if (!hasPotions) {
-        inventoryGrid.innerHTML = `<p style="color:var(--dim-color)">You have no potions. Brew some!</p>`;
+        inventoryGrid.innerHTML = `<div style="color:var(--dim-color); padding:20px; grid-column:1/-1;"><div style="font-size:2em; margin-bottom:8px;">🧪</div>No potions brewed yet. Check the recipes below!</div>`;
     }
 }
 
@@ -7209,44 +7319,97 @@ function toggleSfx() {
 
 function renderRituals() {
     const grid = document.getElementById('ritual-grid');
-    if (!grid) return; // Safety check
+    if (!grid) return;
     grid.innerHTML = '';
-    
+
+    // Visual config per ritual
+    const ritualMeta = {
+        blood_frenzy:      { icon:'🩸', color:'#cc2222', glow:'#cc222244' },
+        demonic_horde:     { icon:'👹', color:'#ff6600', glow:'#ff660044' },
+        soul_sear:         { icon:'🔥', color:'#ff9900', glow:'#ff990044' },
+        essence_theft:     { icon:'🌑', color:'#9944cc', glow:'#9944cc44' },
+        unholy_power:      { icon:'⚡', color:'#ffcc00', glow:'#ffcc0044' },
+        devils_bargain:    { icon:'😈', color:'#cc0044', glow:'#cc004444' },
+        glacial_freeze:    { icon:'❄️', color:'#44ccff', glow:'#44ccff44' },
+        divine_curse:      { icon:'☠️', color:'#aa44ff', glow:'#aa44ff44' },
+        void_rupture:      { icon:'🌀', color:'#00ffcc', glow:'#00ffcc44' },
+        entropic_cascade:  { icon:'💥', color:'#ff4444', glow:'#ff444444' },
+    };
+
+    const effectLabels = {
+        spc_multiplier:          '👆 Click Power',
+        sps_multiplier:          '⏱ Passive Boost',
+        gain_sps_seconds:        '⚡ Instant Souls',
+        gain_essence:            '🌑 Gain Essence',
+        global_multiplier:       '🔥 Global Boost',
+        temp_minion_cost_reducer:'💀 Cost Reducer',
+        add_sps_to_spc:          '🔗 Click+Passive',
+        multiplier_by_essence:   '📈 Essence Scale',
+        gain_souls_for_next_world:'🌐 World Rush',
+    };
+
+    let anyRendered = false;
     for (const id in rituals) {
-        if (gameState.unlockedWorlds.includes(rituals[id].requiredWorld)) {
-            const r = rituals[id];
-            const ritualState = gameState.activeRituals[id];
-            let buttonHtml = '';
+        if (!gameState.unlockedWorlds.includes(rituals[id].requiredWorld)) continue;
+        anyRendered = true;
+        const r = rituals[id];
+        const ritualState = gameState.activeRituals[id];
+        const isOnCooldown = ritualState && Date.now() < ritualState.cooldownEndTime;
+        const cannotAfford = gameState.souls < r.cost;
+        const meta = ritualMeta[id] || { icon:'🔮', color:'#8855ff', glow:'#8855ff44' };
+        const effectLabel = effectLabels[r.effect?.type] || '✨ Special';
 
-            const isOnCooldown = ritualState && Date.now() < ritualState.cooldownEndTime;
-            const cannotAfford = gameState.souls < r.cost;
-            const isDisabled = isOnCooldown || cannotAfford;
+        let cooldownBar = '';
+        let statusText = '';
+        let btnDisabled = cannotAfford ? 'disabled' : '';
 
-            if (isOnCooldown) {
-                // If the ritual is on cooldown, build the button with a timer
-                const timeLeft = Math.ceil((ritualState.cooldownEndTime - Date.now()) / 1000);
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = (timeLeft % 60).toString().padStart(2, '0');
-                const timerString = `${minutes}:${seconds}`;
-                
-                buttonHtml = `
-                    <button class="upgrade-btn" id="ritual-btn-${id}" disabled>
-                        <span class="btn-title" style="color: var(--dim-color);">${r.name}</span><br>
-                        <span>On Cooldown: ${timerString}</span><br>
-                        <span class="cost">Cost: <span class="cost-souls">${formatNumber(r.cost)}</span></span>
-                    </button>`;
-            } else {
-                // If the ritual is NOT on cooldown, build the standard button
-                // It will be disabled only if the player cannot afford it
-                buttonHtml = `
-                    <button class="upgrade-btn" id="ritual-btn-${id}" onclick="activateRitual('${id}')" ${isDisabled ? 'disabled' : ''}>
-                        <span class="btn-title">${r.name}</span><br>
-                        <span>${r.desc}</span><br>
-                        <span class="cost">Cost: <span class="cost-souls">${formatNumber(r.cost)}</span></span>
-                    </button>`;
-            }
-            grid.innerHTML += buttonHtml;
+        if (isOnCooldown) {
+            const timeLeft = Math.ceil((ritualState.cooldownEndTime - Date.now()) / 1000);
+            const pct = Math.max(0, (timeLeft / r.cooldown) * 100);
+            const mins = Math.floor(timeLeft / 60);
+            const secs = (timeLeft % 60).toString().padStart(2, '0');
+            cooldownBar = `
+                <div style="margin:10px 0 4px; background:#ffffff10; border-radius:4px; height:6px; overflow:hidden;">
+                    <div style="height:100%; width:${pct}%; background:${meta.color}; transition:width 1s linear; border-radius:4px;"></div>
+                </div>
+                <div style="color:${meta.color}; font-size:0.78em; text-align:right;">⏳ ${mins}:${secs} remaining</div>`;
+            statusText = `<span style="color:#888; font-size:0.78em;">On cooldown</span>`;
+            btnDisabled = 'disabled';
         }
+
+        const card = `
+        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${meta.color}44; border-top:3px solid ${meta.color}; border-radius:12px; padding:18px; position:relative; overflow:hidden; display:flex; flex-direction:column; gap:6px; box-shadow:0 0 20px ${meta.glow}; transition:box-shadow 0.2s;">
+            <div style="position:absolute; top:0; left:0; right:0; bottom:0; background:radial-gradient(ellipse at top left, ${meta.glow} 0%, transparent 60%); pointer-events:none;"></div>
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:4px;">
+                <div style="font-size:2em; line-height:1;">${meta.icon}</div>
+                <div>
+                    <div style="color:${meta.color}; font-weight:bold; font-size:1.05em; letter-spacing:1px;">${r.name}</div>
+                    <div style="background:${meta.color}22; border:1px solid ${meta.color}44; border-radius:10px; padding:1px 8px; display:inline-block; font-size:0.7em; color:${meta.color}; margin-top:2px;">${effectLabel}</div>
+                </div>
+            </div>
+            <p style="color:#aaa; font-size:0.84em; margin:0; line-height:1.4;">${r.desc}</p>
+            ${cooldownBar}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; flex-wrap:wrap; gap:6px;">
+                <div style="font-size:0.82em; color:#666;">
+                    🕐 Cooldown: ${r.cooldown >= 3600 ? (r.cooldown/3600)+'h' : r.cooldown >= 60 ? (r.cooldown/60)+'m' : r.cooldown+'s'}
+                </div>
+                <div style="font-size:0.88em; color:${cannotAfford && !isOnCooldown ? '#ff4444' : '#e8c46a'}; font-weight:bold;">
+                    Cost: ${formatNumber(r.cost)} souls
+                </div>
+            </div>
+            <button id="ritual-btn-${id}" class="upgrade-btn" onclick="activateRitual('${id}')" ${btnDisabled}
+                style="margin-top:8px; width:100%; border-color:${meta.color}88; ${isOnCooldown ? 'opacity:0.5;' : cannotAfford ? 'opacity:0.6;' : `background:linear-gradient(135deg,${meta.color}22,transparent);`}">
+                ${isOnCooldown ? statusText : cannotAfford ? '<span style="color:#666;">⚠️ Insufficient Souls</span>' : `<span style="color:${meta.color};">✦ Perform Ritual</span>`}
+            </button>
+        </div>`;
+        grid.innerHTML += card;
+    }
+
+    if (!anyRendered) {
+        grid.innerHTML = `<div style="color:var(--dim-color); text-align:center; padding:40px; grid-column:1/-1;">
+            <div style="font-size:2em; margin-bottom:10px;">🔒</div>
+            <div>No rituals unlocked yet. Progress through the Underworlds to unlock dark power.</div>
+        </div>`;
     }
 }
 function renderMap() { const grid = document.getElementById('map-grid'); grid.innerHTML = ''; for (const id in worlds) { const w = worlds[id]; const isUnlocked = gameState.unlockedWorlds.includes(id); const isActive = gameState.currentWorld === id; const li = document.createElement('li'); if (isActive) li.classList.add('active-world'); let buttonHtml = isUnlocked ? `<button class="upgrade-btn" onclick="travelToWorld('${id}')" ${isActive ? 'disabled' : ''}>Travel</button>` : `<button class="upgrade-btn" onclick="travelToWorld('${id}')" ${gameState.souls < w.unlockCost ? 'disabled' : ''}>Unlock (${formatNumber(w.unlockCost)})</button>`; li.innerHTML = `<div><strong>${w.name}</strong><br><small style="color:var(--prestige-color)">${w.perk}</small></div> ${buttonHtml}`; grid.appendChild(li); } }

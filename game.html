@@ -2877,124 +2877,177 @@ text-decoration: underline; /* Adds an underline on hover */
 
             <!-- PACTS SCREEN -->
             <div id="pacts-screen" class="screen">
-                <h2>⚔️ Soul Pacts ⚔️</h2>
-                <p style="color:var(--dim-color);">Form an alliance of 2–4 Soul Collectors. Each pact member boosts your SPS &amp; SPC by <strong style="color:#c8a800;">+10%</strong> (stacks per member).</p>
+                <h2 style="font-size:1.8em; letter-spacing:3px;">⚔️ SOUL PACTS ⚔️</h2>
+                <p style="color:var(--dim-color); max-width:520px; margin:0 auto 24px;">Forge a blood alliance with up to 3 other collectors. Every active pact member empowers your soul harvest.</p>
 
-                <!-- Current Pact Info -->
-                <div id="pact-current-panel" style="display:none; background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; border-left:3px solid #c8a800; padding:20px; margin-bottom:20px; border-radius:8px;">
-                    <h3 style="color:#c8a800; margin:0 0 10px;">Your Pact: <span id="pact-name-display"></span></h3>
-                    <div id="pact-members-list" style="margin-bottom:14px;"></div>
-                    <div id="pact-bonus-display" style="color:#00e5ff; font-size:0.9em; margin-bottom:14px;"></div>
-                    <button class="upgrade-btn" onclick="leavePact()" style="background:#3a0a0a; border-color:#8a0000;">🚪 Leave Pact</button>
+                <!-- Pact Bonus Banner -->
+                <div style="display:flex; justify-content:center; gap:24px; flex-wrap:wrap; margin-bottom:24px;">
+                    <div style="background:linear-gradient(135deg,#1a0e2a,#0e0a1a); border:1px solid #c8a80055; border-radius:10px; padding:12px 24px; text-align:center;">
+                        <div style="font-size:1.5em;">⚡</div>
+                        <div style="color:#c8a800; font-size:1.1em; font-weight:bold;">+10% per member</div>
+                        <div style="color:var(--dim-color); font-size:0.78em;">SPS &amp; SPC boost</div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,#1a0e2a,#0e0a1a); border:1px solid #c8a80055; border-radius:10px; padding:12px 24px; text-align:center;">
+                        <div style="font-size:1.5em;">👥</div>
+                        <div style="color:#c8a800; font-size:1.1em; font-weight:bold;">2 – 4 members</div>
+                        <div style="color:var(--dim-color); font-size:0.78em;">max pact size</div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,#1a0e2a,#0e0a1a); border:1px solid #c8a80055; border-radius:10px; padding:12px 24px; text-align:center;">
+                        <div style="font-size:1.5em;">🔥</div>
+                        <div style="color:#c8a800; font-size:1.1em; font-weight:bold;">+30% max</div>
+                        <div style="color:var(--dim-color); font-size:0.78em;">full pact bonus</div>
+                    </div>
+                </div>
+
+                <!-- Current Pact Panel -->
+                <div id="pact-current-panel" style="display:none; background:linear-gradient(135deg,#110d1e,#1c1428); border:1px solid #c8a80066; border-top:3px solid #c8a800; border-radius:12px; padding:24px; margin-bottom:24px; position:relative; overflow:hidden;">
+                    <div style="position:absolute; top:0; left:0; right:0; bottom:0; background:radial-gradient(ellipse at top, #c8a80008 0%, transparent 70%); pointer-events:none;"></div>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+                        <span style="font-size:1.8em;">⚔️</span>
+                        <div>
+                            <div style="color:var(--dim-color); font-size:0.75em; text-transform:uppercase; letter-spacing:2px;">Your Alliance</div>
+                            <div style="color:#c8a800; font-size:1.4em; font-weight:bold;" id="pact-name-display"></div>
+                        </div>
+                    </div>
+                    <div id="pact-members-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;"></div>
+                    <div id="pact-bonus-display" style="background:#00e5ff11; border:1px solid #00e5ff33; border-radius:6px; padding:8px 14px; color:#00e5ff; font-size:0.9em; margin-bottom:16px; display:inline-block;"></div>
+                    <br>
+                    <button class="upgrade-btn" onclick="leavePact()" style="background:#2a0808; border-color:#6a0000; color:#ff6666; margin-top:8px;">🚪 Leave Pact</button>
                 </div>
 
                 <!-- No Pact Panel -->
                 <div id="pact-none-panel">
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
-                        <div style="flex:1; min-width:250px; background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; padding:18px; border-radius:8px;">
-                            <h3 style="margin:0 0 8px;">Create a New Pact</h3>
-                            <p style="color:var(--dim-color); font-size:0.85em; margin:0 0 12px;">Choose a unique name for your alliance.</p>
-                            <input id="pact-create-name" type="text" maxlength="24" placeholder="Pact name..." style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px 12px; border-radius:4px; font-family:inherit; margin-bottom:10px;">
-                            <button class="upgrade-btn" onclick="createPact()" style="width:100%;">⚔️ Forge Pact</button>
+                    <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:24px;">
+                        <div style="flex:1; min-width:240px; background:linear-gradient(135deg,#110d1e,#1a1228); border:1px solid #3d2a4a; border-top:2px solid #8855ff; border-radius:10px; padding:20px;">
+                            <div style="font-size:1.4em; margin-bottom:6px;">🔱</div>
+                            <h3 style="margin:0 0 6px; color:#b088ff;">Forge a New Pact</h3>
+                            <p style="color:var(--dim-color); font-size:0.82em; margin:0 0 14px;">Become the founding member. Choose a name that strikes fear.</p>
+                            <input id="pact-create-name" type="text" maxlength="24" placeholder="Name your pact..." style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #4d3a6a; color:#fff; padding:9px 12px; border-radius:6px; font-family:inherit; margin-bottom:10px; font-size:0.9em;">
+                            <button class="upgrade-btn" onclick="createPact()" style="width:100%; border-color:#8855ff;">⚔️ Forge Pact</button>
                         </div>
-                        <div style="flex:1; min-width:250px; background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; padding:18px; border-radius:8px;">
-                            <h3 style="margin:0 0 8px;">Join a Pact</h3>
-                            <p style="color:var(--dim-color); font-size:0.85em; margin:0 0 12px;">Enter the exact pact name to join.</p>
-                            <input id="pact-join-name" type="text" maxlength="24" placeholder="Pact name..." style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px 12px; border-radius:4px; font-family:inherit; margin-bottom:10px;">
+                        <div style="flex:1; min-width:240px; background:linear-gradient(135deg,#110d1e,#1a1228); border:1px solid #3d2a4a; border-top:2px solid #c8a800; border-radius:10px; padding:20px;">
+                            <div style="font-size:1.4em; margin-bottom:6px;">🤝</div>
+                            <h3 style="margin:0 0 6px; color:#c8a800;">Join an Alliance</h3>
+                            <p style="color:var(--dim-color); font-size:0.82em; margin:0 0 14px;">Know the name of an existing pact? Pledge your soul to their cause.</p>
+                            <input id="pact-join-name" type="text" maxlength="24" placeholder="Enter pact name..." style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #4d3a6a; color:#fff; padding:9px 12px; border-radius:6px; font-family:inherit; margin-bottom:10px; font-size:0.9em;">
                             <button class="upgrade-btn" onclick="joinPact()" style="width:100%;">🤝 Join Pact</button>
                         </div>
                     </div>
                 </div>
 
-                <div id="pact-status-msg" style="color:#ff9944; margin-bottom:12px; min-height:20px;"></div>
+                <div id="pact-status-msg" style="color:#ff9944; margin-bottom:16px; min-height:20px; text-align:center;"></div>
 
                 <!-- Pacts Leaderboard -->
-                <hr>
-                <h3>⚔️ Pact Leaderboard</h3>
-                <p style="color:var(--dim-color); font-size:0.85em;">Combined lifetime souls of all members.</p>
-                <ul id="pact-leaderboard-list" class="leaderboard-list"></ul>
-                <button class="upgrade-btn" onclick="fetchPactLeaderboard()">Refresh</button>
+                <div style="background:linear-gradient(135deg,#0e0a1a,#110d1e); border:1px solid #3d2a4a; border-radius:12px; padding:20px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; flex-wrap:wrap; gap:10px;">
+                        <div>
+                            <h3 style="margin:0; color:#c8a800; letter-spacing:2px;">⚔️ PACT LEADERBOARD</h3>
+                            <p style="color:var(--dim-color); font-size:0.8em; margin:4px 0 0;">Ranked by number of members</p>
+                        </div>
+                        <button class="upgrade-btn" onclick="fetchPactLeaderboard()" style="padding:6px 14px; font-size:0.8em;">🔄 Refresh</button>
+                    </div>
+                    <div id="pact-leaderboard-list" style="margin-top:16px;"></div>
+                </div>
             </div>
             <!-- ================================================================= -->
             <!-- BANK SCREEN (NEW) -->
             <!-- ================================================================= -->
             <div id="bank-screen" class="screen">
-                <h2>💰 Abyssal Vault 💰</h2>
-                <p>Invest resources from this life to secure a head start in the next. Banked souls are available immediately after you Ascend.</p>
-                
-                <div id="bank-status" class="bank-status-box">
-                    <h3>Current Vault Balance</h3>
-                    <p>Souls Stored: <span id="banked-souls-display" class="cost-souls">0</span></p>
-                    <button id="withdrawBtn" class="upgrade-btn" onclick="withdrawSouls()">
-                        <span class="btn-title">Withdraw Balance</span>
-                        <span>Claim your stored souls for this run.</span>
-                        <span class="cost">Cost: <span id="withdrawCost" class="cost-essence">10</span></span>
+                <h2 style="letter-spacing:3px;">🏦 ABYSSAL VAULT</h2>
+                <p style="color:var(--dim-color); max-width:520px; margin:0 auto 24px;">Secure your souls across lives. Deposits survive <strong style="color:#88ff88;">Ascension</strong> but are destroyed by <strong style="color:#ff4444;">Collapse</strong>.</p>
+
+                <!-- Survive/Destroyed badges -->
+                <div style="display:flex; justify-content:center; gap:16px; margin-bottom:28px; flex-wrap:wrap;">
+                    <div style="background:#00440022; border:1px solid #00cc4466; border-radius:8px; padding:8px 18px; font-size:0.82em; color:#88ff88;">✅ Survives Ascension</div>
+                    <div style="background:#44000022; border:1px solid #cc000066; border-radius:8px; padding:8px 18px; font-size:0.82em; color:#ff6666;">💥 Lost on Collapse</div>
+                </div>
+
+                <!-- Vault Balance Card -->
+                <div id="bank-status" style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; border-top:3px solid #c8a800; border-radius:12px; padding:24px; margin-bottom:20px; position:relative; overflow:hidden;">
+                    <div style="position:absolute; top:0; left:0; right:0; bottom:0; background:radial-gradient(ellipse at top, #c8a80008 0%, transparent 70%); pointer-events:none;"></div>
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+                        <span style="font-size:1.6em;">🏛️</span>
+                        <div>
+                            <div style="color:var(--dim-color); font-size:0.72em; text-transform:uppercase; letter-spacing:2px;">Current Balance</div>
+                            <div style="color:#c8a800; font-size:1.8em; font-weight:bold;" id="banked-souls-display">0</div>
+                            <div style="color:var(--dim-color); font-size:0.75em;">souls secured</div>
+                        </div>
+                    </div>
+                    <button id="withdrawBtn" class="upgrade-btn" onclick="withdrawSouls()" style="width:100%; text-align:left;">
+                        <span class="btn-title">⬇️ Withdraw Souls</span>
+                        <span>Claim your stored souls into this run.</span>
+                        <span class="cost">Fee: <span id="withdrawCost" class="cost-essence">10</span> Dark Essence</span>
                     </button>
                 </div>
 
-                <hr>
-
-                <h3>Make a Deposit</h3>
-                <p>Each deposit adds 50,000 souls to your vault, available after your next Ascension.</p>
-                <div class="upgrade-section">
-                    <button id="depositBtn" class="upgrade-btn" onclick="depositSouls()">
-                        <span class="btn-title">Secure a Soul Package</span>
-                        <span>Store 50,000 souls for the afterlife.</span>
-                        <span class="cost">Cost: <span id="depositCostSouls" class="cost-souls">100,000</span> + <span id="depositCostEssence" class="cost-essence">25DE</span></span>
+                <!-- Deposit Card -->
+                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1228); border:1px solid #3d2a4a; border-top:3px solid #8855ff; border-radius:12px; padding:20px; margin-bottom:20px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                        <span style="font-size:1.3em;">💰</span>
+                        <h3 style="margin:0; color:#b088ff;">Make a Deposit</h3>
+                    </div>
+                    <p style="color:var(--dim-color); font-size:0.84em; margin:0 0 14px;">Each deposit locks away 50,000 souls for your next life. Available immediately after Ascension.</p>
+                    <button id="depositBtn" class="upgrade-btn" onclick="depositSouls()" style="width:100%;">
+                        <span class="btn-title">🔐 Secure a Soul Package</span>
+                        <span>Store 50,000 souls in the vault.</span>
+                        <span class="cost">Cost: <span id="depositCostSouls" class="cost-souls">100,000</span> souls + <span id="depositCostEssence" class="cost-essence">25</span> DE</span>
                     </button>
                 </div>
 
+                <!-- Exchange Section -->
+                <div style="background:linear-gradient(135deg,#0a0812,#110d1e); border:1px solid #3d2a4a; border-radius:12px; padding:20px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                        <span style="font-size:1.3em;">🔀</span>
+                        <h3 style="margin:0; color:#00e5ff;">Abyssal Exchange</h3>
+                    </div>
+                    <p style="color:var(--dim-color); font-size:0.82em; margin:0 0 16px;">Transmute your cosmic assets. These conversions are permanent and costly.</p>
 
-                <hr>
+                    <!-- Balances row -->
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:8px 14px; font-size:0.82em;">
+                            👻 <span id="exchange-souls-balance" class="cost-souls">0</span> Souls
+                        </div>
+                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:8px 14px; font-size:0.82em;">
+                            🌑 <span id="exchange-essence-balance" class="cost-essence">0</span> Dark Essence
+                        </div>
+                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:8px 14px; font-size:0.82em;">
+                            💎 <span id="exchange-shards-balance" class="cost-shards">0</span> Shards
+                        </div>
+                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:8px 14px; font-size:0.82em;">
+                            ⚡ <span id="exchange-aether-balance" style="color:#00e5ff;">0</span> Aether
+                        </div>
+                    </div>
 
-                <h3>Abyssal Exchange</h3>
-                <p>Transmute your cosmic assets into more liquid forms. These conversions are permanent and costly.</p>
-
-                <div class="bank-status-box" style="text-align: left; padding: 10px 20px;">
-                    <h4>Your Balances:</h4>
-                    <p style="margin: 5px 0;">Souls: <span id="exchange-souls-balance" class="cost-souls">0</span></p>
-                    <p style="margin: 5px 0;">Dark Essence: <span id="exchange-essence-balance" class="cost-essence">0</span></p>
-                    <p style="margin: 5px 0;">Abyssal Shards: <span id="exchange-shards-balance" class="cost-shards">0</span></p>
-                    <p style="margin: 5px 0;">Aether: <span id="exchange-aether-balance" style="color:#00e5ff;">0</span></p>
+                    <div class="exchange-offers-grid">
+                        <div class="upgrade-btn exchange-offer">
+                            <span class="btn-title">💎 Shatter Shards</span>
+                            <div class="exchange-tier-selector">
+                                <button class="arrow-btn" onclick="cycleConversion('shardsToDe', -1)">&#10094;</button>
+                                <span id="shards-tier-text">Loading...</span>
+                                <button class="arrow-btn" onclick="cycleConversion('shardsToDe', 1)">&#10095;</button>
+                            </div>
+                            <button id="convert-shards-btn" class="action-btn" style="width:100%; margin-top:15px; font-size:1rem;">Convert</button>
+                        </div>
+                        <div class="upgrade-btn exchange-offer">
+                            <span class="btn-title">⚡ Bleed Aether</span>
+                            <div class="exchange-tier-selector">
+                                <button class="arrow-btn" onclick="cycleConversion('aetherToDe', -1)">&#10094;</button>
+                                <span id="aether-tier-text">Loading...</span>
+                                <button class="arrow-btn" onclick="cycleConversion('aetherToDe', 1)">&#10095;</button>
+                            </div>
+                            <button id="convert-aether-btn" class="action-btn" style="width:100%; margin-top:15px; font-size:1rem;">Convert</button>
+                        </div>
+                        <div class="upgrade-btn exchange-offer">
+                            <span class="btn-title">👻 Conjure Souls</span>
+                            <div class="exchange-tier-selector">
+                                <button class="arrow-btn" onclick="cycleConversion('deToSouls', -1)">&#10094;</button>
+                                <span id="de-tier-text">Loading...</span>
+                                <button class="arrow-btn" onclick="cycleConversion('deToSouls', 1)">&#10095;</button>
+                            </div>
+                            <button id="convert-essence-btn" class="action-btn" style="width:100%; margin-top:15px; font-size:1rem;">Convert</button>
+                        </div>
+                    </div>
                 </div>
-
-
-                <div class="exchange-offers-grid">
-                    <!-- Offer 1: Shards to Essence (Dynamic) -->
-                    <div class="upgrade-btn exchange-offer">
-                        <span class="btn-title">Shatter Shards</span>
-                        <div class="exchange-tier-selector">
-                            <button class="arrow-btn" onclick="cycleConversion('shardsToDe', -1)">&#10094;</button>
-                            <span id="shards-tier-text">Loading...</span>
-                            <button class="arrow-btn" onclick="cycleConversion('shardsToDe', 1)">&#10095;</button>
-                        </div>
-                        <button id="convert-shards-btn" class="action-btn" style="width:100%; margin-top:15px; font-size: 1rem;">Convert</button>
-                    </div>
-
-                    <!-- Offer 2: Aether to Essence (Dynamic) -->
-                    <div class="upgrade-btn exchange-offer">
-                        <span class="btn-title">Bleed Aether</span>
-                        <div class="exchange-tier-selector">
-                            <button class="arrow-btn" onclick="cycleConversion('aetherToDe', -1)">&#10094;</button>
-                            <span id="aether-tier-text">Loading...</span>
-                            <button class="arrow-btn" onclick="cycleConversion('aetherToDe', 1)">&#10095;</button>
-                        </div>
-                        <button id="convert-aether-btn" class="action-btn" style="width:100%; margin-top:15px; font-size: 1rem;">Convert</button>
-                    </div>
-
-                    <!-- Offer 3: Essence to Souls (Dynamic) -->
-                    <div class="upgrade-btn exchange-offer">
-                        <span class="btn-title">Conjure Souls</span>
-                        <div class="exchange-tier-selector">
-                            <button class="arrow-btn" onclick="cycleConversion('deToSouls', -1)">&#10094;</button>
-                            <span id="de-tier-text">Loading...</span>
-                            <button class="arrow-btn" onclick="cycleConversion('deToSouls', 1)">&#10095;</button>
-                        </div>
-                        <button id="convert-essence-btn" class="action-btn" style="width:100%; margin-top:15px; font-size: 1rem;">Convert</button>
-                    </div>
-                </div>
-
-
             </div>
             <div id="ascension-screen" class="screen">
                 <h2>✨ Shatter the Soul Core ✨</h2>
@@ -5510,18 +5563,28 @@ function performAscension() {
   var inventory = gameState.inventory;
   var equipped = gameState.equipped;
   var collappses = gameState.totalCollapses;
+  // Preserve lifetime stats
+  const oldLifetimeSouls = gameState.lifetimeSouls;
+  const oldTotalAetherEarned = gameState.totalAetherEarned;
+  const oldManualHarvests = gameState.manualHarvests;
+  const oldSoulsSpent = gameState.soulsSpent;
+  const oldCachesOpened = gameState.cachesOpened;
+  const oldPotionsBrewed = gameState.potionsBrewed;
+  const oldRitualsPerformed = gameState.ritualsPerformed;
+  const oldTotalShardsEarned = gameState.totalShardsEarned;
+  const oldCompletedPuzzles = gameState.completedPuzzles;
 
   gameState = getDefaultGameState();
   gameState.permanentRitualBonuses = { spc_multiplier: 1, sps_multiplier: 1, global_multiplier: 1 };
 
   gameState.playerName = oldPlayerName;
-  gameState.souls = startingSouls; // Add starting souls
+  gameState.souls = startingSouls;
   gameState.bankedSouls = oldBankedSouls;
   gameState.hasWithdrawn = false;
   gameState.ascensions = oldAscensions + 1;
   gameState.abyssalShards = oldAbyssalShards + shardsGained;
-  gameState.totalShardsEarned += shardsGained;
-  gameState.darkEssence = essenceToRetain; // Add retained essence
+  gameState.totalShardsEarned = oldTotalShardsEarned + shardsGained;
+  gameState.darkEssence = essenceToRetain;
   gameState.upgrades.resonance = oldResonance;
   gameState.pvpWins = oldPvpWins;
   gameState.pvpLosses = oldPvpLosses;
@@ -5530,6 +5593,15 @@ function performAscension() {
   gameState.inventory = inventory;
   gameState.equipped = equipped;
   gameState.totalCollapses = collappses;
+  // Restore lifetime stats
+  gameState.lifetimeSouls = oldLifetimeSouls;
+  gameState.totalAetherEarned = oldTotalAetherEarned;
+  gameState.manualHarvests = oldManualHarvests;
+  gameState.soulsSpent = oldSoulsSpent;
+  gameState.cachesOpened = oldCachesOpened;
+  gameState.potionsBrewed = oldPotionsBrewed;
+  gameState.ritualsPerformed = oldRitualsPerformed;
+  gameState.completedPuzzles = oldCompletedPuzzles;
 
   if (gameState.aetherUpgrades?.startMinions?.level > 0) {
       const freeImps = gameState.aetherUpgrades.startMinions.level * 10;
@@ -5576,17 +5648,41 @@ function performCollapse() {
     const oldPlayerName = gameState.playerName;
     const oldAether = gameState.aether;
     const oldAetherUpgrades = gameState.aetherUpgrades;
+    // Preserve lifetime stats
+    const oldLifetimeSouls = gameState.lifetimeSouls;
+    const oldManualHarvests = gameState.manualHarvests;
+    const oldSoulsSpent = gameState.soulsSpent;
+    const oldCachesOpened = gameState.cachesOpened;
+    const oldPotionsBrewed = gameState.potionsBrewed;
+    const oldRitualsPerformed = gameState.ritualsPerformed;
+    const oldTotalShardsEarned = gameState.totalShardsEarned;
+    const oldPvpWins = gameState.pvpWins;
+    const oldPvpLosses = gameState.pvpLosses;
+    const oldAscensions = gameState.ascensions;
+    const oldTotalCollapses = gameState.totalCollapses;
+    const oldTotalAetherEarned = gameState.totalAetherEarned;
 
     // Get a completely fresh start
     gameState = getDefaultGameState();
     gameState.essenceGainedThisRun = 0;
 
-    // Restore only the permanent data
-    gameState.playerName = oldPlayerName;
-    gameState.aether = oldAether + aetherGained;
-    gameState.totalAetherEarned += aetherGained; // <<< ADD THIS LINE
-    gameState.totalCollapses++; // <<< ADD THIS LINE
-    gameState.aetherUpgrades = oldAetherUpgrades;
+    // Restore permanent + lifetime data
+    gameState.playerName        = oldPlayerName;
+    gameState.aether            = oldAether + aetherGained;
+    gameState.totalAetherEarned = oldTotalAetherEarned + aetherGained;
+    gameState.totalCollapses    = (oldTotalShardsEarned >= 0 ? 0 : 0); // placeholder — set properly below
+    gameState.aetherUpgrades    = oldAetherUpgrades;
+    gameState.pvpWins           = oldPvpWins;
+    gameState.pvpLosses         = oldPvpLosses;
+    gameState.ascensions        = oldAscensions;
+    gameState.lifetimeSouls     = oldLifetimeSouls;
+    gameState.manualHarvests    = oldManualHarvests;
+    gameState.soulsSpent        = oldSoulsSpent;
+    gameState.cachesOpened      = oldCachesOpened;
+    gameState.potionsBrewed     = oldPotionsBrewed;
+    gameState.ritualsPerformed  = oldRitualsPerformed;
+    gameState.totalShardsEarned = oldTotalShardsEarned;
+    gameState.totalCollapses    = oldTotalCollapses + 1;
     
     // Post-collapse actions
     playSound('ascend'); // We can reuse the ascend sound
@@ -10063,23 +10159,26 @@ function postGhostEvent(type) {
         // Repeat reminder every 60s until claimed or expired
         const ghostId = ghostRef.key;
         const reminderInterval = setInterval(async () => {
-            const snap = await chatDb.ref(`activeGhosts/${ghostId}`).once('value');
-            const ghost = snap.val();
-            if (!ghost || ghost.claimedBy || Date.now() > ghost.expiresAt) {
-                clearInterval(reminderInterval);
-                return;
-            }
-            const secsLeft = Math.max(0, Math.floor((ghost.expiresAt - Date.now()) / 1000));
-            const minsLeft = Math.ceil(secsLeft / 60);
-            const rLabel = { souls:'Souls', darkEssence:'Dark Essence', abyssalShards:'Abyssal Shards', corruptedFragments:'Corrupted Fragments' }[ghost.rewardType] || 'rewards';
-            const rIcon  = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' }[ghost.rewardType] || '✨';
-            chatDb.ref('slitherChat').push({
-                uid,
-                name: '👻 Soul Echo',
-                text: `👻 A ghost still wanders unclaimed! ${rIcon} ${rLabel} up for grabs — yours is based on YOUR stash. Type !absorb — ${minsLeft} min${minsLeft !== 1 ? 's' : ''} remaining!`,
-                time: window._scFirebase.firebase.database.ServerValue.TIMESTAMP,
-                chatNameColor: '#8855ff'
-            });
+            try {
+                const snap = await chatDb.ref(`activeGhosts/${ghostId}`).once('value');
+                const ghost = snap.val();
+                // Stop if claimed, expired, or ghost no longer exists
+                if (!ghost || ghost.claimedBy || Date.now() > ghost.expiresAt) {
+                    clearInterval(reminderInterval);
+                    return;
+                }
+                const secsLeft = Math.max(0, Math.floor((ghost.expiresAt - Date.now()) / 1000));
+                const minsLeft = Math.ceil(secsLeft / 60);
+                const rLabel = { souls:'Souls', darkEssence:'Dark Essence', abyssalShards:'Abyssal Shards', corruptedFragments:'Corrupted Fragments' }[ghost.rewardType] || 'rewards';
+                const rIcon  = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' }[ghost.rewardType] || '✨';
+                chatDb.ref('slitherChat').push({
+                    uid,
+                    name: '👻 Soul Echo',
+                    text: `👻 A ghost still wanders unclaimed! ${rIcon} ${rLabel} up for grabs — yours is based on YOUR stash. Type !absorb — ${minsLeft} min${minsLeft !== 1 ? 's' : ''} remaining!`,
+                    time: window._scFirebase.firebase.database.ServerValue.TIMESTAMP,
+                    chatNameColor: '#8855ff'
+                });
+            } catch(e) { clearInterval(reminderInterval); }
         }, 60 * 1000); // remind every 60 seconds
 
     } catch(e) { console.warn('Ghost post error:', e); }
@@ -10127,11 +10226,14 @@ async function tryAbsorbGhost(msgKey) {
 
         // Claim atomically
         const claimResult = await chatDb.ref(`activeGhosts/${ghostId}/claimedBy`).transaction(current => {
-            if (current !== null) return; // already claimed
+            if (current !== null && current !== undefined) return; // already claimed
             return gameState.playerName;
         });
 
-        if (!claimResult.committed) return;
+        if (!claimResult.committed) {
+            Toastify({ text: '👻 Too slow! Another soul claimed the ghost first.', duration: 3000, gravity:'top', position:'center' }).showToast();
+            return;
+        }
 
         // Pick 2 unique random reward types
         const allCurrencies = ['souls','darkEssence','abyssalShards','corruptedFragments'];
@@ -10219,17 +10321,20 @@ function renderPactScreen() {
 
         const members = window.playerPact.members || [];
         const memberColors = ['#ffd700','#00e5ff','#ff9944','#88ff88'];
+        const memberIcons  = ['👑','⚔️','⚔️','⚔️'];
         document.getElementById('pact-members-list').innerHTML = members.map((m, i) =>
-            `<div style="color:${memberColors[i % memberColors.length]}; padding:3px 0;">
-                ${i === 0 ? '👑' : '⚔️'} ${m}${m === gameState.playerName ? ' <em style="color:#666;font-size:0.8em;">(you)</em>' : ''}
+            `<div style="background:#ffffff0a; border:1px solid ${memberColors[i % memberColors.length]}44; border-radius:20px; padding:5px 14px; display:inline-flex; align-items:center; gap:6px; font-size:0.88em;">
+                <span>${memberIcons[i]}</span>
+                <span style="color:${memberColors[i % memberColors.length]};">${m}</span>
+                ${m === gameState.playerName ? '<span style="color:#555; font-size:0.75em;">(you)</span>' : ''}
             </div>`
         ).join('');
 
         const others = members.filter(m => m !== gameState.playerName).length;
         const bonusPct = others * 10;
         document.getElementById('pact-bonus-display').innerHTML = others > 0
-            ? `✨ Pact Bonus Active: <strong>+${bonusPct}% SPS &amp; SPC</strong> (${others} allied soul${others > 1 ? 's' : ''})`
-            : `<span style="color:#666;">Waiting for allies to join your pact...</span>`;
+            ? `⚡ Pact Bonus Active: <strong>+${bonusPct}% SPS &amp; SPC</strong> from ${others} allied soul${others > 1 ? 's' : ''}`
+            : `<span style="color:#666;">⏳ Waiting for allies to join your pact...</span>`;
     } else {
         currentPanel.style.display = 'none';
         nonePanel.style.display    = 'block';
@@ -10320,7 +10425,7 @@ async function leavePact() {
 async function fetchPactLeaderboard() {
     const list = document.getElementById('pact-leaderboard-list');
     if (!list || !supabaseClient) return;
-    list.innerHTML = '<li><em>Summoning pacts from the abyss...</em></li>';
+    list.innerHTML = '<div style="color:var(--dim-color); text-align:center; padding:20px;">⏳ Summoning pacts from the abyss...</div>';
 
     try {
         const { data, error } = await supabaseClient
@@ -10329,24 +10434,40 @@ async function fetchPactLeaderboard() {
             .order('combined_souls_log', { ascending: false })
             .limit(10);
         if (error) throw error;
-        if (!data || data.length === 0) { list.innerHTML = '<li>No pacts formed yet. Be the first!</li>'; return; }
+        if (!data || data.length === 0) {
+            list.innerHTML = '<div style="color:var(--dim-color); text-align:center; padding:20px;">No pacts formed yet. Be the first to forge one!</div>';
+            return;
+        }
 
-        list.innerHTML = '';
-        data.forEach((pact, i) => {
-            const li = document.createElement('li');
-            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
-            const membersStr = (pact.members || []).join(', ');
-            const isMe = (pact.members || []).includes(gameState.playerName);
-            li.innerHTML = `<div>
-                <strong style="color:${isMe?'var(--primary-color)':'#c8a800'}">${medal} ${pact.pact_name}</strong>
-                <div style="font-size:0.8em; color:#666; margin-top:2px;">${membersStr}</div>
-            </div>
-            <span style="color:#c8a800; font-weight:bold;">${pact.members?.length || 0} members</span>`;
-            if (isMe) li.style.cssText = 'border-color:var(--primary-color);';
-            list.appendChild(li);
-        });
+        const rankColors  = ['#ffd700','#c0c0c0','#cd7f32'];
+        const rankBg      = ['#2a200044','#1e1e1e44','#1e100044'];
+        const rankBorders = ['#ffd70066','#c0c0c066','#cd7f3266'];
+
+        list.innerHTML = data.map((pact, i) => {
+            const medal   = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="color:#666;">#${i+1}</span>`;
+            const isMe    = (pact.members || []).includes(gameState.playerName);
+            const members = pact.members || [];
+            const memberCount = members.length;
+            const color   = isMe ? 'var(--primary-color)' : (rankColors[i] || '#aaa');
+            const bg      = isMe ? '#1e0a2a' : (rankBg[i] || 'transparent');
+            const border  = isMe ? 'var(--primary-color)' : (rankBorders[i] || '#3d2a4a');
+
+            return `<div style="display:flex; align-items:center; justify-content:space-between; background:${bg}; border:1px solid ${border}; border-radius:8px; padding:12px 16px; margin-bottom:8px; gap:12px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="font-size:1.4em; min-width:28px; text-align:center;">${medal}</div>
+                    <div>
+                        <div style="color:${color}; font-weight:bold; font-size:1em;">${pact.pact_name}${isMe ? ' <span style="color:#666; font-size:0.75em; font-weight:normal;">(yours)</span>' : ''}</div>
+                        <div style="color:#666; font-size:0.78em; margin-top:2px;">${members.join(' · ') || 'No members'}</div>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:${color}; font-weight:bold;">${memberCount} / 4</div>
+                    <div style="color:#555; font-size:0.75em;">members</div>
+                </div>
+            </div>`;
+        }).join('');
     } catch(e) {
-        list.innerHTML = '<li>Error loading pact leaderboard.</li>';
+        list.innerHTML = '<div style="color:#ff4444; text-align:center; padding:20px;">Error loading pact leaderboard.</div>';
     }
 }
 

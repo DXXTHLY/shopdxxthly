@@ -9450,23 +9450,22 @@ async function refreshMarketTicker() {
     try {
         let marketData = [], barterData = [];
 
-        // Market item listings — no is_sold filter to avoid column issues, just grab recent
+        console.log('Ticker: fetching market listings...');
         const mRes = await supabaseClient
             .from('market_listings')
             .select('item_id,price,seller_name')
             .order('created_at', { ascending: false })
             .limit(15);
+        console.log('Ticker market result:', mRes.data, mRes.error);
         if (mRes.data) marketData = mRes.data;
-        if (mRes.error) console.warn('Ticker market error:', mRes.error.message);
 
-        // Barter listings — no is_complete filter to avoid column issues
         const bRes = await supabaseClient
             .from('barter_listings')
             .select('offer_type,offer_amt,want_type,want_amt,poster_name')
             .order('created_at', { ascending: false })
             .limit(10);
+        console.log('Ticker barter result:', bRes.data, bRes.error);
         if (bRes.data) barterData = bRes.data;
-        if (bRes.error) console.warn('Ticker barter error:', bRes.error.message);
 
         const rarityColor = { legendary:'#ff9900', epic:'#cc44ff', rare:'#4488ff', uncommon:'#44cc88', common:'#ccc' };
         const cIcon = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' };

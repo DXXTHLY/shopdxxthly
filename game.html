@@ -3094,38 +3094,28 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div id="market-sell-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;"></div>
                 </div>
 
-                <!-- SELL PRICE MODAL -->
-                <div id="sell-price-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); justify-content:center; align-items:center; z-index:400; backdrop-filter:blur(6px);">
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#0e1a12); border:2px solid #44cc8844; border-radius:16px; padding:28px; max-width:380px; width:90%; text-align:center;">
-                        <div id="sell-modal-icon" style="font-size:2.4em; margin-bottom:8px;"></div>
-                        <div id="sell-modal-name" style="color:#44cc88; font-weight:bold; font-size:1.1em; margin-bottom:4px;"></div>
-                        <div id="sell-modal-desc" style="color:#555; font-size:0.78em; margin-bottom:18px; line-height:1.5;"></div>
-                        <label style="color:#888; font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Price in Dark Essence</label>
-                        <input id="sell-price-input" type="number" min="1" placeholder="Enter price..."
-                            style="display:block; width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #44cc8844; color:#fff; padding:10px 14px; border-radius:9px; font-family:inherit; font-size:1.1em; text-align:center; margin:8px 0 20px;">
-                        <div style="display:flex; gap:10px;">
-                            <button onclick="closeSellModal()" style="flex:1; background:#0d0a18; border:1px solid #2a1a3a; border-radius:9px; padding:10px; color:#555; font-family:inherit; cursor:pointer;">✗ Cancel</button>
-                            <button onclick="confirmSellItem()" style="flex:1; background:linear-gradient(135deg,#44cc8822,#44cc8811); border:2px solid #44cc8866; border-radius:9px; padding:10px; color:#44cc88; font-family:inherit; font-weight:bold; cursor:pointer;">📤 List Item</button>
+                <!-- CURRENT LISTINGS -->
+                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #4488ff44; border-top:3px solid #4488ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
+                    <div style="margin-bottom:16px;">
+                        <div style="background:linear-gradient(90deg,#4488ff22,#4488ff08); border:1px solid #4488ff33; border-radius:8px; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                            <span style="color:#4488ff; font-weight:bold; font-size:1em; letter-spacing:3px; text-transform:uppercase; font-family:var(--font-title);">🏪 CURRENT LISTINGS</span>
+                            <button onclick="fetchMarketListings()" style="background:#4488ff18; border:1px solid #4488ff44; border-radius:7px; padding:5px 14px; color:#4488ff; cursor:pointer; font-family:inherit; font-size:0.78em; font-weight:bold; letter-spacing:1px;">🔄 REFRESH</button>
                         </div>
+                        <p style="margin:8px 0 0; color:#555; font-size:0.78em;">Items listed by other Soul Collectors for Dark Essence.</p>
                     </div>
+                    <ul id="market-listing-list" class="leaderboard-list" style="margin:0;"></ul>
                 </div>
 
-
-
-
-                                <!-- BARTER -->
+                <!-- BARTER -->
                 <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #aa44ff44; border-top:3px solid #aa44ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto;">
                     <h3 style="margin:0 0 4px; color:#aa44ff; letter-spacing:2px;">🔀 ABYSS BARTER</h3>
                     <p style="margin:0 0 18px; color:#666; font-size:0.82em;">Trade resources directly with other players.</p>
-
                     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;">
                         <button class="upgrade-btn" id="barter-tab-browse" onclick="showBarterTab('browse')" style="border-color:#c8a80066;">📜 Browse Trades</button>
                         <button class="upgrade-btn" id="barter-tab-post" onclick="showBarterTab('post')" style="border-color:#aa44ff66;">➕ Post a Trade</button>
-                        <button class="upgrade-btn" onclick="fetchBarterListings()" style="border-color:#44444466;">🔄 Refresh</button>
+                        <button class="upgrade-btn" onclick="barterPage=0; fetchBarterListings()" style="border-color:#44444466;">🔄 Refresh</button>
                     </div>
-
                     <div id="barter-browse-panel">
-                        <!-- Sort controls -->
                         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
                             <span style="color:#666; font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Sort:</span>
                             <select id="barter-sort-select" onchange="barterPage=0; fetchBarterListings()" style="background:#0d0a18; border:1px solid #3d2a4a; color:#aaa; padding:5px 10px; border-radius:7px; font-family:inherit; font-size:0.8em; cursor:pointer;">
@@ -3155,7 +3145,6 @@ text-decoration: underline; /* Adds an underline on hover */
                             <li><em>Loading trades...</em></li>
                         </ul>
                     </div>
-
                     <div id="barter-post-panel" style="display:none;">
                         <div style="background:#0a0812; border:1px solid #3d2a4a; padding:20px; border-radius:10px; max-width:500px; margin:0 auto;">
                             <h4 style="margin:0 0 14px; color:#aa44ff;">Post a Barter Trade</h4>
@@ -3186,6 +3175,22 @@ text-decoration: underline; /* Adds an underline on hover */
                             </button>
                             <div id="barter-post-msg" style="color:#ff9944; margin-top:10px; font-size:0.85em; text-align:center;"></div>
                         </div>
+                    </div>
+                </div>
+
+            </div>
+            <!-- SELL PRICE MODAL -->
+            <div id="sell-price-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); justify-content:center; align-items:center; z-index:400; backdrop-filter:blur(6px);">
+                <div style="background:linear-gradient(135deg,#0e0a1a,#0e1a12); border:2px solid #44cc8844; border-radius:16px; padding:28px; max-width:380px; width:90%; text-align:center;">
+                    <div id="sell-modal-icon" style="font-size:2.4em; margin-bottom:8px;"></div>
+                    <div id="sell-modal-name" style="color:#44cc88; font-weight:bold; font-size:1.1em; margin-bottom:4px;"></div>
+                    <div id="sell-modal-desc" style="color:#555; font-size:0.78em; margin-bottom:18px; line-height:1.5;"></div>
+                    <label style="color:#888; font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Price in Dark Essence</label>
+                    <input id="sell-price-input" type="number" min="1" placeholder="Enter price..."
+                        style="display:block; width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #44cc8844; color:#fff; padding:10px 14px; border-radius:9px; font-family:inherit; font-size:1.1em; text-align:center; margin:8px 0 20px;">
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="closeSellModal()" style="flex:1; background:#0d0a18; border:1px solid #2a1a3a; border-radius:9px; padding:10px; color:#555; font-family:inherit; cursor:pointer;">✗ Cancel</button>
+                        <button onclick="confirmSellItem()" style="flex:1; background:linear-gradient(135deg,#44cc8822,#44cc8811); border:2px solid #44cc8866; border-radius:9px; padding:10px; color:#44cc88; font-family:inherit; font-weight:bold; cursor:pointer;">📤 List Item</button>
                     </div>
                 </div>
             </div>
@@ -9432,7 +9437,6 @@ async function refreshMarketTicker() {
     if (!inner || !supabaseClient) return;
     try {
         // Try is_sold first, fall back if column doesn't exist
-        let data;
         let result = await supabaseClient
             .from('market_listings')
             .select('item_id, price, seller_name')
@@ -9440,7 +9444,6 @@ async function refreshMarketTicker() {
             .order('created_at', { ascending: false })
             .limit(20);
         if (result.error) {
-            // Try without the is_sold filter
             result = await supabaseClient
                 .from('market_listings')
                 .select('item_id, price, seller_name')

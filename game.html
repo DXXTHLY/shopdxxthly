@@ -9368,32 +9368,33 @@ async function fetchMarketListings() {
     list.innerHTML = '<li style="text-align:center; color:var(--dim-color);"><em>Contacting the abyssal brokers...</em></li>';
     try {
         let data, error;
-        // Try with is_sold filter first
         ({ data, error } = await supabaseClient
             .from('market_listings')
             .select('*')
             .eq('is_sold', false)
             .order('created_at', { ascending: false }));
-        // If is_sold column doesn't exist, fetch without it
         if (error) {
-            console.warn('market_listings is_sold issue:', error.message);
+            console.warn('is_sold fallback:', error.message);
             ({ data, error } = await supabaseClient
                 .from('market_listings')
                 .select('*')
                 .order('created_at', { ascending: false }));
         }
-        if (error) { console.error('Market listings error:', error); throw error; }
+        if (error) throw error;
         if (!data || data.length === 0) {
-            list.innerHTML = '<li style="text-align:center; color:var(--dim-color);">The marketplace is currently empty.</li>';
+            list.innerHTML = '<li style="text-align:center; color:var(--dim-color); padding:20px;">The marketplace is currently empty.</li>';
             return;
         }
         list.innerHTML = '';
         data.forEach((listing) => {
             const item = items[listing.item_id];
-            if (!item) return;
             const canAfford = gameState.darkEssence >= listing.price;
             const isMyItem  = gameState.playerName === listing.seller_name;
-            const rarityColor = { legendary:'#ff9900', epic:'#a855f7', rare:'#3b82f6', uncommon:'#22c55e', common:'#aaa' }[item.rarity] || '#aaa';
+            const rarityColor = item ? ({ legendary:'#ff9900', epic:'#a855f7', rare:'#3b82f6', uncommon:'#22c55e', common:'#aaa' }[item.rarity] || '#aaa') : '#888';
+            const itemName  = item ? item.name  : (listing.item_id || 'Unknown Item');
+            const itemDesc  = item ? item.desc  : '';
+            const itemRarity= item ? (item.rarity || 'common') : 'unknown';
+            const itemType  = item ? (item.type  || '') : '';
             const li = document.createElement('li');
             li.style.cssText = 'display:block; padding:0; overflow:hidden; border-left-color:' + rarityColor + ';';
             li.innerHTML = `
@@ -9401,12 +9402,12 @@ async function fetchMarketListings() {
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
                     <div style="flex:1; min-width:180px;">
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                            <span style="color:${rarityColor}; font-weight:bold; font-size:1.05em;">${item.name}</span>
-                            <span style="background:${rarityColor}22; color:${rarityColor}; border:1px solid ${rarityColor}44; border-radius:4px; font-size:0.68em; padding:1px 6px; text-transform:uppercase; letter-spacing:1px;">${item.rarity || 'common'}</span>
-                            <span style="background:#ffffff11; color:#888; border-radius:4px; font-size:0.68em; padding:1px 6px; text-transform:capitalize;">${item.type}</span>
+                            <span style="color:${rarityColor}; font-weight:bold; font-size:1.05em;">${itemName}</span>
+                            <span style="background:${rarityColor}22; color:${rarityColor}; border:1px solid ${rarityColor}44; border-radius:4px; font-size:0.68em; padding:1px 6px; text-transform:uppercase; letter-spacing:1px;">${itemRarity}</span>
+                            ${itemType ? `<span style="background:#ffffff11; color:#888; border-radius:4px; font-size:0.68em; padding:1px 6px; text-transform:capitalize;">${itemType}</span>` : ''}
                         </div>
-                        <div style="color:#888; font-size:0.83em; margin-bottom:6px;">${item.desc}</div>
-                        <div style="color:#555; font-size:0.75em;">Listed by <span style="color:#999;">${listing.seller_name}</span></div>
+                        ${itemDesc ? `<div style="color:#888; font-size:0.83em; margin-bottom:6px;">${itemDesc}</div>` : ''}
+                        <div style="color:#555; font-size:0.75em;">Listed by <span style="color:#999;">${listing.seller_name || 'Unknown'}</span></div>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:130px;">
                         <div style="color:#00c875; font-size:1.1em; font-weight:bold;">${formatNumber(listing.price)}</div>
@@ -9422,7 +9423,7 @@ async function fetchMarketListings() {
         });
     } catch (e) {
         console.error('Market Fetch Error:', e);
-        list.innerHTML = `<li style="color:#ff4444; padding:12px; text-align:center;">⚠️ ${e.message || 'Could not load listings'}</li>`;
+        list.innerHTML = `<li style="color:#ff4444; padding:14px; text-align:center;">⚠️ ${e.message || 'Could not load listings'}</li>`;
     }
 }
 

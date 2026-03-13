@@ -9397,6 +9397,7 @@ async function fetchMarketListings() {
                 .order('created_at', { ascending: false }));
         }
         if (error) throw error;
+        console.log('Market listings raw data:', data);
         if (!data || data.length === 0) {
             list.innerHTML = '<li style="text-align:center; color:var(--dim-color); padding:20px;">The marketplace is currently empty.</li>';
             return;
@@ -11862,7 +11863,7 @@ function renderPactScreen() {
         (async () => {
             let memberStats = {};
             try {
-                const { data } = await supabaseClient.from('players').select('name,ascensions,pvpWins,sps').in('name', members).then(r => r).catch(() => ({ data: null }));
+                const { data } = await supabaseClient.from('players').select('name,ascensions,pvpWins').in('name', members).then(r => r).catch(() => ({ data: null }));
                 if (data) data.forEach(p => { memberStats[p.name || p.player_name] = p; });
             } catch(e) {}
 
@@ -11870,7 +11871,7 @@ function renderPactScreen() {
                 const isMe   = m === gameState.playerName;
                 const color  = memberColors[i % memberColors.length];
                 const stats  = memberStats[m] || {};
-                const sps    = stats.sps ? formatNumber(stats.sps) : '?';
+                const sps    = '—';
                 const asc    = stats.ascensions ?? '?';
                 const wins   = stats.pvpWins ?? '?';
                 const canKick = isLeader && !isMe;
@@ -12208,7 +12209,7 @@ async function fetchPactLeaderboard() {
         const allMembers = [...new Set(pacts.flatMap(p => p.members || []))];
         let memberStats = {};
         try {
-            const { data: players } = await supabaseClient.from('players').select('name,ascensions,sps').in('name', allMembers).then(r => r).catch(() => ({ data: null }));
+            const { data: players } = await supabaseClient.from('players').select('name,ascensions').in('name', allMembers).then(r => r).catch(() => ({ data: null }));
             if (players) players.forEach(p => { memberStats[p.player_name] = p; });
         } catch(e) {}
 

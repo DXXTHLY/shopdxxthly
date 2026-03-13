@@ -12634,24 +12634,7 @@ async function arenaEndBattle(playerWon) {
         const WAITING_TIME  = 15000;  // ms
         const ROUND_SEED_MS = 20000;  // total round slot length (waiting + play)
 
-        // ── Local state ───────────────────────────────────────────────
-        let gameStateRift   = 'WAITING';
-        let currentMultiplier = 1.00;
-        let crashPoint      = 0;
-        let roundStartTime  = 0;   // server ms when current game started
-        let roundId         = '';  // unique per round
-        let playerBet       = null;
-        let myDBId          = null;
-        let livePlayers     = {};
-        let lastRoundPlayers= {};
-        let crashHistory    = [];
-        let multiplierInterval = null;
-        let waitInterval    = null;
-        let localRoundTimer = null;  // track local setTimeout so Firebase can cancel it
-        let riftDB          = null;
-        let usingFirebase   = false; // true once Firebase sync is active
-
-        // ── Seeded RNG for reproducible crash point ───────────────────
+        // ── Seeded RNG ────────────────────────────────────────────
         function seededRandom(seed) {
             let t = seed + 0x6D2B79F5;
             t = Math.imul(t ^ t >>> 15, t | 1);
@@ -12663,194 +12646,31 @@ async function arenaEndBattle(playerWon) {
             return Math.max(1.01, 1 / (1 - r * 0.99));
         }
 
-        // ── Firebase broadcast helpers ────────────────────────────────
+        // ── Shared round state (written by Firebase, read by master loop) ──
+        let riftRound = null;   // { id, phase, gameStart, crash, seed }
+        let riftDB    = null;
+        let crashedHandled = ''; // roundId of last crash we already processed
+
+        // ── Local player state ────────────────────────────────────────
+        let playerBet     = null;
+        let myDBId        = null;
+        let livePlayers   = {};
+        let lastRoundPlayers = {};
+        let crashHistory  = [];
+        let currentMultiplier = 1.00;
+
+        // ── Firebase: write a new round ───────────────────────────────
         function broadcastNewRound(db) {
-            const now   = Date.now();
-            const newId = now.toString(36);
-            const seed  = now % 2147483647;
+            const now  = Date.now();
+            const seed = now % 2147483647;
             db.ref('rift_round').set({
-                id:        newId,
+                id:        now.toString(36),
                 phase:     'WAITING',
                 startedAt: now,
                 gameStart: now + WAITING_TIME,
-                seed:      seed,
-                crash:     crashPointFromSeed(seed)
+                seed,
+                crash: crashPointFromSeed(seed)
             });
-        }
-
-        // ── syncToRound: called whenever Firebase round data changes ──
-        function syncToRound(data) {
-            const now = Date.now();
-
-            if (data.id !== roundId) {
-                // Brand new round — cancel any pending local timer
-                if (localRoundTimer) { clearTimeout(localRoundTimer); localRoundTimer = null; }
-                roundId    = data.id;
-                crashPoint = data.crash;
-                roundStartTime = data.gameStart;
-
-                if (data.phase === 'CRASHED') {
-                    enterCrashed(data.crash, /*fromFirebase=*/true);
-                } else if (now >= data.gameStart) {
-                    // We joined mid-round — jump straight in at current multiplier
-                    enterRunning(data.gameStart);
-                } else {
-                    const msUntilStart = data.gameStart - now;
-                    enterWaiting(msUntilStart);
-                    localRoundTimer = setTimeout(() => {
-                        if (gameStateRift === 'WAITING') enterRunning(data.gameStart);
-                    }, msUntilStart);
-                }
-            } else if (data.phase === 'CRASHED' && gameStateRift !== 'CRASHED') {
-                enterCrashed(data.crash, /*fromFirebase=*/true);
-            }
-        }
-
-        // ── Phase transitions ─────────────────────────────────────────
-        function enterWaiting(msRemaining) {
-            gameStateRift = 'WAITING';
-            playerBet     = null;
-            myDBId        = null;
-            livePlayers   = {};
-            currentMultiplier = 1.00;
-
-            clearInterval(multiplierInterval);
-            clearInterval(waitInterval);
-
-            riftElement.className = 'state-safe';
-            multiplierText.style.display = 'block';
-            multiplierText.textContent = '1.00x';
-            multiplierText.style.color = '#fff';
-            crashMessageText.style.display = 'none';
-            actionButton.textContent = 'Place Bet';
-            actionButton.disabled = false;
-            actionButton.className = '';
-            betAmountInput.disabled = false;
-            betCurrencySelect.disabled = false;
-            updatePlayerList();
-
-            let remaining = Math.ceil(msRemaining / 1000);
-            const updateStatus = () => {
-                if (remaining > 0) {
-                    statusBar.textContent = `⏳ Betting open — round starts in ${remaining}s`;
-                    statusBar.style.borderLeftColor = '#44cc88';
-                    statusBar.style.color = '#44cc88';
-                } else {
-                    statusBar.textContent = `🌀 Rift is opening...`;
-                    statusBar.style.borderLeftColor = '#aa44ff';
-                    statusBar.style.color = '#aa88cc';
-                }
-            };
-            updateStatus();
-
-            waitInterval = setInterval(() => {
-                remaining--;
-                updateStatus();
-                if (remaining <= 0) clearInterval(waitInterval);
-            }, 1000);
-        }
-
-        function enterRunning(gameStartMs) {
-            gameStateRift = 'RUNNING';
-            clearInterval(waitInterval);
-            clearInterval(multiplierInterval);
-
-            actionButton.disabled = playerBet === null;
-            actionButton.textContent = 'Cash Out';
-            actionButton.className = 'cashing-out';
-            betAmountInput.disabled = true;
-            betCurrencySelect.disabled = true;
-
-            statusBar.textContent = '🌀 Rift is unstable — cash out now!';
-            statusBar.style.borderLeftColor = '#c8a800';
-            statusBar.style.color = '#c8a800';
-
-            currentMultiplier = 1.00;
-
-            multiplierInterval = setInterval(() => {
-                if (gameStateRift !== 'RUNNING') { clearInterval(multiplierInterval); return; }
-                const elapsed = (Date.now() - gameStartMs) / 1000;
-                // Same formula for all clients — deterministic from start time
-                currentMultiplier = Math.pow(Math.E, elapsed * 0.1);
-
-                const display = currentMultiplier.toFixed(2) + 'x';
-                multiplierText.textContent = display;
-
-                if (currentMultiplier > 5) {
-                    riftElement.className = 'state-danger';
-                    multiplierText.style.color = '#ff8888';
-                } else if (currentMultiplier > 2) {
-                    riftElement.className = 'state-tense';
-                    multiplierText.style.color = '#c8a800';
-                } else {
-                    riftElement.className = 'state-safe';
-                    multiplierText.style.color = '#fff';
-                }
-
-                syncBadge.textContent = `ROUND ${roundId.slice(-4).toUpperCase()}`;
-                updatePlayerList();
-
-                if (currentMultiplier >= crashPoint) {
-                    currentMultiplier = crashPoint;
-                    multiplierText.textContent = crashPoint.toFixed(2) + 'x';
-                    clearInterval(multiplierInterval);
-
-                    // Broadcast crash to all clients
-                    if (riftDB) {
-                        riftDB.ref('rift_round').update({ phase: 'CRASHED' });
-                    }
-                    enterCrashed(crashPoint);
-                }
-            }, 100);
-        }
-
-        function enterCrashed(atMultiplier, fromFirebase) {
-            clearInterval(multiplierInterval);
-            clearInterval(waitInterval);
-            gameStateRift = 'CRASHED';
-            playSound('harvest');
-
-            riftElement.className = 'state-crashed';
-            multiplierText.style.display = 'none';
-            crashMessageText.textContent = `CRASHED @ ${Number(atMultiplier).toFixed(2)}x`;
-            crashMessageText.style.display = 'block';
-            actionButton.disabled = true;
-            actionButton.className = '';
-
-            statusBar.textContent = `💥 Rift collapsed at ${Number(atMultiplier).toFixed(2)}x`;
-            statusBar.style.borderLeftColor = '#ff4444';
-            statusBar.style.color = '#ff6666';
-
-            // Push crash to shared history in Firebase (only once per round — the broadcaster)
-            const crashed = Number(atMultiplier);
-            if (riftDB && !fromFirebase) {
-                // We're the one who triggered the crash — push to shared history
-                riftDB.ref('rift_history').push({ v: crashed, t: Date.now() });
-            } else if (!riftDB) {
-                // Local mode — maintain local history
-                crashHistory.unshift(crashed);
-                if (crashHistory.length > 8) crashHistory.pop();
-                renderHistory();
-            }
-
-            // Handle bet outcome
-            const myBet = livePlayers[myDBId];
-            if (myBet && myBet.status === 'playing') {
-                myBet.status = 'lost';
-                Toastify({ text: `The rift collapsed! You lost your bet.`, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(to right,#cc1111,#880000)' } }).showToast();
-            }
-            Object.values(livePlayers).forEach(p => { if (p.status === 'playing') p.status = 'lost'; });
-            lastRoundPlayers = { ...lastRoundPlayers, ...livePlayers };
-            updatePlayerList();
-
-            // Schedule next round
-            setTimeout(() => {
-                if (usingFirebase && riftDB) {
-                    broadcastNewRound(riftDB);
-                } else {
-                    startLocalRound();
-                }
-            }, 5000);
         }
 
         // ── Render helpers ────────────────────────────────────────────
@@ -12868,80 +12688,211 @@ async function arenaEndBattle(playerWon) {
                 const active = all.filter(p => p.status === 'playing').length;
                 playerCountEl.textContent = `${active} active`;
             }
-            if (all.length === 0) {
-                playerList.innerHTML = '<li style="color:#333;justify-content:center;">No players yet</li>';
+            if (!playerList) return;
+            if (!all.length) { playerList.innerHTML = '<div style="color:#444;text-align:center;padding:12px;font-size:0.8em;">No players yet</div>'; return; }
+            playerList.innerHTML = all.map(p => {
+                const isYou = p.id === myDBId;
+                const statusClass = p.status === 'playing' ? 'player-playing' : p.status === 'cashed_out' ? 'player-cashed-out' : 'player-lost';
+                const badge = p.status === 'cashed_out'
+                    ? `<span style="color:#44cc88">+${formatNumber(Math.floor(p.amount * p.cashoutAt - p.amount))} @ ${p.cashoutAt.toFixed(2)}x</span>`
+                    : p.status === 'playing'
+                    ? `<span style="color:#c8a800">▶ ${formatNumber(p.amount)} ${p.currency}</span>`
+                    : `<span style="color:#ff4444">✗ lost</span>`;
+                return `<div class="rift-player-card ${statusClass} ${isYou ? 'is-you' : ''}">${isYou ? '⭐' : '👤'} ${p.name || 'Unknown'} ${badge}</div>`;
+            }).join('');
+        }
+
+        // ── Master clock loop — single source of truth ────────────────
+        // Instead of setTimeout chains, one interval reads timestamps each tick.
+        // Firebase only sets riftRound; this loop decides what to show.
+        let loopPhase = 'WAITING'; // what we're currently displaying
+        let crashBroadcastDone = false;
+
+        setInterval(() => {
+            const r = riftRound;
+            if (!r) return;
+
+            const now     = Date.now();
+            const elapsed = (now - r.gameStart) / 1000;
+            const mult    = elapsed > 0 ? Math.pow(Math.E, elapsed * 0.1) : 1.00;
+
+            // ── CRASHED phase ──
+            if (r.phase === 'CRASHED' || (loopPhase === 'RUNNING' && mult >= r.crash)) {
+                if (crashedHandled !== r.id) {
+                    crashedHandled = r.id;
+                    const atMult = r.crash;
+
+                    // Push to history
+                    if (riftDB && !r._historyWritten) {
+                        r._historyWritten = true;
+                        riftDB.ref('rift_history').push({ v: atMult, t: Date.now() });
+                    } else if (!riftDB) {
+                        crashHistory.unshift(atMult);
+                        if (crashHistory.length > 8) crashHistory.pop();
+                        renderHistory();
+                    }
+
+                    // Broadcast crash if we're the one who hit it
+                    if (riftDB && loopPhase === 'RUNNING') {
+                        riftDB.ref('rift_round').update({ phase: 'CRASHED' });
+                    }
+
+                    // UI
+                    loopPhase = 'CRASHED';
+                    riftElement.className = 'state-crashed';
+                    multiplierText.style.display = 'none';
+                    crashMessageText.textContent = `CRASHED @ ${atMult.toFixed(2)}x`;
+                    crashMessageText.style.display = 'block';
+                    actionButton.disabled = true;
+                    actionButton.className = '';
+                    statusBar.textContent  = `💥 Rift collapsed at ${atMult.toFixed(2)}x`;
+                    statusBar.style.borderLeftColor = '#ff4444';
+                    statusBar.style.color = '#ff6666';
+                    playSound('harvest');
+
+                    // Handle bet loss
+                    if (playerBet && playerBet.status === 'playing') {
+                        playerBet.status = 'lost';
+                        if (livePlayers[myDBId]) livePlayers[myDBId].status = 'lost';
+                        Toastify({ text: 'The rift collapsed! You lost your bet.', duration:4000, gravity:'top', position:'center', style:{ background:'linear-gradient(to right,#cc1111,#880000)' } }).showToast();
+                    }
+                    Object.values(livePlayers).forEach(p => { if (p.status==='playing') p.status='lost'; });
+                    lastRoundPlayers = { ...lastRoundPlayers, ...livePlayers };
+                    updatePlayerList();
+
+                    // Schedule next round (only in local mode — Firebase does it on the server side too,
+                    // but we need someone to write the next round)
+                    setTimeout(() => {
+                        if (riftDB) broadcastNewRound(riftDB);
+                        else startLocalRound();
+                    }, 5000);
+                }
                 return;
             }
-            all.sort((a, b) => {
-                if (a.id === myDBId) return -1;
-                if (b.id === myDBId) return 1;
-                return new Date(b.created_at) - new Date(a.created_at);
-            });
-            playerList.innerHTML = '';
-            all.forEach(p => {
-                const li = document.createElement('li');
-                if (p.id === myDBId) li.className = 'is-you';
-                const name = p.id === myDBId ? '⭐ You' : p.player_name;
-                const curr = (p.bet_currency || '').replace(/([A-Z])/g,' $1').toLowerCase();
-                let statusHtml;
-                if (p.status === 'cashed_out') {
-                    const winnings = Math.floor(p.bet_amount * (p.cash_out_multiplier || 1));
-                    statusHtml = `<span class="player-cashed-out">+${formatNumber(winnings)} @ ${Number(p.cash_out_multiplier||1).toFixed(2)}x</span>`;
-                } else if (p.status === 'lost') {
-                    statusHtml = `<span class="player-lost">${formatNumber(p.bet_amount)} ${curr}</span>`;
-                } else {
-                    const live = gameStateRift === 'RUNNING' ? (p.bet_amount * currentMultiplier).toFixed(0) : p.bet_amount;
-                    statusHtml = `<span class="player-playing">▶ ${formatNumber(live)} ${curr}</span>`;
-                }
-                li.innerHTML = `<span style="color:#888;">${name}</span>${statusHtml}`;
-                playerList.appendChild(li);
-            });
-        }
 
-        // ── Betting ───────────────────────────────────────────────────
-        async function placePlayerBet() {
-            const amount   = parseInt(betAmountInput.value, 10);
-            const currency = betCurrencySelect.value;
-            if (isNaN(amount) || amount <= 0) { Toastify({text:'Enter a valid amount',duration:2000,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast(); return; }
-            if (gameState[currency] < amount) { Toastify({text:'Not enough resources',duration:2000,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast(); return; }
-            gameState[currency] -= amount;
-            updateDynamicDisplays();
-            playerBet = { amount, currency };
-            actionButton.disabled = true;
-            actionButton.textContent = 'Bet Placed ✔';
-            playSound('upgrade');
-            const { data, error } = await supabaseClient
-                .from('rift_live_players')
-                .insert({ player_name: gameState.playerName, bet_amount: amount, bet_currency: currency, status: 'playing' })
-                .select().single();
-            if (!error && data) {
-                myDBId = data.id;
-                livePlayers[myDBId] = data;
+            // ── RUNNING phase ──
+            if (now >= r.gameStart) {
+                if (loopPhase === 'WAITING') {
+                    loopPhase = 'RUNNING';
+                    riftElement.className = 'state-safe';
+                    multiplierText.style.display = 'block';
+                    crashMessageText.style.display = 'none';
+                    actionButton.textContent = 'Cash Out';
+                    actionButton.disabled = (playerBet === null);
+                    actionButton.className = 'cashing-out';
+                    betAmountInput.disabled  = true;
+                    betCurrencySelect.disabled = true;
+                    statusBar.textContent = '🌀 Rift is unstable — cash out now!';
+                    statusBar.style.borderLeftColor = '#c8a800';
+                    statusBar.style.color = '#c8a800';
+                }
+
+                // Update multiplier every tick
+                currentMultiplier = Math.min(mult, r.crash);
+                multiplierText.textContent = currentMultiplier.toFixed(2) + 'x';
+
+                if (currentMultiplier > 5) {
+                    riftElement.className = 'state-danger';
+                    multiplierText.style.color = '#ff8888';
+                } else if (currentMultiplier > 2) {
+                    riftElement.className = 'state-tense';
+                    multiplierText.style.color = '#c8a800';
+                } else {
+                    riftElement.className = 'state-safe';
+                    multiplierText.style.color = '#fff';
+                }
+
+                if (syncBadge) syncBadge.textContent = `ROUND ${r.id.slice(-4).toUpperCase()}`;
+                updatePlayerList();
+                return;
+            }
+
+            // ── WAITING phase ──
+            if (loopPhase !== 'WAITING') {
+                // New round just started — reset everything
+                loopPhase = 'WAITING';
+                playerBet = null;
+                myDBId = null;
+                livePlayers = {};
+                currentMultiplier = 1.00;
+                riftElement.className = 'state-safe';
+                multiplierText.style.display = 'block';
+                multiplierText.textContent = '1.00x';
+                multiplierText.style.color = '#fff';
+                crashMessageText.style.display = 'none';
+                actionButton.textContent = 'Place Bet';
+                actionButton.disabled = false;
+                actionButton.className = '';
+                betAmountInput.disabled  = false;
+                betCurrencySelect.disabled = false;
                 updatePlayerList();
             }
+
+            const secsLeft = Math.max(0, Math.ceil((r.gameStart - now) / 1000));
+            if (secsLeft > 0) {
+                statusBar.textContent = `⏳ Betting open — round starts in ${secsLeft}s`;
+                statusBar.style.borderLeftColor = '#44cc88';
+                statusBar.style.color = '#44cc88';
+            } else {
+                statusBar.textContent = '🌀 Rift is opening...';
+                statusBar.style.borderLeftColor = '#aa44ff';
+                statusBar.style.color = '#aa88cc';
+            }
+
+        }, 100);
+
+        // ── Bet / cash-out actions ────────────────────────────────────
+        function placePlayerBet() {
+            if (loopPhase !== 'WAITING') return;
+            const currency = betCurrencySelect.value;
+            const amount   = parseFloat(betAmountInput.value);
+            if (isNaN(amount) || amount <= 0) { Toastify({text:'Enter a valid amount',duration:2000}).showToast(); return; }
+
+            let bal = currency==='souls' ? gameState.souls : currency==='essence' ? gameState.darkEssence : gameState.abyssalShards;
+            if (amount > bal) { Toastify({text:'Insufficient funds!',duration:2000}).showToast(); return; }
+
+            if (currency==='souls')   gameState.souls -= amount;
+            else if (currency==='essence') gameState.darkEssence -= amount;
+            else gameState.abyssalShards -= amount;
+
+            myDBId = 'local_' + Date.now();
+            playerBet = { id: myDBId, name: gameState.playerName || 'You', amount, currency, status: 'playing', cashoutAt: 0 };
+            livePlayers[myDBId] = playerBet;
+
+            actionButton.textContent = 'Bet Placed ✓';
+            actionButton.disabled = false;
+            actionButton.className = 'cashing-out';
+            updatePlayerList();
+            saveGame();
+            Toastify({ text:`Bet placed: ${formatNumber(amount)} ${currency}`, duration:2500, gravity:'top', position:'center', style:{ background:'linear-gradient(to right,#3311aa,#1a0066)' } }).showToast();
         }
 
-        async function cashPlayerOut() {
-            if (!myDBId) return;
-            const myBet = livePlayers[myDBId];
-            if (!myBet || myBet.status !== 'playing') return;
-            myBet.status = 'cashed_out';
-            myBet.cash_out_multiplier = currentMultiplier;
+        function cashPlayerOut() {
+            if (loopPhase !== 'RUNNING' || !playerBet || playerBet.status !== 'playing') return;
+            const mult = currentMultiplier;
+            const won  = Math.floor(playerBet.amount * mult);
+            playerBet.status   = 'cashed_out';
+            playerBet.cashoutAt = mult;
+            if (livePlayers[myDBId]) { livePlayers[myDBId].status='cashed_out'; livePlayers[myDBId].cashoutAt=mult; }
+
+            const currency = playerBet.currency;
+            if (currency==='souls')   gameState.souls += won;
+            else if (currency==='essence') gameState.darkEssence += won;
+            else gameState.abyssalShards += won;
+
+            actionButton.textContent = `Cashed @ ${mult.toFixed(2)}x`;
             actionButton.disabled = true;
-            const winnings = Math.floor(myBet.bet_amount * currentMultiplier);
-            gameState[myBet.bet_currency] += winnings;
-            updateDynamicDisplays();
-            playSound('ascend');
-            Toastify({ text:`Cashed out at ${currentMultiplier.toFixed(2)}x! Won ${formatNumber(winnings)}.`, duration:5000, gravity:'top', position:'center', style:{ background:'linear-gradient(to right,#1a6632,#0d3322)' } }).showToast();
             updatePlayerList();
-            await supabaseClient.from('rift_live_players').update({ status:'cashed_out', cash_out_multiplier: currentMultiplier }).eq('id', myDBId);
+            saveGame();
+            Toastify({ text:`Cashed out at ${mult.toFixed(2)}x! Won ${formatNumber(won)} ${currency}`, duration:4000, gravity:'top', position:'center', style:{ background:'linear-gradient(to right,#116622,#004411)' } }).showToast();
         }
 
         function listenForPlayerUpdates() {
-            supabaseClient.channel('rift-real-players')
+            if (!window.supabase) return;
+            window.supabase.channel('rift_live_players')
                 .on('postgres_changes', { event:'*', schema:'public', table:'rift_live_players' }, payload => {
                     const data = payload.new || payload.old;
-                    if (!data || data.id === myDBId) return;
+                    if (!data || !data.id || data.id === myDBId) return;
                     if (payload.eventType === 'DELETE') delete livePlayers[data.id];
                     else livePlayers[data.id] = data;
                     updatePlayerList();
@@ -12950,38 +12901,53 @@ async function arenaEndBattle(playerWon) {
 
         // ── Bootstrap ─────────────────────────────────────────────────
         actionButton.addEventListener('click', () => {
-            if (gameStateRift === 'WAITING') placePlayerBet();
-            else if (gameStateRift === 'RUNNING') cashPlayerOut();
+            if (loopPhase === 'WAITING') placePlayerBet();
+            else if (loopPhase === 'RUNNING') cashPlayerOut();
         });
 
         listenForPlayerUpdates();
 
-        // Start locally immediately so screen is never stuck
+        // Start with a local round so screen is never blank
+        function startLocalRound() {
+            const now  = Date.now();
+            const seed = now % 2147483647;
+            riftRound = {
+                id:        now.toString(36),
+                phase:     'WAITING',
+                startedAt: now,
+                gameStart: now + WAITING_TIME,
+                seed,
+                crash: crashPointFromSeed(seed)
+            };
+            crashedHandled = '';
+            loopPhase = 'WAITING';
+        }
         startLocalRound();
 
-        // Try to attach Firebase — once connected it takes over permanently
+        // Attach Firebase — when it connects, it writes riftRound and the loop takes over
         function tryAttachFirebase(attempts) {
             const db = window._scFirebase?.chatDb;
             if (db) {
                 riftDB = db;
-                usingFirebase = true;
 
-                // Cancel any pending local timer — Firebase is now in control
-                if (localRoundTimer) { clearTimeout(localRoundTimer); localRoundTimer = null; }
-
-                // Listen to shared round state (real-time)
+                // Listen to shared round — just update riftRound, loop does the rest
                 db.ref('rift_round').on('value', snap => {
                     const data = snap.val();
                     if (!data) {
                         broadcastNewRound(db);
-                    } else {
-                        // Force roundId reset so syncToRound always fully re-syncs on first Firebase message
-                        if (roundId !== data.id) roundId = '';
-                        syncToRound(data);
+                        return;
+                    }
+                    // If it's a new round or we need to reset, update riftRound
+                    const isNewRound = !riftRound || data.id !== riftRound.id;
+                    if (isNewRound) {
+                        riftRound = data;
+                        crashedHandled = ''; // allow crash handler to fire for this round
+                    } else if (data.phase === 'CRASHED' && riftRound.phase !== 'CRASHED') {
+                        riftRound.phase = 'CRASHED';
                     }
                 });
 
-                // Listen to shared crash history — newest 8 entries, all players see same list
+                // Shared crash history
                 db.ref('rift_history').orderByChild('t').limitToLast(8).on('value', snap => {
                     const entries = [];
                     snap.forEach(child => entries.push(child.val().v));
@@ -12995,18 +12961,6 @@ async function arenaEndBattle(playerWon) {
         }
         tryAttachFirebase(25);
 
-        function startLocalRound() {
-            if (usingFirebase) return; // Firebase is in control
-            const now       = Date.now();
-            const seed      = now % 2147483647;
-            roundId         = now.toString(36);
-            crashPoint      = crashPointFromSeed(seed);
-            const gameStart = now + WAITING_TIME;
-            enterWaiting(gameStart - now);
-            localRoundTimer = setTimeout(() => {
-                if (gameStateRift === 'WAITING' && !usingFirebase) enterRunning(gameStart);
-            }, WAITING_TIME);
-        }
     });
 </script>
 <!-- ================================================================= -->

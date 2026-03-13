@@ -7992,6 +7992,7 @@ function enterGame() {
     calculateStats();
     renderAll();
     initializeChat();
+    setTimeout(() => refreshMarketTicker(), 2000);
     updateAccountBtn();
     // Load audio settings
     audio.bgm.muted = localStorage.getItem('musicMuted') === 'true';
@@ -8002,8 +8003,7 @@ function enterGame() {
     // Show account reminder popup
     setTimeout(() => showAccountReminderPopup(), 2000);
 
-    // Market ticker — load immediately then refresh every 2 minutes
-    setTimeout(() => refreshMarketTicker(), 3000);
+    // Market ticker — refreshes every 2 minutes (initial load handled by enterGame)
     setInterval(() => refreshMarketTicker(), 2 * 60 * 1000);
 
     // --- SESSION LOCK ---

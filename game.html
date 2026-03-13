@@ -2688,6 +2688,17 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
             </header>
         <!-- ================================================================= -->
+        <!-- GAME UPDATE NOTICE BANNER (driven by Firebase game_notice) -->
+        <!-- ================================================================= -->
+        <div id="game-update-banner" style="display:none; background:linear-gradient(90deg,#1a0800,#2a1000,#1a0800); border-bottom:2px solid #ff880088; padding:8px 16px; align-items:center; justify-content:space-between; gap:12px; animation:breach-pulse 2s infinite;">
+            <div style="display:flex; align-items:center; gap:10px; flex:1;">
+                <span style="font-size:1.1em; flex-shrink:0;">🔔</span>
+                <span id="game-update-text" style="color:#ffaa00; font-weight:bold; font-size:0.85em; letter-spacing:1px; text-transform:uppercase;"></span>
+            </div>
+            <button onclick="document.getElementById('game-update-banner').style.display='none'" style="background:transparent; border:1px solid #ff880044; border-radius:6px; padding:3px 10px; color:#ff8800; cursor:pointer; font-family:inherit; font-size:0.75em; flex-shrink:0;">✕ Dismiss</button>
+        </div>
+
+        <!-- ================================================================= -->
         <!-- MARKET TICKER BANNER -->
         <!-- ================================================================= -->
         <div id="market-ticker-wrap" style="background:linear-gradient(90deg,#0d0920,#080612,#0d0920); border-bottom:1px solid #4488ff22; overflow:hidden; height:30px; display:flex; align-items:center; position:relative;">
@@ -9436,7 +9447,6 @@ async function refreshMarketTicker() {
     const inner = document.getElementById('market-ticker-inner');
     if (!inner || !supabaseClient) return;
     try {
-        // Try is_sold first, fall back if column doesn't exist
         let result = await supabaseClient
             .from('market_listings')
             .select('item_id, price, seller_name')
@@ -9450,30 +9460,29 @@ async function refreshMarketTicker() {
                 .order('created_at', { ascending: false })
                 .limit(20);
         }
-        data = result.data;
+        const data = result.data;
         if (!data || !data.length) {
-            inner.innerHTML = '<span style="padding:0 20px; font-size:0.75em; color:#4488ff; letter-spacing:2px;">NO LISTINGS YET — BE THE FIRST TO SELL AN ITEM</span>';
+            inner.innerHTML = '<span style="padding:0 30px; font-size:0.75em; color:#4488ff88; letter-spacing:2px;">✦ NO LISTINGS YET — BE THE FIRST TO SELL AN ITEM ✦</span>';
             return;
         }
-
-        const rarityColor = { legendary:'#ff9900', epic:'#cc44ff', rare:'#4488ff', uncommon:'#44cc88', common:'#aaa' };
+        const rarityColor = { legendary:'#ff9900', epic:'#cc44ff', rare:'#4488ff', uncommon:'#44cc88', common:'#ccc' };
         const chips = data.map(l => {
             const item = items[l.item_id];
-            if (!item) return '';
-            const color = rarityColor[item.rarity] || '#aaa';
-            return `<span style="padding:0 22px; font-size:0.78em; letter-spacing:0.5px;">` +
-                `<span style="color:${color}; font-weight:bold; text-transform:uppercase;">${item.name}</span>` +
-                `<span style="color:#555; margin:0 6px;">BY</span>` +
-                `<span style="color:#ccc;">${l.seller_name}</span>` +
-                `<span style="color:#c8a800; font-weight:bold; margin-left:8px;">${formatNumber(l.price)} DE</span>` +
-                `<span style="color:#3a2a55; margin-left:18px; font-size:1.2em;">◆</span>` +
+            const name  = item ? item.name  : l.item_id;
+            const color = item ? (rarityColor[item.rarity] || '#ccc') : '#ccc';
+            return `<span style="padding:0 24px; font-size:0.78em;">` +
+                `<span style="color:#666; font-size:0.9em; margin-right:8px;">NEW</span>` +
+                `<span style="color:${color}; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">${name}</span>` +
+                `<span style="color:#555; margin:0 8px;">BY</span>` +
+                `<span style="color:#bbb;">${l.seller_name || '?'}</span>` +
+                `<span style="color:#c8a800; font-weight:bold; margin-left:10px;">${formatNumber(l.price)} DE</span>` +
+                `<span style="color:#2a1a44; margin-left:24px;">◆</span>` +
                 `</span>`;
-        }).filter(Boolean).join('');
-
-        if (!chips) return;
-        inner.innerHTML = chips + chips; // duplicate for seamless loop
+        }).join('');
+        // Duplicate for seamless infinite scroll
+        inner.innerHTML = chips + chips;
         const totalWidth = inner.scrollWidth / 2;
-        const speed = Math.max(15, totalWidth / 80);
+        const speed = Math.max(12, totalWidth / 90);
         inner.style.animationDuration = speed + 's';
     } catch(e) { console.warn('Ticker error:', e); }
 }
@@ -9909,6 +9918,21 @@ function initializeChat() {
 
             // Expose globally
             window._scFirebase = { firebase, auth: saveAuth, db: saveDb, chatDb: db };
+
+            // ── Game Update Notice ─────────────────────────────────────────
+            // Admins write to Firebase `game_notice` to show an update banner.
+            // Set { message: "...", active: true } to show, active: false to hide.
+            db.ref('game_notice').on('value', snap => {
+                const notice = snap.val();
+                const banner = document.getElementById('game-update-banner');
+                if (!banner) return;
+                if (notice && notice.active && notice.message) {
+                    document.getElementById('game-update-text').textContent = notice.message;
+                    banner.style.display = 'flex';
+                } else {
+                    banner.style.display = 'none';
+                }
+            });
 
             // Sign into chatforslither anonymously — powers online presence & chat
             chatAuth.signInAnonymously().catch(err => console.error("Chat anon sign-in error:", err));

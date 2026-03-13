@@ -2706,8 +2706,8 @@ text-decoration: underline; /* Adds an underline on hover */
                 <span style="color:#4488ff; font-size:0.7em; font-weight:bold; letter-spacing:3px; white-space:nowrap; text-transform:uppercase; font-family:var(--font-title);">📜 MARKET</span>
             </div>
             <div style="overflow:hidden; flex:1; position:relative; height:100%;">
-                <div id="market-ticker-inner" style="display:flex; align-items:center; height:100%; white-space:nowrap; animation:ticker-scroll 40s linear infinite; will-change:transform;">
-                    <span style="color:#555; font-size:0.75em; padding:0 20px; letter-spacing:2px;">LOADING MARKET LISTINGS...</span>
+                <div id="market-ticker-inner" style="display:flex; align-items:center; height:100%; white-space:nowrap; animation:ticker-scroll 30s linear infinite; will-change:transform;">
+                    <span style="padding:0 40px; font-size:0.75em; color:#3a2a55; letter-spacing:2px;">✦ LOADING MARKET ✦</span><span style="padding:0 40px; font-size:0.75em; color:#3a2a55; letter-spacing:2px;">✦ LOADING MARKET ✦</span><span style="padding:0 40px; font-size:0.75em; color:#3a2a55; letter-spacing:2px;">✦ LOADING MARKET ✦</span><span style="padding:0 40px; font-size:0.75em; color:#3a2a55; letter-spacing:2px;">✦ LOADING MARKET ✦</span><span style="padding:0 40px; font-size:0.75em; color:#3a2a55; letter-spacing:2px;">✦ LOADING MARKET ✦</span><span style="padding:0 40px; font-size:0.75em; color:#3a2a55; letter-spacing:2px;">✦ LOADING MARKET ✦</span>
                 </div>
             </div>
         </div>
@@ -6748,6 +6748,7 @@ function showScreen(screenId) {
         fetchMarketListings();
         renderSellableInventory();
         fetchBarterListings();
+        setTimeout(() => refreshMarketTicker(), 300);
     }
     if (screenId === 'pacts')
     {
@@ -9484,12 +9485,20 @@ async function refreshMarketTicker() {
         });
 
         if (!chips) {
-            inner.innerHTML = '<span style="padding:0 30px; font-size:0.75em; color:#4488ff55; letter-spacing:2px;">✦ NO LISTINGS YET ✦</span>';
+            // Always scroll even with no listings
+            const placeholder = Array(6).fill('<span style="padding:0 40px; font-size:0.78em; color:#3a2a55; letter-spacing:2px;">✦ NO LISTINGS YET — VISIT THE MARKET TO LIST ITEMS OR POST TRADES ✦</span>').join('');
+            inner.innerHTML = placeholder;
+            inner.style.animationDuration = '30s';
             return;
         }
-        inner.innerHTML = chips + chips;
-        const speed = Math.max(12, (inner.scrollWidth / 2) / 90);
-        inner.style.animationDuration = speed + 's';
+        // Duplicate enough times to always fill the screen
+        const repeated = chips.repeat(3);
+        inner.innerHTML = repeated;
+        // Use requestAnimationFrame to get accurate scrollWidth after render
+        requestAnimationFrame(() => {
+            const speed = Math.max(15, (inner.scrollWidth / 3) / 80);
+            inner.style.animationDuration = speed + 's';
+        });
     } catch(e) { console.warn('Ticker error:', e); }
 }
 

@@ -4987,8 +4987,10 @@ async function saveGame() {
         name: gameState.playerName,
         user_id: gameState.playerName,
         lifetimeSouls: gameState.lifetimeSouls,
+        soulsLog: Math.log10(Math.max(1, gameState.lifetimeSouls)), // for infinity-safe sorting
         ascensions: gameState.ascensions,
         aether: gameState.aether,
+        totalAetherEarned: gameState.totalAetherEarned,
         pvpWins: gameState.pvpWins,
         pvpLosses: gameState.pvpLosses,
         dark_essence: gameState.darkEssence,
@@ -7076,8 +7078,42 @@ function renderAscensionScreen() { document.getElementById('ascendBtn').disabled
 // PVP & LEADERBOARD FUNCTIONS (FIXED & UPGRADED)
 // =================================================================
 
+// Returns colored HTML for a souls value — shows ∞ × multiplier if above 1e100
+function formatSoulsLeaderboard(soulsVal, soulsLogVal) {
+    const log = (soulsLogVal != null && soulsLogVal > 0) ? soulsLogVal : Math.log10(Math.max(1, soulsVal || 0));
+    const INF_THRESHOLD = 100; // display ∞ for anything above 10^100
+
+    if (log >= INF_THRESHOLD) {
+        // Map log value to a color gradient: blue(100) → cyan → green → yellow → orange → bright red(310)
+        const t = Math.min(1, (log - INF_THRESHOLD) / 210);
+        const stops = [
+            [80,  80, 220],  // muted blue
+            [0,  180, 255],  // cyan
+            [0,  220, 100],  // green
+            [200,220,   0],  // yellow
+            [255,140,   0],  // orange
+            [255, 30,  30],  // bright red
+        ];
+        const seg  = t * (stops.length - 1);
+        const idx  = Math.min(Math.floor(seg), stops.length - 2);
+        const frac = seg - idx;
+        const lerp = (a, b) => Math.round(a + (b - a) * frac);
+        const [r, g, b] = [0, 1, 2].map(i => lerp(stops[idx][i], stops[idx+1][i]));
+        const color = `rgb(${r},${g},${b})`;
+
+        // Multiplier: exponent above 100, mantissa from fractional part of log
+        const expAbove = Math.floor(log - INF_THRESHOLD);
+        const mantissa  = Math.pow(10, log - Math.floor(log));
+        const multStr   = expAbove > 0 ? ` × ${mantissa.toFixed(1)}e${expAbove}` : '';
+        const tooltip   = `~10^${log.toFixed(1)} souls`;
+
+        return `<span style="color:${color};font-weight:bold;text-shadow:0 0 8px ${color}88;cursor:default;" title="${tooltip}">∞${multStr}</span>`;
+    }
+    return `<span>${formatNumber(soulsVal || 0)}</span>`;
+}
+
 async function fetchLeaderboard(type = 'lifetimeSouls') {
-    const list = document.getElementById('leaderboard-list');
+    const list  = document.getElementById('leaderboard-list');
     const title = document.getElementById('leaderboard-title');
     if (!list || !title || !supabaseClient || SUPABASE_URL.includes("YOUR_SUPABASE")) {
         list.innerHTML = `<li>PvP Database not configured. See Step 1 in the tutorial.</li>`;
@@ -7085,48 +7121,65 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
     }
     list.innerHTML = '<li><em>Summoning spirits from the datastream...</em></li>';
     try {
+        // Use soulsLog for souls sorting (infinity-safe float), totalCollapses for aether tab
+        const orderCol = type === 'lifetimeSouls' ? 'soulsLog'
+                       : type === 'aether'        ? 'totalCollapses'
+                       : type;
+
         const { data, error } = await supabaseClient
             .from('players')
             .select('*')
-            .order(type, { ascending: false })
-            .limit(10);
+            .order(orderCol, { ascending: false })
+            .limit(20);
         if (error) throw error;
-        
-        // This part remains the same
-        let players = data;
+
+        let players = data || [];
+
+        // Inject local player if missing from results
         if (!players.some(p => p.name === gameState.playerName)) {
-             players.push({ 
-                 name: gameState.playerName, 
-                 lifetimeSouls: gameState.lifetimeSouls, 
-                 ascensions: gameState.ascensions, 
-                 aether: gameState.aether, 
-                 pvpWins: gameState.pvpWins 
+            players.push({
+                name:             gameState.playerName,
+                lifetimeSouls:    gameState.lifetimeSouls,
+                soulsLog:         Math.log10(Math.max(1, gameState.lifetimeSouls)),
+                ascensions:       gameState.ascensions,
+                aether:           gameState.aether,
+                totalAetherEarned: gameState.totalAetherEarned,
+                pvpWins:          gameState.pvpWins,
+                totalCollapses:   gameState.totalCollapses
             });
         }
-        
-        let rankingMetric = 'Souls';
+
+        // Client-side re-sort by true numeric value (guards against Supabase ordering gaps)
         switch (type) {
-            case 'ascensions': players.sort((a,b) => (b.ascensions || 0) - (a.ascensions || 0)); rankingMetric = 'Ascensions'; title.innerText = 'Ranking by Ascensions'; break;
-            case 'aether': players.sort((a,b) => (b.aether || 0) - (a.aether || 0)); rankingMetric = 'Aether'; title.innerText = 'Ranking by Aether'; break;
-            case 'pvpWins': players.sort((a,b) => (b.pvpWins || 0) - (a.pvpWins || 0)); rankingMetric = 'Wins'; title.innerText = 'Ranking by PvP Wins'; break;
-            default: players.sort((a,b) => (b.lifetimeSouls || 0) - (a.lifetimeSouls || 0)); rankingMetric = 'Souls'; title.innerText = 'Ranking by Total Souls'; break;
+            case 'lifetimeSouls': players.sort((a, b) => (b.soulsLog || 0)       - (a.soulsLog || 0));       title.innerText = 'Ranking by Total Souls';          break;
+            case 'ascensions':    players.sort((a, b) => (b.ascensions || 0)     - (a.ascensions || 0));     title.innerText = 'Ranking by Ascensions';            break;
+            case 'aether':        players.sort((a, b) => (b.totalCollapses || 0) - (a.totalCollapses || 0)); title.innerText = 'Ranking by Collapses (Aether)';    break;
+            case 'pvpWins':       players.sort((a, b) => (b.pvpWins || 0)        - (a.pvpWins || 0));        title.innerText = 'Ranking by PvP Wins';              break;
         }
 
         list.innerHTML = '';
         players.slice(0, 10).forEach((player, index) => {
-            const li = document.createElement('li');
+            const li    = document.createElement('li');
+            const isMe  = player.name === gameState.playerName;
 
-            // THIS IS THE CORRECTED LOGIC
-            let valueToDisplay;
+            let valueHTML;
             if (type === 'lifetimeSouls') {
-                valueToDisplay = formatNumber(player.lifetimeSouls || 0);
+                valueHTML = formatSoulsLeaderboard(player.lifetimeSouls, player.soulsLog);
+            } else if (type === 'aether') {
+                const c = player.totalCollapses || 0;
+                const a = player.totalAetherEarned || player.aether || 0;
+                valueHTML = `<span style="font-size:0.95em;">
+                    <span style="color:#00e5ff;font-weight:bold;">⚡ ${c} collapse${c !== 1 ? 's' : ''}</span>
+                    <span style="color:#666;margin-left:8px;">/ ${formatNumber(a)} Aether</span>
+                </span>`;
+            } else if (type === 'ascensions') {
+                valueHTML = `<span>${formatNumber(player.ascensions || 0)} Ascensions</span>`;
             } else {
-                // For ascensions, aether, and pvpWins, we don't need to format them with "K", "M", etc.
-                valueToDisplay = player[type] || 0;
+                valueHTML = `<span>${formatNumber(player.pvpWins || 0)} Wins</span>`;
             }
-            
-            li.innerHTML = `<span>#${index + 1} ${player.name}</span> <span>${valueToDisplay} ${rankingMetric}</span>`;
-            if (player.name === gameState.playerName) li.style.cssText = 'color: var(--primary-color); font-weight: bold; border-color: var(--primary-color);';
+
+            li.innerHTML = `<span>#${index + 1} ${player.name}</span> ${valueHTML}`;
+            if (isMe) li.style.cssText = 'color:var(--primary-color);font-weight:bold;border-color:var(--primary-color);';
             list.appendChild(li);
         });
     } catch (e) {
@@ -7134,7 +7187,6 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
         console.error("Leaderboard Error:", e);
     }
 }
-// END OF CORRECTED FUNCTION
 
 async function fetchPvpTargets() {
     const targetList = document.getElementById('pvp-target-list');

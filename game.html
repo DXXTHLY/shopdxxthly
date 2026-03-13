@@ -5644,7 +5644,7 @@ async function createProfile() {
         tryStartMusic();
         renderAll(); // Render first to show the game
         initializeChat();
-        setTimeout(() => refreshMarketTicker(), 1500);
+        setTimeout(() => refreshMarketTicker(), 500);
         await saveGame(); // Save the new profile to the database
         
     } catch (e) {
@@ -8002,7 +8002,7 @@ function enterGame() {
     setTimeout(() => showAccountReminderPopup(), 2000);
 
     // Market ticker — load immediately then refresh every 2 minutes
-    setTimeout(() => refreshMarketTicker(), 1500);
+    setTimeout(() => refreshMarketTicker(), 500);
     setInterval(() => refreshMarketTicker(), 2 * 60 * 1000);
 
     // --- SESSION LOCK ---
@@ -9450,17 +9450,23 @@ async function refreshMarketTicker() {
     try {
         let marketData = [], barterData = [];
 
-        // Market item listings
-        let mRes = await supabaseClient.from('market_listings').select('item_id,price,seller_name').eq('is_sold',false).order('created_at',{ascending:false}).limit(15);
-        if (!mRes.error && mRes.data) marketData = mRes.data;
-        else {
-            let m2 = await supabaseClient.from('market_listings').select('item_id,price,seller_name').order('created_at',{ascending:false}).limit(15);
-            if (!m2.error && m2.data) marketData = m2.data;
-        }
+        // Market item listings — no is_sold filter to avoid column issues, just grab recent
+        const mRes = await supabaseClient
+            .from('market_listings')
+            .select('item_id,price,seller_name')
+            .order('created_at', { ascending: false })
+            .limit(15);
+        if (mRes.data) marketData = mRes.data;
+        if (mRes.error) console.warn('Ticker market error:', mRes.error.message);
 
-        // Barter listings
-        let bRes = await supabaseClient.from('barter_listings').select('offer_type,offer_amt,want_type,want_amt,poster_name').eq('is_complete',false).order('created_at',{ascending:false}).limit(10);
-        if (!bRes.error && bRes.data) barterData = bRes.data;
+        // Barter listings — no is_complete filter to avoid column issues
+        const bRes = await supabaseClient
+            .from('barter_listings')
+            .select('offer_type,offer_amt,want_type,want_amt,poster_name')
+            .order('created_at', { ascending: false })
+            .limit(10);
+        if (bRes.data) barterData = bRes.data;
+        if (bRes.error) console.warn('Ticker barter error:', bRes.error.message);
 
         const rarityColor = { legendary:'#ff9900', epic:'#cc44ff', rare:'#4488ff', uncommon:'#44cc88', common:'#ccc' };
         const cIcon = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' };

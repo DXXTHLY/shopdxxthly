@@ -2576,6 +2576,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div class="nav-group-label label-social">Social</div>
                 <div class="nav-group-buttons">
                     <button onclick="showScreen('leaderboard')">Leaderboard</button>
+                    <button onclick="showScreen('pacts')">⚔️ Pacts</button>
                     <button onclick="toggleChat()">Chat</button>
                     <button onclick="showScreen('bank')">Bank</button>
                     <button onclick="showScreen('stats')">Stats</button>
@@ -2813,6 +2814,55 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div id="market-sell-grid" class="minion-grid">
                     <!-- Your sellable inventory will appear here -->
                 </div>
+
+                <hr>
+                <!-- BARTER MARKET -->
+                <h2>🔀 Abyss Barter</h2>
+                <p style="color:var(--dim-color);">Trade resources directly with other players. Post what you offer and what you want in return.</p>
+
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+                    <button class="upgrade-btn" id="barter-tab-browse" onclick="showBarterTab('browse')" style="border-color:#c8a800;">📜 Browse Trades</button>
+                    <button class="upgrade-btn" id="barter-tab-post" onclick="showBarterTab('post')">➕ Post a Trade</button>
+                    <button class="upgrade-btn" onclick="fetchBarterListings()">🔄 Refresh</button>
+                </div>
+
+                <!-- Browse Panel -->
+                <div id="barter-browse-panel">
+                    <ul id="barter-listing-list" class="leaderboard-list">
+                        <li><em>Loading trades...</em></li>
+                    </ul>
+                </div>
+
+                <!-- Post Trade Panel -->
+                <div id="barter-post-panel" style="display:none;">
+                    <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; padding:20px; border-radius:8px; max-width:500px;">
+                        <h3 style="margin:0 0 14px;">Post a Barter Trade</h3>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                            <div>
+                                <label style="color:var(--dim-color); font-size:0.85em;">I'm offering:</label>
+                                <select id="barter-offer-type" style="width:100%; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:4px; font-family:inherit; margin-top:4px;">
+                                    <option value="souls">👻 Souls</option>
+                                    <option value="darkEssence">🌑 Dark Essence</option>
+                                    <option value="abyssalShards">💎 Abyssal Shards</option>
+                                    <option value="corruptedFragments">🔮 Corrupted Fragments</option>
+                                </select>
+                                <input id="barter-offer-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:4px; font-family:inherit; margin-top:6px;">
+                            </div>
+                            <div>
+                                <label style="color:var(--dim-color); font-size:0.85em;">I want in return:</label>
+                                <select id="barter-want-type" style="width:100%; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:4px; font-family:inherit; margin-top:4px;">
+                                    <option value="darkEssence">🌑 Dark Essence</option>
+                                    <option value="souls">👻 Souls</option>
+                                    <option value="abyssalShards">💎 Abyssal Shards</option>
+                                    <option value="corruptedFragments">🔮 Corrupted Fragments</option>
+                                </select>
+                                <input id="barter-want-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:4px; font-family:inherit; margin-top:6px;">
+                            </div>
+                        </div>
+                        <button class="upgrade-btn" onclick="postBarterListing()" style="width:100%;">📜 Post Trade Offer</button>
+                        <div id="barter-post-msg" style="color:#ff9944; margin-top:8px; font-size:0.85em;"></div>
+                    </div>
+                </div>
             </div>
             <div id="leaderboard-screen" class="screen">
                 <h2>🏆 Leaderboards 🏆</h2>
@@ -2823,6 +2873,47 @@ text-decoration: underline; /* Adds an underline on hover */
                     <button class="upgrade-btn" onclick="fetchLeaderboard('pvpWins')">By PvP Wins</button>
                 </div>
                 <h3 id="leaderboard-title">Ranking by Total Souls</h3><ul id="leaderboard-list"></ul>
+            </div>
+
+            <!-- PACTS SCREEN -->
+            <div id="pacts-screen" class="screen">
+                <h2>⚔️ Soul Pacts ⚔️</h2>
+                <p style="color:var(--dim-color);">Form an alliance of 2–4 Soul Collectors. Each pact member boosts your SPS &amp; SPC by <strong style="color:#c8a800;">+10%</strong> (stacks per member).</p>
+
+                <!-- Current Pact Info -->
+                <div id="pact-current-panel" style="display:none; background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; border-left:3px solid #c8a800; padding:20px; margin-bottom:20px; border-radius:8px;">
+                    <h3 style="color:#c8a800; margin:0 0 10px;">Your Pact: <span id="pact-name-display"></span></h3>
+                    <div id="pact-members-list" style="margin-bottom:14px;"></div>
+                    <div id="pact-bonus-display" style="color:#00e5ff; font-size:0.9em; margin-bottom:14px;"></div>
+                    <button class="upgrade-btn" onclick="leavePact()" style="background:#3a0a0a; border-color:#8a0000;">🚪 Leave Pact</button>
+                </div>
+
+                <!-- No Pact Panel -->
+                <div id="pact-none-panel">
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+                        <div style="flex:1; min-width:250px; background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; padding:18px; border-radius:8px;">
+                            <h3 style="margin:0 0 8px;">Create a New Pact</h3>
+                            <p style="color:var(--dim-color); font-size:0.85em; margin:0 0 12px;">Choose a unique name for your alliance.</p>
+                            <input id="pact-create-name" type="text" maxlength="24" placeholder="Pact name..." style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px 12px; border-radius:4px; font-family:inherit; margin-bottom:10px;">
+                            <button class="upgrade-btn" onclick="createPact()" style="width:100%;">⚔️ Forge Pact</button>
+                        </div>
+                        <div style="flex:1; min-width:250px; background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; padding:18px; border-radius:8px;">
+                            <h3 style="margin:0 0 8px;">Join a Pact</h3>
+                            <p style="color:var(--dim-color); font-size:0.85em; margin:0 0 12px;">Enter the exact pact name to join.</p>
+                            <input id="pact-join-name" type="text" maxlength="24" placeholder="Pact name..." style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #3d2a4a; color:#fff; padding:8px 12px; border-radius:4px; font-family:inherit; margin-bottom:10px;">
+                            <button class="upgrade-btn" onclick="joinPact()" style="width:100%;">🤝 Join Pact</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pact-status-msg" style="color:#ff9944; margin-bottom:12px; min-height:20px;"></div>
+
+                <!-- Pacts Leaderboard -->
+                <hr>
+                <h3>⚔️ Pact Leaderboard</h3>
+                <p style="color:var(--dim-color); font-size:0.85em;">Combined lifetime souls of all members.</p>
+                <ul id="pact-leaderboard-list" class="leaderboard-list"></ul>
+                <button class="upgrade-btn" onclick="fetchPactLeaderboard()">Refresh</button>
             </div>
             <!-- ================================================================= -->
             <!-- BANK SCREEN (NEW) -->
@@ -5450,10 +5541,8 @@ function performAscension() {
   renderAll();
   showScreen('altar');
   saveGame();
+  postGhostEvent('ascension');
 }
-
-// =================================================================
-// COLLAPSE REALITY LOGIC
 // =================================================================
 function calculateAetherOnCollapse() {
     if (!gameState.unlockedWorlds.includes('nexus_of_all_realities')) return 0;
@@ -5505,6 +5594,7 @@ function performCollapse() {
     renderAll();
     showScreen('altar');
     saveGame();
+    postGhostEvent('collapse');
 }
 
 function calculateShardsOnAscend() {
@@ -5782,6 +5872,16 @@ function calculateStats() {
     spc_multiplier *= gameState.permanentRitualBonuses.spc_multiplier;
     global_multiplier *= gameState.permanentRitualBonuses.global_multiplier;
 
+    // Soul Pact bonus: +10% SPS & SPC per additional pact member
+    if (window.playerPact && window.playerPact.members) {
+        const otherMembers = window.playerPact.members.filter(m => m !== gameState.playerName).length;
+        if (otherMembers > 0) {
+            const pactBonus = 1 + (otherMembers * 0.10);
+            sps_multiplier *= pactBonus;
+            spc_multiplier *= pactBonus;
+        }
+    }
+
     const worldBonus = worlds[gameState.currentWorld]?.bonus || { type: 'none' };
     if (worldBonus.type === 'sps_multiplier') sps_multiplier *= worldBonus.value;
     if (worldBonus.type === 'spc_multiplier') spc_multiplier *= worldBonus.value;
@@ -5952,6 +6052,12 @@ function showScreen(screenId) {
         startShopTimer();
         fetchMarketListings();
         renderSellableInventory();
+        fetchBarterListings();
+    }
+    if (screenId === 'pacts')
+    {
+        renderPactScreen();
+        fetchPactLeaderboard();
     }
     if (screenId === 'provinggrounds')
     {
@@ -9870,7 +9976,491 @@ function endCombat(isWin) {
 }
 
 
+
+// =================================================================
+// 👻 GHOST PLAYERS
+// =================================================================
+const GHOST_CURRENCY_LABELS = {
+    souls: '👻 Souls', darkEssence: '🌑 Dark Essence',
+    abyssalShards: '💎 Abyssal Shards', corruptedFragments: '🔮 Corrupted Fragments'
+};
+
+function postGhostEvent(type) {
+    try {
+        const chatDb = window._scFirebase?.chatDb;
+        const uid    = window._scChatUid;
+        if (!chatDb || !uid) return;
+
+        const name   = gameState.playerName || 'A Soul Collector';
+        const souls  = gameState.lifetimeSouls || 0;
+
+        // What reward does the ghost drop?
+        const rewardCurrencies = ['souls','darkEssence','abyssalShards','corruptedFragments'];
+        const rewardType       = rewardCurrencies[Math.floor(Math.random() * rewardCurrencies.length)];
+        const rewardAmt        = Math.max(1, Math.floor(souls * (0.001 + Math.random() * 0.004)));
+
+        const flavor = type === 'collapse'
+            ? `💀 **${name}** has COLLAPSED REALITY! A tortured ghost wails through the abyss...`
+            : `⬆️ **${name}** has Ascended! A spectral echo lingers behind...`;
+
+        const ghostText = `${flavor}\n👻 Absorb their ghost for **${formatNumber(rewardAmt)} ${GHOST_CURRENCY_LABELS[rewardType]}**! Type !absorb in chat within 5 minutes.`;
+
+        // Store ghost in Firebase (expires after 5 min)
+        const ghostRef = chatDb.ref('activeGhosts').push({
+            posterName: name,
+            rewardType,
+            rewardAmt,
+            expiresAt: Date.now() + 5 * 60 * 1000,
+            claimedBy: null
+        });
+
+        // Post event to chat as system-style message
+        chatDb.ref('slitherChat').push({
+            uid,
+            name: '👻 Soul Echo',
+            text: ghostText,
+            time: window._scFirebase.firebase.database.ServerValue.TIMESTAMP,
+            chatNameColor: '#8855ff',
+            type: 'ghost_event',
+            ghostId: ghostRef.key
+        });
+
+    } catch(e) { console.warn('Ghost post error:', e); }
+}
+
+// Listen for !absorb commands in chat to claim ghosts
+function setupGhostAbsorbListener() {
+    try {
+        const chatDb = window._scFirebase?.chatDb;
+        if (!chatDb) return;
+
+        chatDb.ref('slitherChat').limitToLast(5).on('child_added', snap => {
+            const msg = snap.val();
+            if (!msg || !msg.text) return;
+            if (msg.name === gameState.playerName && msg.text.trim().toLowerCase() === '!absorb') {
+                tryAbsorbGhost(snap.key);
+            }
+        });
+    } catch(e) {}
+}
+
+async function tryAbsorbGhost(msgKey) {
+    try {
+        const chatDb = window._scFirebase?.chatDb;
+        if (!chatDb) return;
+
+        const ghostsSnap = await chatDb.ref('activeGhosts').orderByChild('claimedBy').equalTo(null).once('value');
+        const ghosts = ghostsSnap.val();
+        if (!ghosts) return;
+
+        // Find the earliest unclaimed, unexpired ghost not posted by self
+        const now = Date.now();
+        const available = Object.entries(ghosts)
+            .filter(([, g]) => g.expiresAt > now && g.posterName !== gameState.playerName && !g.claimedBy)
+            .sort((a, b) => a[1].expiresAt - b[1].expiresAt);
+
+        if (available.length === 0) return;
+
+        const [ghostId, ghost] = available[0];
+
+        // Claim atomically
+        const claimResult = await chatDb.ref(`activeGhosts/${ghostId}/claimedBy`).transaction(current => {
+            if (current !== null) return; // already claimed
+            return gameState.playerName;
+        });
+
+        if (!claimResult.committed) return;
+
+        // Apply reward
+        const amt = ghost.rewardAmt || 0;
+        switch(ghost.rewardType) {
+            case 'souls':              gameState.souls += amt; gameState.lifetimeSouls += amt; break;
+            case 'darkEssence':        gameState.darkEssence += amt; break;
+            case 'abyssalShards':      gameState.abyssalShards += amt; break;
+            case 'corruptedFragments': gameState.corruptedFragments += amt; break;
+        }
+        calculateStats();
+        renderAll();
+        saveGame();
+
+        Toastify({
+            text: `👻 You absorbed ${ghost.posterName}'s ghost! +${formatNumber(amt)} ${GHOST_CURRENCY_LABELS[ghost.rewardType]}`,
+            duration: 6000, gravity: 'top', position: 'center',
+            style: { background: 'linear-gradient(135deg,#4a0a8a,#8855ff)' }
+        }).showToast();
+
+        // Announce in chat
+        const uid = window._scChatUid;
+        chatDb.ref('slitherChat').push({
+            uid, name: '👻 Soul Echo',
+            text: `✨ **${gameState.playerName}** absorbed ${ghost.posterName}'s ghost and claimed ${formatNumber(amt)} ${GHOST_CURRENCY_LABELS[ghost.rewardType]}!`,
+            time: window._scFirebase.firebase.database.ServerValue.TIMESTAMP,
+            chatNameColor: '#8855ff'
+        });
+
+    } catch(e) { console.warn('Ghost absorb error:', e); }
+}
+
+// =================================================================
+// ⚔️ SOUL PACTS
+// =================================================================
+window.playerPact = null; // { id, name, members[] }
+
+async function loadMyPact() {
+    if (!supabaseClient || !gameState.playerName) return;
+    try {
+        const { data } = await supabaseClient
+            .from('pacts')
+            .select('*')
+            .contains('members', [gameState.playerName])
+            .limit(1)
+            .single();
+        window.playerPact = data || null;
+        calculateStats(); // apply pact bonus
+        renderPactScreen();
+    } catch(e) { window.playerPact = null; }
+}
+
+function renderPactScreen() {
+    const currentPanel = document.getElementById('pact-current-panel');
+    const nonePanel    = document.getElementById('pact-none-panel');
+    if (!currentPanel || !nonePanel) return;
+
+    if (window.playerPact) {
+        currentPanel.style.display = 'block';
+        nonePanel.style.display    = 'none';
+
+        document.getElementById('pact-name-display').textContent = window.playerPact.pact_name || window.playerPact.name || '';
+
+        const members = window.playerPact.members || [];
+        const memberColors = ['#ffd700','#00e5ff','#ff9944','#88ff88'];
+        document.getElementById('pact-members-list').innerHTML = members.map((m, i) =>
+            `<div style="color:${memberColors[i % memberColors.length]}; padding:3px 0;">
+                ${i === 0 ? '👑' : '⚔️'} ${m}${m === gameState.playerName ? ' <em style="color:#666;font-size:0.8em;">(you)</em>' : ''}
+            </div>`
+        ).join('');
+
+        const others = members.filter(m => m !== gameState.playerName).length;
+        const bonusPct = others * 10;
+        document.getElementById('pact-bonus-display').innerHTML = others > 0
+            ? `✨ Pact Bonus Active: <strong>+${bonusPct}% SPS &amp; SPC</strong> (${others} allied soul${others > 1 ? 's' : ''})`
+            : `<span style="color:#666;">Waiting for allies to join your pact...</span>`;
+    } else {
+        currentPanel.style.display = 'none';
+        nonePanel.style.display    = 'block';
+    }
+}
+
+async function createPact() {
+    const nameInput = document.getElementById('pact-create-name');
+    const statusEl  = document.getElementById('pact-status-msg');
+    const pactName  = nameInput?.value?.trim();
+    if (!pactName) { if(statusEl) statusEl.textContent = 'Enter a pact name first.'; return; }
+    if (!supabaseClient) return;
+    if (window.playerPact) { if(statusEl) statusEl.textContent = 'You are already in a pact. Leave it first.'; return; }
+
+    try {
+        const { data: existing } = await supabaseClient.from('pacts').select('id').eq('pact_name', pactName).limit(1);
+        if (existing && existing.length > 0) {
+            if(statusEl) statusEl.textContent = 'That pact name is already taken. Choose another.'; return;
+        }
+
+        const { error } = await supabaseClient.from('pacts').insert({
+            pact_name: pactName,
+            members: [gameState.playerName],
+            combined_souls_log: Math.log10(Math.max(1, gameState.lifetimeSouls))
+        });
+        if (error) throw error;
+
+        if(statusEl) statusEl.textContent = '';
+        await loadMyPact();
+        Toastify({ text: `⚔️ Pact "${pactName}" forged! Share the name with allies.`, duration: 5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#4a3000,#c8a800)'} }).showToast();
+    } catch(e) {
+        if(statusEl) statusEl.textContent = 'Error: ' + (e.message || 'Could not create pact.');
+    }
+}
+
+async function joinPact() {
+    const nameInput = document.getElementById('pact-join-name');
+    const statusEl  = document.getElementById('pact-status-msg');
+    const pactName  = nameInput?.value?.trim();
+    if (!pactName) { if(statusEl) statusEl.textContent = 'Enter the pact name to join.'; return; }
+    if (window.playerPact) { if(statusEl) statusEl.textContent = 'Leave your current pact first.'; return; }
+    if (!supabaseClient) return;
+
+    try {
+        const { data, error } = await supabaseClient.from('pacts').select('*').eq('pact_name', pactName).limit(1).single();
+        if (error || !data) { if(statusEl) statusEl.textContent = 'Pact not found. Check the name and try again.'; return; }
+
+        const members = data.members || [];
+        if (members.length >= 4) { if(statusEl) statusEl.textContent = 'That pact is full (max 4 members).'; return; }
+        if (members.includes(gameState.playerName)) { if(statusEl) statusEl.textContent = 'You are already in this pact.'; return; }
+
+        const newMembers = [...members, gameState.playerName];
+        const combLog = newMembers.reduce((sum, m) => sum, Math.log10(Math.max(1, gameState.lifetimeSouls)));
+
+        const { error: updErr } = await supabaseClient.from('pacts').update({ members: newMembers }).eq('id', data.id);
+        if (updErr) throw updErr;
+
+        if(statusEl) statusEl.textContent = '';
+        await loadMyPact();
+        Toastify({ text: `🤝 Joined pact "${pactName}"! Bonus active.`, duration: 5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#4a3000,#c8a800)'} }).showToast();
+    } catch(e) {
+        if(statusEl) statusEl.textContent = 'Error: ' + (e.message || 'Could not join pact.');
+    }
+}
+
+async function leavePact() {
+    if (!window.playerPact || !supabaseClient) return;
+    if (!confirm('Are you sure you want to leave your pact? You will lose the bonus.')) return;
+
+    try {
+        const pact    = window.playerPact;
+        const members = (pact.members || []).filter(m => m !== gameState.playerName);
+
+        if (members.length === 0) {
+            await supabaseClient.from('pacts').delete().eq('id', pact.id);
+        } else {
+            await supabaseClient.from('pacts').update({ members }).eq('id', pact.id);
+        }
+        window.playerPact = null;
+        calculateStats();
+        renderPactScreen();
+        Toastify({ text: 'You have left your pact.', duration: 3000, gravity:'top', position:'center' }).showToast();
+    } catch(e) {
+        alert('Error leaving pact: ' + e.message);
+    }
+}
+
+async function fetchPactLeaderboard() {
+    const list = document.getElementById('pact-leaderboard-list');
+    if (!list || !supabaseClient) return;
+    list.innerHTML = '<li><em>Summoning pacts from the abyss...</em></li>';
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('pacts')
+            .select('*')
+            .order('combined_souls_log', { ascending: false })
+            .limit(10);
+        if (error) throw error;
+        if (!data || data.length === 0) { list.innerHTML = '<li>No pacts formed yet. Be the first!</li>'; return; }
+
+        list.innerHTML = '';
+        data.forEach((pact, i) => {
+            const li = document.createElement('li');
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
+            const membersStr = (pact.members || []).join(', ');
+            const isMe = (pact.members || []).includes(gameState.playerName);
+            li.innerHTML = `<div>
+                <strong style="color:${isMe?'var(--primary-color)':'#c8a800'}">${medal} ${pact.pact_name}</strong>
+                <div style="font-size:0.8em; color:#666; margin-top:2px;">${membersStr}</div>
+            </div>
+            <span style="color:#c8a800; font-weight:bold;">${pact.members?.length || 0} members</span>`;
+            if (isMe) li.style.cssText = 'border-color:var(--primary-color);';
+            list.appendChild(li);
+        });
+    } catch(e) {
+        list.innerHTML = '<li>Error loading pact leaderboard.</li>';
+    }
+}
+
+// =================================================================
+// 🔀 ABYSS BARTER MARKET
+// =================================================================
+const BARTER_LABELS = {
+    souls: '👻 Souls', darkEssence: '🌑 Dark Essence',
+    abyssalShards: '💎 Abyssal Shards', corruptedFragments: '🔮 Corrupted Fragments'
+};
+
+function showBarterTab(tab) {
+    document.getElementById('barter-browse-panel').style.display = tab === 'browse' ? 'block' : 'none';
+    document.getElementById('barter-post-panel').style.display   = tab === 'post'   ? 'block' : 'none';
+    document.getElementById('barter-tab-browse').style.borderColor = tab === 'browse' ? '#c8a800' : '';
+    document.getElementById('barter-tab-post').style.borderColor   = tab === 'post'   ? '#c8a800' : '';
+}
+
+async function fetchBarterListings() {
+    const list = document.getElementById('barter-listing-list');
+    if (!list || !supabaseClient) return;
+    list.innerHTML = '<li><em>Consulting the abyssal brokers...</em></li>';
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('barter_listings')
+            .select('*')
+            .eq('is_complete', false)
+            .order('created_at', { ascending: false })
+            .limit(20);
+        if (error) throw error;
+        if (!data || data.length === 0) { list.innerHTML = '<li>No active barter offers. Post one!</li>'; return; }
+
+        list.innerHTML = '';
+        data.forEach(listing => {
+            const li       = document.createElement('li');
+            const isMe     = listing.poster_name === gameState.playerName;
+            const canFill  = !isMe && hasEnough(listing.want_type, listing.want_amt);
+
+            li.innerHTML = `<div>
+                <strong style="color:${isMe ? 'var(--primary-color)' : '#c8a800'}">${listing.poster_name}</strong>
+                <div style="margin-top:4px; font-size:0.9em;">
+                    Offers <span style="color:#88ff88;">${formatNumber(listing.offer_amt)} ${BARTER_LABELS[listing.offer_type]}</span>
+                    &nbsp;for&nbsp;
+                    <span style="color:#ff9944;">${formatNumber(listing.want_amt)} ${BARTER_LABELS[listing.want_type]}</span>
+                </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+                ${isMe
+                    ? `<button class="upgrade-btn" style="font-size:0.8em; background:#3a0a0a; border-color:#8a0000;" onclick="cancelBarterListing(${listing.id})">Cancel</button>`
+                    : `<button class="upgrade-btn" style="font-size:0.8em;" onclick="acceptBarterListing(${listing.id})" ${!canFill ? 'disabled' : ''}>
+                        ${canFill ? 'Accept Trade' : 'Can\'t Afford'}
+                    </button>`
+                }
+            </div>`;
+            list.appendChild(li);
+        });
+    } catch(e) {
+        list.innerHTML = `<li>Error loading barter listings: ${e.message}</li>`;
+    }
+}
+
+function hasEnough(type, amt) {
+    switch(type) {
+        case 'souls':              return gameState.souls >= amt;
+        case 'darkEssence':        return gameState.darkEssence >= amt;
+        case 'abyssalShards':      return gameState.abyssalShards >= amt;
+        case 'corruptedFragments': return gameState.corruptedFragments >= amt;
+    }
+    return false;
+}
+
+function deductCurrency(type, amt) {
+    switch(type) {
+        case 'souls':              gameState.souls -= amt; break;
+        case 'darkEssence':        gameState.darkEssence -= amt; break;
+        case 'abyssalShards':      gameState.abyssalShards -= amt; break;
+        case 'corruptedFragments': gameState.corruptedFragments -= amt; break;
+    }
+}
+
+function addCurrency(type, amt) {
+    switch(type) {
+        case 'souls':              gameState.souls += amt; gameState.lifetimeSouls += amt; break;
+        case 'darkEssence':        gameState.darkEssence += amt; break;
+        case 'abyssalShards':      gameState.abyssalShards += amt; break;
+        case 'corruptedFragments': gameState.corruptedFragments += amt; break;
+    }
+}
+
+async function postBarterListing() {
+    const statusEl  = document.getElementById('barter-post-msg');
+    const offerType = document.getElementById('barter-offer-type')?.value;
+    const wantType  = document.getElementById('barter-want-type')?.value;
+    const offerAmt  = parseInt(document.getElementById('barter-offer-amt')?.value);
+    const wantAmt   = parseInt(document.getElementById('barter-want-amt')?.value);
+
+    if (!offerType || !wantType || isNaN(offerAmt) || isNaN(wantAmt) || offerAmt < 1 || wantAmt < 1) {
+        if(statusEl) statusEl.textContent = 'Fill in all fields with valid amounts.'; return;
+    }
+    if (offerType === wantType) {
+        if(statusEl) statusEl.textContent = 'You can\'t trade a resource for itself.'; return;
+    }
+    if (!hasEnough(offerType, offerAmt)) {
+        if(statusEl) statusEl.textContent = `You don't have enough ${BARTER_LABELS[offerType]}.`; return;
+    }
+
+    try {
+        // Deduct the offered amount upfront (held in escrow concept)
+        deductCurrency(offerType, offerAmt);
+        calculateStats(); renderAll();
+
+        const { error } = await supabaseClient.from('barter_listings').insert({
+            poster_name: gameState.playerName,
+            offer_type: offerType,
+            offer_amt: offerAmt,
+            want_type: wantType,
+            want_amt: wantAmt,
+            is_complete: false
+        });
+        if (error) {
+            // Refund on failure
+            addCurrency(offerType, offerAmt);
+            calculateStats(); renderAll();
+            throw error;
+        }
+
+        saveGame();
+        if(statusEl) statusEl.textContent = '';
+        Toastify({ text: `📜 Trade posted! Waiting for a taker...`, duration: 4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'} }).showToast();
+        showBarterTab('browse');
+        fetchBarterListings();
+    } catch(e) {
+        if(statusEl) statusEl.textContent = 'Error posting trade: ' + e.message;
+    }
+}
+
+async function acceptBarterListing(listingId) {
+    if (!supabaseClient) return;
+    try {
+        const { data: listing, error: fetchErr } = await supabaseClient
+            .from('barter_listings').select('*').eq('id', listingId).single();
+        if (fetchErr || !listing) { alert('Trade no longer available.'); fetchBarterListings(); return; }
+        if (listing.is_complete) { alert('This trade has already been completed.'); fetchBarterListings(); return; }
+        if (!hasEnough(listing.want_type, listing.want_amt)) { alert(`You don't have enough ${BARTER_LABELS[listing.want_type]}.`); return; }
+
+        if (!confirm(`Accept trade?\nYou pay: ${formatNumber(listing.want_amt)} ${BARTER_LABELS[listing.want_type]}\nYou receive: ${formatNumber(listing.offer_amt)} ${BARTER_LABELS[listing.offer_type]}`)) return;
+
+        // Mark as complete
+        const { error: updErr } = await supabaseClient.from('barter_listings').update({
+            is_complete: true, accepted_by: gameState.playerName
+        }).eq('id', listingId).eq('is_complete', false);
+        if (updErr) throw updErr;
+
+        // Apply to buyer: pay want, receive offer
+        deductCurrency(listing.want_type, listing.want_amt);
+        addCurrency(listing.offer_type, listing.offer_amt);
+        calculateStats(); renderAll(); saveGame();
+
+        Toastify({ text: `✅ Trade accepted! +${formatNumber(listing.offer_amt)} ${BARTER_LABELS[listing.offer_type]}`, duration: 5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'} }).showToast();
+        fetchBarterListings();
+    } catch(e) {
+        alert('Error accepting trade: ' + e.message);
+    }
+}
+
+async function cancelBarterListing(listingId) {
+    if (!supabaseClient) return;
+    if (!confirm('Cancel this trade offer? Your offered resources will be returned.')) return;
+    try {
+        const { data: listing } = await supabaseClient.from('barter_listings').select('*').eq('id', listingId).single();
+        if (!listing) return;
+
+        await supabaseClient.from('barter_listings').delete().eq('id', listingId).eq('poster_name', gameState.playerName);
+
+        // Refund the offered amount
+        addCurrency(listing.offer_type, listing.offer_amt);
+        calculateStats(); renderAll(); saveGame();
+
+        Toastify({ text: `Trade cancelled. Resources returned.`, duration: 3000, gravity:'top', position:'center' }).showToast();
+        fetchBarterListings();
+    } catch(e) {
+        alert('Error cancelling: ' + e.message);
+    }
+}
+
+// Init: load pact and setup ghost listener once Firebase is ready
+(function waitForFirebaseAndInit() {
+    const interval = setInterval(() => {
+        if (window._scFirebase && window._scChatUid && gameState.playerName) {
+            clearInterval(interval);
+            loadMyPact();
+            setupGhostAbsorbListener();
+        }
+    }, 1500);
+})();
+
 </script>
+
 <div id="hosting-credit">
     Hosted by: 
     <a href="https://dxxthly.com" target="_blank">dxxthly.com</a> & 

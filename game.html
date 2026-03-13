@@ -12756,7 +12756,11 @@ async function arenaEndBattle(playerWon) {
 
             // Schedule next round
             setTimeout(() => {
-                if (riftDB) broadcastNewRound(riftDB);
+                if (riftDB) {
+                    broadcastNewRound(riftDB);
+                } else {
+                    startLocalRound();
+                }
             }, 5000);
         }
 
@@ -12863,21 +12867,46 @@ async function arenaEndBattle(playerWon) {
 
         listenForPlayerUpdates();
 
-        // Wait for Firebase to be ready, then hook into shared round state
-        function waitForFirebase(attempts) {
+        // Start a local game immediately so the screen is never stuck on "Connecting..."
+        startLocalRound();
+
+        // Then try to attach to Firebase for shared sync — if it connects, it takes over
+        function tryAttachFirebase(attempts) {
             const db = window._scFirebase?.chatDb;
             if (db) {
-                initRiftSync(db);
+                riftDB = db;
+                // Only take over if we're still in the waiting phase (safe to hand off)
+                db.ref('rift_round').once('value', snap => {
+                    const data = snap.val();
+                    if (!data || data.phase === 'CRASHED') {
+                        broadcastNewRound(db);
+                    }
+                    // Set up the live listener going forward
+                    db.ref('rift_round').on('value', snap2 => {
+                        const d = snap2.val();
+                        if (d) syncToRound(d);
+                    });
+                });
             } else if (attempts > 0) {
-                setTimeout(() => waitForFirebase(attempts - 1), 500);
-            } else {
-                // Fallback: run locally if Firebase unavailable
-                console.warn('Rift: Firebase unavailable, running in local mode');
-                broadcastNewRound({ ref: () => ({ set:()=>{}, update:()=>{}, on:()=>{} }) });
-                enterWaiting(WAITING_TIME);
+                setTimeout(() => tryAttachFirebase(attempts - 1), 800);
             }
+            // If firebase never connects, local mode keeps running — no stuck state
         }
-        waitForFirebase(20);
+        tryAttachFirebase(25);
+
+        function startLocalRound() {
+            // Kick off a fully local round immediately
+            const now    = Date.now();
+            const seed   = now % 2147483647;
+            roundId      = now.toString(36);
+            crashPoint   = crashPointFromSeed(seed);
+            const gameStart = now + WAITING_TIME;
+            enterWaiting(gameStart - now);
+            // Schedule game start locally
+            setTimeout(() => {
+                if (gameStateRift === 'WAITING') enterRunning(gameStart);
+            }, WAITING_TIME);
+        }
     });
 </script>
 <!-- ================================================================= -->

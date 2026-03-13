@@ -9450,22 +9450,22 @@ async function refreshMarketTicker() {
     try {
         let marketData = [], barterData = [];
 
-        console.log('Ticker: fetching market listings...');
+        // Use * to avoid 400 errors from missing columns
         const mRes = await supabaseClient
             .from('market_listings')
-            .select('item_id,price,seller_name')
+            .select('*')
             .order('created_at', { ascending: false })
             .limit(15);
-        console.log('Ticker market result:', mRes.data, mRes.error);
-        if (mRes.data) marketData = mRes.data;
+        if (!mRes.error && mRes.data) marketData = mRes.data;
+        else console.warn('Ticker market_listings error:', mRes.error?.message);
 
         const bRes = await supabaseClient
             .from('barter_listings')
-            .select('offer_type,offer_amt,want_type,want_amt,poster_name')
+            .select('*')
             .order('created_at', { ascending: false })
             .limit(10);
-        console.log('Ticker barter result:', bRes.data, bRes.error);
-        if (bRes.data) barterData = bRes.data;
+        if (!bRes.error && bRes.data) barterData = bRes.data;
+        else console.warn('Ticker barter_listings error:', bRes.error?.message);
 
         const rarityColor = { legendary:'#ff9900', epic:'#cc44ff', rare:'#4488ff', uncommon:'#44cc88', common:'#ccc' };
         const cIcon = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' };
@@ -11862,7 +11862,7 @@ function renderPactScreen() {
         (async () => {
             let memberStats = {};
             try {
-                const { data } = await supabaseClient.from('players').select('name,sps,ascensions,pvpWins').in('name', members);
+                const { data } = await supabaseClient.from('players').select('name,ascensions,pvpWins,sps').in('name', members).then(r => r).catch(() => ({ data: null }));
                 if (data) data.forEach(p => { memberStats[p.name || p.player_name] = p; });
             } catch(e) {}
 
@@ -12208,7 +12208,7 @@ async function fetchPactLeaderboard() {
         const allMembers = [...new Set(pacts.flatMap(p => p.members || []))];
         let memberStats = {};
         try {
-            const { data: players } = await supabaseClient.from('players').select('name,sps,ascensions').in('name', allMembers);
+            const { data: players } = await supabaseClient.from('players').select('name,ascensions,sps').in('name', allMembers).then(r => r).catch(() => ({ data: null }));
             if (players) players.forEach(p => { memberStats[p.player_name] = p; });
         } catch(e) {}
 

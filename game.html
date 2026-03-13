@@ -11808,8 +11808,8 @@ function renderPactScreen() {
         (async () => {
             let memberStats = {};
             try {
-                const { data } = await supabaseClient.from('players').select('player_name,sps,ascensions,pvpWins').in('player_name', members);
-                if (data) data.forEach(p => { memberStats[p.player_name] = p; });
+                const { data } = await supabaseClient.from('players').select('name,sps,ascensions,pvpWins').in('name', members);
+                if (data) data.forEach(p => { memberStats[p.name || p.player_name] = p; });
             } catch(e) {}
 
             listEl.innerHTML = members.map((m, i) => {
@@ -11947,27 +11947,30 @@ async function fetchPvpLeaderboard() {
         // Try camelCase columns first; fall back to snake_case if Supabase returns a column error
         let { data, error } = await supabaseClient
             .from('players')
-            .select('player_name,pvpWins,pvpLosses')
+            .select('name,pvpWins,pvpLosses')
             .order('pvpWins', { ascending: false })
             .limit(10);
 
         if (error) {
-            console.warn('pvpWins column issue, trying snake_case:', error.message);
+            console.warn('pvpWins column issue:', error.message);
             ({ data, error } = await supabaseClient
                 .from('players')
-                .select('player_name')
+                .select('name')
                 .limit(10));
             if (!error && data) data = data.map(p => ({ ...p, pvpWins: 0, pvpLosses: 0 }));
         }
         if (error) { console.error('PVP leaderboard error:', error); throw error; }
 
-        // Merge local player's live win/loss in case Supabase is stale
+        // Normalise: map 'name' -> 'player_name' for display, merge local stats
         if (data) {
             data = data.map(p => {
-                if (p.player_name === gameState.playerName) {
-                    return { ...p, pvpWins: gameState.pvpWins || p.pvpWins || 0, pvpLosses: gameState.pvpLosses || p.pvpLosses || 0 };
-                }
-                return p;
+                const pname = p.name || p.player_name;
+                const isMe = pname === gameState.playerName;
+                return {
+                    player_name: pname,
+                    pvpWins:   isMe ? (gameState.pvpWins   || p.pvpWins   || 0) : (p.pvpWins   || 0),
+                    pvpLosses: isMe ? (gameState.pvpLosses || p.pvpLosses || 0) : (p.pvpLosses || 0),
+                };
             });
             data.sort((a, b) => (b.pvpWins || 0) - (a.pvpWins || 0));
         }
@@ -12151,7 +12154,7 @@ async function fetchPactLeaderboard() {
         const allMembers = [...new Set(pacts.flatMap(p => p.members || []))];
         let memberStats = {};
         try {
-            const { data: players } = await supabaseClient.from('players').select('player_name,sps,ascensions').in('player_name', allMembers);
+            const { data: players } = await supabaseClient.from('players').select('name,sps,ascensions').in('name', allMembers);
             if (players) players.forEach(p => { memberStats[p.player_name] = p; });
         } catch(e) {}
 

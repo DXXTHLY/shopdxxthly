@@ -18,6 +18,10 @@
             --font-size-base: 16px; --font-size-large: 1.2rem; --font-size-xl: 1.8rem; --font-size-xxl: 2.5rem;
             --border-radius: 3px; --transition-speed: 0.3s;
         }
+        @keyframes ticker-scroll {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         @keyframes soulThump { 0% { transform: scale(1); } 50% { transform: scale(0.97); } 100% { transform: scale(1); } }
 
@@ -2683,6 +2687,19 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
                 </div>
             </header>
+        <!-- ================================================================= -->
+        <!-- MARKET TICKER BANNER -->
+        <!-- ================================================================= -->
+        <div id="market-ticker-wrap" style="background:#080612; border-bottom:1px solid #c8a80022; overflow:hidden; height:26px; display:flex; align-items:center; position:relative;">
+            <div style="flex-shrink:0; background:#c8a80018; border-right:1px solid #c8a80033; padding:0 10px; height:100%; display:flex; align-items:center; z-index:2;">
+                <span style="color:#c8a800; font-size:0.68em; font-weight:bold; letter-spacing:2px; white-space:nowrap;">📜 MARKET</span>
+            </div>
+            <div style="overflow:hidden; flex:1; position:relative; height:100%;">
+                <div id="market-ticker-inner" style="display:flex; align-items:center; height:100%; white-space:nowrap; animation:ticker-scroll 40s linear infinite; will-change:transform;">
+                    <span style="color:#555; font-size:0.75em; padding:0 20px;">Loading market listings...</span>
+                </div>
+            </div>
+        </div>
         <nav>
             <div class="nav-group">
                 <div class="nav-group-label label-collect">Collect</div>
@@ -2935,9 +2952,25 @@ text-decoration: underline; /* Adds an underline on hover */
                         </div>
 
                         <!-- Battle logs -->
-                        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #33333344; border-radius:12px; padding:16px;">
-                            <h3 style="margin:0 0 12px; color:#888; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">📜 Battle Log</h3>
-                            <ul id="arena-log-list" style="list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px;"></ul>
+                        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #33333344; border-radius:12px; padding:16px; margin-bottom:16px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                <h3 style="margin:0; color:#888; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">📜 Battle Log <span style="color:#555; font-weight:normal; font-size:0.8em;">(all players)</span></h3>
+                                <button onclick="arenaFetchLogs(0)" style="background:#33333415; border:1px solid #33333444; border-radius:6px; padding:4px 12px; color:#888; cursor:pointer; font-family:inherit; font-size:0.75em;">🔄 Refresh</button>
+                            </div>
+                            <ul id="arena-log-list" style="list-style:none; margin:0; padding:0;"></ul>
+                        </div>
+
+                        <!-- PVP Rewards -->
+                        <div style="background:linear-gradient(135deg,#0e0a1a,#1c1200); border:1px solid #c8a80033; border-top:3px solid #c8a800; border-radius:12px; padding:16px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                <h3 style="margin:0; color:#c8a800; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">🏆 PvP Rewards</h3>
+                                <button onclick="fetchPvpLeaderboard()" style="background:#c8a80015; border:1px solid #c8a80044; border-radius:6px; padding:4px 12px; color:#c8a800; cursor:pointer; font-family:inherit; font-size:0.75em;">🔄 Refresh</button>
+                            </div>
+                            <div style="color:#666; font-size:0.74em; margin-bottom:12px; line-height:1.5;">Top fighters earn potions and essence every time rankings are checked. Claim your reward if eligible.</div>
+                            <div id="pvp-leaderboard-list" style="margin-bottom:12px;"></div>
+                            <div id="pvp-reward-claim" style="display:none; text-align:center; margin-top:8px;">
+                                <button onclick="claimPvpReward()" style="background:linear-gradient(135deg,#3a2800,#1a1000); border:2px solid #c8a80066; border-radius:10px; padding:10px 24px; color:#c8a800; cursor:pointer; font-family:inherit; font-weight:bold; font-size:0.9em;">🎁 Claim Your Rank Reward</button>
+                            </div>
                         </div>
                     </div>
 
@@ -3050,28 +3083,37 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div id="hourly-shop-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;"></div>
                 </div>
 
-                <!-- PLAYER LISTINGS -->
-                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #4488ff44; border-top:3px solid #4488ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
+                <!-- SELL AN ITEM -->
+                <div style="background:linear-gradient(135deg,#0e0a1a,#0e1a12); border:1px solid #44cc8833; border-top:3px solid #44cc88; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
                     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
                         <div>
-                            <h3 style="margin:0; color:#4488ff; letter-spacing:2px;">🏪 CURRENT LISTINGS</h3>
-                            <p style="margin:4px 0 0; color:#666; font-size:0.82em;">Items listed by other Soul Collectors for Dark Essence.</p>
+                            <h3 style="margin:0 0 3px; color:#44cc88; letter-spacing:2px;">📤 SELL AN ITEM</h3>
+                            <p style="margin:0; color:#555; font-size:0.8em;">Click any item to set a price and list it on the market.</p>
                         </div>
-                        <button class="upgrade-btn" onclick="fetchMarketListings()" style="border-color:#4488ff66; background:linear-gradient(135deg,#4488ff15,transparent);">
-                            <span style="color:#4488ff;">🔄 Refresh</span>
-                        </button>
                     </div>
-                    <ul id="market-listing-list" class="leaderboard-list" style="margin:0;"></ul>
+                    <div id="market-sell-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;"></div>
                 </div>
 
-                <!-- SELL AN ITEM -->
-                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #44cc8844; border-top:3px solid #44cc88; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
-                    <h3 style="margin:0 0 6px; color:#44cc88; letter-spacing:2px;">📤 SELL AN ITEM</h3>
-                    <p style="margin:0 0 16px; color:#666; font-size:0.82em;">Select an item from your inventory to list on the market.</p>
-                    <div id="market-sell-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px;"></div>
+                <!-- SELL PRICE MODAL -->
+                <div id="sell-price-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); justify-content:center; align-items:center; z-index:400; backdrop-filter:blur(6px);">
+                    <div style="background:linear-gradient(135deg,#0e0a1a,#0e1a12); border:2px solid #44cc8844; border-radius:16px; padding:28px; max-width:380px; width:90%; text-align:center;">
+                        <div id="sell-modal-icon" style="font-size:2.4em; margin-bottom:8px;"></div>
+                        <div id="sell-modal-name" style="color:#44cc88; font-weight:bold; font-size:1.1em; margin-bottom:4px;"></div>
+                        <div id="sell-modal-desc" style="color:#555; font-size:0.78em; margin-bottom:18px; line-height:1.5;"></div>
+                        <label style="color:#888; font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Price in Dark Essence</label>
+                        <input id="sell-price-input" type="number" min="1" placeholder="Enter price..."
+                            style="display:block; width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #44cc8844; color:#fff; padding:10px 14px; border-radius:9px; font-family:inherit; font-size:1.1em; text-align:center; margin:8px 0 20px;">
+                        <div style="display:flex; gap:10px;">
+                            <button onclick="closeSellModal()" style="flex:1; background:#0d0a18; border:1px solid #2a1a3a; border-radius:9px; padding:10px; color:#555; font-family:inherit; cursor:pointer;">✗ Cancel</button>
+                            <button onclick="confirmSellItem()" style="flex:1; background:linear-gradient(135deg,#44cc8822,#44cc8811); border:2px solid #44cc8866; border-radius:9px; padding:10px; color:#44cc88; font-family:inherit; font-weight:bold; cursor:pointer;">📤 List Item</button>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- BARTER -->
+
+
+
+                                <!-- BARTER -->
                 <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #aa44ff44; border-top:3px solid #aa44ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto;">
                     <h3 style="margin:0 0 4px; color:#aa44ff; letter-spacing:2px;">🔀 ABYSS BARTER</h3>
                     <p style="margin:0 0 18px; color:#666; font-size:0.82em;">Trade resources directly with other players.</p>
@@ -3083,6 +3125,32 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
 
                     <div id="barter-browse-panel">
+                        <!-- Sort controls -->
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                            <span style="color:#666; font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Sort:</span>
+                            <select id="barter-sort-select" onchange="barterPage=0; fetchBarterListings()" style="background:#0d0a18; border:1px solid #3d2a4a; color:#aaa; padding:5px 10px; border-radius:7px; font-family:inherit; font-size:0.8em; cursor:pointer;">
+                                <option value="newest">🕐 Newest First</option>
+                                <option value="oldest">🕐 Oldest First</option>
+                                <option value="offer_high">💰 Offering: High → Low</option>
+                                <option value="offer_low">💰 Offering: Low → High</option>
+                                <option value="want_high">🎯 Wanting: High → Low</option>
+                                <option value="want_low">🎯 Wanting: Low → High</option>
+                            </select>
+                            <select id="barter-filter-offer" onchange="barterPage=0; fetchBarterListings()" style="background:#0d0a18; border:1px solid #3d2a4a; color:#aaa; padding:5px 10px; border-radius:7px; font-family:inherit; font-size:0.8em; cursor:pointer;">
+                                <option value="">🔍 Offering Any</option>
+                                <option value="souls">👻 Offering Souls</option>
+                                <option value="darkEssence">🌑 Offering Essence</option>
+                                <option value="abyssalShards">💎 Offering Shards</option>
+                                <option value="corruptedFragments">🔮 Offering Fragments</option>
+                            </select>
+                            <select id="barter-filter-want" onchange="barterPage=0; fetchBarterListings()" style="background:#0d0a18; border:1px solid #3d2a4a; color:#aaa; padding:5px 10px; border-radius:7px; font-family:inherit; font-size:0.8em; cursor:pointer;">
+                                <option value="">🎯 Wanting Any</option>
+                                <option value="souls">👻 Wanting Souls</option>
+                                <option value="darkEssence">🌑 Wanting Essence</option>
+                                <option value="abyssalShards">💎 Wanting Shards</option>
+                                <option value="corruptedFragments">🔮 Wanting Fragments</option>
+                            </select>
+                        </div>
                         <ul id="barter-listing-list" class="leaderboard-list" style="margin:0;">
                             <li><em>Loading trades...</em></li>
                         </ul>
@@ -3130,6 +3198,20 @@ text-decoration: underline; /* Adds an underline on hover */
                     <button class="upgrade-btn" onclick="fetchLeaderboard('pvpWins')">By PvP Wins</button>
                 </div>
                 <h3 id="leaderboard-title">Ranking by Total Souls</h3><ul id="leaderboard-list"></ul>
+                <!-- PLAYER LISTINGS -->
+                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #4488ff44; border-top:3px solid #4488ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+                        <div>
+                            <h3 style="margin:0; color:#4488ff; letter-spacing:2px;">🏪 CURRENT LISTINGS</h3>
+                            <p style="margin:4px 0 0; color:#666; font-size:0.82em;">Items listed by other Soul Collectors for Dark Essence.</p>
+                        </div>
+                        <button class="upgrade-btn" onclick="fetchMarketListings()" style="border-color:#4488ff66; background:linear-gradient(135deg,#4488ff15,transparent);">
+                            <span style="color:#4488ff;">🔄 Refresh</span>
+                        </button>
+                    </div>
+                    <ul id="market-listing-list" class="leaderboard-list" style="margin:0;"></ul>
+                </div>
+
             </div>
 
             <!-- PACTS SCREEN -->
@@ -3169,6 +3251,26 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div id="pact-members-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;"></div>
                     <div id="pact-bonus-display" style="background:#00e5ff11; border:1px solid #00e5ff33; border-radius:6px; padding:8px 14px; color:#00e5ff; font-size:0.9em; margin-bottom:16px; display:inline-block;"></div>
                     <br>
+                    <!-- Pact Random Buff -->
+                    <div style="background:#0d0a18; border:1px solid #aa44ff33; border-radius:10px; padding:14px; margin:12px 0;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+                            <div>
+                                <div style="color:#aa44ff; font-weight:bold; font-size:0.9em;">🎲 Pact Blessing</div>
+                                <div style="color:#666; font-size:0.74em; margin-top:2px;">Roll a random buff for your whole pact. 30 min cooldown.</div>
+                            </div>
+                            <button onclick="rollPactBuff()" style="background:linear-gradient(135deg,#2a1050,#1a0830); border:1px solid #aa44ff66; border-radius:9px; padding:8px 18px; color:#aa44ff; cursor:pointer; font-family:inherit; font-size:0.85em; font-weight:bold;">🎲 Roll Blessing</button>
+                        </div>
+                        <div id="pact-buff-status" style="display:none;"></div>
+                        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+                            <span style="color:#555; font-size:0.7em; flex-basis:100%;">Possible buffs:</span>
+                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">💥 Soul Surge</span>
+                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">🌑 Essence Tide</span>
+                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">🌾 Dark Harvest</span>
+                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">🛡 Void Shield</span>
+                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">🩸 Blood Pact</span>
+                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">🔊 Abyssal Echo</span>
+                        </div>
+                    </div>
                     <button class="upgrade-btn" onclick="leavePact()" style="background:#2a0808; border-color:#6a0000; color:#ff6666; margin-top:8px;">🚪 Leave Pact</button>
                 </div>
 
@@ -5424,6 +5526,9 @@ function getDefaultGameState() {
         nextCacheTime: 0,
         pvpWins: 0,
         pvpLosses: 0,
+        pvpBeatenToday: {},
+        pvpRewardClaimedDate: '',
+        lastPactBuffRoll: 0,
         attackLog: [],
         raidCooldownEnd: 0,
         completedPuzzles: [],
@@ -5525,6 +5630,7 @@ async function createProfile() {
         tryStartMusic();
         renderAll(); // Render first to show the game
         initializeChat();
+        setTimeout(() => refreshMarketTicker(), 1500);
         await saveGame(); // Save the new profile to the database
         
     } catch (e) {
@@ -6538,6 +6644,9 @@ function updateDynamicDisplays() {
   const altarSpc = document.getElementById('spc-display-altar');
   if (altarSps) altarSps.innerText = formatNumber(gameState.stats.sps);
   if (altarSpc) altarSpc.innerText = formatNumber(gameState.stats.spc);
+
+  // Pact buff live countdown
+  if (typeof renderPactBuffStatus === 'function') renderPactBuffStatus();
 }
 
 
@@ -6600,6 +6709,7 @@ function showScreen(screenId) {
         }).showToast();
 
         arenaInitialize();
+        fetchPvpLeaderboard();
     }
     if (screenId === 'stats')
     {
@@ -7876,6 +7986,10 @@ function enterGame() {
 
     // Show account reminder popup
     setTimeout(() => showAccountReminderPopup(), 2000);
+
+    // Market ticker — load immediately then refresh every 2 minutes
+    setTimeout(() => refreshMarketTicker(), 1500);
+    setInterval(() => refreshMarketTicker(), 2 * 60 * 1000);
 
     // --- SESSION LOCK ---
     // Generates a unique token for this tab, writes it to Firebase.
@@ -9303,6 +9417,42 @@ async function fetchMarketListings() {
     }
 }
 
+async function refreshMarketTicker() {
+    const inner = document.getElementById('market-ticker-inner');
+    if (!inner || !supabaseClient) return;
+    try {
+        const { data } = await supabaseClient
+            .from('market_listings')
+            .select('item_id, price, seller_name')
+            .eq('is_sold', false)
+            .order('created_at', { ascending: false })
+            .limit(20);
+        if (!data || !data.length) return;
+
+        const rarityColor = { legendary:'#ff9900', epic:'#a855f7', rare:'#3b82f6', uncommon:'#22c55e', common:'#888' };
+        const chips = data.map(l => {
+            const item = items[l.item_id];
+            if (!item) return '';
+            const color = rarityColor[item.rarity] || '#888';
+            return `<span style="padding:0 18px; font-size:0.72em; color:#666;">
+                <span style="color:${color}; font-weight:bold;">${item.name}</span>
+                <span style="color:#555; margin:0 4px;">by</span>
+                <span style="color:#888;">${l.seller_name}</span>
+                <span style="color:#c8a800; margin-left:6px;">${formatNumber(l.price)} DE</span>
+                <span style="color:#2a2040; margin-left:12px;">•</span>
+            </span>`;
+        }).filter(Boolean).join('');
+
+        if (!chips) return;
+        // Duplicate content for seamless loop
+        inner.innerHTML = chips + chips;
+        // Adjust animation speed based on content width
+        const totalWidth = inner.scrollWidth / 2;
+        const speed = Math.max(20, totalWidth / 60); // ~60px per second
+        inner.style.animationDuration = speed + 's';
+    } catch(e) { /* fail silently */ }
+}
+
 async function cancelMarketListing(listingId) {
     if (!confirm('Cancel this listing? The item will be returned to your inventory.')) return;
     try {
@@ -9313,7 +9463,7 @@ async function cancelMarketListing(listingId) {
         renderSellableInventory();
         renderInventory();
         saveGame();
-        fetchMarketListings();
+        fetchMarketListings(); refreshMarketTicker();
         Toastify({ text: 'Listing cancelled. Item returned to inventory.', duration: 3000, gravity:'top', position:'center' }).showToast();
     } catch(e) { alert('Error cancelling: ' + e.message); }
 }
@@ -9322,9 +9472,9 @@ function renderSellableInventory() {
     const grid = document.getElementById('market-sell-grid');
     if (!grid) return;
     const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
-    const typeIcon = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
+    const typeIcon    = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
     if (gameState.inventory.length === 0) {
-        grid.innerHTML = `<div style="color:var(--dim-color); text-align:center; padding:30px; grid-column:1/-1;">Your inventory is empty. Open caches or win items to list them here.</div>`;
+        grid.innerHTML = `<div style="color:#444; text-align:center; padding:30px; grid-column:1/-1; font-size:0.85em;">Your inventory is empty. Open Abyssal Caches to get items to sell.</div>`;
         return;
     }
     grid.innerHTML = '';
@@ -9332,46 +9482,68 @@ function renderSellableInventory() {
         const item = items[itemId];
         if (!item) return;
         const rc = rarityColor[item.rarity] || '#aaa';
-        grid.innerHTML += `
-        <div onclick="promptSellItem('${itemId}')" style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${rc}44; border-top:3px solid ${rc}; border-radius:10px; padding:14px; cursor:pointer; transition:all 0.2s;"
-             onmouseover="this.style.background='linear-gradient(135deg,${rc}10,#1a1020)'"
-             onmouseout="this.style.background='linear-gradient(135deg,#0e0a1a,#1a1020)'">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-                <span style="font-size:1.4em;">${typeIcon[item.type] || '🔮'}</span>
-                <span style="background:${rc}22; border:1px solid ${rc}44; border-radius:6px; padding:1px 7px; font-size:0.68em; color:${rc}; text-transform:uppercase;">${item.rarity}</span>
+        const icon = typeIcon[item.type] || '🔮';
+        const div = document.createElement('div');
+        div.style.cssText = `background:linear-gradient(135deg,#0a0812,#0e1208); border:1px solid ${rc}33; border-top:3px solid ${rc}; border-radius:12px; padding:14px; cursor:pointer; transition:all 0.15s; position:relative;`;
+        div.onmouseover = () => { div.style.background = `linear-gradient(135deg,${rc}0a,#0e1208)`; div.style.borderColor = `${rc}66`; };
+        div.onmouseout  = () => { div.style.background = 'linear-gradient(135deg,#0a0812,#0e1208)'; div.style.borderColor = `${rc}33`; };
+        div.onclick = () => promptSellItem(itemId);
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                <span style="font-size:1.6em; filter:drop-shadow(0 0 6px ${rc}66);">${icon}</span>
+                <span style="background:${rc}18; border:1px solid ${rc}44; border-radius:5px; padding:2px 8px; font-size:0.65em; color:${rc}; text-transform:uppercase; letter-spacing:1px;">${item.rarity}</span>
             </div>
-            <div style="color:${rc}; font-weight:bold; font-size:0.9em; margin-bottom:4px;">${item.name}</div>
-            <div style="color:#666; font-size:0.75em; line-height:1.4; margin-bottom:10px;">${item.desc}</div>
-            <div style="background:#44cc8822; border:1px solid #44cc8844; border-radius:6px; padding:4px 10px; text-align:center; font-size:0.78em; color:#44cc88;">📤 List for Sale</div>
-        </div>`;
+            <div style="color:${rc}; font-weight:bold; font-size:0.88em; margin-bottom:4px;">${item.name}</div>
+            <div style="color:#555; font-size:0.72em; line-height:1.45; margin-bottom:12px;">${item.desc}</div>
+            <div style="background:#44cc8818; border:1px solid #44cc8833; border-radius:7px; padding:6px; text-align:center; font-size:0.75em; color:#44cc88; font-weight:bold; letter-spacing:1px;">📤 LIST FOR SALE</div>`;
+        grid.appendChild(div);
     });
 }
 
+let _sellItemId = null;
 function promptSellItem(itemId) {
     const item = items[itemId];
-    const price = prompt(`Enter the price in Dark Essence to sell your ${item.name}:`, "100");
-    if (price === null) return;
-    const sellPrice = parseInt(price);
+    if (!item) return;
+    _sellItemId = itemId;
+    const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+    const typeIcon    = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
+    document.getElementById('sell-modal-icon').textContent = typeIcon[item.type] || '🔮';
+    document.getElementById('sell-modal-name').textContent = item.name;
+    document.getElementById('sell-modal-name').style.color = rarityColor[item.rarity] || '#44cc88';
+    document.getElementById('sell-modal-desc').textContent = item.desc;
+    document.getElementById('sell-price-input').value = '';
+    document.getElementById('sell-price-overlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('sell-price-input').focus(), 100);
+}
+
+function closeSellModal() {
+    document.getElementById('sell-price-overlay').style.display = 'none';
+    _sellItemId = null;
+}
+
+function confirmSellItem() {
+    const itemId = _sellItemId;
+    if (!itemId) return;
+    const sellPrice = parseInt(document.getElementById('sell-price-input').value);
     if (isNaN(sellPrice) || sellPrice <= 0) {
-        alert("Invalid price. Please enter a positive number.");
+        document.getElementById('sell-price-input').style.borderColor = '#ff4444';
+        setTimeout(() => document.getElementById('sell-price-input').style.borderColor = '#44cc8844', 1500);
         return;
     }
+    closeSellModal();
     const itemIndex = gameState.inventory.indexOf(itemId);
     if (itemIndex > -1) {
         gameState.inventory.splice(itemIndex, 1);
         renderSellableInventory();
         renderInventory();
         supabaseClient.functions.invoke('swift-task', {
-            body: { action: 'list-item', payload: { sellerName: gameState.playerName, itemId: itemId, price: sellPrice } }
+            body: { action: 'list-item', payload: { sellerName: gameState.playerName, itemId, price: sellPrice } }
         }).then(({ data, error }) => {
-            if (error) {
-                const serverError = error.context?.error?.error || "Failed to list item.";
-                throw new Error(serverError);
-            }
-            alert(data.message);
+            if (error) throw new Error(error.context?.error?.error || 'Failed to list item.');
+            Toastify({ text: `📤 ${items[itemId]?.name || 'Item'} listed for ${formatNumber(sellPrice)} DE`, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0e3320,#44cc88)' } }).showToast();
             fetchMarketListings();
         }).catch(err => {
-            alert("Failed to list item: " + err.message + ". The item has been returned to your inventory.");
+            Toastify({ text: 'Failed to list: ' + err.message, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#330000,#cc2222)' } }).showToast();
             gameState.inventory.push(itemId);
             renderSellableInventory();
             renderInventory();
@@ -9431,7 +9603,7 @@ async function promptBuyItem(listingId, price) {
     } catch (err) {
         alert("Purchase failed: " + err.message);
     } finally {
-        fetchMarketListings(); // Always refresh the market
+        fetchMarketListings(); refreshMarketTicker(); // Always refresh the market
     }
 }
 // =================================================================
@@ -11624,16 +11796,43 @@ function renderPactScreen() {
 
         document.getElementById('pact-name-display').textContent = window.playerPact.pact_name || window.playerPact.name || '';
 
-        const members = window.playerPact.members || [];
+        const members      = window.playerPact.members || [];
+        const isLeader     = members[0] === gameState.playerName;
         const memberColors = ['#ffd700','#00e5ff','#ff9944','#88ff88'];
         const memberIcons  = ['👑','⚔️','⚔️','⚔️'];
-        document.getElementById('pact-members-list').innerHTML = members.map((m, i) =>
-            `<div style="background:#ffffff0a; border:1px solid ${memberColors[i % memberColors.length]}44; border-radius:20px; padding:5px 14px; display:inline-flex; align-items:center; gap:6px; font-size:0.88em;">
-                <span>${memberIcons[i]}</span>
-                <span style="color:${memberColors[i % memberColors.length]};">${m}</span>
-                ${m === gameState.playerName ? '<span style="color:#555; font-size:0.75em;">(you)</span>' : ''}
-            </div>`
-        ).join('');
+
+        // Build member cards with stats pulled from players table
+        const listEl = document.getElementById('pact-members-list');
+        listEl.innerHTML = '<div style="color:#444; font-size:0.78em;">Loading member stats...</div>';
+
+        (async () => {
+            let memberStats = {};
+            try {
+                const { data } = await supabaseClient.from('players').select('player_name,sps,ascensions,pvpWins').in('player_name', members);
+                if (data) data.forEach(p => { memberStats[p.player_name] = p; });
+            } catch(e) {}
+
+            listEl.innerHTML = members.map((m, i) => {
+                const isMe   = m === gameState.playerName;
+                const color  = memberColors[i % memberColors.length];
+                const stats  = memberStats[m] || {};
+                const sps    = stats.sps ? formatNumber(stats.sps) : '?';
+                const asc    = stats.ascensions ?? '?';
+                const wins   = stats.pvpWins ?? '?';
+                const canKick = isLeader && !isMe;
+
+                return `<div style="background:#0a0812; border:1px solid ${color}22; border-left:3px solid ${color}44; border-radius:10px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                    <div style="display:flex; align-items:center; gap:10px; flex:1;">
+                        <span style="font-size:1.4em;">${memberIcons[i]}</span>
+                        <div>
+                            <div style="color:${color}; font-weight:bold; font-size:0.92em;">${m}${isMe ? ' <span style="color:#555; font-size:0.75em; font-weight:normal;">(you)</span>' : ''}</div>
+                            <div style="color:#555; font-size:0.72em; margin-top:3px;">⚡ ${sps} SPS &nbsp;·&nbsp; ✨ ${asc} Ascensions &nbsp;·&nbsp; ⚔ ${wins} PvP wins</div>
+                        </div>
+                    </div>
+                    ${canKick ? `<button onclick="kickPactMember('${m}')" style="background:#1a0808; border:1px solid #cc333344; border-radius:7px; padding:4px 10px; color:#cc4444; cursor:pointer; font-family:inherit; font-size:0.72em;">✕ Remove</button>` : ''}
+                </div>`;
+            }).join('');
+        })();
 
         const others = members.filter(m => m !== gameState.playerName).length;
         const bonusPct = others * 10;
@@ -11727,47 +11926,247 @@ async function leavePact() {
     }
 }
 
+// =================================================================
+// PVP LEADERBOARD & REWARDS
+// =================================================================
+const PVP_RANK_REWARDS = [
+    { rank: 1, label: '🥇 Champion',  color: '#ffd700', potion: 'tincture_of_rage',    potionName: 'Tincture of Rage',  essence: 10 },
+    { rank: 2, label: '🥈 Warlord',   color: '#c0c0c0', potion: 'ichor_of_wealth',      potionName: 'Ichor of Wealth',   essence: 6  },
+    { rank: 3, label: '🥉 Raider',    color: '#cd7f32', potion: 'draught_of_might',     potionName: 'Draught of Might',  essence: 3  },
+    { rank: 4, label: '#4 Fighter',   color: '#aa44ff', potion: null,                   potionName: null,                essence: 2  },
+    { rank: 5, label: '#5 Fighter',   color: '#4488ff', potion: null,                   potionName: null,                essence: 1  },
+];
+
+async function fetchPvpLeaderboard() {
+    const list = document.getElementById('pvp-leaderboard-list');
+    const claimDiv = document.getElementById('pvp-reward-claim');
+    if (!list || !supabaseClient) return;
+    list.innerHTML = '<div style="color:#555; font-size:0.8em; text-align:center; padding:8px;">⏳ Loading rankings...</div>';
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('players')
+            .select('player_name,pvpWins,pvpLosses')
+            .order('pvpWins', { ascending: false })
+            .limit(10);
+        if (error) throw error;
+        if (!data || data.length === 0) { list.innerHTML = '<div style="color:#444; text-align:center; padding:8px;">No battles yet.</div>'; return; }
+
+        let myRank = -1;
+        list.innerHTML = data.map((p, i) => {
+            const rank    = i + 1;
+            const reward  = PVP_RANK_REWARDS.find(r => r.rank === rank);
+            const isMe    = p.player_name === gameState.playerName;
+            if (isMe) myRank = rank;
+            const color   = reward ? reward.color : '#555';
+            const medal   = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `<span style="color:#555;">#${rank}</span>`;
+            const wins    = p.pvpWins || 0;
+            const losses  = p.pvpLosses || 0;
+            const rewardBadge = reward
+                ? `<span style="color:${color}; font-size:0.7em;">${reward.essence} Essence${reward.potionName ? ' + ' + reward.potionName : ''}</span>`
+                : '';
+            return `<div style="display:flex; align-items:center; justify-content:space-between; background:${isMe ? '#1a100044' : 'transparent'}; border:1px solid ${isMe ? color + '44' : '#1a1a1a'}; border-radius:8px; padding:8px 12px; margin-bottom:6px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.1em;">${medal}</span>
+                    <div>
+                        <div style="color:${isMe ? color : '#aaa'}; font-size:0.85em; font-weight:${isMe ? 'bold' : 'normal'};">${p.player_name}</div>
+                        <div style="color:#555; font-size:0.7em;">${wins}W · ${losses}L</div>
+                    </div>
+                </div>
+                <div style="text-align:right;">${rewardBadge}</div>
+            </div>`;
+        }).join('');
+
+        // Show claim button if player is in top 5
+        const eligible = myRank >= 1 && myRank <= 5;
+        const today = new Date().toDateString();
+        const alreadyClaimed = gameState.pvpRewardClaimedDate === today;
+        if (claimDiv) {
+            claimDiv.style.display = eligible && !alreadyClaimed ? 'block' : 'none';
+            if (eligible && alreadyClaimed) {
+                list.innerHTML += `<div style="color:#555; font-size:0.72em; text-align:center; margin-top:6px;">✓ Reward claimed today (rank #${myRank})</div>`;
+            }
+        }
+        window._pvpMyRank = myRank;
+    } catch(e) {
+        list.innerHTML = '<div style="color:#ff4444; font-size:0.8em; text-align:center; padding:8px;">Error loading rankings.</div>';
+    }
+}
+
+function claimPvpReward() {
+    const rank = window._pvpMyRank;
+    if (!rank || rank < 1 || rank > 5) return;
+    const today = new Date().toDateString();
+    if (gameState.pvpRewardClaimedDate === today) {
+        Toastify({ text: 'Already claimed today!', duration: 2500, gravity:'top', position:'center' }).showToast();
+        return;
+    }
+    const reward = PVP_RANK_REWARDS.find(r => r.rank === rank);
+    if (!reward) return;
+
+    gameState.darkEssence += reward.essence;
+    if (reward.potion) {
+        if (!gameState.potions) gameState.potions = {};
+        gameState.potions[reward.potion] = (gameState.potions[reward.potion] || 0) + 1;
+    }
+    gameState.pvpRewardClaimedDate = today;
+
+    const msg = `🏆 Rank #${rank} reward: +${reward.essence} Dark Essence${reward.potionName ? ' + ' + reward.potionName : ''}!`;
+    Toastify({ text: msg, duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#3a2800,#c8a800)' } }).showToast();
+
+    document.getElementById('pvp-reward-claim').style.display = 'none';
+    saveGame();
+    fetchPvpLeaderboard();
+}
+
+// =================================================================
+// PACT RANDOM BUFFS
+// =================================================================
+const PACT_BUFFS = [
+    { id:'soul_surge',    name:'Soul Surge',       icon:'💥', desc:'+25% SPS for 10 min',  duration:600,  effect:{ type:'sps_multiplier', value:1.25 } },
+    { id:'essence_tide',  name:'Essence Tide',      icon:'🌑', desc:'+3 Dark Essence',      duration:0,    effect:{ type:'instant_essence', value:3  } },
+    { id:'dark_harvest',  name:'Dark Harvest',      icon:'🌾', desc:'+50% SPC for 5 min',   duration:300,  effect:{ type:'spc_multiplier', value:1.5  } },
+    { id:'void_shield',   name:'Void Shield',       icon:'🛡', desc:'Minions cost 20% less for 5 min', duration:300, effect:{ type:'minion_cost', value:0.8 } },
+    { id:'blood_pact',    name:'Blood Pact',        icon:'🩸', desc:'+15% global mult 8 min', duration:480, effect:{ type:'global_multiplier', value:1.15 } },
+    { id:'abyssal_echo',  name:'Abyssal Echo',      icon:'🔊', desc:'+10 Souls per click',   duration:300,  effect:{ type:'flat_spc', value:10 } },
+];
+
+function rollPactBuff() {
+    if (!window.playerPact) return;
+    const now = Date.now();
+    const lastRoll = gameState.lastPactBuffRoll || 0;
+    const cooldownMs = 30 * 60 * 1000; // 30 min cooldown between rolls
+    if (now - lastRoll < cooldownMs) {
+        const minsLeft = Math.ceil((cooldownMs - (now - lastRoll)) / 60000);
+        Toastify({ text:`Pact buff recharges in ${minsLeft} min.`, duration:2500, gravity:'top', position:'center' }).showToast();
+        return;
+    }
+    const buff = PACT_BUFFS[Math.floor(Math.random() * PACT_BUFFS.length)];
+    gameState.lastPactBuffRoll = now;
+
+    if (buff.effect.type === 'instant_essence') {
+        gameState.darkEssence += buff.effect.value;
+        Toastify({ text:`${buff.icon} Pact Buff — ${buff.name}: ${buff.desc}`, duration:4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a1050,#c8a800)' } }).showToast();
+    } else {
+        if (!gameState.activeItemBuffs) gameState.activeItemBuffs = {};
+        gameState.activeItemBuffs['pact_buff'] = {
+            type: buff.effect.type,
+            value: buff.effect.value,
+            expiresAt: now + buff.effect.duration * 1000,
+            name: buff.name,
+        };
+        Toastify({ text:`${buff.icon} Pact Buff — ${buff.name}: ${buff.desc}`, duration:4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a1050,#c8a800)' } }).showToast();
+        calculateStats();
+    }
+    saveGame();
+    renderPactBuffStatus();
+}
+
+function renderPactBuffStatus() {
+    const el = document.getElementById('pact-buff-status');
+    if (!el) return;
+    const buff = gameState.activeItemBuffs?.pact_buff;
+    const now = Date.now();
+    if (buff && buff.expiresAt > now) {
+        const secsLeft = Math.ceil((buff.expiresAt - now) / 1000);
+        const mins = Math.floor(secsLeft / 60);
+        const secs = secsLeft % 60;
+        el.innerHTML = `<div style="background:#2a1050; border:1px solid #aa44ff44; border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:10px;">
+            <span style="font-size:1.3em;">✨</span>
+            <div style="flex:1;">
+                <div style="color:#aa44ff; font-size:0.82em; font-weight:bold;">${buff.name} active</div>
+                <div style="color:#666; font-size:0.72em;">Expires in ${mins}m ${secs}s</div>
+            </div>
+        </div>`;
+        el.style.display = 'block';
+    } else {
+        el.style.display = 'none';
+        if (buff && buff.expiresAt <= now) {
+            delete gameState.activeItemBuffs.pact_buff;
+            calculateStats();
+        }
+    }
+}
+
+async function kickPactMember(memberName) {
+    if (!window.playerPact || !supabaseClient) return;
+    const pact = window.playerPact;
+    const isLeader = (pact.members || [])[0] === gameState.playerName;
+    if (!isLeader) { alert('Only the pact leader can remove members.'); return; }
+    if (!confirm(`Remove ${memberName} from the pact?`)) return;
+
+    try {
+        const newMembers = (pact.members || []).filter(m => m !== memberName);
+        const { error } = await supabaseClient.from('pacts').update({ members: newMembers }).eq('id', pact.id);
+        if (error) throw error;
+        pact.members = newMembers;
+        window.playerPact = pact;
+        renderPactScreen();
+        Toastify({ text: `${memberName} removed from the pact.`, duration: 3000, gravity:'top', position:'center' }).showToast();
+    } catch(e) { alert('Error removing member: ' + e.message); }
+}
+
 async function fetchPactLeaderboard() {
     const list = document.getElementById('pact-leaderboard-list');
     if (!list || !supabaseClient) return;
     list.innerHTML = '<div style="color:var(--dim-color); text-align:center; padding:20px;">⏳ Summoning pacts from the abyss...</div>';
 
     try {
-        const { data, error } = await supabaseClient
-            .from('pacts')
-            .select('*')
-            .order('combined_souls_log', { ascending: false })
-            .limit(10);
+        const { data: pacts, error } = await supabaseClient.from('pacts').select('*').limit(20);
         if (error) throw error;
-        if (!data || data.length === 0) {
+        if (!pacts || pacts.length === 0) {
             list.innerHTML = '<div style="color:var(--dim-color); text-align:center; padding:20px;">No pacts formed yet. Be the first to forge one!</div>';
             return;
         }
 
+        // Fetch all member stats in one query
+        const allMembers = [...new Set(pacts.flatMap(p => p.members || []))];
+        let memberStats = {};
+        try {
+            const { data: players } = await supabaseClient.from('players').select('player_name,sps,ascensions').in('player_name', allMembers);
+            if (players) players.forEach(p => { memberStats[p.player_name] = p; });
+        } catch(e) {}
+
+        // Compute scores for sorting
+        const enriched = pacts.map(pact => {
+            const members = pact.members || [];
+            const totalAsc = members.reduce((s, m) => s + (memberStats[m]?.ascensions || 0), 0);
+            const totalSps = members.reduce((s, m) => s + (memberStats[m]?.sps || 0), 0);
+            return { ...pact, totalAsc, totalSps, memberCount: members.length };
+        });
+        enriched.sort((a, b) => b.totalAsc - a.totalAsc || b.totalSps - a.totalSps);
+
         const rankColors  = ['#ffd700','#c0c0c0','#cd7f32'];
-        const rankBg      = ['#2a200044','#1e1e1e44','#1e100044'];
         const rankBorders = ['#ffd70066','#c0c0c066','#cd7f3266'];
 
-        list.innerHTML = data.map((pact, i) => {
+        list.innerHTML = enriched.map((pact, i) => {
             const medal   = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="color:#666;">#${i+1}</span>`;
             const isMe    = (pact.members || []).includes(gameState.playerName);
-            const members = pact.members || [];
-            const memberCount = members.length;
             const color   = isMe ? 'var(--primary-color)' : (rankColors[i] || '#aaa');
-            const bg      = isMe ? '#1e0a2a' : (rankBg[i] || 'transparent');
             const border  = isMe ? 'var(--primary-color)' : (rankBorders[i] || '#3d2a4a');
+            const bg      = isMe ? '#1e0a2a' : 'transparent';
 
             return `<div style="display:flex; align-items:center; justify-content:space-between; background:${bg}; border:1px solid ${border}; border-radius:8px; padding:12px 16px; margin-bottom:8px; gap:12px; flex-wrap:wrap;">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="font-size:1.4em; min-width:28px; text-align:center;">${medal}</div>
                     <div>
                         <div style="color:${color}; font-weight:bold; font-size:1em;">${pact.pact_name}${isMe ? ' <span style="color:#666; font-size:0.75em; font-weight:normal;">(yours)</span>' : ''}</div>
-                        <div style="color:#666; font-size:0.78em; margin-top:2px;">${members.join(' · ') || 'No members'}</div>
+                        <div style="color:#555; font-size:0.72em; margin-top:2px;">${(pact.members || []).join(' · ') || 'No members'}</div>
                     </div>
                 </div>
-                <div style="text-align:right;">
-                    <div style="color:${color}; font-weight:bold;">${memberCount} / 4</div>
-                    <div style="color:#555; font-size:0.75em;">members</div>
+                <div style="display:flex; gap:16px; text-align:center; flex-wrap:wrap;">
+                    <div>
+                        <div style="color:${color}; font-weight:bold;">${pact.totalAsc}</div>
+                        <div style="color:#555; font-size:0.7em;">Total Ascensions</div>
+                    </div>
+                    <div>
+                        <div style="color:#888; font-size:0.85em;">${formatNumber(pact.totalSps)}/s</div>
+                        <div style="color:#555; font-size:0.7em;">Combined SPS</div>
+                    </div>
+                    <div>
+                        <div style="color:#666;">${pact.memberCount} / 4</div>
+                        <div style="color:#555; font-size:0.7em;">Members</div>
+                    </div>
                 </div>
             </div>`;
         }).join('');
@@ -11791,27 +12190,62 @@ function showBarterTab(tab) {
     document.getElementById('barter-tab-post').style.borderColor   = tab === 'post'   ? '#c8a800' : '';
 }
 
-async function fetchBarterListings() {
+let barterPage = 0;
+const BARTER_PAGE_SIZE = 8;
+
+async function fetchBarterListings(page) {
+    if (page !== undefined) barterPage = page;
     const list = document.getElementById('barter-listing-list');
     if (!list || !supabaseClient) return;
     list.innerHTML = '<li><em>Consulting the abyssal brokers...</em></li>';
 
-    try {
-        const { data, error } = await supabaseClient
-            .from('barter_listings')
-            .select('*')
-            .eq('is_complete', false)
-            .order('created_at', { ascending: false })
-            .limit(20);
-        if (error) throw error;
-        if (!data || data.length === 0) { list.innerHTML = '<li>No active barter offers. Post one!</li>'; return; }
-        list.innerHTML = '';
-        data.forEach(listing => {
-            const li       = document.createElement('li');
-            const isMe     = listing.poster_name === gameState.playerName;
-            const canFill  = !isMe && hasEnough(listing.want_type, listing.want_amt);
+    const sortVal     = document.getElementById('barter-sort-select')?.value  || 'newest';
+    const filterOffer = document.getElementById('barter-filter-offer')?.value || '';
+    const filterWant  = document.getElementById('barter-filter-want')?.value  || '';
 
-            const currencyIcons = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' };
+    try {
+        let query = supabaseClient.from('barter_listings').select('*', { count: 'exact' }).eq('is_complete', false);
+        if (filterOffer) query = query.eq('offer_type', filterOffer);
+        if (filterWant)  query = query.eq('want_type',  filterWant);
+
+        // Server-side sort where possible
+        if (sortVal === 'newest')      query = query.order('created_at', { ascending: false });
+        else if (sortVal === 'oldest') query = query.order('created_at', { ascending: true  });
+        else                           query = query.order('created_at', { ascending: false });
+
+        // For amount sorts we fetch more and sort client-side
+        const isAmountSort = ['offer_high','offer_low','want_high','want_low'].includes(sortVal);
+        if (isAmountSort) {
+            query = query.limit(200); // get enough to sort properly
+        } else {
+            query = query.range(barterPage * BARTER_PAGE_SIZE, (barterPage + 1) * BARTER_PAGE_SIZE - 1);
+        }
+
+        const { data, error, count } = await query;
+        if (error) throw error;
+
+        let sorted = data || [];
+        if      (sortVal === 'offer_high') sorted.sort((a, b) => b.offer_amt - a.offer_amt);
+        else if (sortVal === 'offer_low')  sorted.sort((a, b) => a.offer_amt - b.offer_amt);
+        else if (sortVal === 'want_high')  sorted.sort((a, b) => b.want_amt  - a.want_amt);
+        else if (sortVal === 'want_low')   sorted.sort((a, b) => a.want_amt  - b.want_amt);
+
+        // For amount sorts, manually paginate after sorting
+        const totalItems = isAmountSort ? sorted.length : (count || 0);
+        if (isAmountSort) sorted = sorted.slice(barterPage * BARTER_PAGE_SIZE, (barterPage + 1) * BARTER_PAGE_SIZE);
+
+        if (!sorted.length) {
+            list.innerHTML = '<li style="text-align:center; color:#555; padding:16px;">No trades match your filters.</li>';
+            return;
+        }
+
+        list.innerHTML = '';
+        sorted.forEach(listing => {
+            const li      = document.createElement('li');
+            const isMe    = listing.poster_name === gameState.playerName;
+            const canFill = !isMe && hasEnough(listing.want_type, listing.want_amt);
+
+            const currencyIcons  = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' };
             const currencyColors = { souls:'#c8a800', darkEssence:'#a855f7', abyssalShards:'#3b82f6', corruptedFragments:'#22c55e' };
 
             const offerColor = currencyColors[listing.offer_type] || '#aaa';
@@ -11829,13 +12263,13 @@ async function fetchBarterListings() {
                             <div style="background:${offerColor}18; border:1px solid ${offerColor}44; border-radius:8px; padding:8px 14px; text-align:center;">
                                 <div style="font-size:1.4em; line-height:1;">${currencyIcons[listing.offer_type]}</div>
                                 <div style="color:${offerColor}; font-weight:bold; font-size:1em; margin-top:2px;">${formatNumber(listing.offer_amt)}</div>
-                                <div style="color:#666; font-size:0.7em;">${BARTER_LABELS[listing.offer_type].replace(/^.\s/,'')}</div>
+                                <div style="color:#666; font-size:0.7em;">${BARTER_LABELS[listing.offer_type]?.replace(/^.\s/,'') || listing.offer_type}</div>
                             </div>
                             <div style="color:#555; font-size:1.3em;">⇄</div>
                             <div style="background:${wantColor}18; border:1px solid ${wantColor}44; border-radius:8px; padding:8px 14px; text-align:center;">
                                 <div style="font-size:1.4em; line-height:1;">${currencyIcons[listing.want_type]}</div>
                                 <div style="color:${wantColor}; font-weight:bold; font-size:1em; margin-top:2px;">${formatNumber(listing.want_amt)}</div>
-                                <div style="color:#666; font-size:0.7em;">${BARTER_LABELS[listing.want_type].replace(/^.\s/,'')}</div>
+                                <div style="color:#666; font-size:0.7em;">${BARTER_LABELS[listing.want_type]?.replace(/^.\s/,'') || listing.want_type}</div>
                             </div>
                         </div>
                     </div>
@@ -11852,6 +12286,22 @@ async function fetchBarterListings() {
             </div>`;
             list.appendChild(li);
         });
+
+        // Pagination controls
+        const totalPages = Math.ceil(totalItems / BARTER_PAGE_SIZE);
+        if (totalPages > 1) {
+            const pager = document.createElement('div');
+            pager.style.cssText = 'display:flex; justify-content:center; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap;';
+            const prevDis = barterPage === 0;
+            const nextDis = barterPage >= totalPages - 1;
+            pager.innerHTML = `
+                <button onclick="fetchBarterListings(${barterPage - 1})" ${prevDis ? 'disabled' : ''}
+                    style="background:#0d0a18; border:1px solid ${prevDis ? '#1a1a1a' : '#3d2a4a'}; border-radius:8px; padding:7px 16px; color:${prevDis ? '#333' : '#aa88ff'}; cursor:${prevDis ? 'default' : 'pointer'}; font-family:inherit; font-size:0.82em;">◀ Prev</button>
+                <span style="color:#555; font-size:0.8em; min-width:80px; text-align:center;">Page ${barterPage + 1} of ${totalPages}</span>
+                <button onclick="fetchBarterListings(${barterPage + 1})" ${nextDis ? 'disabled' : ''}
+                    style="background:#0d0a18; border:1px solid ${nextDis ? '#1a1a1a' : '#3d2a4a'}; border-radius:8px; padding:7px 16px; color:${nextDis ? '#333' : '#aa88ff'}; cursor:${nextDis ? 'default' : 'pointer'}; font-family:inherit; font-size:0.82em;">Next ▶</button>`;
+            list.appendChild(pager);
+        }
     } catch(e) {
         list.innerHTML = `<li style="color:#ff9944;">⚠️ Barter table not set up yet. Run the SQL in Supabase to enable this feature.</li>`;
     }
@@ -12425,14 +12875,18 @@ async function arenaFetchOpponents() {
     if (!list) return;
     list.innerHTML = '<li style="color:#555; font-size:0.85em; text-align:center; padding:8px;"><em>⚔ Scouring the abyss for rivals...</em></li>';
     try {
-        const { data, error } = await supabaseClient.from('arena_defenses').select('*').neq('player_name', gameState.playerName).limit(10);
+        const { data, error } = await supabaseClient.from('arena_defenses').select('*').neq('player_name', gameState.playerName).limit(20);
         if (error) throw error;
         list.innerHTML = '';
         if (!data || data.length === 0) {
             list.innerHTML = '<li style="color:#555; font-size:0.82em; text-align:center; padding:12px;"><em>No rivals have set a defense yet.</em><br><span style="color:#333;">Be the first to save yours!</span></li>';
             return;
         }
-        data.forEach((opponent, i) => {
+
+        const today = new Date().toDateString();
+        if (!gameState.pvpBeatenToday) gameState.pvpBeatenToday = {};
+
+        data.forEach((opponent) => {
             const defenseCount = opponent.defense_data ? opponent.defense_data.length : 0;
             const defenseIcons = opponent.defense_data
                 ? opponent.defense_data.slice(0, 4).map(u => u.icon || '👿').join(' ')
@@ -12442,22 +12896,30 @@ async function arenaFetchOpponents() {
                 : 0;
             const threatColor = totalCost >= 30 ? '#ff4444' : totalCost >= 15 ? '#ff9944' : '#44cc88';
             const threatLabel = totalCost >= 30 ? '💀 Lethal' : totalCost >= 15 ? '⚠ Dangerous' : '🎯 Manageable';
+
+            // Check if beaten today
+            const beatenDate = gameState.pvpBeatenToday[opponent.player_name];
+            const alreadyBeaten = beatenDate === today;
+
             const li = document.createElement('div');
-            li.style.cssText = 'background:linear-gradient(135deg,#0e0a1a,#1a0a0a); border:1px solid #ff444422; border-left:3px solid ' + threatColor + '; border-radius:10px; padding:12px 14px;';
+            li.style.cssText = `background:linear-gradient(135deg,${alreadyBeaten ? '#0a0a0a' : '#0e0a1a'},${alreadyBeaten ? '#111' : '#1a0a0a'}); border:1px solid ${alreadyBeaten ? '#22222244' : '#ff444422'}; border-left:3px solid ${alreadyBeaten ? '#333' : threatColor}; border-radius:10px; padding:12px 14px; opacity:${alreadyBeaten ? '0.5' : '1'};`;
             li.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
                     <div>
-                        <div style="color:#ff8888; font-weight:bold; font-size:0.95em;">💀 ${opponent.player_name}</div>
+                        <div style="color:${alreadyBeaten ? '#555' : '#ff8888'}; font-weight:bold; font-size:0.95em;">💀 ${opponent.player_name}</div>
                         <div style="color:#666; font-size:0.72em; margin-top:2px;">${defenseCount} minions defending</div>
                     </div>
-                    <span style="background:${threatColor}22; border:1px solid ${threatColor}44; border-radius:6px; padding:2px 8px; font-size:0.68em; color:${threatColor};">${threatLabel}</span>
+                    ${alreadyBeaten
+                        ? `<span style="background:#22222244; border:1px solid #33333344; border-radius:6px; padding:2px 8px; font-size:0.68em; color:#555;">✓ Defeated today</span>`
+                        : `<span style="background:${threatColor}22; border:1px solid ${threatColor}44; border-radius:6px; padding:2px 8px; font-size:0.68em; color:${threatColor};">${threatLabel}</span>`
+                    }
                 </div>
                 <div style="color:#888; font-size:1.1em; margin-bottom:10px; letter-spacing:4px;">${defenseIcons}</div>
-                <button onclick='arenaSetupAttack(${JSON.stringify(opponent)})' 
-                    style="width:100%; background:linear-gradient(135deg,#330000,#1a0000); border:1px solid #ff444455; border-radius:7px; padding:7px; color:#ff6666; cursor:pointer; font-family:inherit; font-size:0.8em; font-weight:bold; transition:all 0.2s;"
-                    onmouseover="this.style.background='linear-gradient(135deg,#440000,#220000)'; this.style.borderColor='#ff444499';"
-                    onmouseout="this.style.background='linear-gradient(135deg,#330000,#1a0000)'; this.style.borderColor='#ff444455';">
-                    ⚔ Challenge
+                <button onclick='${alreadyBeaten ? '' : `arenaSetupAttack(${JSON.stringify(opponent)})`}'
+                    ${alreadyBeaten ? 'disabled' : ''}
+                    style="width:100%; background:${alreadyBeaten ? 'transparent' : 'linear-gradient(135deg,#330000,#1a0000)'}; border:1px solid ${alreadyBeaten ? '#222' : '#ff444455'}; border-radius:7px; padding:7px; color:${alreadyBeaten ? '#333' : '#ff6666'}; cursor:${alreadyBeaten ? 'default' : 'pointer'}; font-family:inherit; font-size:0.8em; font-weight:bold;"
+                    ${alreadyBeaten ? '' : `onmouseover="this.style.background='linear-gradient(135deg,#440000,#220000)'; this.style.borderColor='#ff444499';" onmouseout="this.style.background='linear-gradient(135deg,#330000,#1a0000)'; this.style.borderColor='#ff444455';"`}>
+                    ${alreadyBeaten ? '⚔ Already challenged today' : '⚔ Challenge'}
                 </button>`;
             list.appendChild(li);
         });
@@ -12466,41 +12928,83 @@ async function arenaFetchOpponents() {
     }
 }
 
-async function arenaFetchLogs() {
+let arenaLogPage = 0;
+const ARENA_LOG_PAGE_SIZE = 12;
+
+async function arenaFetchLogs(page) {
+    if (page === undefined) page = 0;
+    arenaLogPage = page;
     const logList = document.getElementById('arena-log-list');
     if (!logList) return;
     logList.innerHTML = '<li style="color:#555; font-size:0.8em; text-align:center; padding:8px;"><em>Checking records...</em></li>';
     try {
-        const { data, error } = await supabaseClient.from('arena_logs').select('*')
-            .or(`attacker_name.eq.${gameState.playerName},defender_name.eq.${gameState.playerName}`)
-            .order('created_at', { ascending: false }).limit(8);
+        const from = page * ARENA_LOG_PAGE_SIZE;
+        const to   = from + ARENA_LOG_PAGE_SIZE - 1;
+        const { data, error, count } = await supabaseClient
+            .from('arena_logs')
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(from, to);
         if (error) throw error;
         logList.innerHTML = '';
         if (!data || data.length === 0) {
             logList.innerHTML = '<li style="color:#444; font-size:0.8em; text-align:center; padding:8px;"><em>No battles recorded yet.</em></li>';
             return;
         }
+
+        const grid = document.createElement('div');
+        grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px;';
+
         data.forEach(log => {
-            const isAttacker = log.attacker_name === gameState.playerName;
-            const didWin = log.winner_name === gameState.playerName;
-            const icon = didWin ? '⚔' : '💀';
-            const color = didWin ? '#44cc88' : '#cc4444';
-            const bg = didWin ? '#44cc8810' : '#cc444410';
-            const border = didWin ? '#44cc8830' : '#cc444430';
-            const opponent = isAttacker ? log.defender_name : log.attacker_name;
-            const action = isAttacker
-                ? (didWin ? `Raided & crushed` : `Raided & fell to`)
-                : (didWin ? `Repelled attack by` : `Defense broken by`);
+            const isMyBattle = log.attacker_name === gameState.playerName || log.defender_name === gameState.playerName;
+            const didIWin    = log.winner_name === gameState.playerName;
+            const attackerWon = log.winner_name === log.attacker_name;
+
+            let color, bg, border, icon, text;
+            if (isMyBattle) {
+                color  = didIWin ? '#44cc88' : '#cc4444';
+                bg     = didIWin ? '#44cc8810' : '#cc444410';
+                border = didIWin ? '#44cc8835' : '#cc444435';
+                icon   = didIWin ? '⚔' : '💀';
+                const isAttacker = log.attacker_name === gameState.playerName;
+                const opponent   = isAttacker ? log.defender_name : log.attacker_name;
+                const action     = isAttacker ? (didIWin ? 'You crushed' : 'You fell to') : (didIWin ? 'You repelled' : 'Broken by');
+                text = `${action} <strong style="color:#ddd;">${opponent}</strong>`;
+            } else {
+                color  = attackerWon ? '#ff884455' : '#4488ff55';
+                bg     = '#0a0a0a';
+                border = '#1a1a1a';
+                icon   = attackerWon ? '⚔' : '🛡';
+                text   = `<span style="color:#888;">${log.attacker_name}</span> ${attackerWon ? '<span style="color:#ff8844;">defeated</span>' : '<span style="color:#4488ff;">lost to</span>'} <span style="color:#888;">${log.defender_name}</span>`;
+            }
+
             const entry = document.createElement('div');
-            entry.style.cssText = `background:${bg}; border:1px solid ${border}; border-left:3px solid ${color}; border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:10px;`;
+            entry.style.cssText = `background:${bg}; border:1px solid ${border}; border-left:3px solid ${color}; border-radius:8px; padding:8px 12px;`;
             entry.innerHTML = `
-                <span style="font-size:1.2em; flex-shrink:0;">${icon}</span>
-                <div>
-                    <div style="color:${color}; font-size:0.8em; font-weight:bold;">${action} <span style="color:#aaa;">${opponent}</span></div>
-                    <div style="color:#555; font-size:0.68em; margin-top:1px;">${new Date(log.created_at).toLocaleDateString()}</div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.1em; flex-shrink:0;">${icon}</span>
+                    <div>
+                        <div style="color:${color}; font-size:0.78em; font-weight:bold; line-height:1.3;">${text}</div>
+                        <div style="color:#444; font-size:0.65em; margin-top:2px;">${new Date(log.created_at).toLocaleDateString()}</div>
+                    </div>
                 </div>`;
-            logList.appendChild(entry);
+            grid.appendChild(entry);
         });
+        logList.appendChild(grid);
+
+        // Pagination controls
+        const totalPages = Math.ceil((count || 0) / ARENA_LOG_PAGE_SIZE);
+        if (totalPages > 1) {
+            const pager = document.createElement('div');
+            pager.style.cssText = 'display:flex; justify-content:center; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap;';
+            pager.innerHTML = `
+                <button onclick="arenaFetchLogs(${page - 1})" ${page === 0 ? 'disabled' : ''}
+                    style="background:#0d0a18; border:1px solid #2a1a3a; border-radius:8px; padding:6px 14px; color:${page === 0 ? '#333' : '#aaa'}; cursor:${page === 0 ? 'default' : 'pointer'}; font-family:inherit; font-size:0.8em;">◀ Prev</button>
+                <span style="color:#666; font-size:0.8em;">Page ${page + 1} of ${totalPages}</span>
+                <button onclick="arenaFetchLogs(${page + 1})" ${page >= totalPages - 1 ? 'disabled' : ''}
+                    style="background:#0d0a18; border:1px solid #2a1a3a; border-radius:8px; padding:6px 14px; color:${page >= totalPages - 1 ? '#333' : '#aaa'}; cursor:${page >= totalPages - 1 ? 'default' : 'pointer'}; font-family:inherit; font-size:0.8em;">Next ▶</button>`;
+            logList.appendChild(pager);
+        }
     } catch (e) {
         logList.innerHTML = '<li style="color:#555; font-size:0.8em; text-align:center; padding:8px;"><em>Error fetching logs.</em></li>';
     }
@@ -12565,6 +13069,10 @@ async function arenaEndBattle(playerWon) {
         const reward = 25;
         gameState.darkEssence += reward;
         gameState.pvpWins++;
+        // Track beaten opponent with today's date — can't rematch same day
+        const today = new Date().toDateString();
+        if (!gameState.pvpBeatenToday) gameState.pvpBeatenToday = {};
+        gameState.pvpBeatenToday[opponentName] = today;
         Toastify({ text: `VICTORY! You defeated ${opponentName} and earned ${reward} Dark Essence!`, duration: 5000, style: { background: "linear-gradient(to right, #4caf50, #2e7d32)" } }).showToast();
     } else {
         gameState.pvpLosses++;
@@ -12640,6 +13148,7 @@ async function arenaEndBattle(playerWon) {
         let crashPoint      = 0;
         let roundStartTime  = 0;   // server ms when current game started
         let roundId         = '';  // unique per round
+        let historyPushedForRound = ''; // track which roundId we already pushed to history
         let playerBet       = null;
         let myDBId          = null;
         let livePlayers     = {};
@@ -12821,13 +13330,11 @@ async function arenaEndBattle(playerWon) {
             statusBar.style.borderLeftColor = '#ff4444';
             statusBar.style.color = '#ff6666';
 
-            // Push crash to shared history in Firebase (only once per round — the broadcaster)
+            // Push crash to shared history — only the client who locally detected the crash pushes
             const crashed = Number(atMultiplier);
             if (riftDB && !fromFirebase) {
-                // We're the one who triggered the crash — push to shared history
                 riftDB.ref('rift_history').push({ v: crashed, t: Date.now() });
             } else if (!riftDB) {
-                // Local mode — maintain local history
                 crashHistory.unshift(crashed);
                 if (crashHistory.length > 8) crashHistory.pop();
                 renderHistory();
@@ -12981,11 +13488,11 @@ async function arenaEndBattle(playerWon) {
                     }
                 });
 
-                // Listen to shared crash history — newest 8 entries, all players see same list
+                // Shared crash history — shows completed past rounds
                 db.ref('rift_history').orderByChild('t').limitToLast(8).on('value', snap => {
                     const entries = [];
                     snap.forEach(child => entries.push(child.val().v));
-                    crashHistory = entries.reverse();
+                    crashHistory = entries.reverse(); // newest first
                     renderHistory();
                 });
 

@@ -5736,6 +5736,7 @@ async function createProfile() {
     }
 }
 async function saveGame() {
+    gameState._savedAt = Date.now(); // timestamp for cloud vs local comparison
     localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
 
     if (gameState.playerName === "Unnamed") return;
@@ -8118,10 +8119,12 @@ async function authSignOut() {
 async function saveGameToCloud(uid, db) {
     if (!uid || !db) return;
     try {
-        const saveData = JSON.parse(JSON.stringify(gameState)); // clean clone
+        const saveData = JSON.parse(JSON.stringify(gameState));
+        const ts = Date.now();
+        saveData._savedAt = ts;
         await db.ref('gameSaves/' + uid).set({
             state: JSON.stringify(saveData),
-            savedAt: Date.now(),
+            savedAt: ts,
             playerName: gameState.playerName
         });
     } catch(e) { console.error('Cloud save failed:', e); }
@@ -8131,22 +8134,49 @@ async function loadGameFromCloud(uid, db) {
     try {
         const snap = await db.ref('gameSaves/' + uid).once('value');
         const defaultState = getDefaultGameState();
+        const localSave = localStorage.getItem('soulCollectorSave_v3');
+
         if (snap.exists()) {
             const data = snap.val();
-            const loaded = JSON.parse(data.state);
-            gameState = deepMerge(defaultState, loaded);
+            const cloudState = JSON.parse(data.state);
+            const cloudSavedAt = data.savedAt || 0;
+
+            // Check local save timestamp
+            let localState = null, localSavedAt = 0;
+            if (localSave) {
+                try {
+                    localState = JSON.parse(localSave);
+                    localSavedAt = localState._savedAt || 0;
+                } catch(e) {}
+            }
+
+            // Always use the MORE RECENT save — never rollback progress
+            let chosenState;
+            if (localState && localSavedAt > cloudSavedAt) {
+                console.log('Using newer local save over cloud save');
+                chosenState = localState;
+                // Push newer local state to cloud immediately
+                await db.ref('gameSaves/' + uid).set({
+                    state: JSON.stringify(chosenState),
+                    savedAt: localSavedAt,
+                    playerName: chosenState.playerName || 'Unknown'
+                });
+            } else {
+                console.log('Using cloud save');
+                chosenState = cloudState;
+            }
+
+            gameState = deepMerge(defaultState, chosenState);
             gameState.firebaseUid = uid;
             localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
         } else {
-            // New account on a new device — try localStorage
-            const localSave = localStorage.getItem('soulCollectorSave_v3');
             if (localSave) {
                 gameState = deepMerge(defaultState, JSON.parse(localSave));
             } else {
                 gameState = defaultState;
             }
             gameState.firebaseUid = uid;
-            await saveGameToCloud(uid, db); // push whatever we have up
+            await saveGameToCloud(uid, db);
         }
         enterGame();
     } catch(e) {

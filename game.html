@@ -9925,33 +9925,37 @@ function renderBank() {
     const sfEl = document.getElementById('shards-fragments-tier-text');
     if (sfEl) {
         const forgeCount = gameState.fragmentForgeCount || 0;
-        // Base cost = 0.1% of lifetime souls, but cap precision to avoid float overflow
+        // Use log10 math throughout to avoid float precision issues at large numbers
+        // Base = 0.1% of lifetime souls, min 1e12
         const lifetimeSoulsBase = Math.max(1e12, (gameState.lifetimeSouls || 0) * 0.001);
-        // Use log-safe comparison to avoid Number precision issues with huge values
-        const dynamicCostRaw = lifetimeSoulsBase * Math.pow(2.5, forgeCount);
-        const dynamicCost = dynamicCostRaw; // keep as float, don't Math.floor (causes precision loss)
-        // Compare using logarithms to avoid float precision bugs
+        const logBase = Math.log10(lifetimeSoulsBase);
+        const logCost = logBase + forgeCount * Math.log10(2.5); // log10(base * 2.5^n)
+        const dynamicCostDisplay = Math.pow(10, logCost); // for display only
         const logShards = Math.log10(Math.max(1, gameState.abyssalShards || 0));
-        const logCost = Math.log10(Math.max(1, dynamicCost));
-        const canForge = logShards >= logCost || gameState.abyssalShards >= dynamicCost;
-        sfEl.innerHTML = `<span class="cost-shards">${formatNumber(dynamicCost)} Shards</span> → <span style="color:#44cc88;">1 Fragment</span><div style="color:#555;font-size:0.68em;margin-top:2px;">Purchase #${forgeCount+1} · next: ${formatNumber(Math.floor(dynamicCost * 2.5))}</div>`;
+        const canForge = logShards >= logCost;
+        sfEl.innerHTML = `<span class="cost-shards">${formatNumber(dynamicCostDisplay)} Shards</span> → <span style="color:#44cc88;">1 Fragment</span><div style="color:#555;font-size:0.68em;margin-top:2px;">Purchase #${forgeCount+1} · next: ${formatNumber(dynamicCostDisplay * 2.5)}</div>`;
         const csfb = document.getElementById('convert-shards-fragments-btn');
         if (csfb) {
             csfb.onclick = () => {
-                if (!confirm(`Convert ${formatNumber(dynamicCost)} Shards into 1 Fragment?\n\nNext purchase will cost ${formatNumber(Math.floor(dynamicCost * 2.5))} Shards.`)) return;
-                if (gameState.abyssalShards < dynamicCost && logShards < logCost) {
-                    Toastify({ text:`Need ${formatNumber(dynamicCost)} Shards!`, duration:2500, gravity:'top', position:'center' }).showToast();
+                if (!confirm(`Convert ${formatNumber(dynamicCostDisplay)} Shards into 1 Fragment?\n\nNext purchase will cost ${formatNumber(dynamicCostDisplay * 2.5)} Shards.`)) return;
+                // Re-check affordability with log comparison
+                const currentLogShards = Math.log10(Math.max(1, gameState.abyssalShards || 0));
+                if (currentLogShards < logCost) {
+                    Toastify({ text:`Need ${formatNumber(dynamicCostDisplay)} Shards!`, duration:2500, gravity:'top', position:'center' }).showToast();
                     return;
                 }
-                gameState.abyssalShards = Math.max(0, gameState.abyssalShards - dynamicCost);
+                // Deduct using the actual float value
+                gameState.abyssalShards = Math.max(0, gameState.abyssalShards - dynamicCostDisplay);
                 gameState.corruptedFragments += 1;
                 gameState.fragmentForgeCount = (gameState.fragmentForgeCount || 0) + 1;
-                Toastify({ text:`🔮 Fragment forged! Next costs ${formatNumber(Math.floor(dynamicCost * 2.5))} Shards.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
+                Toastify({ text:`🔮 Fragment forged! Next costs ${formatNumber(dynamicCostDisplay * 2.5)} Shards.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
                 saveGame();
                 renderBank();
                 updateDynamicDisplays();
             };
             csfb.disabled = !canForge;
+            csfb.style.opacity = canForge ? '1' : '0.4';
+            csfb.style.cursor = canForge ? 'pointer' : 'not-allowed';
         }
     }
 }

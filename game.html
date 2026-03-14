@@ -10080,8 +10080,11 @@ function renderBank() {
     const csfb = document.getElementById('convert-shards-fragments-btn');
     if (csfb) {
         const forgeCount = gameState.fragmentForgeCount || 0;
-        const lifetimeSoulsBase = Math.max(1e12, (gameState.lifetimeSouls || 0) * 0.001);
-        const logBase = Math.log10(lifetimeSoulsBase);
+        // Cost based on STABLE milestones only — not live soul count which keeps climbing
+        // Base: 1e12 shards. Each ascension multiplies by 10, each collapse by 100.
+        const ascensions = gameState.ascensions || 0;
+        const collapses  = gameState.totalCollapses || 0;
+        const logBase = 12 + ascensions * 1 + collapses * 2;
         const logCost = logBase + forgeCount * Math.log10(2.5);
         const dynamicCostDisplay = Math.pow(10, logCost);
         const logShards = Math.log10(Math.max(1, gameState.abyssalShards || 0));
@@ -10095,10 +10098,11 @@ function renderBank() {
         csfb.style.borderColor = canForge ? '#44cc8866' : '#33333366';
         csfb.onclick = () => {
             const fc2 = gameState.fragmentForgeCount || 0;
-            const base2 = Math.max(1e12, (gameState.lifetimeSouls || 0) * 0.001);
-            const cost2 = Math.pow(10, Math.log10(base2) + fc2 * Math.log10(2.5));
+            const asc2 = gameState.ascensions || 0;
+            const col2 = gameState.totalCollapses || 0;
+            const lc2 = 12 + asc2 * 1 + col2 * 2 + fc2 * Math.log10(2.5);
+            const cost2 = Math.pow(10, lc2);
             const ls2 = Math.log10(Math.max(1, gameState.abyssalShards || 0));
-            const lc2 = Math.log10(Math.max(1, cost2));
             if (ls2 < lc2) {
                 Toastify({ text:`Need ${formatNumber(cost2)} Shards to forge a Fragment!`, duration:3000, gravity:'top', position:'center' }).showToast();
                 return;

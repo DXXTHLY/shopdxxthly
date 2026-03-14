@@ -6494,7 +6494,11 @@ function calculateStats() {
                 let value = bonus.value;
                 if (meta_research_doubler > 1 && bonus.type !== 'spc_add_flat') {
                     if (value > 1) value = 1 + ((value - 1) * meta_research_doubler);
-                    if (value < 1) value = 1 - ((1 - value) * meta_research_doubler);
+                    else if (value < 1 && value > 0) {
+                        const reduction = 1 - value;
+                        value = Math.max(0.01, 1 - (reduction * meta_research_doubler));
+                    }
+                    if (bonus.value < 0.1 && bonus.value > 0) value = bonus.value * meta_research_doubler;
                 }
                 if (bonus.type === 'minion_cost_reducer') minionCostFactor *= value;
                 if (bonus.type === 'spc_add_flat') spc_add_flat += (bonus.value * meta_research_doubler);
@@ -6555,8 +6559,15 @@ function calculateStats() {
                 if (bonus && typeof bonus.value !== 'undefined' && bonus.type.startsWith('passive_') === false && bonus.type !== 'guaranteed_anomaly' && bonus.type !== 'banked_soul_interest' && bonus.type !== 'lingering_ritual_permanent' && bonus.type !== 'ascension_start_souls' && bonus.type !== 'essence_retention_on_ascend' && bonus.type !== 'expedition_speed_and_loot') {
                     let effectiveValue = bonus.value;
                     if (slot !== 'helm' && meta_enhancer > 1) {
-                        if (effectiveValue > 1) effectiveValue = 1 + ((effectiveValue - 1) * meta_enhancer);
-                        if (effectiveValue < 1) effectiveValue = 1 - ((1 - effectiveValue) * meta_enhancer);
+                        if (effectiveValue > 1) {
+                            effectiveValue = 1 + ((effectiveValue - 1) * meta_enhancer);
+                        } else if (effectiveValue < 1 && effectiveValue > 0) {
+                            // For reduction values (0 < v < 1), enhance the reduction amount but never go negative
+                            const reduction = 1 - effectiveValue;
+                            effectiveValue = Math.max(0.01, 1 - (reduction * meta_enhancer));
+                        }
+                        // Values near 0 (like 0.0001) are additive bonuses, scale them directly
+                        if (bonus.value < 0.1 && bonus.value > 0) effectiveValue = bonus.value * meta_enhancer;
                     }
                     if (bonus.type === 'sps_multiplier') sps_multiplier *= effectiveValue;
                     if (bonus.type === 'spc_multiplier') spc_multiplier *= effectiveValue;
@@ -12356,7 +12367,7 @@ function rollPactBuff() {
                 id: pick.id, name: pick.name, icon: pick.icon, desc: pick.desc,
                 type: pick.effect.type, value: pick.effect.value,
                 rolledAt: now,
-                expiresAt: now + pick.effect.duration * 1000,
+                expiresAt: now + (pick.duration || 300) * 1000,
             };
 
             db.ref(`pact_buffs/${pactId}`).set({

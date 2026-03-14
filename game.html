@@ -8611,7 +8611,7 @@ function enterGame() {
     setTimeout(() => showAccountReminderPopup(), 2000);
 
     // Market ticker — refreshes every 2 minutes (initial load handled by enterGame)
-    setInterval(() => refreshMarketTicker(), 2 * 60 * 1000);
+    setInterval(() => refreshMarketTicker(), 60 * 1000);
 
     // --- SESSION LOCK ---
     // Generates a unique token for this tab, writes it to Firebase.
@@ -10196,74 +10196,98 @@ async function refreshMarketTicker() {
     if (!inner) return;
     if (!supabaseClient) { setTimeout(refreshMarketTicker, 2000); return; }
     try {
+        // Fetch ACTIVE market listings only (not sold)
         let marketData = [], barterData = [];
 
-        // Use * to avoid 400 errors from missing columns
         const mRes = await supabaseClient
             .from('market_listings')
             .select('*')
             .eq('is_sold', false)
             .order('created_at', { ascending: false })
-            .limit(15);
+            .limit(20);
         if (!mRes.error && mRes.data) marketData = mRes.data;
         else {
-            // Fallback without filter if is_sold doesn't exist
-            const mRes2 = await supabaseClient.from('market_listings').select('*').order('created_at', { ascending: false }).limit(15);
+            const mRes2 = await supabaseClient.from('market_listings').select('*').order('created_at', { ascending: false }).limit(20);
             if (!mRes2.error && mRes2.data) marketData = mRes2.data;
         }
 
+        // Fetch ACTIVE barter listings only (not completed)
         const bRes = await supabaseClient
             .from('barter_listings')
             .select('*')
+            .eq('is_complete', false)
             .order('created_at', { ascending: false })
-            .limit(10);
+            .limit(15);
         if (!bRes.error && bRes.data) barterData = bRes.data;
-        else console.warn('Ticker barter_listings error:', bRes.error?.message);
+        else {
+            // fallback without filter
+            const bRes2 = await supabaseClient.from('barter_listings').select('*').order('created_at', { ascending: false }).limit(15);
+            if (!bRes2.error && bRes2.data) barterData = bRes2.data;
+        }
 
         const rarityColor = { legendary:'#ff9900', epic:'#cc44ff', rare:'#4488ff', uncommon:'#44cc88', common:'#ccc' };
-        const cIcon = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' };
+        const cIcon = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮', aether:'⚡' };
         let chips = '';
 
+        // Separator
+        const sep = '<span style="color:#2a1a44; padding:0 8px;">◆</span>';
+
+        // Market listings — FOR SALE
         marketData.forEach(l => {
             const item  = items[l.item_id];
             const name  = item ? item.name : (l.item_id || 'Item');
             const color = item ? (rarityColor[item.rarity] || '#ccc') : '#ccc';
-            chips += `<span style="padding:0 24px; font-size:0.78em;"><span style="color:#888; font-size:0.8em; margin-right:6px; letter-spacing:1px;">ITEM</span><span style="color:${color}; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">${name}</span><span style="color:#555; margin:0 8px;">BY</span><span style="color:#bbb;">${l.seller_name||'?'}</span><span style="color:#c8a800; font-weight:bold; margin-left:10px;">${formatNumber(l.price)} DE</span><span style="color:#2a1a44; margin-left:24px;">◆</span></span>`;
+            chips += `<span style="padding:0 20px; font-size:0.78em; white-space:nowrap;">` +
+                `<span style="color:#4488ff; font-size:0.75em; letter-spacing:1px;">FOR SALE</span> ` +
+                `<span style="color:${color}; font-weight:bold;">${name}</span> ` +
+                `<span style="color:#555;">by</span> <span style="color:#bbb;">${l.seller_name||'?'}</span> ` +
+                `<span style="color:#c8a800; font-weight:bold;">${formatNumber(l.price)} DE</span>` +
+                `</span>${sep}`;
         });
 
+        // Barter listings — TRADE OFFERS
         barterData.forEach(l => {
-            chips += `<span style="padding:0 24px; font-size:0.78em;"><span style="color:#aa44ff; font-size:0.8em; margin-right:6px; letter-spacing:1px;">TRADE</span><span style="color:#c8a800; font-weight:bold;">${cIcon[l.offer_type]||''} ${formatNumber(l.offer_amt)}</span><span style="color:#555; margin:0 8px;">⇄</span><span style="color:#aa44ff; font-weight:bold;">${cIcon[l.want_type]||''} ${formatNumber(l.want_amt)}</span><span style="color:#555; margin:0 8px;">BY</span><span style="color:#bbb;">${l.poster_name||'?'}</span><span style="color:#2a1a44; margin-left:24px;">◆</span></span>`;
+            chips += `<span style="padding:0 20px; font-size:0.78em; white-space:nowrap;">` +
+                `<span style="color:#aa44ff; font-size:0.75em; letter-spacing:1px;">TRADE</span> ` +
+                `<span style="color:#c8a800; font-weight:bold;">${cIcon[l.offer_type]||''} ${formatNumber(l.offer_amt)}</span> ` +
+                `<span style="color:#555;">⇄</span> ` +
+                `<span style="color:#aa44ff; font-weight:bold;">${cIcon[l.want_type]||''} ${formatNumber(l.want_amt)}</span> ` +
+                `<span style="color:#555;">by</span> <span style="color:#bbb;">${l.poster_name||'?'}</span>` +
+                `</span>${sep}`;
         });
 
         if (!chips) {
-            // Always scroll even with no listings
-            const placeholder = Array(6).fill('<span style="padding:0 40px; font-size:0.78em; color:#3a2a55; letter-spacing:2px;">✦ NO LISTINGS YET — VISIT THE MARKET TO LIST ITEMS OR POST TRADES ✦</span>').join('');
+            const placeholder = Array(5).fill(
+                '<span style="padding:0 40px; font-size:0.78em; color:#3a2a55; letter-spacing:2px;">✦ NO ACTIVE LISTINGS — VISIT THE MARKET OR BARTER TO POST ✦</span>'
+            ).join('');
             inner.innerHTML = placeholder;
             inner.style.animationDuration = '30s';
             return;
         }
-        // Duplicate enough times to always fill the screen
-        const repeated = chips.repeat(3);
-        inner.innerHTML = repeated;
-        // Calculate speed from text length rather than scrollWidth (works even when off-screen)
+
+        // Repeat to fill scroll
+        inner.innerHTML = chips.repeat(4);
+
+        // Speed based on content length
         const charCount = chips.length;
-        const speed = Math.max(5, charCount / 40); // fast scroll
+        const speed = Math.max(8, charCount / 35);
         inner.style.animationDuration = speed + 's';
-        // Also refine with actual scrollWidth once visible
+
+        // Refine with actual pixel width once visible
         const refineSpeed = (attempts) => {
             requestAnimationFrame(() => {
-                const w = inner.scrollWidth / 3;
+                const w = inner.scrollWidth / 4;
                 if (w > 0) {
-                    inner.style.animationDuration = Math.max(5, w / 180) + 's';
+                    inner.style.animationDuration = Math.max(8, w / 160) + 's';
                 } else if (attempts > 0) {
                     setTimeout(() => refineSpeed(attempts - 1), 500);
                 }
             });
         };
         refineSpeed(20);
+
     } catch(e) { console.warn('Ticker error:', e); }
 }
-
 async function cancelMarketListing(listingId) {
     if (!confirm('Cancel this listing? The item will be returned to your inventory.')) return;
     try {

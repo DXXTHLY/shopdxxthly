@@ -1497,212 +1497,25 @@
         /* RIFT 'CRASH' GAME STYLES (NEW!) */
         /* ================================================================= */
 
-        #rift-crash-container {
+        /* ── Abyssal Gauntlet styles ─────────────────────────────────── */
+        #gnt-container {
             font-family: var(--font-body);
-            background-color: var(--dark-panel-color);
-            color: var(--secondary-color);
-            padding: 25px;
-            border-radius: var(--border-radius);
-            width: 95%;
-            max-width: 550px;
-            margin: 20px auto;
-            border: 2px solid var(--border-color);
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            text-align: center;
         }
-
-        #rift-crash-container h1 {
-            color: var(--primary-color);
-        }
-
-        #rift-screen {
-            background: radial-gradient(ellipse at center, #0d0520 0%, #050310 100%);
-            border-radius: 14px;
-            height: 220px;
-            margin-bottom: 14px;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border: 1px solid #aa44ff22;
-            box-shadow: inset 0 0 40px #00000088, 0 0 20px #aa44ff11;
-        }
-
-        #rift {
-            width: 90px;
-            height: 90px;
-            border-radius: 50%;
-            position: absolute;
-            transition: background-color 0.4s, box-shadow 0.4s, transform 0.4s;
-            animation: pulseRift 2.5s infinite ease-in-out;
-            z-index: 2;
-        }
-
-        #multiplier {
-            font-size: 3.8em;
-            font-weight: bold;
-            color: #fff;
-            z-index: 3;
-            text-shadow: 0 0 20px currentColor;
-            font-family: var(--font-title);
-            letter-spacing: 2px;
-            transition: color 0.3s;
-        }
-
-        #crash-message {
-            font-size: 2.6em;
-            font-weight: bold;
-            font-family: var(--font-title);
-            color: #ff4444;
-            text-shadow: 0 0 20px #ff444488;
-            z-index: 3;
-            display: none;
-            text-transform: uppercase;
-            animation: fadeIn 0.3s;
-            letter-spacing: 2px;
-        }
-
-        .state-safe {
-            background: radial-gradient(circle, #4488ff, #2244aa);
-            box-shadow: 0 0 40px #4488ff88, 0 0 80px #4488ff22, inset 0 0 20px #ffffff22;
-        }
-        .state-tense {
-            background: radial-gradient(circle, #c8a800, #886600);
-            box-shadow: 0 0 50px #c8a80088, 0 0 100px #c8a80022, inset 0 0 25px #ffffff33;
-        }
-        .state-danger {
-            background: radial-gradient(circle, #ff4444, #aa1111);
-            box-shadow: 0 0 60px #ff444499, 0 0 120px #ff444433, inset 0 0 30px #ffffff33;
-            animation: pulseRift 0.8s infinite ease-in-out;
-        }
-        .state-crashed {
-            background: radial-gradient(circle, #333, #111);
-            box-shadow: none;
-            animation: explodeRift 0.5s forwards;
-        }
-
-        #rift-status-bar {
-            padding: 10px 16px;
-            background: linear-gradient(135deg,#0a0812,#150a1a);
-            border: 1px solid #aa44ff33;
-            border-left: 4px solid #aa44ff;
-            border-radius: 10px;
-            margin-bottom: 12px;
-            font-family: var(--font-title);
-            font-size: 0.88em;
-            color: #aa88cc;
-            letter-spacing: 1px;
+        #gnt-status-bar {
             transition: all 0.3s;
         }
-
-        #rift-controls {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            padding: 14px 16px;
-            background: linear-gradient(135deg,#0e0a1a,#1a1020);
-            border: 1px solid #aa44ff22;
-            border-radius: 12px;
-            margin-bottom: 12px;
+        #gnt-combat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
         }
-
-        .rift-quick-btn {
-            background: #0d0a18;
-            border: 1px solid #2a1a3a;
-            border-radius: 6px;
-            color: #666;
-            padding: 6px 10px;
-            cursor: pointer;
-            font-size: 0.75em;
-            font-family: inherit;
-            transition: all 0.15s;
+        /* Token hit animations */
+        @keyframes gntHit {
+            0%   { filter: brightness(1); }
+            40%  { filter: brightness(2.5) saturate(2); }
+            100% { filter: brightness(1); }
         }
-        .rift-quick-btn:hover { border-color: #aa44ff66; color: #aa88cc; }
-
-        #action-button {
-            padding: 12px 36px;
-            border-radius: 10px;
-            border: 1px solid #44cc8866;
-            font-size: 1em;
-            font-family: var(--font-title);
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: linear-gradient(135deg, #0a2a1a, #0d1a10);
-            color: #44cc88;
-            letter-spacing: 1px;
-        }
-        #action-button:hover:not(:disabled) {
-            background: linear-gradient(135deg, #0d3a22, #1a2a18);
-            border-color: #44cc88aa;
-            box-shadow: 0 0 15px #44cc8822;
-        }
-        #action-button:disabled {
-            background: #0a0812;
-            border-color: #2a1a3a;
-            color: #333;
-            cursor: not-allowed;
-        }
-        #action-button.cashing-out {
-            background: linear-gradient(135deg,#2a0a0a,#1a0505);
-            border-color: #ff444466;
-            color: #ff6666;
-        }
-
-        #player-list-container {
-            background: linear-gradient(135deg,#0e0a1a,#1a1020);
-            padding: 14px 16px;
-            border-radius: 12px;
-            border: 1px solid #aa44ff22;
-        }
-        #player-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            max-height: 180px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        #player-list li {
-            padding: 8px 12px;
-            background: #0d0a18;
-            border: 1px solid #1a1030;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.82em;
-        }
-        #player-list li.is-you {
-            border-color: #aa44ff44;
-            background: #14102a;
-        }
-        .player-cashed-out { color: #44cc88; font-weight: bold; }
-        .player-lost { color: #ff4444; text-decoration: line-through; opacity: 0.6; }
-        .player-playing { color: #c8a800; }
-
-        .rift-history-chip {
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 0.72em;
-            font-family: monospace;
-            font-weight: bold;
-            border: 1px solid;
-        }
-
-        @keyframes pulseRift {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.06); }
-            100% { transform: scale(1); }
-        }
-        @keyframes explodeRift {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(4); opacity: 0; }
-        }
+        .gnt-token-hit { animation: gntHit 0.3s ease-out; }
 
         /* ================================================================= */
         /* PROVING GROUNDS STYLES (NEW!) */
@@ -1942,163 +1755,7 @@
 		/* Intro Screens */
 		
         /* Basic Setup */
-        #introBG {
-			display: flex;
-			z-index: 300;
-            overflow: hidden;
-            background-color: #0a0a0a; /* A very dark, almost black background */
-            color: #e0e0e0;
-            font-family: 'Cinzel', serif;
-			
-			position: absolute;
-			left:0px;
-			right:0px;
-			top:0px;
-			bottom:0px;
-        }
 
-        #intro-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
-
-        /* Screen Styling & Transitions */
-        .introScreen {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            position: absolute;
-            top: 0;
-            left: 0;
-            opacity: 1;
-            transition: opacity 2s ease-in-out;
-        }
-
-        .introScreen.hidden {
-            opacity: 0;
-            pointer-events: none; /* Make it un-interactive when hidden */
-        }
-
-
-        /* --- Screen 1: Welcome Title --- */
-        #screen1 {
-            animation: fadeInScreen 2s ease-in;
-        }
-
-        .title-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .introSubtitle {
-            font-size: 1.8rem;
-            letter-spacing: 3px;
-            color: #999;
-            text-transform: uppercase;
-        }
-
-        .intro-main-title {
-            font-family: 'MedievalSharp', cursive;
-            font-size: 8rem;
-            color: #b30000; /* A strong, deep red */
-            margin: -10px 0;
-            line-height: 1;
-            text-shadow: 
-                0 0 5px #ff1a1a, 
-                0 0 15px #521717, 
-                0 0 25px #b30000, 
-                0 0 45px #b30000;
-            animation: pulse 5s infinite ease-in-out;
-        }
-
-        .intro-sub-title {
-            font-family: 'Cinzel', serif;
-            font-weight: 700;
-            font-size: 2rem;
-            color: #ccc;
-            margin-top: 15px;
-            letter-spacing: 8px;
-            text-transform: uppercase;
-        }
-
-
-        /* --- Screen 2: Dev Credits --- */
-        .dev-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            font-size: 1.8rem;
-            line-height: 2.5;
-        }
-
-        .dev-list li {
-            opacity: 0;
-            transform: translateY(20px);
-            /* Animation will be triggered by JS */
-        }
-
-        .dev-role {
-            color: #c41212; /* Matching red */
-            font-weight: 700;
-            margin-right: 15px;
-            text-transform: uppercase;
-        }
-
-        .dev-name {
-            color: #ffffff;
-            font-weight: 400;
-        }
-
-        /* Keyframe Animations */
-        @keyframes fadeInScreen {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes pulse {
-            0% { text-shadow: 0 0 5px #ff1a1a, 0 0 15px #ff1a1a, 0 0 25px #b30000, 0 0 45px #b30000; }
-            50% { text-shadow: 0 0 10px #ff1a1a, 0 0 25px #ff1a1a, 0 0 45px #b30000, 0 0 70px #b30000; }
-            100% { text-shadow: 0 0 5px #ff1a1a, 0 0 15px #ff1a1a, 0 0 25px #b30000, 0 0 45px #b30000; }
-        }
-
-        /* Staggered animation for dev list */
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .main-title {
-                font-size: 4rem;
-            }
-            .subtitle {
-                font-size: 1.2rem;
-            }
-            .sub-title {
-                font-size: 1.3rem;
-            }
-            .dev-list {
-                font-size: 1.2rem;
-            }
-        }
-
-
-
-        /* --- "STRANGER THINGS" INTRO STYLES --- */
-
-        /* The black full-screen overlay */
         /* ================================================================= */
         /* CINEMATIC INTRO - FULL REBUILD                                   */
         /* ================================================================= */
@@ -2744,7 +2401,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     <button onclick="showScreen('rituals')">Rituals</button>
                     <button onclick="showScreen('map')">Worlds</button>
                     <button onclick="showScreen('pvp')">Raids</button>
-                    <button onclick="showScreen('crashgame')">Rift</button>
+                    <button onclick="showScreen('crashgame')">Gauntlet</button>
                     <button onclick="showScreen('market')">Market</button>
                     <button onclick="showScreen('provinggrounds')">Proving Grounds</button>
                 </div>
@@ -3030,66 +2687,127 @@ text-decoration: underline; /* Adds an underline on hover */
             </div>
 
             <!-- ================================================================= -->
-            <!-- START: Rift Crash Game Screen -->
+            <!-- ABYSSAL GAUNTLET SCREEN -->
             <!-- ================================================================= -->
             <div id="crashgame-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#aa44ff;">🌀 THE UNSTABLE RIFT 🌀</h2>
-                <p style="color:var(--dim-color); max-width:540px; margin:0 auto 20px; font-size:0.85em;">Wager your resources on a volatile tear in reality. Cash out before it collapses — or lose everything.</p>
+                <h2 style="letter-spacing:3px; color:#ff6644;">⚔️ THE ABYSSAL GAUNTLET ⚔️</h2>
+                <p style="color:var(--dim-color); max-width:580px; margin:0 auto 20px; font-size:0.85em;">Bet your resources, deploy your minions, and survive wave after wave. Cash out between waves — or push deeper for greater rewards. Once a wave begins, <strong style="color:#ff4444;">you cannot flee</strong> until it ends.</p>
 
-                <div id="rift-crash-container" style="max-width:720px; margin:0 auto;">
+                <div id="gnt-container" style="max-width:860px; margin:0 auto;">
 
-                    <!-- Status bar -->
-                    <div id="rift-status-bar">Connecting to the Rift...</div>
-
-                    <!-- Main rift display -->
-                    <div id="rift-screen">
-                        <canvas id="rift-inner-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;"></canvas>
-                        <div id="rift" class="state-safe"></div>
-                        <div id="multiplier" style="z-index:3;">1.00x</div>
-                        <div id="crash-message" style="z-index:3;"></div>
-                        <div id="rift-sync-badge" style="position:absolute;top:10px;right:12px;font-size:0.6em;color:#aa44ff44;z-index:4;font-family:monospace;letter-spacing:1px;"></div>
+                    <!-- Top status strip -->
+                    <div id="gnt-status-bar" style="background:linear-gradient(135deg,#0a0812,#150a0a); border:1px solid #ff444433; border-left:4px solid #ff6644; border-radius:10px; padding:12px 18px; margin-bottom:14px; font-family:var(--font-title); font-size:0.88em; color:#ff8866; letter-spacing:1px;">
+                        ⚔ Deploy your minions and place your bet to begin.
                     </div>
 
-                    <!-- Crash history chips -->
-                    <div style="margin-bottom:14px;">
-                        <div style="color:#555; font-size:0.68em; text-transform:uppercase; letter-spacing:2px; text-align:center; margin-bottom:6px;">📜 Recent Crashes</div>
-                        <div id="rift-history" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;min-height:24px;"></div>
+                    <!-- Bet + wave info bar -->
+                    <div id="gnt-info-bar" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; display:none;">
+                        <div style="flex:1; background:#0a0812; border:1px solid #ff444422; border-radius:10px; padding:12px 16px; text-align:center;">
+                            <div style="color:#555; font-size:0.65em; text-transform:uppercase; letter-spacing:1px;">Wave</div>
+                            <div id="gnt-wave-display" style="color:#ff8866; font-family:var(--font-title); font-size:1.5em; font-weight:bold;">1</div>
+                        </div>
+                        <div style="flex:1; background:#0a0812; border:1px solid #ff444422; border-radius:10px; padding:12px 16px; text-align:center;">
+                            <div style="color:#555; font-size:0.65em; text-transform:uppercase; letter-spacing:1px;">Bet</div>
+                            <div id="gnt-bet-display" style="color:#c8a800; font-family:var(--font-title); font-size:1.1em; font-weight:bold;">—</div>
+                        </div>
+                        <div style="flex:1; background:#0a0812; border:1px solid #44cc8822; border-radius:10px; padding:12px 16px; text-align:center;">
+                            <div style="color:#555; font-size:0.65em; text-transform:uppercase; letter-spacing:1px;">Multiplier</div>
+                            <div id="gnt-mult-display" style="color:#44cc88; font-family:var(--font-title); font-size:1.5em; font-weight:bold;">1.5x</div>
+                        </div>
+                        <div style="flex:1; background:#0a0812; border:1px solid #44cc8822; border-radius:10px; padding:12px 16px; text-align:center;">
+                            <div style="color:#555; font-size:0.65em; text-transform:uppercase; letter-spacing:1px;">Potential Win</div>
+                            <div id="gnt-win-display" style="color:#44cc88; font-family:var(--font-title); font-size:1.1em; font-weight:bold;">—</div>
+                        </div>
                     </div>
 
-                    <!-- Bet controls -->
-                    <div id="rift-controls">
-                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;">
-                            <select id="bet-currency" style="background:#0d0a18;border:1px solid #aa44ff44;color:#ddd;padding:9px 12px;border-radius:8px;font-family:inherit;font-size:0.85em;">
-                                <option value="souls">👻 Souls</option>
-                                <option value="darkEssence">🌑 Dark Essence</option>
-                                <option value="abyssalShards">💎 Abyssal Shards</option>
-                                <option value="aether">✨ Aether</option>
-                                <option value="corruptedFragments">🔮 Corrupted Fragments</option>
-                            </select>
-                            <input type="number" id="bet-amount" value="10" style="background:#0d0a18;border:1px solid #aa44ff44;color:#ddd;padding:9px 10px;border-radius:8px;font-family:inherit;font-size:0.85em;width:90px;">
-                            <div style="display:flex;gap:4px;">
-                                <button onclick="document.getElementById('bet-amount').value=10" class="rift-quick-btn">10</button>
-                                <button onclick="document.getElementById('bet-amount').value=100" class="rift-quick-btn">100</button>
-                                <button onclick="document.getElementById('bet-amount').value=1000" class="rift-quick-btn">1K</button>
-                                <button onclick="document.getElementById('bet-amount').value=Math.floor(gameState[document.getElementById('bet-currency').value]||0)" class="rift-quick-btn" style="color:#aa44ff;border-color:#aa44ff33;">MAX</button>
+                    <!-- Main two-col layout -->
+                    <div style="display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;">
+
+                        <!-- LEFT: battle grid -->
+                        <div style="flex:1; min-width:280px;">
+                            <div id="gnt-grid-wrap" style="background:#050310; border:2px solid #1a0a2a; border-radius:12px; padding:10px; position:relative;">
+                                <div id="gnt-combat-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:4px;"></div>
+                                <!-- Combat lock overlay — shown during combat -->
+                                <div id="gnt-combat-lock" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.7); border-radius:12px; align-items:center; justify-content:center; flex-direction:column; gap:8px; z-index:10;">
+                                    <div style="color:#ff4444; font-family:var(--font-title); font-size:1em; letter-spacing:2px;">⚔ COMBAT IN PROGRESS</div>
+                                    <div style="color:#555; font-size:0.75em;">Complete the wave to continue</div>
+                                </div>
+                            </div>
+
+                            <!-- Budget bar -->
+                            <div id="gnt-budget-bar" style="margin-top:10px; background:#0a0812; border:1px solid #2a1a3a; border-radius:8px; padding:10px 14px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.72em; color:#666;">
+                                    <span>Deploy Points</span>
+                                    <span id="gnt-budget-text">0 / 0</span>
+                                </div>
+                                <div style="background:#0d0a18; border-radius:4px; height:6px; overflow:hidden;">
+                                    <div id="gnt-budget-fill" style="height:100%; width:0%; background:linear-gradient(90deg,#44cc88,#c8a800); border-radius:4px; transition:width 0.2s;"></div>
+                                </div>
                             </div>
                         </div>
-                        <button id="action-button">Place Bet</button>
-                    </div>
 
-                    <!-- Players -->
-                    <div id="player-list-container">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                            <h3 style="margin:0;font-size:0.82em;color:#aa44ff;letter-spacing:2px;text-transform:uppercase;">👥 Players in the Rift</h3>
-                            <span id="rift-player-count" style="color:#444;font-size:0.72em;font-family:monospace;">0 active</span>
+                        <!-- RIGHT: controls panel -->
+                        <div style="width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:10px;">
+
+                            <!-- PHASE: LOBBY — bet + start controls -->
+                            <div id="gnt-phase-lobby">
+                                <div style="background:#0a0812; border:1px solid #2a1a3a; border-radius:10px; padding:14px;">
+                                    <div style="color:#888; font-size:0.72em; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">💰 Place Your Bet</div>
+                                    <select id="gnt-currency" style="width:100%; background:#0d0a18; border:1px solid #2a1a3a; color:#ddd; padding:8px 10px; border-radius:7px; font-family:inherit; font-size:0.85em; margin-bottom:8px;">
+                                        <option value="souls">👻 Souls</option>
+                                        <option value="darkEssence">🌑 Dark Essence</option>
+                                        <option value="abyssalShards">💎 Abyssal Shards</option>
+                                        <option value="aether">✨ Aether</option>
+                                        <option value="corruptedFragments">🔮 Corrupted Fragments</option>
+                                    </select>
+                                    <input type="number" id="gnt-bet-input" value="100" min="1" style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #2a1a3a; color:#ddd; padding:8px 10px; border-radius:7px; font-family:inherit; font-size:0.85em; margin-bottom:8px;">
+                                    <div style="display:flex; gap:5px; margin-bottom:12px;">
+                                        <button onclick="gntSetBet(100)" style="flex:1; background:#0d0a18; border:1px solid #2a1a3a; border-radius:6px; color:#888; padding:5px; cursor:pointer; font-size:0.75em;">100</button>
+                                        <button onclick="gntSetBet(1000)" style="flex:1; background:#0d0a18; border:1px solid #2a1a3a; border-radius:6px; color:#888; padding:5px; cursor:pointer; font-size:0.75em;">1K</button>
+                                        <button onclick="gntSetBet(10000)" style="flex:1; background:#0d0a18; border:1px solid #2a1a3a; border-radius:6px; color:#888; padding:5px; cursor:pointer; font-size:0.75em;">10K</button>
+                                        <button onclick="gntSetBetMax()" style="flex:1; background:#0d0a18; border:1px solid #aa44ff33; border-radius:6px; color:#aa44ff; padding:5px; cursor:pointer; font-size:0.75em;">MAX</button>
+                                    </div>
+                                    <div style="color:#555; font-size:0.7em; margin-bottom:10px; text-align:center; font-style:italic;">Place minions on the grid below, then begin.</div>
+                                    <button onclick="gntBeginWave()" id="gnt-begin-btn" style="width:100%; background:linear-gradient(160deg,#8a0f0f,#c41818); border:1px solid #3d0808; border-bottom:3px solid #000; color:#ffe8e8; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; padding:12px; cursor:pointer; border-radius:8px; text-transform:uppercase;">⚔ Begin Wave 1</button>
+                                </div>
+                            </div>
+
+                            <!-- PHASE: BETWEEN WAVES -->
+                            <div id="gnt-phase-between" style="display:none;">
+                                <div style="background:#0a1a0a; border:1px solid #44cc8833; border-top:3px solid #44cc88; border-radius:10px; padding:16px; text-align:center;">
+                                    <div style="color:#44cc88; font-family:var(--font-title); font-size:1em; letter-spacing:2px; margin-bottom:6px;">✦ WAVE CLEARED ✦</div>
+                                    <div id="gnt-between-text" style="color:#aaa; font-size:0.8em; line-height:1.5; margin-bottom:14px;"></div>
+                                    <button onclick="gntCashOut()" style="width:100%; background:linear-gradient(160deg,#1a5a1a,#44cc88); border:1px solid #2a8a2a; border-bottom:3px solid #000; color:#e8ffe8; font-family:var(--font-title); font-size:0.85em; letter-spacing:2px; padding:11px; cursor:pointer; border-radius:8px; text-transform:uppercase; margin-bottom:8px;">💰 Cash Out</button>
+                                    <button onclick="gntNextWave()" id="gnt-next-btn" style="width:100%; background:linear-gradient(160deg,#1a0a2a,#5a1a8a); border:1px solid #3a0a5a; border-bottom:3px solid #000; color:#f0e8ff; font-family:var(--font-title); font-size:0.85em; letter-spacing:2px; padding:11px; cursor:pointer; border-radius:8px; text-transform:uppercase;">⚔ Push Deeper</button>
+                                </div>
+                            </div>
+
+                            <!-- PHASE: RESULT -->
+                            <div id="gnt-phase-result" style="display:none;">
+                                <div id="gnt-result-box" style="background:#0a0812; border:1px solid #2a1a3a; border-radius:10px; padding:16px; text-align:center;"></div>
+                                <button onclick="gntReset()" style="width:100%; margin-top:10px; background:#0d0a18; border:1px solid #2a1a3a; border-radius:8px; color:#888; font-family:var(--font-title); font-size:0.8em; letter-spacing:2px; padding:10px; cursor:pointer; text-transform:uppercase;">↩ New Run</button>
+                            </div>
+
+                            <!-- Wave preview -->
+                            <div style="background:#0a0812; border:1px solid #2a1a3a; border-radius:10px; padding:12px;">
+                                <div style="color:#555; font-size:0.65em; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">📋 Wave Rewards</div>
+                                <div id="gnt-wave-table" style="font-size:0.7em; color:#666; display:flex; flex-direction:column; gap:3px;"></div>
+                            </div>
+
+                            <!-- Combat log -->
+                            <div style="background:#0a0812; border:1px solid #2a1a3a; border-radius:10px; padding:12px;">
+                                <div style="color:#555; font-size:0.65em; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">📜 Combat Log</div>
+                                <div id="gnt-log" style="font-size:0.72em; line-height:1.6; color:#666; max-height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;">
+                                    <div style="color:#444; font-style:italic;">Awaiting deployment...</div>
+                                </div>
+                            </div>
+
                         </div>
-                        <ul id="player-list"></ul>
                     </div>
-
                 </div>
             </div>
             <!-- ================================================================= -->
-            <!-- END: Rift Crash Game Screen -->
+            <!-- END: ABYSSAL GAUNTLET SCREEN -->
             <!-- ================================================================= -->
 
             
@@ -5789,49 +5507,120 @@ const expeditions = {
 // =================================================================
 const conversionTiers = {
     // Shards → Dark Essence
-    // Early game: shards are precious, give decent DE. Late game: shards are abundant but still valuable
+    // Late game soul costs hit 9e278 — shards are abundant so give good DE back
     shardsToDe: [
-        { fromAmount: 1,        toAmount: 1,       label: 'Micro'    },  // 1 shard = 1 DE (baseline)
-        { fromAmount: 10,       toAmount: 8,       label: 'Small'    },  // slight bulk discount
-        { fromAmount: 100,      toAmount: 70,      label: 'Moderate' },
-        { fromAmount: 1000,     toAmount: 600,     label: 'Large'    },
-        { fromAmount: 10000,    toAmount: 5000,    label: 'Massive'  },
-        { fromAmount: 100000,   toAmount: 40000,   label: 'Colossal' },  // Lv.26 artifact = 113K shards worth ~45K DE
-        { fromAmount: 1000000,  toAmount: 300000,  label: 'Titanic'  },
+        { fromAmount: 1,        toAmount: 1,        label: 'Micro'         },
+        { fromAmount: 10,       toAmount: 8,        label: 'Small'         },
+        { fromAmount: 100,      toAmount: 70,       label: 'Moderate'      },
+        { fromAmount: 1e3,      toAmount: 600,      label: 'Large'         },
+        { fromAmount: 1e4,      toAmount: 5e3,      label: 'Massive'       },
+        { fromAmount: 1e5,      toAmount: 4e4,      label: 'Colossal'      },
+        { fromAmount: 1e6,      toAmount: 3e5,      label: 'Titanic'       },
+        { fromAmount: 1e8,      toAmount: 2.5e7,    label: 'Abyssal'       },
+        { fromAmount: 1e10,     toAmount: 1.5e9,    label: 'Void'          },
+        { fromAmount: 1e12,     toAmount: 1e11,     label: 'Cosmic'        },
+        { fromAmount: 1e15,     toAmount: 5e13,     label: 'Stellar'       },
+        { fromAmount: 1e18,     toAmount: 2e16,     label: 'Galactic'      },
+        { fromAmount: 1e21,     toAmount: 5e18,     label: 'Universal'     },
+        { fromAmount: 1e25,     toAmount: 5e22,     label: 'Omniversal'    },
+        { fromAmount: 1e30,     toAmount: 5e27,     label: 'Primordial'    },
+        { fromAmount: 1e36,     toAmount: 5e33,     label: 'Infinite'      },
+        { fromAmount: 1e42,     toAmount: 5e39,     label: 'Eternal'       },
+        { fromAmount: 1e50,     toAmount: 5e47,     label: 'Transcendent'  },
+        { fromAmount: 1e60,     toAmount: 5e57,     label: 'Boundless'     },
+        { fromAmount: 1e75,     toAmount: 5e72,     label: 'Unfathomable'  },
+        { fromAmount: 1e100,    toAmount: 5e97,     label: 'Absolute'      },
+        { fromAmount: 1e130,    toAmount: 5e127,    label: 'Omnipotent'    },
+        { fromAmount: 1e170,    toAmount: 5e167,    label: 'Beyond All'    },
+        { fromAmount: 1e220,    toAmount: 5e217,    label: 'Pre-Existence' },
+        { fromAmount: 1e270,    toAmount: 5e267,    label: 'The Source'    },
     ],
-    // Aether → Dark Essence (Aether is very rare — good rates)
+
+    // Aether → Dark Essence (Aether is rare — rewarding rates)
     aetherToDe: [
-        { fromAmount: 1,  toAmount: 50   },
-        { fromAmount: 5,  toAmount: 300  },
-        { fromAmount: 10, toAmount: 700  },
-        { fromAmount: 25, toAmount: 2000 },
-        { fromAmount: 50, toAmount: 5000 },
+        { fromAmount: 1,        toAmount: 50        },
+        { fromAmount: 5,        toAmount: 300       },
+        { fromAmount: 10,       toAmount: 700       },
+        { fromAmount: 25,       toAmount: 2000      },
+        { fromAmount: 50,       toAmount: 5000      },
+        { fromAmount: 200,      toAmount: 25000     },
+        { fromAmount: 500,      toAmount: 75000     },
+        { fromAmount: 1000,     toAmount: 2e5       },
+        { fromAmount: 5000,     toAmount: 1.2e6     },
+        { fromAmount: 1e4,      toAmount: 3e6       },
+        { fromAmount: 5e4,      toAmount: 2e7       },
+        { fromAmount: 1e5,      toAmount: 5e7       },
+        { fromAmount: 1e6,      toAmount: 6e8       },
+        { fromAmount: 1e7,      toAmount: 8e9       },
+        { fromAmount: 1e8,      toAmount: 1e11      },
+        { fromAmount: 1e9,      toAmount: 1.5e12    },
+        { fromAmount: 1e10,     toAmount: 2e13      },
+        { fromAmount: 1e12,     toAmount: 5e15      },
+        { fromAmount: 1e15,     toAmount: 2e19      },
+        { fromAmount: 1e18,     toAmount: 1e23      },
+        { fromAmount: 1e21,     toAmount: 8e26      },
+        { fromAmount: 1e25,     toAmount: 5e31      },
     ],
+
     // Dark Essence → Souls
-    // Rates are intentionally steep — this should never be a profitable sacrifice loop.
-    // At Singularity (1e9 souls to unlock), spending 5 DE for 1M souls is terrible value.
-    // The point is to help when stuck, not to farm.
+    // Promotion soul costs reach 9e278 — these tiers must cover that range
     deToSouls: [
-        { fromAmount: 50,     toAmount: 1e6,    label: 'Trickle' },  // 50 DE per 1M souls
-        { fromAmount: 500,    toAmount: 1e8,    label: 'Stream'  },  // 5 DE per 1M — bulk discount
-        { fromAmount: 5000,   toAmount: 5e10,   label: 'Flood'   },
-        { fromAmount: 50000,  toAmount: 1e14,   label: 'Deluge'  },
-        { fromAmount: 500000, toAmount: 1e18,   label: 'Tsunami' },
+        { fromAmount: 50,       toAmount: 1e6,      label: 'Trickle'       },
+        { fromAmount: 500,      toAmount: 1e8,      label: 'Stream'        },
+        { fromAmount: 5e3,      toAmount: 5e10,     label: 'Flood'         },
+        { fromAmount: 5e4,      toAmount: 1e14,     label: 'Deluge'        },
+        { fromAmount: 5e5,      toAmount: 1e18,     label: 'Tsunami'       },
+        { fromAmount: 5e6,      toAmount: 1e23,     label: 'Cataclysm'     },
+        { fromAmount: 5e7,      toAmount: 1e28,     label: 'Apocalypse'    },
+        { fromAmount: 5e8,      toAmount: 1e33,     label: 'Annihilation'  },
+        { fromAmount: 5e9,      toAmount: 1e38,     label: 'Oblivion'      },
+        { fromAmount: 5e10,     toAmount: 1e44,     label: 'Void Surge'    },
+        { fromAmount: 5e11,     toAmount: 1e50,     label: 'Cosmic Rift'   },
+        { fromAmount: 5e12,     toAmount: 1e57,     label: 'Abyssal Gush'  },
+        { fromAmount: 5e13,     toAmount: 1e65,     label: 'Infinity'      },
+        { fromAmount: 5e14,     toAmount: 1e74,     label: 'Beyond'        },
+        { fromAmount: 5e15,     toAmount: 1e84,     label: 'Primordial'    },
+        { fromAmount: 5e16,     toAmount: 1e95,     label: 'Eternal'       },
+        { fromAmount: 5e17,     toAmount: 1e107,    label: 'Transcendent'  },
+        { fromAmount: 5e18,     toAmount: 1e120,    label: 'Boundless'     },
+        { fromAmount: 5e19,     toAmount: 1e134,    label: 'Unfathomable'  },
+        { fromAmount: 5e20,     toAmount: 1e150,    label: 'Absolute'      },
+        { fromAmount: 5e21,     toAmount: 1e168,    label: 'Omnipotent'    },
+        { fromAmount: 5e22,     toAmount: 1e188,    label: 'Beyond All'    },
+        { fromAmount: 5e23,     toAmount: 1e210,    label: 'Pre-Existence' },
+        { fromAmount: 5e24,     toAmount: 1e235,    label: 'Void Genesis'  },
+        { fromAmount: 5e25,     toAmount: 1e262,    label: 'The Source'    },
+        { fromAmount: 5e26,     toAmount: 1e278,    label: 'Omega Surge'   },
     ],
+
     // Dark Essence → Shards
-    // Buying shards with DE should be expensive — prevents bypassing the prestige grind
-    // Lv.1 artifact costs ~1-10 shards, Lv.20+ costs 10K-100K+
+    // Artifact costs and promotion shard needs go very high late game
     deToShards: [
-        { fromAmount: 50,    toAmount: 1,    label: 'Trickle'  },  // 50 DE per shard (very expensive early)
-        { fromAmount: 500,   toAmount: 12,   label: 'Modest'   },
-        { fromAmount: 5000,  toAmount: 150,  label: 'Surge'    },
-        { fromAmount: 50000, toAmount: 1800, label: 'Torrent'  },  // still 28 DE per shard at bulk
+        { fromAmount: 50,       toAmount: 1,        label: 'Trickle'       },
+        { fromAmount: 500,      toAmount: 12,       label: 'Modest'        },
+        { fromAmount: 5e3,      toAmount: 150,      label: 'Surge'         },
+        { fromAmount: 5e4,      toAmount: 1800,     label: 'Torrent'       },
+        { fromAmount: 5e5,      toAmount: 25000,    label: 'Cascade'       },
+        { fromAmount: 5e6,      toAmount: 3e5,      label: 'Deluge'        },
+        { fromAmount: 5e7,      toAmount: 4e6,      label: 'Flood'         },
+        { fromAmount: 5e8,      toAmount: 5e7,      label: 'Avalanche'     },
+        { fromAmount: 5e9,      toAmount: 7e8,      label: 'Cataclysm'     },
+        { fromAmount: 5e10,     toAmount: 1e10,     label: 'Oblivion'      },
+        { fromAmount: 5e12,     toAmount: 2e12,     label: 'Void Rush'     },
+        { fromAmount: 5e14,     toAmount: 5e13,     label: 'Cosmic'        },
+        { fromAmount: 5e16,     toAmount: 2e15,     label: 'Primordial'    },
+        { fromAmount: 5e18,     toAmount: 1e17,     label: 'Infinite'      },
+        { fromAmount: 5e20,     toAmount: 3e19,     label: 'Eternal'       },
+        { fromAmount: 5e22,     toAmount: 1e22,     label: 'Transcendent'  },
+        { fromAmount: 5e24,     toAmount: 4e24,     label: 'Boundless'     },
+        { fromAmount: 5e26,     toAmount: 2e27,     label: 'Absolute'      },
+        { fromAmount: 5e28,     toAmount: 1e30,     label: 'Omnipotent'    },
+        { fromAmount: 5e30,     toAmount: 5e32,     label: 'The Source'    },
     ],
-    // Shards → Fragments: DYNAMIC ESCALATING COST — computed in renderBank, not static tiers
-    // Base: 1e12 shards for 1 fragment, multiplies by 3 each purchase
-    // After 10 purchases: 1e12 * 3^10 = ~59 trillion shards per fragment
+
+    // Shards → Fragments: DYNAMIC ESCALATING COST — computed in renderBank
     shardsToFragments: [
-        { fromAmount: 1e12, toAmount: 1, label: 'Dynamic' }, // placeholder, overridden in renderBank
+        { fromAmount: 1e12, toAmount: 1, label: 'Dynamic' },
     ],
 };
 
@@ -7223,28 +7012,9 @@ function showScreen(screenId) {
         fetchBarterListings();
         setTimeout(() => refreshMarketTicker(), 300);
     }
-    if (screenId === 'crashgame')
-    {
-        // Load crash history immediately when rift screen opens
-        const db = window._scFirebase?.chatDb;
-        if (db) {
-            db.ref('rift_history').orderByChild('t').limitToLast(10).once('value', snap => {
-                const entries = [];
-                snap.forEach(child => {
-                    const d = child.val();
-                    if (d && typeof d.v === 'number') entries.push({ v: d.v, t: d.t || 0, rid: child.key });
-                });
-                entries.sort((a, b) => b.t - a.t); // newest first
-                const histBar = document.getElementById('rift-history');
-                if (histBar && entries.length) {
-                    histBar.innerHTML = entries.map(e => {
-                        const v = e.v;
-                        const color = v < 1.5 ? '#ff4444' : v < 2 ? '#ff8844' : v < 5 ? '#c8a800' : '#44cc88';
-                        return `<div class="rift-history-chip" style="color:${color};border-color:${color}44;background:${color}11;">${Number(v).toFixed(2)}x</div>`;
-                    }).join('');
-                }
-            });
-        }
+    if (screenId === 'crashgame') {
+        // Initialise the Abyssal Gauntlet when the screen opens
+        if (typeof gntInit === 'function') gntInit();
     }
     if (screenId === 'pacts')
     {
@@ -14109,34 +13879,7 @@ async function cancelBarterListing(listingId) {
         </div>
     </div>
 </div>
-
-
-	
-<div id="introBG">
-
-    <div id="intro-container">
-
-        <!-- Screen 1: Welco me Title ---->
-        <div id="screen1" class="introScreen">
-            <div class="title-wrapper">
-                <span class="introSubtitle">Welcome to</span>
-                <h1 class="intro-main-title">Soul Collector</h1>
-                <h2 class="intro-sub-title">Abyssal Ascension</h2>
-            </div>
-        </div>
-
-        <!-- Screen 2: Our Dev Credits -->
-        <div id="screen2" class="introScreen hidden">
-            <ul class="dev-list">
-                <li><span class="dev-role">dev:</span> <span class="dev-name">dxxthly</span></li>
-                <li><span class="dev-role">dev:</span> <span class="dev-name">PartlySwedish</span></li>
-                <li><span class="dev-role">dev:</span> <span class="dev-name">BIN</span></li>
-                <li><span class="dev-role">dev:</span> <span class="dev-name">Wayne</span></li>
-            </ul>
-        </div>
-	</div>
-
-</div>
+<!-- old introBG removed -->
 
 <!-- ================================================================= -->
 <!--         FINAL PERFECTED SCRIPT: HISTORY + LIVE OVERWRITES       -->
@@ -14638,488 +14381,585 @@ async function arenaEndBattle(playerWon) {
     saveGame();
     setTimeout(() => arenaInitialize(), 3000);
 }
+</script>
 
-    document.addEventListener('DOMContentLoaded', () => {
-            const screen1 = document.getElementById('screen1');
-            const screen2 = document.getElementById('screen2');
-			const introScreen = document.getElementById('introBG');
-            const devListItems = document.querySelectorAll('.dev-list li');
-			
-			introScreen.style.transition = 'opacity 0.5s ease-out';
+<script>
+// =================================================================
+// ⚔ ABYSSAL GAUNTLET — full engine (replaces The Unstable Rift)
+// =================================================================
 
+// Wave multiplier table
+const GNT_WAVES = [
+    { wave:1,  mult:1.5,  label:'1.50x',  color:'#44cc88' },
+    { wave:2,  mult:2.5,  label:'2.50x',  color:'#44cc88' },
+    { wave:3,  mult:4.0,  label:'4.00x',  color:'#c8a800' },
+    { wave:4,  mult:6.0,  label:'6.00x',  color:'#c8a800' },
+    { wave:5,  mult:9.0,  label:'9.00x',  color:'#ff9944' },
+    { wave:6,  mult:13.0, label:'13.00x', color:'#ff9944' },
+    { wave:7,  mult:18.0, label:'18.00x', color:'#ff6644' },
+    { wave:8,  mult:25.0, label:'25.00x', color:'#ff4444' },
+    { wave:9,  mult:35.0, label:'35.00x', color:'#ff4444' },
+    { wave:10, mult:50.0, label:'50.00x', color:'#aa44ff' },
+];
+// Waves beyond 10: multiplier = previous * 1.5
+function gntGetWaveData(waveNum) {
+    if (waveNum <= GNT_WAVES.length) return GNT_WAVES[waveNum - 1];
+    let mult = GNT_WAVES[GNT_WAVES.length - 1].mult;
+    for (let i = GNT_WAVES.length; i < waveNum; i++) mult = Math.round(mult * 1.5 * 10) / 10;
+    return { wave: waveNum, mult, label: mult + 'x', color: '#ff00ff' };
+}
 
-            // Time to wait on the first screen (in milliseconds)
-            const welcomeScreenDuration = 2500; // 2.5 seconds
+// Enemy pool per wave tier
+const GNT_ENEMY_TIERS = [
+    // Wave 1-2: basic
+    ['imp','ghoul','demon','ash_golem','cinder_wraith'],
+    // Wave 3-4
+    ['abyssal_stalker','frost_lich','hellhound','balrog','corrupted_cherub'],
+    // Wave 5-6
+    ['shoggoth','river_hydra','fallen_angel','pit_lord','glacial_titan'],
+    // Wave 7-8
+    ['spacetime_ghast','reality_warper','void_spawn','alpha_omega','god_eater'],
+    // Wave 9-10
+    ['the_final_observer','concept_of_death','the_last_question','eon_devourer','time_leech'],
+    // Wave 11+
+    ['manifold_horror','silence_incarnate','blank_slate','entropy_wraith','universe_shard'],
+];
+function gntEnemyTier(waveNum) {
+    const idx = Math.min(Math.floor((waveNum - 1) / 2), GNT_ENEMY_TIERS.length - 1);
+    return GNT_ENEMY_TIERS[idx];
+}
 
-            setTimeout(() => {
-                // Start fading out the first screen
-                screen1.classList.add('hidden');
+// Generate enemy formation for a wave
+function gntGenerateEnemies(waveNum) {
+    const pool    = gntEnemyTier(waveNum);
+    const count   = Math.min(2 + Math.floor(waveNum * 0.8), 8);
+    const scaleMult = 1 + (waveNum - 1) * 0.35; // enemies get 35% stronger per wave
+    const enemies = [];
+    const positions = [];
+    // Fill top 2 rows (y=0,y=1) of the 3x4 grid
+    for (let y = 0; y < 2; y++) for (let x = 0; x < 3; x++) positions.push({x,y});
+    // Shuffle positions
+    for (let i = positions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [positions[i], positions[j]] = [positions[j], positions[i]];
+    }
+    for (let i = 0; i < Math.min(count, positions.length); i++) {
+        const id  = pool[Math.floor(Math.random() * pool.length)];
+        const bm  = battleMinions[id];
+        if (!bm) continue;
+        const hp  = Math.ceil(bm.hp  * scaleMult);
+        const atk = Math.ceil(bm.atk * scaleMult);
+        enemies.push({ ...bm, id: `gnt_enemy_${i}`, x: positions[i].x, y: positions[i].y,
+                       hp, atk, currentHp: hp, isPlayer: false, _sourceId: id });
+    }
+    return enemies;
+}
 
-                // After the fade-out transition ends, hide it completely and show screen 2
-                screen1.addEventListener('transitionend', () => {
-                    screen1.style.display = 'none'; // To prevent it from occupying space
+// ── Gauntlet state ────────────────────────────────────────────────
+let gntState = {
+    phase: 'LOBBY',   // LOBBY | COMBAT | BETWEEN | RESULT
+    wave: 1,
+    betAmount: 0,
+    betCurrency: 'souls',
+    playerUnits: [],
+    enemyUnits: [],
+    pointsSpent: 0,
+    pointBudget: 0,
+    combatInterval: null,
+    selectedTile: null,
+};
 
-                    // Make screen 2 visible by removing the 'hiddden' class.
-                    screen2.classList.remove('hidden');
-                    // Apply staggered fade-in animation to each developer name
-                    devListItems.forEach((item, index) => {
-                        item.style.animation = `fadeInUp 0.8s ease-out ${index * 0.4}s forwards`;
-                    });
+// ── Helpers ───────────────────────────────────────────────────────
+function gntLog(msg, color) {
+    const log = document.getElementById('gnt-log');
+    if (!log) return;
+    const el = document.createElement('div');
+    el.style.color = color || '#888';
+    el.textContent = msg;
+    log.prepend(el);
+    while (log.children.length > 30) log.removeChild(log.lastChild);
+}
+function gntSetBet(v) { const el = document.getElementById('gnt-bet-input'); if (el) el.value = v; }
+function gntSetBetMax() {
+    const cur = document.getElementById('gnt-currency')?.value || 'souls';
+    gntSetBet(Math.floor(gameState[cur] || 0));
+}
+function gntCurrencyLabel(key) {
+    return {souls:'👻 Souls', darkEssence:'🌑 Dark Essence', abyssalShards:'💎 Shards',
+            aether:'✨ Aether', corruptedFragments:'🔮 Fragments'}[key] || key;
+}
+function gntCalcBudget() {
+    const base = 10 + (gameState.ascensions || 0) * 3;
+    const waveBonus = (gntState.wave - 1) * 2;
+    return base + waveBonus;
+}
+function gntUpdateBudgetBar() {
+    const fill = document.getElementById('gnt-budget-fill');
+    const txt  = document.getElementById('gnt-budget-text');
+    const pct  = gntState.pointBudget > 0 ? Math.min(100, (gntState.pointsSpent / gntState.pointBudget) * 100) : 0;
+    if (fill) {
+        fill.style.width = pct + '%';
+        fill.style.background = pct >= 100 ? 'linear-gradient(90deg,#cc3333,#ff4444)'
+                               : pct > 60  ? 'linear-gradient(90deg,#c8a800,#ffaa00)'
+                               :              'linear-gradient(90deg,#44cc88,#c8a800)';
+    }
+    if (txt) txt.textContent = `${gntState.pointsSpent} / ${gntState.pointBudget}`;
+}
+function gntUpdateInfoBar() {
+    const wd  = gntGetWaveData(gntState.wave);
+    const win = Math.floor(gntState.betAmount * wd.mult);
+    document.getElementById('gnt-wave-display').textContent = gntState.wave;
+    document.getElementById('gnt-bet-display').textContent  = `${formatNumber(gntState.betAmount)} ${gntCurrencyLabel(gntState.betCurrency)}`;
+    document.getElementById('gnt-mult-display').textContent = wd.label;
+    document.getElementById('gnt-mult-display').style.color = wd.color;
+    document.getElementById('gnt-win-display').textContent  = formatNumber(win);
+    document.getElementById('gnt-info-bar').style.display   = 'flex';
+}
+function gntSetPhase(phase) {
+    gntState.phase = phase;
+    document.getElementById('gnt-phase-lobby').style.display   = phase === 'LOBBY'   ? 'block' : 'none';
+    document.getElementById('gnt-phase-between').style.display = phase === 'BETWEEN' ? 'block' : 'none';
+    document.getElementById('gnt-phase-result').style.display  = phase === 'RESULT'  ? 'block' : 'none';
+    // Combat lock overlay
+    const lock = document.getElementById('gnt-combat-lock');
+    if (lock) lock.style.display = phase === 'COMBAT' ? 'flex' : 'none';
+}
+function gntRenderWaveTable() {
+    const el = document.getElementById('gnt-wave-table');
+    if (!el) return;
+    el.innerHTML = '';
+    for (let i = 1; i <= 10; i++) {
+        const w   = gntGetWaveData(i);
+        const cur = i === gntState.wave;
+        const done = i < gntState.wave;
+        const row = document.createElement('div');
+        row.style.cssText = `display:flex; justify-content:space-between; align-items:center; padding:2px 4px; border-radius:4px; background:${cur ? '#1a1030' : 'transparent'};`;
+        row.innerHTML = `
+            <span style="color:${done ? '#2a4a2a' : cur ? '#ddd' : '#555'};">Wave ${i}</span>
+            <span style="color:${done ? '#2a4a2a' : w.color}; font-weight:${cur ? 'bold' : 'normal'};">${done ? '✔' : w.label}</span>`;
+        el.appendChild(row);
+    }
+    const more = document.createElement('div');
+    more.style.cssText = 'color:#444; font-style:italic; padding:2px 4px; font-size:0.9em;';
+    more.textContent = '10+ → keeps climbing…';
+    el.appendChild(more);
+}
 
-                }, { once: true }); // This ensures the event listener only runs once
+// ── Grid rendering ────────────────────────────────────────────────
+function gntRenderGrid() {
+    const grid = document.getElementById('gnt-combat-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const isLobby   = gntState.phase === 'LOBBY';
+    const isBetween = gntState.phase === 'BETWEEN';
 
-            }, welcomeScreenDuration);
-			
-			setTimeout(()=>{introScreen.style.opacity = '0%'}, 7000);
-			setTimeout(()=>{introScreen.style.display = 'none'}, 8000);
-			
-        const crashGameScreen = document.getElementById('crashgame-screen');
-        if (!crashGameScreen) return;
-
-        // ── DOM refs ──────────────────────────────────────────────────
-        const riftElement       = document.getElementById('rift');
-        const multiplierText    = document.getElementById('multiplier');
-        const crashMessageText  = document.getElementById('crash-message');
-        const statusBar         = document.getElementById('rift-status-bar');
-        const betCurrencySelect = document.getElementById('bet-currency');
-        const betAmountInput    = document.getElementById('bet-amount');
-        const actionButton      = document.getElementById('action-button');
-        const playerList        = document.getElementById('player-list');
-        const historyBar        = document.getElementById('rift-history');
-        const playerCountEl     = document.getElementById('rift-player-count');
-        const syncBadge         = document.getElementById('rift-sync-badge');
-
-        // ─────────────────────────────────────────────────────────────
-        // THE UNSTABLE RIFT — clean deterministic engine
-        //
-        // DESIGN:
-        //  • Firebase stores only one thing: the current round record
-        //    { id, gameStart, crash }  (written once per round)
-        //  • Every client derives the exact crash timestamp:
-        //    crashMs = gameStart + ln(crash) / 0.1 * 1000
-        //  • All phase transitions use setTimeout — no polling for crash
-        //  • The display interval only updates the number on screen
-        //  • New rounds are started by whichever client's timer fires first;
-        //    a transaction guarantees only one round is ever created
-        //  • History is keyed by roundId — impossible to duplicate
-        // ─────────────────────────────────────────────────────────────
-        const WAIT_MS  = 15000; // ms of betting window
-
-        // ── state ────────────────────────────────────────────────────
-        let riftPhase         = 'IDLE';   // IDLE | WAITING | RUNNING | CRASHED
-        let currentMultiplier = 1.00;
-        let crashPoint        = 1.10;
-        let roundId           = '';
-        let gameStartMs       = 0;
-        let playerBet         = null;
-        let myDBId            = null;
-        let livePlayers       = {};
-        let lastRoundPlayers  = {};
-        let crashHistory      = [];       // [{v, rid, t}]
-
-        // timers — all tracked so they can be cancelled cleanly
-        let displayInterval   = null;   // ~100ms tick for the multiplier number
-        let waitCountdown     = null;   // 1s tick for "starts in Xs" counter
-        let crashTimer        = null;   // fires at the EXACT crash moment
-        let nextRoundTimer    = null;   // fires 5s after crash to start next round
-
-        let riftDB            = null;
-        let usingFirebase     = false;
-
-        // ── helpers ──────────────────────────────────────────────────
-        function seededRandom(seed) {
-            let t = seed + 0x6D2B79F5;
-            t = Math.imul(t ^ t >>> 15, t | 1);
-            t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-            return ((t ^ t >>> 14) >>> 0) / 4294967296;
-        }
-        function crashPointFromSeed(seed) {
-            const r    = seededRandom(seed);
-            const base = Math.max(1.10, 1 / (1 - r * 0.99));
-            if (base > 10) return Math.round(base * Math.pow(base / 10, 2.5) * 10) / 10;
-            return Math.round(base * 10) / 10;
-        }
-        // Exact ms from gameStart until crash
-        function msToCrash(gStart, cp) {
-            return Math.max(0, gStart + Math.log(cp) / 0.1 * 1000 - Date.now());
-        }
-
-        function clearAllTimers() {
-            clearInterval(displayInterval); displayInterval = null;
-            clearInterval(waitCountdown);   waitCountdown   = null;
-            clearTimeout(crashTimer);       crashTimer      = null;
-            clearTimeout(nextRoundTimer);   nextRoundTimer  = null;
-        }
-
-        // ── write a new round to Firebase (transaction = only one wins) ──
-        function writeNewRound(db, prevRoundId) {
-            const now   = Date.now();
-            const id    = now.toString(36) + Math.random().toString(36).slice(2, 5);
-            const seed  = now % 2147483647;
-            const crash = crashPointFromSeed(seed);
-            db.ref('rift_round').transaction(cur => {
-                // Create only if nothing exists, or the previous round is still current
-                // (id match ensures we don't clobber a round another client just created)
-                if (!cur || cur.id === prevRoundId) {
-                    return { id, gameStart: now + WAIT_MS, crash };
-                }
-                // abort — someone else already wrote a new round
-            });
-        }
-
-        // ── applyRound: called whenever Firebase delivers round data ──
-        // This is the ONLY entry point from Firebase.
-        function applyRound(data) {
-            if (!data) {
-                // No round exists — try to create one
-                writeNewRound(riftDB, null);
-                return;
+    for (let y = 0; y < 4; y++) {
+        for (let x = 0; x < 3; x++) {
+            const tile = document.createElement('div');
+            tile.style.cssText = `
+                height:70px; border-radius:6px; position:relative; overflow:hidden;
+                background:${y < 2 ? '#0a0310' : '#030a06'};
+                border:1px solid ${y < 2 ? '#2a0a2a' : '#0a2a0a'};
+                cursor:${(isLobby || isBetween) && y >= 2 ? 'pointer' : 'default'};
+                transition:background 0.15s;
+            `;
+            if ((isLobby || isBetween) && y >= 2) {
+                tile.onmouseover = () => tile.style.background = '#0a1a0a';
+                tile.onmouseout  = () => tile.style.background = '#030a06';
+                tile.onclick     = () => gntHandleTileClick(x, y);
             }
 
-            // Ignore if this is a round we're already running correctly
-            if (data.id === roundId && riftPhase === 'RUNNING') return;
-            if (data.id === roundId && riftPhase === 'WAITING')  return;
-
-            clearAllTimers();
-            roundId    = data.id;
-            gameStartMs = data.gameStart;
-            crashPoint  = data.crash;
-
-            const now     = Date.now();
-            const crashAt = data.gameStart + Math.log(data.crash) / 0.1 * 1000;
-
-            if (now >= crashAt) {
-                // Round already over — show result and schedule next round
-                doShowCrashed(data.crash);
-                doScheduleNext(data.id);
-            } else if (now >= data.gameStart) {
-                // Round is mid-flight — join it
-                doStartRunning(data.gameStart, data.crash);
-            } else {
-                // Round is in the betting window
-                doStartWaiting(data.gameStart - now, data.gameStart, data.crash);
+            // Enemy unit on tile
+            const enemy = gntState.enemyUnits.find(u => u.x === x && u.y === y && u.currentHp > 0);
+            if (enemy) {
+                const bm = battleMinions[enemy._sourceId] || enemy;
+                const hpPct = Math.max(0, (enemy.currentHp / enemy.hp) * 100);
+                const token = document.createElement('div');
+                token.id = enemy.id;
+                token.style.cssText = 'position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;';
+                token.innerHTML = `
+                    <div style="font-size:1.5em; line-height:1;">${bm.icon || '👾'}</div>
+                    <div style="width:80%; height:4px; background:#1a0808; border-radius:2px; overflow:hidden;">
+                        <div style="height:100%; width:${hpPct}%; background:#cc3333; border-radius:2px; transition:width 0.3s;"></div>
+                    </div>`;
+                tile.appendChild(token);
             }
-        }
 
-        // ── doStartWaiting ────────────────────────────────────────────
-        function doStartWaiting(msLeft, gStart, cp) {
-            riftPhase = 'WAITING';
-            playerBet = null; myDBId = null; livePlayers = {};
-            currentMultiplier = 1.00;
-
-            riftElement.className        = 'state-safe';
-            multiplierText.textContent   = '1.00x';
-            multiplierText.style.display = 'block';
-            multiplierText.style.color   = '#fff';
-            crashMessageText.style.display = 'none';
-            actionButton.textContent  = 'Place Bet';
-            actionButton.disabled     = false;
-            actionButton.className    = '';
-            betAmountInput.disabled   = false;
-            betCurrencySelect.disabled = false;
-            updatePlayerList();
-
-            // Countdown display
-            let secs = Math.ceil(msLeft / 1000);
-            const tickStatus = () => {
-                statusBar.textContent = secs > 0
-                    ? `⏳ Betting open — round starts in ${secs}s`
-                    : `🌀 Rift is opening...`;
-                statusBar.style.borderLeftColor = secs > 0 ? '#44cc88' : '#aa44ff';
-                statusBar.style.color           = secs > 0 ? '#44cc88' : '#aa88cc';
-            };
-            tickStatus();
-            waitCountdown = setInterval(() => { secs--; tickStatus(); if (secs < -2) clearInterval(waitCountdown); }, 1000);
-            syncBadge.textContent = `ROUND ${roundId.slice(-4).toUpperCase()}`;
-
-            // Transition to RUNNING at the exact gameStart time
-            const msUntilRun = gStart - Date.now();
-            crashTimer = setTimeout(() => {
-                crashTimer = null;
-                if (riftPhase === 'WAITING') doStartRunning(gStart, cp);
-            }, Math.max(0, msUntilRun));
-        }
-
-        // ── doStartRunning ────────────────────────────────────────────
-        function doStartRunning(gStart, cp) {
-            riftPhase = 'RUNNING';
-            clearInterval(waitCountdown); waitCountdown = null;
-            clearInterval(displayInterval);
-
-            actionButton.disabled    = playerBet === null;
-            actionButton.textContent = 'Cash Out';
-            actionButton.className   = 'cashing-out';
-            betAmountInput.disabled  = true;
-            betCurrencySelect.disabled = true;
-            statusBar.textContent = '🌀 Rift is unstable — cash out now!';
-            statusBar.style.borderLeftColor = '#c8a800';
-            statusBar.style.color = '#c8a800';
-            syncBadge.textContent = `ROUND ${roundId.slice(-4).toUpperCase()}`;
-
-            // Display ticker — only updates the number, never decides the crash
-            displayInterval = setInterval(() => {
-                if (riftPhase !== 'RUNNING') { clearInterval(displayInterval); return; }
-                const el = Math.max(0, (Date.now() - gStart) / 1000);
-                currentMultiplier = Math.pow(Math.E, el * 0.1);
-                multiplierText.textContent    = Math.min(currentMultiplier, cp).toFixed(2) + 'x';
-                multiplierText.style.display  = 'block';
-                crashMessageText.style.display = 'none';
-                riftElement.className   = currentMultiplier > 5  ? 'state-danger'
-                                        : currentMultiplier > 2  ? 'state-tense' : 'state-safe';
-                multiplierText.style.color = currentMultiplier > 5  ? '#ff8888'
-                                           : currentMultiplier > 2  ? '#c8a800'  : '#fff';
-                updatePlayerList();
-            }, 100);
-
-            // Single precise timeout fires at the EXACT crash moment
-            // Every client sets this — first one to call doEnterCrashed wins the Firebase write
-            const msUntilCrash = msToCrash(gStart, cp);
-            crashTimer = setTimeout(() => {
-                crashTimer = null;
-                if (riftPhase !== 'RUNNING') return;
-                clearInterval(displayInterval); displayInterval = null;
-                currentMultiplier = cp;
-                multiplierText.textContent = cp.toFixed(2) + 'x';
-                // Write to Firebase — transaction deduplicates
-                if (riftDB) {
-                    const rid = roundId;
-                    riftDB.ref('rift_history/' + rid).transaction(cur => {
-                        return cur ? undefined : { v: cp, t: Date.now() };
-                    });
-                }
-                doEnterCrashed(cp);
-            }, msUntilCrash);
-        }
-
-        // ── doEnterCrashed: full crash — resolves bets, updates history ──
-        function doEnterCrashed(cp) {
-            riftPhase = 'CRASHED';
-            clearInterval(displayInterval); displayInterval = null;
-            clearInterval(waitCountdown);   waitCountdown   = null;
-            playSound('harvest');
-
-            riftElement.className        = 'state-crashed';
-            multiplierText.style.display = 'none';
-            crashMessageText.textContent = `CRASHED @ ${Number(cp).toFixed(2)}x`;
-            crashMessageText.style.display = 'block';
-            actionButton.disabled  = true;
-            actionButton.className = '';
-            statusBar.textContent  = `💥 Rift collapsed at ${Number(cp).toFixed(2)}x`;
-            statusBar.style.borderLeftColor = '#ff4444';
-            statusBar.style.color = '#ff6666';
-
-            // Local history — deduped by roundId
-            if (roundId && !crashHistory.some(e => e.rid === roundId)) {
-                crashHistory.unshift({ v: Number(cp), rid: roundId, t: Date.now() });
-                if (crashHistory.length > 10) crashHistory.pop();
-                renderHistory();
+            // Player unit on tile
+            const player = gntState.playerUnits.find(u => u.x === x && u.y === y && u.currentHp > 0);
+            if (player) {
+                const hpPct = Math.max(0, (player.currentHp / player.hp) * 100);
+                const token = document.createElement('div');
+                token.id = player.id;
+                token.style.cssText = 'position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;';
+                token.innerHTML = `
+                    <div style="font-size:1.5em; line-height:1;">${player.icon || '⚔'}</div>
+                    <div style="width:80%; height:4px; background:#081a08; border-radius:2px; overflow:hidden;">
+                        <div style="height:100%; width:${hpPct}%; background:#44cc44; border-radius:2px; transition:width 0.3s;"></div>
+                    </div>`;
+                tile.appendChild(token);
             }
-            // Resolve bets
-            const myBet = livePlayers[myDBId];
-            if (myBet && myBet.status === 'playing') {
-                myBet.status = 'lost';
-                Toastify({ text: `The rift collapsed! You lost your bet.`, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(to right,#cc1111,#880000)' } }).showToast();
+
+            // Empty player-side hint in lobby
+            if (!player && !enemy && y >= 2 && (isLobby || isBetween)) {
+                tile.innerHTML += `<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#1a3a1a; font-size:1.4em; pointer-events:none;">+</div>`;
             }
-            Object.values(livePlayers).forEach(p => { if (p.status === 'playing') p.status = 'lost'; });
-            lastRoundPlayers = { ...lastRoundPlayers, ...livePlayers };
-            updatePlayerList();
 
-            doScheduleNext(roundId);
+            grid.appendChild(tile);
         }
+    }
+}
 
-        // ── doShowCrashed: display only — no bets, no history, no next-round ──
-        // Used when joining a round that already ended.
-        function doShowCrashed(cp) {
-            riftPhase = 'CRASHED';
-            riftElement.className        = 'state-crashed';
-            multiplierText.style.display = 'none';
-            crashMessageText.textContent = `CRASHED @ ${Number(cp).toFixed(2)}x`;
-            crashMessageText.style.display = 'block';
-            actionButton.disabled  = true;
-            actionButton.className = '';
-            statusBar.textContent  = `💥 Rift collapsed at ${Number(cp).toFixed(2)}x`;
-            statusBar.style.borderLeftColor = '#ff4444';
-            statusBar.style.color = '#ff6666';
+// ── Tile click → open minion picker ──────────────────────────────
+function gntHandleTileClick(x, y) {
+    if (y < 2) return; // enemy side
+    const existing = gntState.playerUnits.find(u => u.x === x && u.y === y);
+    if (existing) {
+        // Remove unit
+        gntState.pointsSpent -= existing.cost;
+        gntState.playerUnits = gntState.playerUnits.filter(u => u.id !== existing.id);
+        gntUpdateBudgetBar();
+        gntRenderGrid();
+        return;
+    }
+    gntState.selectedTile = { x, y };
+    gntOpenMinionPicker();
+}
+
+function gntOpenMinionPicker() {
+    const modal  = document.getElementById('minion-select-modal-overlay');
+    const grid   = document.getElementById('minion-button-grid');
+    const ptDisp = document.getElementById('minion-select-points-display');
+    const budFill = document.getElementById('summon-budget-fill');
+    if (!modal || !grid) return;
+
+    const remaining = gntState.pointBudget - gntState.pointsSpent;
+    const pct = Math.max(0, (remaining / gntState.pointBudget) * 100);
+    if (ptDisp) ptDisp.textContent = `${remaining} / ${gntState.pointBudget}`;
+    if (budFill) {
+        budFill.style.width = pct + '%';
+        budFill.style.background = pct < 25 ? 'linear-gradient(90deg,#cc3333,#ff4444)'
+                                 : pct < 60 ? 'linear-gradient(90deg,#c8a800,#ffaa00)'
+                                 :             'linear-gradient(90deg,#44cc88,#c8a800)';
+    }
+
+    grid.innerHTML = '';
+    for (const id in battleMinions) {
+        if (!(gameState.minions[id] && gameState.minions[id].level > 0)) continue;
+        const bm      = battleMinions[id];
+        const gm      = gameState.minions[id];
+        const lvl     = gm?.level || 0;
+        const promo   = gm?.promotionTier || 0;
+        const lvlB    = 1 + (Math.floor(lvl / 25) * 0.05);
+        const promoB  = 1 + (promo * 0.20);
+        const tot     = lvlB * promoB;
+        const sHp     = Math.ceil(bm.hp  * tot);
+        const sAtk    = Math.ceil(bm.atk * tot);
+        const canBuy  = gntState.pointsSpent + bm.cost <= gntState.pointBudget;
+        const tc      = bm.cost <= 3 ? '#44cc88' : bm.cost <= 8 ? '#c8a800' : bm.cost <= 14 ? '#ff9944' : '#aa44ff';
+
+        const card = document.createElement('div');
+        card.style.cssText = `background:linear-gradient(135deg,${canBuy?'#0d0a18':'#080611'},transparent); border:1px solid ${canBuy?tc+'44':'#1a1030'}; border-top:2px solid ${canBuy?tc:'#2a1a3a'}; border-radius:10px; padding:12px; text-align:center; cursor:${canBuy?'pointer':'default'}; opacity:${canBuy?'1':'0.4'}; transition:all 0.15s;`;
+        card.innerHTML = `
+            <div style="font-size:2em; margin-bottom:4px; filter:drop-shadow(0 0 4px ${tc}66);">${bm.icon}</div>
+            <div style="color:${canBuy?'#ddd':'#555'}; font-size:0.78em; font-weight:bold; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${bm.name}</div>
+            ${tot > 1.001 ? `<div style="color:#44cc88; font-size:0.6em; margin-bottom:4px;">Lv${lvl} +${Math.round((tot-1)*100)}%</div>` : ''}
+            <div style="display:flex; justify-content:center; gap:3px; margin-bottom:6px; flex-wrap:wrap;">
+                <span style="background:#44cc8818; border:1px solid #44cc8833; border-radius:4px; padding:1px 4px; font-size:0.6em; color:#44cc88;">❤ ${sHp}</span>
+                <span style="background:#ff444418; border:1px solid #ff444433; border-radius:4px; padding:1px 4px; font-size:0.6em; color:#ff9944;">⚔ ${sAtk}</span>
+                <span style="background:#4488ff18; border:1px solid #4488ff33; border-radius:4px; padding:1px 4px; font-size:0.6em; color:#88aaff;">↔ ${bm.range}</span>
+            </div>
+            <div style="background:${tc}22; border:1px solid ${tc}44; border-radius:6px; padding:3px 0; color:${tc}; font-size:0.75em; font-weight:bold;">⚡ ${bm.cost} pts</div>`;
+        if (canBuy) {
+            card.onmouseover = () => { card.style.background = `linear-gradient(135deg,${tc}18,#0d0a18)`; };
+            card.onmouseout  = () => { card.style.background = `linear-gradient(135deg,#0d0a18,transparent)`; };
+            card.onclick     = () => gntPlaceMinion(id);
         }
+        grid.appendChild(card);
+    }
+    modal.style.display = 'flex';
+}
 
-        // ── doScheduleNext ────────────────────────────────────────────
-        function doScheduleNext(prevId) {
-            if (nextRoundTimer) clearTimeout(nextRoundTimer);
-            nextRoundTimer = setTimeout(() => {
-                nextRoundTimer = null;
-                if (usingFirebase && riftDB) writeNewRound(riftDB, prevId);
-                else startLocalRound();
-            }, 5000);
+function gntPlaceMinion(id) {
+    if (!gntState.selectedTile) return;
+    const bm    = battleMinions[id];
+    const gm    = gameState.minions[id];
+    const lvl   = gm?.level || 0;
+    const promo = gm?.promotionTier || 0;
+    const lvlB  = 1 + (Math.floor(lvl / 25) * 0.05);
+    const promoB = 1 + (promo * 0.20);
+    const tot   = lvlB * promoB;
+    const sHp   = Math.ceil(bm.hp  * tot);
+    const sAtk  = Math.ceil(bm.atk * tot);
+
+    gntState.playerUnits.push({
+        ...bm, id: `gnt_player_${Date.now()}`, x: gntState.selectedTile.x, y: gntState.selectedTile.y,
+        hp: sHp, atk: sAtk, currentHp: sHp, isPlayer: true, _scaledLabel: lvl > 0 ? `Lv${lvl}` : null,
+    });
+    gntState.pointsSpent += bm.cost;
+    gntState.selectedTile = null;
+    document.getElementById('minion-select-modal-overlay').style.display = 'none';
+    gntUpdateBudgetBar();
+    gntRenderGrid();
+    playSound('upgrade');
+}
+
+// ── Begin wave ────────────────────────────────────────────────────
+function gntBeginWave() {
+    const betInput = parseInt(document.getElementById('gnt-bet-input')?.value || '0', 10);
+    const currency = document.getElementById('gnt-currency')?.value || 'souls';
+
+    // Validate on wave 1 only (subsequent waves keep the original bet)
+    if (gntState.wave === 1) {
+        if (isNaN(betInput) || betInput <= 0) {
+            Toastify({text:'Enter a valid bet amount.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
+            return;
         }
-
-        // ── renderHistory ─────────────────────────────────────────────
-        function renderHistory() {
-            if (!historyBar) return;
-            historyBar.innerHTML = crashHistory.map(e => {
-                const v = typeof e === 'object' ? e.v : e;
-                const c = v < 1.5 ? '#ff4444' : v < 2 ? '#ff8844' : v < 5 ? '#c8a800' : '#44cc88';
-                return `<div class="rift-history-chip" style="color:${c};border-color:${c}44;background:${c}11;">${Number(v).toFixed(2)}x</div>`;
-            }).join('');
+        if (gameState[currency] < betInput) {
+            Toastify({text:'Not enough resources for that bet.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
+            return;
         }
-
-        // ── tryAttachFirebase ─────────────────────────────────────────
-        function tryAttachFirebase(attempts) {
-            const db = window._scFirebase?.chatDb;
-            if (db) {
-                riftDB        = db;
-                usingFirebase = true;
-                clearAllTimers();
-
-                // Single listener — delivers every round change
-                db.ref('rift_round').on('value', snap => applyRound(snap.val()));
-
-                // History listener — merges Firebase entries with local
-                db.ref('rift_history').orderByChild('t').limitToLast(10).on('value', snap => {
-                    const fromDB = [];
-                    snap.forEach(child => {
-                        const d = child.val();
-                        if (d && typeof d.v === 'number') fromDB.push({ v: d.v, t: d.t || 0, rid: child.key });
-                    });
-                    const dbRids  = new Set(fromDB.map(e => e.rid));
-                    const pending = crashHistory.filter(e => e.rid && !dbRids.has(e.rid));
-                    const merged  = [...pending, ...fromDB];
-                    merged.sort((a, b) => (b.t || 0) - (a.t || 0));
-                    crashHistory = merged.slice(0, 10);
-                    renderHistory();
-                });
-
-            } else if (attempts > 0) {
-                setTimeout(() => tryAttachFirebase(attempts - 1), 800);
-            }
+        if (gntState.playerUnits.length === 0) {
+            Toastify({text:'Deploy at least one minion before beginning.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
+            return;
         }
-
-        // ── startLocalRound: offline / pre-Firebase fallback ─────────
-        function startLocalRound() {
-            if (usingFirebase) return;
-            const now  = Date.now();
-            const seed = now % 2147483647;
-            roundId    = now.toString(36);
-            gameStartMs = now + WAIT_MS;
-            crashPoint  = crashPointFromSeed(seed);
-            doStartWaiting(WAIT_MS, gameStartMs, crashPoint);
+        // Lock in the bet
+        gntState.betAmount   = betInput;
+        gntState.betCurrency = currency;
+        gameState[currency] -= betInput;
+        // Disable bet controls — bet is locked for this run
+        const bInput2 = document.getElementById('gnt-bet-input');
+        const cSel2   = document.getElementById('gnt-currency');
+        if (bInput2) bInput2.disabled = true;
+        if (cSel2)   cSel2.disabled   = true;
+        updateDynamicDisplays();
+        saveGame();
+    } else {
+        // Subsequent waves: must have deployed minions (re-deployed between waves)
+        if (gntState.playerUnits.length === 0) {
+            Toastify({text:'Deploy at least one minion before the next wave.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
+            return;
         }
+    }
 
-        // ── updatePlayerList ─────────────────────────────────────────
-        function updatePlayerList() {
-            const all = Object.values({ ...lastRoundPlayers, ...livePlayers });
-            if (playerCountEl) {
-                playerCountEl.textContent = `${all.filter(p => p.status === 'playing').length} active`;
-            }
-            if (!playerList) return;
-            if (all.length === 0) {
-                playerList.innerHTML = '<li style="color:#333;justify-content:center;">No players yet</li>';
-                return;
-            }
-            all.sort((a, b) => {
-                if (a.id === myDBId) return -1;
-                if (b.id === myDBId) return 1;
-                return 0;
-            });
-            playerList.innerHTML = '';
-            all.forEach(p => {
-                const li = document.createElement('li');
-                if (p.id === myDBId) li.className = 'is-you';
-                const name = p.id === myDBId ? '⭐ You' : (p.player_name || 'Soul');
-                const curr = (p.bet_currency || '').replace(/([A-Z])/g,' $1').toLowerCase();
-                let statusHtml;
-                if (p.status === 'cashed_out') {
-                    const winnings = Math.floor(p.bet_amount * (p.cash_out_multiplier || 1));
-                    statusHtml = `<span class="player-cashed-out">+${formatNumber(winnings)} @ ${Number(p.cash_out_multiplier||1).toFixed(2)}x</span>`;
-                } else if (p.status === 'lost') {
-                    statusHtml = `<span class="player-lost">${formatNumber(p.bet_amount)} ${curr}</span>`;
-                } else {
-                    const live = riftPhase === 'RUNNING' ? Math.floor(p.bet_amount * currentMultiplier) : p.bet_amount;
-                    statusHtml = `<span class="player-playing">▶ ${formatNumber(live)} ${curr}</span>`;
-                }
-                li.innerHTML = `<span style="color:#888;">${name}</span>${statusHtml}`;
-                playerList.appendChild(li);
-            });
-        }
-
-        // ── Betting functions ─────────────────────────────────────────
-        async function placePlayerBet() {
-            const amount   = parseInt(betAmountInput.value, 10);
-            const currency = betCurrencySelect.value;
-            if (isNaN(amount) || amount <= 0) {
-                Toastify({text:'Enter a valid amount',duration:2000,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
-                return;
-            }
-            if (gameState[currency] < amount) {
-                Toastify({text:'Not enough resources',duration:2000,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
-                return;
-            }
-            gameState[currency] -= amount;
-            updateDynamicDisplays();
-            playerBet = { amount, currency };
-            actionButton.disabled = true;
-            actionButton.textContent = 'Bet Placed ✔';
-            playSound('upgrade');
-
-            if (supabaseClient) {
-                const { data, error } = await supabaseClient
-                    .from('rift_live_players')
-                    .insert({ player_name: gameState.playerName, bet_amount: amount, bet_currency: currency, status: 'playing' })
-                    .select().single();
-                if (!error && data) {
-                    myDBId = data.id;
-                    livePlayers[myDBId] = data;
-                    updatePlayerList();
-                }
-            }
-        }
-
-        async function cashPlayerOut() {
-            if (!myDBId || !playerBet) return;
-            const myBet = livePlayers[myDBId];
-            if (!myBet || myBet.status !== 'playing') return;
-
-            myBet.status = 'cashed_out';
-            myBet.cash_out_multiplier = currentMultiplier;
-
-            const winnings = Math.floor(playerBet.amount * currentMultiplier);
-            gameState[playerBet.currency] += winnings;
+    // Confirm before locking in (wave 1 only — subsequent waves already confirmed)
+    if (gntState.wave === 1) {
+        const wd = gntGetWaveData(1);
+        const confirmMsg = `You are betting ${formatNumber(gntState.betAmount)} ${gntCurrencyLabel(gntState.betCurrency)}.\n\nOnce a wave begins you CANNOT flee — your minions must fight to the end.\n\nCash-out multiplier if you survive Wave 1: ${wd.label}\n\nProceed?`;
+        if (!confirm(confirmMsg)) {
+            // Refund the bet
+            gameState[gntState.betCurrency] += gntState.betAmount;
+            gntState.betAmount = 0;
             updateDynamicDisplays();
             saveGame();
+            return;
+        }
+    }
 
-            Toastify({ text: `💰 Cashed out at ${currentMultiplier.toFixed(2)}x — +${formatNumber(winnings)}!`, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(to right,#006611,#00aa33)' } }).showToast();
-            playSound('upgrade');
-            actionButton.disabled = true;
-            actionButton.textContent = 'Cashed Out ✔';
+    // Generate enemies
+    gntState.enemyUnits = gntGenerateEnemies(gntState.wave);
+    gntSetPhase('COMBAT');
+    gntUpdateInfoBar();
+    gntLog(`⚔ Wave ${gntState.wave} begins!`, '#ff8866');
+    gntRenderGrid();
 
-            if (supabaseClient) {
-                await supabaseClient.from('rift_live_players')
-                    .update({ status: 'cashed_out', cash_out_multiplier: currentMultiplier })
-                    .eq('id', myDBId);
+    // Status bar
+    document.getElementById('gnt-status-bar').textContent = `⚔ Wave ${gntState.wave} — Combat locked until wave resolves.`;
+    document.getElementById('gnt-status-bar').style.borderLeftColor = '#ff4444';
+    document.getElementById('gnt-status-bar').style.color = '#ff6666';
+
+    // Start combat interval
+    gntState.combatInterval = setInterval(gntRunTurn, 1000);
+}
+
+// ── Combat turn (same logic as Proving Grounds) ───────────────────
+function gntRunTurn() {
+    const turnOrder = [...gntState.playerUnits, ...gntState.enemyUnits];
+    for (const unit of turnOrder) {
+        if (unit.currentHp <= 0) continue;
+        const targets = (unit.isPlayer ? gntState.enemyUnits : gntState.playerUnits).filter(t => t.currentHp > 0);
+        if (!targets.length) continue;
+
+        let closest = null, minDist = Infinity;
+        for (const t of targets) {
+            const d = Math.abs(unit.x - t.x) + Math.abs(unit.y - t.y);
+            if (d < minDist) { minDist = d; closest = t; }
+        }
+        if (minDist <= unit.range) {
+            closest.currentHp -= unit.atk;
+            // Visual hit flash
+            const targetEl = document.getElementById(closest.id);
+            if (targetEl) { targetEl.classList.remove('gnt-token-hit'); void targetEl.offsetWidth; targetEl.classList.add('gnt-token-hit'); }
+            if (closest.currentHp <= 0) {
+                gntLog(`💀 ${closest.name} slain!`, closest.isPlayer ? '#cc3333' : '#44cc88');
             }
-            updatePlayerList();
+        } else {
+            // Move toward closest
+            const dx = closest.x - unit.x, dy = closest.y - unit.y;
+            let nx = unit.x, ny = unit.y;
+            if (Math.abs(dx) > Math.abs(dy)) nx += Math.sign(dx);
+            else ny += Math.sign(dy);
+            const occupied = [...gntState.playerUnits, ...gntState.enemyUnits].some(u => u.x === nx && u.y === ny && u.id !== unit.id);
+            if (!occupied) { unit.x = nx; unit.y = ny; }
         }
+    }
 
-        // ── listenForPlayerUpdates ────────────────────────────────────
-        function listenForPlayerUpdates() {
-            if (!supabaseClient) return;
-            // Clean up stale player rows older than 2 minutes periodically
-            setInterval(async () => {
-                const cutoff = new Date(Date.now() - 120000).toISOString();
-                await supabaseClient.from('rift_live_players').delete().lt('created_at', cutoff).catch(() => {});
-            }, 60000);
+    // Clean dead
+    setTimeout(() => {
+        gntState.playerUnits = gntState.playerUnits.filter(u => u.currentHp > 0);
+        gntState.enemyUnits  = gntState.enemyUnits.filter(u => u.currentHp > 0);
+        gntRenderGrid();
+
+        if (gntState.enemyUnits.length === 0) {
+            clearInterval(gntState.combatInterval);
+            gntState.combatInterval = null;
+            setTimeout(gntWaveWon, 600);
+        } else if (gntState.playerUnits.length === 0) {
+            clearInterval(gntState.combatInterval);
+            gntState.combatInterval = null;
+            setTimeout(gntWaveLost, 600);
         }
+    }, 400);
+}
 
-        // ── Action button wires betting / cash-out ────────────────────
-        actionButton.addEventListener('click', () => {
-            if (riftPhase === 'WAITING') placePlayerBet();
-            else if (riftPhase === 'RUNNING') cashPlayerOut();
-        });
+// ── Wave outcomes ─────────────────────────────────────────────────
+function gntWaveWon() {
+    const wd  = gntGetWaveData(gntState.wave);
+    const win = Math.floor(gntState.betAmount * wd.mult);
+    const next = gntGetWaveData(gntState.wave + 1);
+    gntLog(`✦ Wave ${gntState.wave} cleared at ${wd.label}!`, '#44cc88');
+    playSound('ascend');
 
-        // Bootstrap — start local immediately, hand off to Firebase when ready
-        startLocalRound();
-        tryAttachFirebase(25);
-        listenForPlayerUpdates();
-    });
+    document.getElementById('gnt-status-bar').textContent = `✦ Wave ${gntState.wave} cleared! Cash out or push deeper.`;
+    document.getElementById('gnt-status-bar').style.borderLeftColor = '#44cc88';
+    document.getElementById('gnt-status-bar').style.color = '#44cc88';
+
+    document.getElementById('gnt-between-text').innerHTML =
+        `Current multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>
+         If you cash out now: <strong style="color:#44cc88;">${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}</strong><br><br>
+         Next wave multiplier: <strong style="color:${next.color};">${next.label}</strong> — but if you lose, you lose everything.`;
+
+    document.getElementById('gnt-next-btn').textContent = `⚔ Wave ${gntState.wave + 1} (${next.label})`;
+
+    // Reset player units for re-deployment between waves
+    // (budget scales slightly with wave depth)
+    gntState.playerUnits = [];
+    gntState.pointsSpent = 0;
+    gntState.pointBudget = gntCalcBudget();
+    gntUpdateBudgetBar();
+
+    // Bet inputs stay locked — same bet for the whole run
+    const bInputW = document.getElementById('gnt-bet-input');
+    const cSelW   = document.getElementById('gnt-currency');
+    if (bInputW) bInputW.disabled = true;
+    if (cSelW)   cSelW.disabled   = true;
+
+    gntSetPhase('BETWEEN');
+    gntRenderGrid();
+    gntRenderWaveTable();
+}
+
+function gntWaveLost() {
+    gntLog(`💀 Wave ${gntState.wave} — your forces were annihilated.`, '#cc3333');
+    playSound('harvest');
+
+    const box = document.getElementById('gnt-result-box');
+    box.style.borderTopColor = '#cc3333';
+    box.style.borderColor    = '#cc333333';
+    box.innerHTML = `
+        <div style="font-size:2em; margin-bottom:8px;">💀</div>
+        <div style="color:#ff4444; font-family:var(--font-title); font-size:1em; letter-spacing:2px; margin-bottom:8px;">DEFEATED</div>
+        <div style="color:#888; font-size:0.82em; line-height:1.6;">
+            Fell on Wave ${gntState.wave}.<br>
+            You lost <strong style="color:#cc3333;">${formatNumber(gntState.betAmount)} ${gntCurrencyLabel(gntState.betCurrency)}</strong>.
+        </div>`;
+
+    document.getElementById('gnt-status-bar').textContent = `💀 Defeated on Wave ${gntState.wave}. Your bet is lost.`;
+    document.getElementById('gnt-status-bar').style.borderLeftColor = '#cc3333';
+    document.getElementById('gnt-status-bar').style.color = '#ff6666';
+
+    gntSetPhase('RESULT');
+    gntRenderGrid();
+}
+
+function gntCashOut() {
+    const wd  = gntGetWaveData(gntState.wave);
+    const win = Math.floor(gntState.betAmount * wd.mult);
+    gameState[gntState.betCurrency] += win;
+    updateDynamicDisplays();
+    saveGame();
+    playSound('upgrade');
+    gntLog(`💰 Cashed out at ${wd.label} — +${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}!`, '#c8a800');
+
+    const box = document.getElementById('gnt-result-box');
+    box.style.borderTopColor = '#44cc88';
+    box.style.borderColor    = '#44cc8833';
+    box.innerHTML = `
+        <div style="font-size:2em; margin-bottom:8px;">💰</div>
+        <div style="color:#44cc88; font-family:var(--font-title); font-size:1em; letter-spacing:2px; margin-bottom:8px;">CASHED OUT</div>
+        <div style="color:#aaa; font-size:0.82em; line-height:1.6;">
+            Survived ${gntState.wave} wave${gntState.wave > 1 ? 's' : ''}.<br>
+            Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>
+            Winnings: <strong style="color:#44cc88;">+${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}</strong>
+        </div>`;
+
+    document.getElementById('gnt-status-bar').textContent = `💰 Cashed out at ${wd.label} — ${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)} collected!`;
+    document.getElementById('gnt-status-bar').style.borderLeftColor = '#44cc88';
+    document.getElementById('gnt-status-bar').style.color = '#44cc88';
+
+    gntSetPhase('RESULT');
+}
+
+function gntNextWave() {
+    gntState.wave++;
+    gntState.pointBudget = gntCalcBudget();
+    gntUpdateInfoBar();
+    gntSetPhase('LOBBY');
+    // Re-use LOBBY phase but change the begin button label
+    document.getElementById('gnt-begin-btn').textContent = `⚔ Begin Wave ${gntState.wave}`;
+    document.getElementById('gnt-status-bar').textContent = `⚔ Wave ${gntState.wave} — Deploy your minions.`;
+    document.getElementById('gnt-status-bar').style.borderLeftColor = '#ff6644';
+    document.getElementById('gnt-status-bar').style.color = '#ff8866';
+    gntRenderGrid();
+    gntRenderWaveTable();
+    gntUpdateBudgetBar();
+}
+
+function gntReset() {
+    if (gntState.combatInterval) { clearInterval(gntState.combatInterval); gntState.combatInterval = null; }
+    gntState = {
+        phase: 'LOBBY', wave: 1, betAmount: 0, betCurrency: 'souls',
+        playerUnits: [], enemyUnits: [], pointsSpent: 0, pointBudget: 0,
+        combatInterval: null, selectedTile: null,
+    };
+    gntState.pointBudget = gntCalcBudget();
+    document.getElementById('gnt-begin-btn').textContent = '⚔ Begin Wave 1';
+    // Re-enable bet inputs
+    const bInput = document.getElementById('gnt-bet-input');
+    const cSel   = document.getElementById('gnt-currency');
+    if (bInput) bInput.disabled = false;
+    if (cSel)   cSel.disabled   = false;
+    document.getElementById('gnt-info-bar').style.display = 'none';
+    document.getElementById('gnt-status-bar').textContent = '⚔ Deploy your minions and place your bet to begin.';
+    document.getElementById('gnt-status-bar').style.borderLeftColor = '#ff6644';
+    document.getElementById('gnt-status-bar').style.color = '#ff8866';
+    const logEl = document.getElementById('gnt-log');
+    if (logEl) logEl.innerHTML = '<div style="color:#444; font-style:italic;">Awaiting deployment...</div>';
+    gntSetPhase('LOBBY');
+    gntUpdateBudgetBar();
+    gntRenderGrid();
+    gntRenderWaveTable();
+}
+
+// ── Init when screen opens ────────────────────────────────────────
+function gntInit() {
+    gntState.pointBudget = gntCalcBudget(); // always recalc — ascension may have changed
+    gntSetPhase(gntState.phase);
+    gntUpdateBudgetBar();
+    gntRenderGrid();
+    gntRenderWaveTable();
+    if (gntState.betAmount > 0) gntUpdateInfoBar();
+}
 </script>
 <!-- ================================================================= -->
 <!--                            PERFECTED                              -->

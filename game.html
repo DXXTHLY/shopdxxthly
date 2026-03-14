@@ -3872,7 +3872,9 @@ window.onload = function() {
 		gameState.abyssalShards  = Math.max(0, isFinite(gameState.abyssalShards)  ? gameState.abyssalShards  : 0);
 		gameState.aether         = Math.max(0, isFinite(gameState.aether)         ? gameState.aether         : 0);
 		gameState.corruptedFragments = Math.max(0, isFinite(gameState.corruptedFragments) ? gameState.corruptedFragments : 0);
-		gameState.lifetimeSouls  = Math.max(0, isFinite(gameState.lifetimeSouls)  ? gameState.lifetimeSouls  : Number.MAX_VALUE);
+		// lifetimeSouls must always be >= souls + soulsSpent (self-healing)
+		const trueMinLifetime = (gameState.souls || 0) + (gameState.soulsSpent || 0);
+		gameState.lifetimeSouls = Math.max(trueMinLifetime, isFinite(gameState.lifetimeSouls) ? gameState.lifetimeSouls : trueMinLifetime);
 		// Cap SPS/SPC to prevent negative display
 		if (gameState.stats.sps < 0 || !isFinite(gameState.stats.sps)) { gameState.stats.sps = 0; calculateStats(); }
 		if (gameState.stats.spc < 0 || !isFinite(gameState.stats.spc)) { gameState.stats.spc = 1; calculateStats(); }
@@ -6331,6 +6333,7 @@ function executeCollapse() {
     const oldAscensions = gameState.ascensions;
     const oldTotalCollapses = gameState.totalCollapses;
     const oldTotalAetherEarned = gameState.totalAetherEarned;
+    const oldCompletedPuzzles  = gameState.completedPuzzles || [];
 
     // Get a completely fresh start
     gameState = getDefaultGameState();
@@ -6353,6 +6356,7 @@ function executeCollapse() {
     gameState.ritualsPerformed  = oldRitualsPerformed;
     gameState.totalShardsEarned = oldTotalShardsEarned;
     gameState.totalCollapses    = oldTotalCollapses + 1;
+    gameState.completedPuzzles  = oldCompletedPuzzles;
     
     // Post-collapse actions
     playSound('ascend'); // We can reuse the ascend sound
@@ -8110,7 +8114,6 @@ async function loadGameFromCloud(uid, db) {
 }
 
 function repairNegativeValues() {
-    // One-time fix — clamp all currencies to 0 if negative (caused by Charon's Oar bug)
     let repaired = false;
     const currencies = ['souls','darkEssence','abyssalShards','aether','corruptedFragments','bankedSouls'];
     currencies.forEach(key => {
@@ -8120,6 +8123,15 @@ function repairNegativeValues() {
             repaired = true;
         }
     });
+    // lifetimeSouls should always be >= current souls
+    if (gameState.lifetimeSouls < gameState.souls) {
+        gameState.lifetimeSouls = gameState.souls;
+        repaired = true;
+    }
+    if (gameState.lifetimeSouls < 0 || !isFinite(gameState.lifetimeSouls)) {
+        gameState.lifetimeSouls = Math.max(0, gameState.souls);
+        repaired = true;
+    }
     if (gameState.stats) {
         if (gameState.stats.sps < 0 || !isFinite(gameState.stats.sps)) { gameState.stats.sps = 0; repaired = true; }
         if (gameState.stats.spc < 0 || !isFinite(gameState.stats.spc)) { gameState.stats.spc = 1; repaired = true; }
@@ -8127,7 +8139,7 @@ function repairNegativeValues() {
     if (repaired) {
         calculateStats();
         saveGame();
-        Toastify({ text: '🔧 Save repaired — negative values corrected.', duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a0a,#44cc88)' } }).showToast();
+        Toastify({ text: '🔧 Save repaired — values corrected.', duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a0a,#44cc88)' } }).showToast();
     }
 }
 
@@ -9172,12 +9184,13 @@ function renderStatsPage() {
         ]),
 
         statCard('Soul & Currencies', '#ff6644', '👻', [
-            ['Lifetime Souls',      formatNumber(gs.lifetimeSouls)],
-            ['Souls Spent',         formatNumber(gs.soulsSpent)],
-            ['Souls / Second',      formatNumber(gs.stats?.sps || 0)],
-            ['Souls / Click',       formatNumber(gs.stats?.spc || 1)],
-            ['Manual Harvests',     formatNumber(gs.manualHarvests || 0)],
-            ['Essence (This Run)',  formatNumber(gs.essenceGainedThisRun || 0)],
+            ['Total Souls Ever Earned', formatNumber(Math.max(gs.lifetimeSouls, (gs.souls||0) + (gs.soulsSpent||0)))],
+            ['Currently Held',          formatNumber(gs.souls || 0)],
+            ['Souls Spent (All Time)',  formatNumber(gs.soulsSpent || 0)],
+            ['Souls / Second',          formatNumber(gs.stats?.sps || 0)],
+            ['Souls / Click',           formatNumber(gs.stats?.spc || 1)],
+            ['Manual Harvests',         formatNumber(gs.manualHarvests || 0)],
+            ['Essence This Run',        formatNumber(gs.essenceGainedThisRun || 0)],
         ]),
 
         statCard('Prestige', '#aa44ff', '♾️', [

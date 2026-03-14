@@ -4683,6 +4683,39 @@ const battleMinions = {
     alpha_omega:      { name: "Alpha & Omega",      hp: 210, atk: 17, range: 1, cost: 16, icon: '♾️' },
     god_eater: { name: "God Eater", hp: 125, atk: 26, range: 1, cost: 18, icon: '👑' },
     the_final_observer: { name: "The Final Observer", hp: 65, atk: 22, range: 6, cost: 20, icon: '👁️' },
+
+    // TIER 5: Singularity-era (Singularity / Event Horizon / Genesis worlds)
+    icefiend:       { name: "Icefiend",       hp: 55,  atk: 14, range: 2, cost: 8,  icon: '🥶' },
+    echo_of_nothing:{ name: "Echo of Nothing",hp: 40,  atk: 20, range: 3, cost: 15, icon: '⚫' },
+    causal_predator:{ name: "Causal Predator",hp: 70,  atk: 25, range: 2, cost: 17, icon: '⛓️' },
+    nebulous_entity:{ name: "Nebulous Entity",hp: 90,  atk: 19, range: 2, cost: 16, icon: '💫' },
+    creator_wisp:   { name: "Creator Wisp",   hp: 50,  atk: 28, range: 4, cost: 18, icon: '💡' },
+
+    // TIER 6: Pantheon / Chronos / Omega era
+    deific_remnant: { name: "Deific Remnant", hp: 160, atk: 22, range: 1, cost: 19, icon: '🏛️' },
+    time_leech:     { name: "Time Leech",     hp: 80,  atk: 18, range: 3, cost: 18, icon: '🕰️' },
+    eon_devourer:   { name: "Eon Devourer",   hp: 200, atk: 20, range: 1, cost: 21, icon: '🌀' },
+
+    // TIER 7: True Infinity / Akashic / Plane of Ideas era
+    concept_of_death:  { name: "Concept of Death",  hp: 110, atk: 30, range: 2, cost: 22, icon: '⚖️' },
+    the_last_question: { name: "The Last Question",  hp: 75,  atk: 35, range: 5, cost: 24, icon: '❓' },
+    lorekeeper:        { name: "Lorekeeper",         hp: 130, atk: 24, range: 3, cost: 22, icon: '📚' },
+    thought_form:      { name: "Thought-Form",       hp: 90,  atk: 32, range: 4, cost: 23, icon: '🧠' },
+    conceptual_golem:  { name: "Conceptual Golem",   hp: 250, atk: 20, range: 1, cost: 24, icon: '💡' },
+    eidos_demon:       { name: "Eidos Demon",        hp: 100, atk: 38, range: 2, cost: 25, icon: '🔷' },
+
+    // TIER 8: The White Room / Nexus era
+    blank_slate:       { name: "Blank Slate",        hp: 180, atk: 28, range: 1, cost: 25, icon: '⬜' },
+    silence_incarnate: { name: "Silence Incarnate",  hp: 85,  atk: 40, range: 6, cost: 28, icon: '🤫' },
+    manifold_horror:   { name: "Manifold Horror",    hp: 300, atk: 25, range: 1, cost: 30, icon: '💠' },
+
+    // TIER 9: Beyond Final worlds (Dreaming Dark / Shattered / Primordial)
+    nightmare_weaver:   { name: "Nightmare Weaver",   hp: 120, atk: 45, range: 3, cost: 32, icon: '🕷️' },
+    dreaming_leviathan: { name: "Dreaming Leviathan", hp: 400, atk: 30, range: 1, cost: 35, icon: '🌊' },
+    universe_shard:     { name: "Universe Shard",     hp: 150, atk: 50, range: 4, cost: 36, icon: '🔮' },
+    entropy_wraith:     { name: "Entropy Wraith",     hp: 200, atk: 42, range: 2, cost: 35, icon: '🌀' },
+    wound_tendril:      { name: "Wound Tendril",      hp: 500, atk: 35, range: 1, cost: 38, icon: '🩸' },
+    the_unwritten:      { name: "The Unwritten",      hp: 250, atk: 55, range: 5, cost: 40, icon: '📜' },
 };
 
 
@@ -13732,10 +13765,18 @@ async function arenaInitialize() {
         const { data, error } = await supabaseClient.from('arena_defenses').select('defense_data').eq('player_name', gameState.playerName).single();
         console.log(data, error);
         if (error && error.code !== 'PGRST116') throw error;
+
+        // Scale budget: 50 base + 10 per ascension + 5 per world beyond void_threshold
+        const baseBudget = 50;
+        const ascBonus = (gameState.ascensions || 0) * 10;
+        const worldOrder = ['void_threshold','nexus_of_all_realities','the_dreaming_dark','shattered_omniverse','the_primordial_wound'];
+        const worldBonus = worldOrder.filter(w => gameState.unlockedWorlds.includes(w)).length * 5;
+        const pointBudget = baseBudget + ascBonus + worldBonus;
+
         arenaState = {
             mode: 'defense_setup', playerUnits: data ? data.defense_data : [], enemyUnits: [],
             pointsSpent: data ? data.defense_data.reduce((sum, unit) => sum + unit.cost, 0) : 0,
-            pointBudget: 50, opponent: null, isCombatActive: false,
+            pointBudget, opponent: null, isCombatActive: false,
         };
     } catch (e) {
         console.error("Error loading defense:", e);

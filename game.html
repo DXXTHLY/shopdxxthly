@@ -5442,11 +5442,11 @@ const potions = {
         effect: { type: 'rare_item_luck_flat', value: 2, duration: 600 }
     },
     draught_of_the_raider: {
-        name: "Draught of the Raider",
-        desc: "Resets your PvP Raid cooldown instantly.",
+        name: "Draught of the Warlord",
+        desc: "For 5 minutes, your PvP click damage is doubled and you take 50% less damage.",
         cost: 1e28,
-        cooldown: 43200, // 12 hour cooldown
-        effect: { type: 'reset_raid_cooldown_flat' }
+        cooldown: 3600,
+        effect: { type: 'pvp_power_boost_flat', value: 2.0, duration: 300 }
     }
 };
 
@@ -5755,21 +5755,30 @@ async function saveGame() {
 
     // Supabase leaderboard save (public data only — unchanged)
     if (!supabaseClient) return;
+
+    // Sanitize helper — clamp to safe float range, never send Infinity/NaN/negative
+    const safe = (v, fallback = 0) => {
+        const n = Number(v);
+        if (!isFinite(n) || isNaN(n) || n < 0) return fallback;
+        if (n > 1.7e308) return fallback; // float8 max
+        return n;
+    };
+
     const publicData = {
         name: gameState.playerName,
         user_id: gameState.playerName,
-        lifetimeSouls: gameState.lifetimeSouls,
-        soulsLog: Math.log10(Math.max(1, gameState.lifetimeSouls)),
-        ascensions: gameState.ascensions,
-        aether: gameState.aether,
-        totalAetherEarned: gameState.totalAetherEarned,
-        pvpWins: gameState.pvpWins,
-        pvpLosses: gameState.pvpLosses,
-        dark_essence: gameState.darkEssence,
-        corrupted_fragments: gameState.corruptedFragments,
-        abyssalShards: gameState.abyssalShards,
-        bin_id: gameState.playerName,
-        totalCollapses: gameState.totalCollapses
+        lifetimeSouls:     safe(Math.max(gameState.lifetimeSouls, gameState.souls + (gameState.soulsSpent||0))),
+        soulsLog:          safe(Math.log10(Math.max(1, gameState.lifetimeSouls)), 0),
+        ascensions:        safe(gameState.ascensions),
+        aether:            safe(gameState.aether),
+        totalAetherEarned: safe(gameState.totalAetherEarned),
+        pvpWins:           safe(gameState.pvpWins),
+        pvpLosses:         safe(gameState.pvpLosses),
+        dark_essence:      safe(gameState.darkEssence),
+        corrupted_fragments: safe(gameState.corruptedFragments),
+        abyssalShards:     safe(gameState.abyssalShards),
+        bin_id:            gameState.playerName,
+        totalCollapses:    safe(gameState.totalCollapses)
     };
     try {
         const { error } = await supabaseClient.from('players').upsert(publicData, { onConflict: 'name' });
@@ -6649,7 +6658,24 @@ function calculateStats() {
     }
 
     // =================================================================
-    // 5. APPLY GLOBAL MULTIPLIERS (Worlds, Prestige, Aether)
+    // 4b. APPLY ACTIVE POTION DURATION EFFECTS
+    // =================================================================
+    const now_potions = Date.now();
+    for (const potionId in gameState.activePotions) {
+        if (now_potions < gameState.activePotions[potionId]) {
+            const effect = potions[potionId]?.effect;
+            if (!effect) continue;
+            if (effect.type === 'sps_multiplier_flat')             sps_multiplier *= effect.value;
+            if (effect.type === 'spc_multiplier_flat')             spc_multiplier *= effect.value;
+            if (effect.type === 'global_multiplier_flat')          global_multiplier *= effect.value;
+            if (effect.type === 'temp_minion_cost_reducer')        tempMinionCostFactor *= effect.value;
+            if (effect.type === 'temp_minion_cost_reducer_flat')   tempMinionCostFactor *= effect.value;
+            if (effect.type === 'resonance_bonus_enhancer_flat')   prestigeBonusEnhancer *= (1 + effect.value);
+            if (effect.type === 'prestige_bonus_squared_flat')     { const pb = 1 + ((gameState.abyssalShards||0) * 0.1 * prestigeBonusEnhancer); global_multiplier *= pb; }
+            if (effect.type === 'gain_exponent_flat')              global_multiplier = Math.pow(global_multiplier, effect.value || 1.05);
+            if (effect.type === 'add_sps_to_spc_flat')            { /* handled post-SPS calc */ }
+        }
+    }
     // =================================================================
     sps_multiplier *= gameState.permanentRitualBonuses.sps_multiplier;
     spc_multiplier *= gameState.permanentRitualBonuses.spc_multiplier;
@@ -8604,6 +8630,14 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
 
         let players = data || [];
 
+        // Filter out players with NULL/invalid lifetimeSouls and abnormal values
+        players = players.filter(p => {
+            if (p.lifetimeSouls === null || p.lifetimeSouls === undefined) return false;
+            if (!isFinite(p.lifetimeSouls)) return false;
+            if (p.soulsLog === null || p.soulsLog === undefined) return false;
+            return true;
+        });
+
         // Always sync local player's live stats from gameState (Supabase may have stale/missing pvpWins)
         const localPlayerIdx = players.findIndex(p => p.name === gameState.playerName);
         const localPlayerData = {
@@ -9256,7 +9290,7 @@ function generateHourlyShopItems() {
         shopItems.push(selectedItem);
     }
 
-        grid.innerHTML = '';
+        grid.innerHTML = ''; // Always clear first
 
         // Type icons & colours
         const typeTheme = {

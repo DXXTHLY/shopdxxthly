@@ -1916,14 +1916,27 @@
 
         #minion-button-grid .minion-name {
             font-family: var(--font-title);
-            font-size: 1.2rem;
+            font-size: 0.85rem;
             color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            display: block;
+            padding: 0 4px;
         }
 
         #minion-button-grid .minion-cost {
             font-size: 1rem;
             color: var(--accent-color);
             font-weight: bold;
+        }
+
+        /* Ensure picker buttons never overflow their grid cell */
+        #minion-button-grid .upgrade-btn {
+            width: 100%;
+            min-width: 0;
+            overflow: hidden;
         }
 
 		/* Intro Screens */
@@ -4648,6 +4661,43 @@ const minions = {
             { level: 100, desc: "Your harvest transcends numbers. All soul gains are multiplied by your total Collapse count + 1.", bonus: { type: 'global_multiplier_by_collapses_plus_one', value: 1 } }
         ]
     },
+
+    // ── SECRET MINIONS (Shop / Abyssal Cache exclusive) ───────────
+    // These never appear in the normal purchase grid.
+    // They show as "???" in the Bestiary until first obtained.
+    wraith_of_avarice: {
+        name: "Wraith of Avarice", baseSps: 5e14, cost: 0, multiplier: 0, secret: true,
+        lore: "Born from the greed of a thousand dead merchant-kings, it hoards the spiritual currency of the afterlife. No one knows where it comes from — it simply appears, wanting.",
+        icon: '💰',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "Wraith of Avarice grants +10% Dark Essence gain.", bonus: { type: 'essence_multiplier', value: 1.10 } },
+            { level: 15, desc: "Wraith of Avarice grants +15% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.15 } },
+            { level: 30, desc: "The Wraith's power doubles all Abyssal Cache rewards.", bonus: { type: 'cache_reward_doubler', value: 2 } }
+        ]
+    },
+    hollow_sovereign: {
+        name: "Hollow Sovereign", baseSps: 8e15, cost: 0, multiplier: 0, secret: true,
+        lore: "A king without a kingdom, a name without a history. It rules over nothing and everything simultaneously, collecting the tribute of unmade realms.",
+        icon: '👻',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "Hollow Sovereign grants +8% global SPS and SPC.", bonus: { type: 'global_all_multiplier', value: 1.08 } },
+            { level: 15, desc: "Hollow Sovereign grants an extra +1 to your Soul Click base.", bonus: { type: 'spc_add_flat', value: 250 } },
+            { level: 30, desc: "The Sovereign's dominion reduces all ritual cooldowns by 20%.", bonus: { type: 'ritual_cooldown_reducer', value: 0.80 } }
+        ]
+    },
+    the_pale_accord: {
+        name: "The Pale Accord", baseSps: 3e16, cost: 0, multiplier: 0, secret: true,
+        lore: "An ancient treaty given sentience — a binding agreement between death and the void. It collects the interest on every soul ever bargained away. You didn't summon it. It found you.",
+        icon: '📋',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "The Pale Accord grants +12% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.12 } },
+            { level: 15, desc: "The Pale Accord increases Abyssal Shard gains by 10%.", bonus: { type: 'ascension_shard_bonus', value: 1.10 } },
+            { level: 30, desc: "The Accord's terms: double the SPS of all secret minions you own.", bonus: { type: 'secret_minion_sps_doubler', value: 2 } }
+        ]
+    },
 };
 
 // =================================================================
@@ -4722,6 +4772,11 @@ const battleMinions = {
     entropy_wraith:     { name: "Entropy Wraith",     hp: 200, atk: 42, range: 2, cost: 35, icon: '🌀' },
     wound_tendril:      { name: "Wound Tendril",      hp: 500, atk: 35, range: 1, cost: 38, icon: '🩸' },
     the_unwritten:      { name: "The Unwritten",      hp: 250, atk: 55, range: 5, cost: 40, icon: '📜' },
+
+    // SECRET MINIONS — unlockable via Hourly Shop or Abyssal Cache only
+    wraith_of_avarice:  { name: "Wraith of Avarice",  hp: 60,  atk: 30, range: 4, cost: 16, icon: '💰', secret: true },
+    hollow_sovereign:   { name: "Hollow Sovereign",   hp: 180, atk: 22, range: 1, cost: 20, icon: '👻', secret: true },
+    the_pale_accord:    { name: "The Pale Accord",    hp: 95,  atk: 38, range: 3, cost: 24, icon: '📋', secret: true },
 };
 
 
@@ -7255,6 +7310,9 @@ function renderMinions() {
         const p = gameState.minions[id];
         const isPurchased = p.level > 0;
         const worldUnlocked = gameState.unlockedWorlds.includes(m.requiredWorld);
+
+        // Secret minions are never shown in the purchase grid
+        if (m.secret) continue;
         
         // Show if: purchased (always) OR in current world OR world not unlocked yet (don't show locked worlds at all)
         if (!worldUnlocked) continue;
@@ -7416,14 +7474,16 @@ function renderBestiary() {
         the_primordial_wound:   { label:'The Primordial Wound',   color:'#cc2222', icon:'🩸' },
     };
 
-    // Group minions by world
+    // Group minions by world — exclude secret minions from normal world buckets
     const byWorld = {};
     for (const id in minions) {
+        if (minions[id].secret) continue;
         const w = minions[id].requiredWorld || 'nether_plains';
         if (!byWorld[w]) byWorld[w] = [];
         byWorld[w].push(id);
     }
 
+    const secretIds = Object.keys(minions).filter(id => minions[id].secret);
     const allIds = Object.keys(minions);
     const unlocked = allIds.filter(id => gameState.minions[id]?.level > 0).length;
     const total = allIds.length;
@@ -7575,6 +7635,110 @@ function renderBestiary() {
         });
 
         grid.appendChild(cardGrid);
+    }
+
+    // ── SECRET MINIONS SECTION ────────────────────────────────────
+    if (secretIds.length > 0) {
+        const secretUnlocked = secretIds.filter(id => gameState.minions[id]?.level > 0).length;
+        const secretHeader = document.createElement('div');
+        secretHeader.style.cssText = `display:flex; align-items:center; gap:10px; margin:24px 0 12px; padding:10px 16px; background:linear-gradient(135deg,#1a003322,transparent); border:1px solid #33003322; border-left:4px solid #aa44ff; border-radius:10px;`;
+        secretHeader.innerHTML = `
+            <span style="font-size:1.4em;">🔮</span>
+            <div style="flex:1;">
+                <div style="color:#aa44ff; font-weight:bold; font-size:0.9em; letter-spacing:1px;">Secret Minions</div>
+                <div style="color:#444; font-size:0.7em;">${secretUnlocked} / ${secretIds.length} discovered · Found only in the Hourly Shop or Abyssal Cache</div>
+            </div>
+            <div style="background:#aa44ff15; border:1px solid #aa44ff33; border-radius:20px; padding:2px 10px; font-size:0.7em; color:#aa44ff;">${secretUnlocked === secretIds.length && secretIds.length > 0 ? '✦ All found' : secretUnlocked > 0 ? `${Math.round(secretUnlocked/secretIds.length*100)}%` : '???'}</div>`;
+        grid.appendChild(secretHeader);
+
+        const secretGrid = document.createElement('div');
+        secretGrid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; margin-bottom:8px;';
+
+        secretIds.forEach(id => {
+            const m = minions[id];
+            const pm = gameState.minions[id];
+            const isUnlocked = pm && pm.level > 0;
+            const card = document.createElement('div');
+
+            if (!isUnlocked) {
+                card.style.cssText = `background:#07050f; border:1px solid #2a0a3a22; border-top:3px solid #3a0a5a; border-radius:12px; padding:16px; opacity:0.55; display:flex; align-items:center; gap:12px;`;
+                card.innerHTML = `
+                    <div style="font-size:2.2em; filter:grayscale(1) brightness(0.3);">❓</div>
+                    <div>
+                        <div style="color:#3a1a5a; font-weight:bold; font-size:0.88em; letter-spacing:1px;">??? ??? ???</div>
+                        <div style="color:#2a1a3a; font-size:0.72em; margin-top:4px; font-style:italic;">Whispers speak of creatures found only in the depths of the Hourly Shop or the Abyssal Cache…</div>
+                    </div>`;
+            } else {
+                const tc = '#aa44ff';
+                const currentTier = Math.floor(pm.level / 5);
+                const maxTier = m.researchTiers?.length || 3;
+                const nextTierLevel = currentTier * 5 + 5;
+                const progressPct = Math.min(100, (pm.level % 5) / 5 * 100);
+                const tierDots = m.researchTiers?.map((t, i) => {
+                    const done = i < currentTier;
+                    return `<div title="${t.desc}" style="width:10px; height:10px; border-radius:50%; background:${done ? tc : '#1a1030'}; border:1px solid ${done ? tc : '#2a1a3a'};"></div>`;
+                }).join('') || '';
+                const researchRows = m.researchTiers?.map((t, i) => {
+                    const done = i < currentTier;
+                    return `<div style="display:flex; align-items:flex-start; gap:8px; padding:5px 0; border-bottom:1px solid #0d0a18; opacity:${done ? 1 : 0.4};">
+                        <span style="color:${done ? tc : '#333'}; font-size:0.8em; flex-shrink:0;">◈ Lv${t.level}</span>
+                        <span style="color:${done ? '#aaa' : '#444'}; font-size:0.75em; line-height:1.3;">${t.desc}</span>
+                        ${done ? `<span style="color:${tc}; font-size:0.7em; flex-shrink:0; margin-left:auto;">✔</span>` : ''}
+                    </div>`;
+                }).join('') || '';
+
+                const bm = battleMinions[id];
+                const battleBlock = bm ? (() => {
+                    const lvlBonus  = 1 + (Math.floor(pm.level / 5) * 0.05);
+                    const total     = lvlBonus;
+                    const scaledHp  = Math.ceil(bm.hp  * total);
+                    const scaledAtk = Math.ceil(bm.atk * total);
+                    return `<div style="background:#08060e; border:1px solid ${tc}22; border-radius:8px; padding:8px 10px; margin-bottom:8px;">
+                        <div style="color:#444; font-size:0.65em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔ PvP / Proving Grounds</div>
+                        <div style="display:flex; gap:16px; align-items:center;">
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#cc4444; font-size:1em; font-weight:bold;">${scaledHp}</span><span style="color:#555; font-size:0.62em;">HP</span></div>
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#ff9944; font-size:1em; font-weight:bold;">${scaledAtk}</span><span style="color:#555; font-size:0.62em;">ATK</span></div>
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#44aaff; font-size:1em; font-weight:bold;">${bm.range}</span><span style="color:#555; font-size:0.62em;">RANGE</span></div>
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#aaa; font-size:1em; font-weight:bold;">${bm.cost}</span><span style="color:#555; font-size:0.62em;">COST</span></div>
+                        </div>
+                    </div>`;
+                })() : '';
+
+                card.style.cssText = `background:linear-gradient(135deg,#0e0a1a,#1a0a2a); border:1px solid ${tc}22; border-top:3px solid ${tc}; border-radius:12px; padding:16px; position:relative;`;
+                card.innerHTML = `
+                    <div style="position:absolute; top:8px; right:10px; background:#aa44ff22; border:1px solid #aa44ff44; border-radius:10px; padding:1px 8px; font-size:0.62em; color:#aa44ff; letter-spacing:1px;">SECRET</div>
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                        <div style="font-size:2em; filter:drop-shadow(0 0 8px ${tc}88);">${m.icon}</div>
+                        <div style="flex:1;">
+                            <div style="color:#ddd; font-weight:bold; font-size:0.88em;">${m.name}</div>
+                            <div style="color:#555; font-size:0.7em;">Lv ${pm.level} · Obtained ${pm.level} time${pm.level !== 1 ? 's' : ''}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="color:${tc}; font-size:0.7em; text-transform:uppercase; letter-spacing:1px;">Tier</div>
+                            <div style="color:${tc}; font-weight:bold; font-size:1.1em;">${currentTier}/${maxTier}</div>
+                        </div>
+                    </div>
+                    <p style="color:#4a3060; font-size:0.72em; font-style:italic; line-height:1.4; margin:0 0 10px;">${m.lore}</p>
+                    ${currentTier < maxTier ? `
+                    <div style="margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                            <span style="color:#555; font-size:0.68em;">Progress to Lv ${nextTierLevel}</span>
+                            <span style="color:${tc}; font-size:0.68em;">${pm.level % 5}/5</span>
+                        </div>
+                        <div style="background:#0a0812; border-radius:4px; height:5px; overflow:hidden;">
+                            <div style="height:100%; width:${progressPct}%; background:linear-gradient(90deg,${tc}88,${tc}); border-radius:4px;"></div>
+                        </div>
+                    </div>` : `<div style="color:${tc}; font-size:0.72em; text-align:center; margin-bottom:10px;">✦ All research unlocked ✦</div>`}
+                    <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+                        <span style="color:#444; font-size:0.68em; text-transform:uppercase; letter-spacing:1px;">Research</span>
+                        <div style="display:flex; gap:4px;">${tierDots}</div>
+                    </div>
+                    ${battleBlock}
+                    <div style="border-top:1px solid #1a1030; padding-top:8px;">${researchRows}</div>`;
+            }
+            secretGrid.appendChild(card);
+        });
+        grid.appendChild(secretGrid);
     }
 }
 
@@ -8036,6 +8200,33 @@ function updateCacheTimer() { const now = Date.now(); const btn = document.getEl
 function openAbyssalCache() {
     if (Date.now() < gameState.nextCacheTime) return;
     gameState.cachesOpened++;
+
+    // ── SECRET MINION DROP (2% chance) ──────────────────────────
+    const secretRoll = Math.random();
+    if (secretRoll < 0.02) {
+        const secretIds = Object.keys(minions).filter(id => minions[id].secret);
+        const chosenId  = secretIds[Math.floor(Math.random() * secretIds.length)];
+        const sm = minions[chosenId];
+        if (!gameState.minions[chosenId]) gameState.minions[chosenId] = { level: 0, cost: 0, promotionTier: 0 };
+        gameState.minions[chosenId].level++;
+
+        const modal = document.getElementById('item-modal-overlay');
+        const rewardDiv = document.getElementById('item-modal-reward');
+        rewardDiv.innerHTML = `
+            <div class="item-name legendary" style="color:#aa44ff;">${sm.icon} ${sm.name}</div>
+            <div class="item-rarity" style="color:#aa44ff; margin:4px 0 8px; font-size:0.85em; text-transform:uppercase; letter-spacing:2px;">✦ Secret Minion ✦</div>
+            <div class="item-desc" style="color:#888;">${sm.lore}</div>
+            <div style="margin-top:10px; font-size:0.82em; color:#555; font-style:italic;">Usable in PvP &amp; Proving Grounds. Check your Bestiary.</div>
+        `;
+        modal.style.display = 'flex';
+        gameState.nextCacheTime = Date.now() + 4 * 3600000;
+        playSound('ascend');
+        updateCacheTimer();
+        calculateStats();
+        renderAll();
+        saveGame();
+        return;
+    }
 
     let randomItemId;
     const allItemKeys = Object.keys(items);
@@ -9130,7 +9321,29 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
                     else if (asc >= 3)  li.style.cssText = 'border-left-color:#c0c0c0;';
                 }
             } else {
-                valueHTML = `<span>${formatNumber(player.pvpWins || 0)} Wins</span>`;
+                // pvpWins tab — show full W/L ratio, KD and win% bar (same as arena leaderboard)
+                const wins   = player.pvpWins   || 0;
+                const losses = player.pvpLosses || 0;
+                const total  = wins + losses;
+                const ratio  = losses === 0 ? (wins > 0 ? '∞' : '—') : (wins / losses).toFixed(2);
+                const ratioColor = losses === 0
+                    ? (wins > 0 ? '#44cc88' : '#555')
+                    : (wins / (wins + losses)) >= 0.6 ? '#44cc88'
+                    : (wins / (wins + losses)) >= 0.4 ? '#ff9944'
+                    : '#ff4444';
+                const winPct = total > 0 ? Math.round((wins / total) * 100) : 0;
+                valueHTML = `
+                    <div style="text-align:right; min-width:130px;">
+                        <div style="display:flex; align-items:center; gap:5px; justify-content:flex-end;">
+                            <span style="color:#44cc88; font-size:0.82em; font-weight:bold;">${wins}W</span>
+                            <span style="color:#444; font-size:0.7em;">·</span>
+                            <span style="color:#cc4444; font-size:0.82em; font-weight:bold;">${losses}L</span>
+                            <span style="color:#444; font-size:0.7em;">·</span>
+                            <span style="color:${ratioColor}; font-size:0.82em; font-weight:bold;">${ratio} KD</span>
+                            ${total > 0 ? `<span style="color:#555; font-size:0.7em;">(${winPct}%)</span>` : ''}
+                        </div>
+                        ${total > 0 ? `<div style="width:100px; height:4px; background:#1a1030; border-radius:2px; overflow:hidden; margin-top:4px; margin-left:auto;"><div style="height:100%; width:${winPct}%; background:linear-gradient(90deg,#44cc88,#88ffaa); border-radius:2px;"></div></div>` : ''}
+                    </div>`;
             }
 
             // Rank medal for top 3
@@ -9709,6 +9922,16 @@ function generateHourlyShopItems() {
         shopItems.push(selectedItem);
     }
 
+    // ── RARE SECRET MINION SLOT (3% chance per shop refresh) ─────
+    // Uses the seed so all players see the same offering (or absence) each hour.
+    const secretChanceSeed = ((seed * 7 + 13) % 100) / 100; // deterministic 0–1 from seed
+    if (secretChanceSeed < 0.03) {
+        const secretIds = Object.keys(minions).filter(id => minions[id].secret);
+        const chosenId  = secretIds[(seed * 3 + 7) % secretIds.length];
+        // Replace slot 1 (middle slot) with the secret minion
+        shopItems[1] = { id: chosenId, type: 'secret_minion' };
+    }
+
         grid.innerHTML = ''; // Always clear first
 
         // Type icons & colours
@@ -9725,6 +9948,36 @@ function generateHourlyShopItems() {
             if (type === 'item') itemData = items[id];
             if (type === 'artifact') itemData = artifacts[id];
             if (type === 'potion') itemData = potions[id];
+            if (type === 'secret_minion') {
+                const sm = minions[id];
+                const owned = gameState.minions[id]?.level || 0;
+                const smPrice = 35; // fixed cost in Dark Essence
+                const canAffordSM = gameState.darkEssence >= smPrice;
+                grid.innerHTML += `
+                <div onclick="${canAffordSM ? `buyHourlyShopItem('${id}','secret_minion',${smPrice})` : ''}"
+                     style="background:linear-gradient(135deg,#0e0a1a,#1a0a2a); border:1px solid #aa44ff${canAffordSM ? '66' : '22'}; border-top:3px solid #aa44ff${canAffordSM ? '' : '44'}; border-radius:12px; padding:18px; cursor:${canAffordSM ? 'pointer' : 'default'}; opacity:${canAffordSM ? '1' : '0.6'}; transition:all 0.2s; position:relative; overflow:hidden;"
+                     onmouseover="if(${canAffordSM}) this.style.background='linear-gradient(135deg,#aa44ff15,#1a0a2a)'"
+                     onmouseout="this.style.background='linear-gradient(135deg,#0e0a1a,#1a0a2a)'">
+                    <div style="position:absolute; top:8px; right:10px; background:#aa44ff22; border:1px solid #aa44ff44; border-radius:10px; padding:1px 8px; font-size:0.6em; color:#aa44ff; letter-spacing:1px;">SECRET</div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                        <span style="font-size:1.8em; line-height:1;">${sm.icon}</span>
+                        <span style="background:#aa44ff22; border:1px solid #aa44ff44; border-radius:8px; padding:2px 8px; font-size:0.68em; color:#aa44ff; text-transform:uppercase; letter-spacing:1px;">Minion</span>
+                    </div>
+                    <div style="color:#cc88ff; font-weight:bold; font-size:1em; margin-bottom:4px;">${sm.name}</div>
+                    ${owned > 0 ? `<div style="color:#44cc88; font-size:0.72em; margin-bottom:4px;">✓ Owned (×${owned})</div>` : ''}
+                    <div style="color:#888; font-size:0.8em; line-height:1.4; margin-bottom:14px; font-style:italic;">A rare entity of unknown origin. Usable in PvP &amp; Proving Grounds.</div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #ffffff0a; padding-top:10px;">
+                        <div>
+                            <div style="color:#666; font-size:0.7em;">COST</div>
+                            <div style="color:${canAffordSM ? '#9944cc' : '#664466'}; font-weight:bold;">${smPrice} <span style="font-size:0.75em;">Dark Essence</span></div>
+                        </div>
+                        <div style="background:${canAffordSM ? '#aa44ff33' : '#33333333'}; border:1px solid ${canAffordSM ? '#aa44ff66' : '#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${canAffordSM ? '#cc88ff' : '#555'};">
+                            ${canAffordSM ? '🔮 Acquire' : '🔒 Need More'}
+                        </div>
+                    </div>
+                </div>`;
+                return;
+            }
 
             if (type === 'artifact' && gameState.ownedArtifacts[id]) {
                 const replacementIndex = (seed + 40 + index) % availableItems.length;
@@ -9781,11 +10034,23 @@ function buyHourlyShopItem(itemId, itemType, price) {
     if (itemType === 'item') itemName = items[itemId].name;
     if (itemType === 'artifact') itemName = artifacts[itemId].name;
     if (itemType === 'potion') itemName = potions[itemId].name;
+    if (itemType === 'secret_minion') itemName = minions[itemId].name;
 
     if (confirm(`Are you sure you want to buy ${itemName} for ${formatNumber(price)} Dark Essence?`)) {
         gameState.darkEssence -= price;
 
-        if (itemType === 'item') {
+        if (itemType === 'secret_minion') {
+            const sm = minions[itemId];
+            if (!gameState.minions[itemId]) gameState.minions[itemId] = { level: 0, cost: 0, promotionTier: 0 };
+            gameState.minions[itemId].level++;
+            const lvl = gameState.minions[itemId].level;
+            Toastify({ text: `🔮 ${sm.icon} ${sm.name} obtained! (×${lvl}) — Check your Bestiary.`, duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0050,#aa44ff)' } }).showToast();
+            calculateStats();
+            renderAll();
+            saveGame();
+            generateHourlyShopItems(); // refresh so the slot changes
+            return;
+        } else if (itemType === 'item') {
             gameState.inventory.push(itemId);
             alert("Purchase successful! The item has been added to your inventory.");
         } else if (itemType === 'artifact') {

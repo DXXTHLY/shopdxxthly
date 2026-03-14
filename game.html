@@ -3852,7 +3852,6 @@ text-decoration: underline; /* Adds an underline on hover */
 
 </div>
 
-<script src="dev_overrides.js"></script>
 <script>
 // NEW, CORRECTED CODE
 
@@ -8217,18 +8216,41 @@ function openAbyssalCache() {
         ];
         const chosenId  = secretPool[Math.floor(Math.random() * secretPool.length)];
         const sm = minions[chosenId];
-        if (!gameState.minions[chosenId]) gameState.minions[chosenId] = { level: 0, cost: 0, promotionTier: 0 };
-        gameState.minions[chosenId].level++;
+        // Only grant if not already owned
+        if ((gameState.minions[chosenId]?.level || 0) > 0) {
+            // Already owns this secret minion — re-roll to a different one or give a normal cache reward
+            const fallback = secretPool.filter(s => (gameState.minions[s]?.level || 0) === 0);
+            if (fallback.length > 0) {
+                const altId = fallback[Math.floor(Math.random() * fallback.length)];
+                if (!gameState.minions[altId]) gameState.minions[altId] = { level: 0, cost: 0, promotionTier: 0 };
+                gameState.minions[altId].level = 1;
+                const altSm = minions[altId];
+                const modal = document.getElementById('item-modal-overlay');
+                const rewardDiv = document.getElementById('item-modal-reward');
+                rewardDiv.innerHTML = `<div class="item-name legendary" style="color:#aa44ff;">${altSm.icon} ${altSm.name}</div><div class="item-rarity" style="color:#aa44ff; margin:4px 0 8px; font-size:0.85em; text-transform:uppercase; letter-spacing:2px;">✦ Secret Minion ✦</div><div class="item-desc" style="color:#888;">${altSm.lore}</div><div style="margin-top:10px; font-size:0.82em; color:#555; font-style:italic;">Usable in PvP &amp; Proving Grounds. Check your Bestiary.</div>`;
+                modal.style.display = 'flex';
+            } else {
+                // Own all three — give a random normal cache item instead (fall through by not returning)
+                // Just close without granting a duplicate
+                const modal = document.getElementById('item-modal-overlay');
+                const rewardDiv = document.getElementById('item-modal-reward');
+                rewardDiv.innerHTML = `<div class="item-name" style="color:#aa44ff;">You already possess all secret minions.</div><div class="item-desc" style="color:#888; margin-top:8px;">The abyss offers no new secrets today.</div>`;
+                modal.style.display = 'flex';
+            }
+        } else {
+            if (!gameState.minions[chosenId]) gameState.minions[chosenId] = { level: 0, cost: 0, promotionTier: 0 };
+            gameState.minions[chosenId].level = 1;
 
-        const modal = document.getElementById('item-modal-overlay');
-        const rewardDiv = document.getElementById('item-modal-reward');
-        rewardDiv.innerHTML = `
-            <div class="item-name legendary" style="color:#aa44ff;">${sm.icon} ${sm.name}</div>
-            <div class="item-rarity" style="color:#aa44ff; margin:4px 0 8px; font-size:0.85em; text-transform:uppercase; letter-spacing:2px;">✦ Secret Minion ✦</div>
-            <div class="item-desc" style="color:#888;">${sm.lore}</div>
-            <div style="margin-top:10px; font-size:0.82em; color:#555; font-style:italic;">Usable in PvP &amp; Proving Grounds. Check your Bestiary.</div>
-        `;
-        modal.style.display = 'flex';
+            const modal = document.getElementById('item-modal-overlay');
+            const rewardDiv = document.getElementById('item-modal-reward');
+            rewardDiv.innerHTML = `
+                <div class="item-name legendary" style="color:#aa44ff;">${sm.icon} ${sm.name}</div>
+                <div class="item-rarity" style="color:#aa44ff; margin:4px 0 8px; font-size:0.85em; text-transform:uppercase; letter-spacing:2px;">✦ Secret Minion ✦</div>
+                <div class="item-desc" style="color:#888;">${sm.lore}</div>
+                <div style="margin-top:10px; font-size:0.82em; color:#555; font-style:italic;">Usable in PvP &amp; Proving Grounds. Check your Bestiary.</div>
+            `;
+            modal.style.display = 'flex';
+        }
         gameState.nextCacheTime = Date.now() + 4 * 3600000;
         playSound('ascend');
         updateCacheTimer();
@@ -9967,29 +9989,48 @@ function generateHourlyShopItems() {
 
         // ── SECRET MINION slot ────────────────────────────────────────
         if (type === 'secret_minion') {
-            const sm         = minions[id];
-            const smPrice    = 35;
-            const canBuy     = !soldOut && gameState.darkEssence >= smPrice;
-            const statusHtml = soldOut
-                ? `<div style="background:#33333333; border:1px solid #444; border-radius:6px; padding:5px 12px; font-size:0.8em; color:#555;">✓ Purchased</div>`
-                : `<div style="background:${canBuy ? '#aa44ff33' : '#33333333'}; border:1px solid ${canBuy ? '#aa44ff66' : '#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${canBuy ? '#cc88ff' : '#555'};">${canBuy ? '🔮 Acquire' : '🔒 Need More'}</div>`;
+            const sm          = minions[id];
+            const smPrice     = 35;
+            const alreadyOwns = (gameState.minions[id]?.level || 0) > 0;
+            // Permanently blocked if already owned — hourly soldOut is secondary
+            const blocked     = alreadyOwns || soldOut;
+            const canBuy      = !blocked && gameState.darkEssence >= smPrice;
+
+            let badgeText, buttonHtml, opacity, borderAlpha;
+            if (alreadyOwns) {
+                badgeText  = '✓ OWNED';
+                buttonHtml = `<div style="background:#0d0d0d; border:1px solid #2a2a2a; border-radius:6px; padding:5px 12px; font-size:0.8em; color:#444;">Already Owned</div>`;
+                opacity    = '0.35';
+                borderAlpha = '11';
+            } else if (soldOut) {
+                badgeText  = '✓ SOLD';
+                buttonHtml = `<div style="background:#33333333; border:1px solid #444; border-radius:6px; padding:5px 12px; font-size:0.8em; color:#555;">✓ Purchased</div>`;
+                opacity    = '0.45';
+                borderAlpha = '22';
+            } else {
+                badgeText  = 'SECRET';
+                buttonHtml = `<div style="background:${canBuy ? '#aa44ff33' : '#33333333'}; border:1px solid ${canBuy ? '#aa44ff66' : '#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${canBuy ? '#cc88ff' : '#555'};">${canBuy ? '🔮 Acquire' : '🔒 Need More'}</div>`;
+                opacity    = canBuy ? '1' : '0.6';
+                borderAlpha = canBuy ? '66' : '22';
+            }
+
             grid.innerHTML += `
             <div onclick="${canBuy ? `buyHourlyShopItem('${id}','secret_minion',${smPrice},'${hourKey}')` : ''}"
-                 style="background:linear-gradient(135deg,#0e0a1a,#1a0a2a); border:1px solid #aa44ff${canBuy?'66':'22'}; border-top:3px solid #aa44ff${soldOut?'22':canBuy?'':'44'}; border-radius:12px; padding:18px; cursor:${canBuy?'pointer':'default'}; opacity:${soldOut?'0.45':canBuy?'1':'0.6'}; transition:all 0.2s; position:relative; overflow:hidden;"
+                 style="background:linear-gradient(135deg,#0e0a1a,#1a0a2a); border:1px solid #aa44ff${borderAlpha}; border-top:3px solid #aa44ff${blocked?'11':''}; border-radius:12px; padding:18px; cursor:${canBuy?'pointer':'default'}; opacity:${opacity}; transition:all 0.2s; position:relative; overflow:hidden;"
                  onmouseover="if(${canBuy}) this.style.background='linear-gradient(135deg,#aa44ff15,#1a0a2a)'"
                  onmouseout="this.style.background='linear-gradient(135deg,#0e0a1a,#1a0a2a)'">
-                <div style="position:absolute; top:8px; right:10px; background:#aa44ff22; border:1px solid #aa44ff44; border-radius:10px; padding:1px 8px; font-size:0.6em; color:#aa44ff; letter-spacing:1px;">${soldOut ? '✓ SOLD' : 'SECRET'}</div>
+                <div style="position:absolute; top:8px; right:10px; background:#aa44ff22; border:1px solid #aa44ff44; border-radius:10px; padding:1px 8px; font-size:0.6em; color:${alreadyOwns?'#444':'#aa44ff'}; letter-spacing:1px;">${badgeText}</div>
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-                    <span style="font-size:1.8em; line-height:1; filter:${soldOut?'grayscale(1)':'none'}">${sm.icon}</span>
+                    <span style="font-size:1.8em; line-height:1; filter:${blocked?'grayscale(1)':'none'}">${sm.icon}</span>
                     <span style="background:#aa44ff22; border:1px solid #aa44ff44; border-radius:8px; padding:2px 8px; font-size:0.68em; color:#aa44ff; text-transform:uppercase; letter-spacing:1px;">Minion</span>
                 </div>
-                <div style="color:${soldOut?'#555':'#cc88ff'}; font-weight:bold; font-size:1em; margin-bottom:14px;">${sm.name}</div>
+                <div style="color:${blocked?'#444':'#cc88ff'}; font-weight:bold; font-size:1em; margin-bottom:14px;">${sm.name}</div>
                 <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #ffffff0a; padding-top:10px;">
                     <div>
                         <div style="color:#666; font-size:0.7em;">COST</div>
                         <div style="color:${canBuy?'#9944cc':'#664466'}; font-weight:bold;">${smPrice} <span style="font-size:0.75em;">Dark Essence</span></div>
                     </div>
-                    ${statusHtml}
+                    ${buttonHtml}
                 </div>
             </div>`;
             return;
@@ -10090,10 +10131,17 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     // Grant item
     if (itemType === 'secret_minion') {
         const sm = minions[itemId];
+        // Hard permanent cap — only ever one of each
+        if ((gameState.minions[itemId]?.level || 0) > 0) {
+            Toastify({ text: `You already possess ${sm.name}.`, duration: 3000, gravity:'top', position:'center', style:{ background:'#441144' } }).showToast();
+            // Refund the essence since we charged before this check
+            gameState.darkEssence += price;
+            saveGame();
+            return;
+        }
         if (!gameState.minions[itemId]) gameState.minions[itemId] = { level: 0, cost: 0, promotionTier: 0 };
-        gameState.minions[itemId].level++;
-        const lvl = gameState.minions[itemId].level;
-        Toastify({ text: `🔮 ${sm.icon} ${sm.name} obtained! (×${lvl}) — Check your Bestiary.`, duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0050,#aa44ff)' } }).showToast();
+        gameState.minions[itemId].level = 1; // always set to exactly 1 — no stacking
+        Toastify({ text: `🔮 ${sm.icon} ${sm.name} obtained! — Check your Bestiary.`, duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0050,#aa44ff)' } }).showToast();
     } else if (itemType === 'item') {
         gameState.inventory.push(itemId);
         Toastify({ text: `✔ ${itemName} added to your inventory.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a44,#4488ff)' } }).showToast();
@@ -14955,6 +15003,117 @@ async function arenaEndBattle(playerWon) {
             crashPoint  = crashPointFromSeed(seed);
             doStartWaiting(WAIT_MS, gameStartMs, crashPoint);
         }
+
+        // ── updatePlayerList ─────────────────────────────────────────
+        function updatePlayerList() {
+            const all = Object.values({ ...lastRoundPlayers, ...livePlayers });
+            if (playerCountEl) {
+                playerCountEl.textContent = `${all.filter(p => p.status === 'playing').length} active`;
+            }
+            if (!playerList) return;
+            if (all.length === 0) {
+                playerList.innerHTML = '<li style="color:#333;justify-content:center;">No players yet</li>';
+                return;
+            }
+            all.sort((a, b) => {
+                if (a.id === myDBId) return -1;
+                if (b.id === myDBId) return 1;
+                return 0;
+            });
+            playerList.innerHTML = '';
+            all.forEach(p => {
+                const li = document.createElement('li');
+                if (p.id === myDBId) li.className = 'is-you';
+                const name = p.id === myDBId ? '⭐ You' : (p.player_name || 'Soul');
+                const curr = (p.bet_currency || '').replace(/([A-Z])/g,' $1').toLowerCase();
+                let statusHtml;
+                if (p.status === 'cashed_out') {
+                    const winnings = Math.floor(p.bet_amount * (p.cash_out_multiplier || 1));
+                    statusHtml = `<span class="player-cashed-out">+${formatNumber(winnings)} @ ${Number(p.cash_out_multiplier||1).toFixed(2)}x</span>`;
+                } else if (p.status === 'lost') {
+                    statusHtml = `<span class="player-lost">${formatNumber(p.bet_amount)} ${curr}</span>`;
+                } else {
+                    const live = riftPhase === 'RUNNING' ? Math.floor(p.bet_amount * currentMultiplier) : p.bet_amount;
+                    statusHtml = `<span class="player-playing">▶ ${formatNumber(live)} ${curr}</span>`;
+                }
+                li.innerHTML = `<span style="color:#888;">${name}</span>${statusHtml}`;
+                playerList.appendChild(li);
+            });
+        }
+
+        // ── Betting functions ─────────────────────────────────────────
+        async function placePlayerBet() {
+            const amount   = parseInt(betAmountInput.value, 10);
+            const currency = betCurrencySelect.value;
+            if (isNaN(amount) || amount <= 0) {
+                Toastify({text:'Enter a valid amount',duration:2000,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
+                return;
+            }
+            if (gameState[currency] < amount) {
+                Toastify({text:'Not enough resources',duration:2000,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
+                return;
+            }
+            gameState[currency] -= amount;
+            updateDynamicDisplays();
+            playerBet = { amount, currency };
+            actionButton.disabled = true;
+            actionButton.textContent = 'Bet Placed ✔';
+            playSound('upgrade');
+
+            if (supabaseClient) {
+                const { data, error } = await supabaseClient
+                    .from('rift_live_players')
+                    .insert({ player_name: gameState.playerName, bet_amount: amount, bet_currency: currency, status: 'playing' })
+                    .select().single();
+                if (!error && data) {
+                    myDBId = data.id;
+                    livePlayers[myDBId] = data;
+                    updatePlayerList();
+                }
+            }
+        }
+
+        async function cashPlayerOut() {
+            if (!myDBId || !playerBet) return;
+            const myBet = livePlayers[myDBId];
+            if (!myBet || myBet.status !== 'playing') return;
+
+            myBet.status = 'cashed_out';
+            myBet.cash_out_multiplier = currentMultiplier;
+
+            const winnings = Math.floor(playerBet.amount * currentMultiplier);
+            gameState[playerBet.currency] += winnings;
+            updateDynamicDisplays();
+            saveGame();
+
+            Toastify({ text: `💰 Cashed out at ${currentMultiplier.toFixed(2)}x — +${formatNumber(winnings)}!`, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(to right,#006611,#00aa33)' } }).showToast();
+            playSound('upgrade');
+            actionButton.disabled = true;
+            actionButton.textContent = 'Cashed Out ✔';
+
+            if (supabaseClient) {
+                await supabaseClient.from('rift_live_players')
+                    .update({ status: 'cashed_out', cash_out_multiplier: currentMultiplier })
+                    .eq('id', myDBId);
+            }
+            updatePlayerList();
+        }
+
+        // ── listenForPlayerUpdates ────────────────────────────────────
+        function listenForPlayerUpdates() {
+            if (!supabaseClient) return;
+            // Clean up stale player rows older than 2 minutes periodically
+            setInterval(async () => {
+                const cutoff = new Date(Date.now() - 120000).toISOString();
+                await supabaseClient.from('rift_live_players').delete().lt('created_at', cutoff).catch(() => {});
+            }, 60000);
+        }
+
+        // ── Action button wires betting / cash-out ────────────────────
+        actionButton.addEventListener('click', () => {
+            if (riftPhase === 'WAITING') placePlayerBet();
+            else if (riftPhase === 'RUNNING') cashPlayerOut();
+        });
 
         // Bootstrap — start local immediately, hand off to Firebase when ready
         startLocalRound();

@@ -9923,40 +9923,41 @@ function renderBank() {
 
     // Shards → Fragments (dynamic escalating cost)
     const sfEl = document.getElementById('shards-fragments-tier-text');
-    if (sfEl) {
+    const csfb = document.getElementById('convert-shards-fragments-btn');
+    if (csfb) {
         const forgeCount = gameState.fragmentForgeCount || 0;
-        // Use log10 math throughout to avoid float precision issues at large numbers
-        // Base = 0.1% of lifetime souls, min 1e12
         const lifetimeSoulsBase = Math.max(1e12, (gameState.lifetimeSouls || 0) * 0.001);
         const logBase = Math.log10(lifetimeSoulsBase);
-        const logCost = logBase + forgeCount * Math.log10(2.5); // log10(base * 2.5^n)
-        const dynamicCostDisplay = Math.pow(10, logCost); // for display only
+        const logCost = logBase + forgeCount * Math.log10(2.5);
+        const dynamicCostDisplay = Math.pow(10, logCost);
         const logShards = Math.log10(Math.max(1, gameState.abyssalShards || 0));
         const canForge = logShards >= logCost;
-        sfEl.innerHTML = `<span class="cost-shards">${formatNumber(dynamicCostDisplay)} Shards</span> → <span style="color:#44cc88;">1 Fragment</span><div style="color:#555;font-size:0.68em;margin-top:2px;">Purchase #${forgeCount+1} · next: ${formatNumber(dynamicCostDisplay * 2.5)}</div>`;
-        const csfb = document.getElementById('convert-shards-fragments-btn');
-        if (csfb) {
-            csfb.onclick = () => {
-                if (!confirm(`Convert ${formatNumber(dynamicCostDisplay)} Shards into 1 Fragment?\n\nNext purchase will cost ${formatNumber(dynamicCostDisplay * 2.5)} Shards.`)) return;
-                // Re-check affordability with log comparison
-                const currentLogShards = Math.log10(Math.max(1, gameState.abyssalShards || 0));
-                if (currentLogShards < logCost) {
-                    Toastify({ text:`Need ${formatNumber(dynamicCostDisplay)} Shards!`, duration:2500, gravity:'top', position:'center' }).showToast();
-                    return;
-                }
-                // Deduct using the actual float value
-                gameState.abyssalShards = Math.max(0, gameState.abyssalShards - dynamicCostDisplay);
-                gameState.corruptedFragments += 1;
-                gameState.fragmentForgeCount = (gameState.fragmentForgeCount || 0) + 1;
-                Toastify({ text:`🔮 Fragment forged! Next costs ${formatNumber(dynamicCostDisplay * 2.5)} Shards.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
-                saveGame();
-                renderBank();
-                updateDynamicDisplays();
-            };
-            csfb.disabled = !canForge;
-            csfb.style.opacity = canForge ? '1' : '0.4';
-            csfb.style.cursor = canForge ? 'pointer' : 'not-allowed';
-        }
+
+        if (sfEl) sfEl.innerHTML = `<span class="cost-shards">${formatNumber(dynamicCostDisplay)} Shards</span> → <span style="color:#44cc88;">1 Fragment</span><div style="color:#555;font-size:0.68em;margin-top:2px;">Purchase #${forgeCount+1} · next: ${formatNumber(dynamicCostDisplay * 2.5)}</div>`;
+
+        csfb.disabled = false; // always enable, guard inside onclick
+        csfb.style.opacity = canForge ? '1' : '0.4';
+        csfb.style.cursor = canForge ? 'pointer' : 'not-allowed';
+        csfb.style.borderColor = canForge ? '#44cc8866' : '#33333366';
+        csfb.onclick = () => {
+            const fc2 = gameState.fragmentForgeCount || 0;
+            const base2 = Math.max(1e12, (gameState.lifetimeSouls || 0) * 0.001);
+            const cost2 = Math.pow(10, Math.log10(base2) + fc2 * Math.log10(2.5));
+            const ls2 = Math.log10(Math.max(1, gameState.abyssalShards || 0));
+            const lc2 = Math.log10(Math.max(1, cost2));
+            if (ls2 < lc2) {
+                Toastify({ text:`Need ${formatNumber(cost2)} Shards to forge a Fragment!`, duration:3000, gravity:'top', position:'center' }).showToast();
+                return;
+            }
+            if (!confirm(`Forge 1 Fragment for ${formatNumber(cost2)} Shards?`)) return;
+            gameState.abyssalShards = Math.max(0, gameState.abyssalShards - cost2);
+            gameState.corruptedFragments = (gameState.corruptedFragments || 0) + 1;
+            gameState.fragmentForgeCount = fc2 + 1;
+            Toastify({ text:`🔮 Fragment forged! Next costs ${formatNumber(cost2 * 2.5)} Shards.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
+            saveGame();
+            renderBank();
+            updateDynamicDisplays();
+        };
     }
 }
 // ---------------------------------------------------------------
@@ -12889,33 +12890,36 @@ function listenPactBuff() {
     const pactId = window.playerPact?.id;
     if (!db || !pactId) return;
 
+    let _lastSeenRolledAt = 0;
+
     db.ref(`pact_buffs/${pactId}`).on('value', snap => {
         const shared = snap.val();
         if (!shared) return;
         const now = Date.now();
-        const isNewRoll = shared.rolledAt && (now - shared.rolledAt) < 5000;
+
+        const isNewRoll = shared.rolledAt
+            && shared.rolledAt > _lastSeenRolledAt
+            && (now - shared.rolledAt) < 10000;
         const rolledByOther = shared.rolledBy && shared.rolledBy !== gameState.playerName;
 
-        // Show toast to OTHER members when someone rolls
-        if (isNewRoll && rolledByOther) {
-            Toastify({
-                text: `${shared.icon} ${shared.rolledBy} rolled ${shared.name} for the pact! ${shared.desc}`,
-                duration: 6000, gravity: 'top', position: 'center',
-                style: { background: 'linear-gradient(135deg,#4a2080,#c8a800)', fontWeight: 'bold' }
-            }).showToast();
+        if (isNewRoll) {
+            _lastSeenRolledAt = shared.rolledAt;
+            if (rolledByOther) {
+                Toastify({
+                    text: `${shared.icon} ${shared.rolledBy} rolled ${shared.name} for the pact! ${shared.desc}`,
+                    duration: 6000, gravity: 'top', position: 'center',
+                    style: { background: 'linear-gradient(135deg,#4a2080,#c8a800)', fontWeight: 'bold' }
+                }).showToast();
+            }
+            if (shared.instantEssence && rolledByOther) {
+                gameState.darkEssence += shared.instantEssence;
+                saveGame();
+            }
         }
 
-        // Apply instant essence (only for other members — roller already got it)
-        if (shared.instantEssence && isNewRoll && rolledByOther) {
-            gameState.darkEssence += shared.instantEssence;
-            saveGame();
-        }
-
-        // Apply timed buff
         if (shared.buff && shared.buff.expiresAt > now) {
             const b = shared.buff;
             if (!gameState.activeItemBuffs) gameState.activeItemBuffs = {};
-            // Only apply if not already applied for this roll
             const cur = gameState.activeItemBuffs['pact_buff'];
             if (!cur || cur.rolledAt !== b.rolledAt) {
                 gameState.activeItemBuffs['pact_buff'] = { ...b, totalDuration: b.expiresAt - b.rolledAt };
@@ -12924,16 +12928,14 @@ function listenPactBuff() {
             }
         }
 
-        // Store shared cooldown info for countdown display
         gameState._pactSharedRolledAt  = shared.rolledAt || 0;
         gameState._pactSharedRolledBy  = shared.rolledBy || '';
         gameState._pactLastRollName    = shared.name || '';
-        gameState._pactLastRollIcon    = shared.icon || '🎲';
+        gameState._pactLastRollIcon    = shared.icon || 'dice';
         gameState._pactLastRollDesc    = shared.desc || '';
         renderPactBuffStatus();
     });
 }
-
 function renderPactBuffStatus() {
     const el = document.getElementById('pact-buff-status');
     if (!el) return;

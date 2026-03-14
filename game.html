@@ -2665,23 +2665,23 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
                 </div>
                 <div id="stats-row-currencies">
-                    <div class="currency-chip chip-souls">
+                    <div class="currency-chip chip-souls" data-tooltip="Souls — the core currency. Earned by clicking and from minions. Resets on Ascension.">
                         <span class="chip-label">SOULS</span>
                         <span class="chip-value" id="souls-display">0</span>
                     </div>
-                    <div class="currency-chip chip-essence">
+                    <div class="currency-chip chip-essence" data-tooltip="Dark Essence — earned by sacrificing souls. Used to buy artifacts, rituals, and items on the market. Resets on Ascension.">
                         <span class="chip-label">ESSENCE</span>
                         <span class="chip-value" id="essence-display">0</span>
                     </div>
-                    <div class="currency-chip chip-shards">
+                    <div class="currency-chip chip-shards" data-tooltip="Abyssal Shards — earned on Ascension. Used to upgrade artifacts and unlock powerful bonuses. Survive Ascension.">
                         <span class="chip-label">SHARDS</span>
                         <span class="chip-value" id="shards-display">0</span>
                     </div>
-                    <div class="currency-chip chip-aether" data-tooltip="A powerful substance gained from Collapsing Reality. Its bonuses are permanent.">
+                    <div class="currency-chip chip-aether" data-tooltip="Aether — earned by Collapsing Reality. The most powerful currency. Bonuses are fully permanent and survive everything.">
                         <span class="chip-label">AETHER</span>
                         <span class="chip-value" id="aether-display">0</span>
                     </div>
-                    <div class="currency-chip chip-frags" data-tooltip="Strange fragments found on Expeditions. Used at the Soul-Forge.">
+                    <div class="currency-chip chip-frags" data-tooltip="Corrupted Fragments — found on Expeditions. Used at the Soul-Forge to craft and upgrade powerful items.">
                         <span class="chip-label">FRAGMENTS</span>
                         <span class="chip-value" id="fragments-display">0</span>
                     </div>
@@ -3861,13 +3861,16 @@ window.onload = function() {
         gameState.souls += passiveGain;
         gameState.lifetimeSouls += passiveGain;
 		
-		// Cap stats
-		var s = gameState.souls;
-		gameState.souls = isFinite(s) ? s : Number.MAX_VALUE;
-		var a = gameState.abyssalShards;
-		gameState.abyssalShards = isFinite(a) ? a : Number.MAX_VALUE;
-		var l = gameState.lifetimeSouls;
-		gameState.lifetimeSouls = isFinite(l) ? l : Number.MAX_VALUE;
+		// Cap stats — clamp all currencies to 0 minimum (prevents Charon's Oar or other bugs from going negative)
+		gameState.souls          = Math.max(0, isFinite(gameState.souls)          ? gameState.souls          : 0);
+		gameState.darkEssence    = Math.max(0, isFinite(gameState.darkEssence)    ? gameState.darkEssence    : 0);
+		gameState.abyssalShards  = Math.max(0, isFinite(gameState.abyssalShards)  ? gameState.abyssalShards  : 0);
+		gameState.aether         = Math.max(0, isFinite(gameState.aether)         ? gameState.aether         : 0);
+		gameState.corruptedFragments = Math.max(0, isFinite(gameState.corruptedFragments) ? gameState.corruptedFragments : 0);
+		gameState.lifetimeSouls  = Math.max(0, isFinite(gameState.lifetimeSouls)  ? gameState.lifetimeSouls  : Number.MAX_VALUE);
+		// Cap SPS/SPC to prevent negative display
+		if (gameState.stats.sps < 0 || !isFinite(gameState.stats.sps)) { gameState.stats.sps = 0; calculateStats(); }
+		if (gameState.stats.spc < 0 || !isFinite(gameState.stats.spc)) { gameState.stats.spc = 1; calculateStats(); }
         
         updateDynamicDisplays(); // Moved this up to give more immediate visual feedback
         
@@ -6527,9 +6530,11 @@ function calculateStats() {
         if (bonus.type === 'upgrade_cost_reducer' && bonus.target === 'click') clickUpgradeCostFactor *= Math.pow(value, level);
         if (bonus.type === 'essence_multiplier') essence_multiplier *= Math.pow(value, level);
         if (bonus.type === 'prestige_bonus_enhancer') prestigeBonusEnhancer *= Math.pow(value, level);
-        if (bonus.type === 'global_multiplier_per_world') global_multiplier *= Math.pow(1 + (value * gameState.unlockedWorlds.length), level);
-        if (bonus.type === 'global_multiplier_per_artifact') global_multiplier *= Math.pow(1 + (value * Object.keys(gameState.ownedArtifacts).length), level);
-        if (bonus.type === 'global_multiplier_per_ascension') global_multiplier *= Math.pow(1 + (value * gameState.ascensions), level);
+        // For per_world/per_artifact/per_ascension, always use raw bonus.value (not the enhanced value)
+        // to prevent the meta_artifact_doubler from making the base rate negative
+        if (bonus.type === 'global_multiplier_per_world') global_multiplier *= Math.pow(1 + (bonus.value * meta_artifact_doubler * gameState.unlockedWorlds.length), level);
+        if (bonus.type === 'global_multiplier_per_artifact') global_multiplier *= Math.pow(1 + (bonus.value * meta_artifact_doubler * Object.keys(gameState.ownedArtifacts).length), level);
+        if (bonus.type === 'global_multiplier_per_ascension') global_multiplier *= Math.pow(1 + (bonus.value * meta_artifact_doubler * gameState.ascensions), level);
         if (bonus.type === 'global_multiplier_by_ascensions') global_multiplier *= Math.max(1, gameState.ascensions * level);
         if (bonus.type === 'global_multiplier_by_ascensions_squared') global_multiplier *= Math.max(1, Math.pow(gameState.ascensions, 2) * level);
     }
@@ -8069,11 +8074,34 @@ async function loadGameFromCloud(uid, db) {
     }
 }
 
+function repairNegativeValues() {
+    // One-time fix — clamp all currencies to 0 if negative (caused by Charon's Oar bug)
+    let repaired = false;
+    const currencies = ['souls','darkEssence','abyssalShards','aether','corruptedFragments','bankedSouls'];
+    currencies.forEach(key => {
+        if (typeof gameState[key] === 'number' && (gameState[key] < 0 || !isFinite(gameState[key]))) {
+            console.warn(`Repairing negative ${key}: ${gameState[key]} → 0`);
+            gameState[key] = 0;
+            repaired = true;
+        }
+    });
+    if (gameState.stats) {
+        if (gameState.stats.sps < 0 || !isFinite(gameState.stats.sps)) { gameState.stats.sps = 0; repaired = true; }
+        if (gameState.stats.spc < 0 || !isFinite(gameState.stats.spc)) { gameState.stats.spc = 1; repaired = true; }
+    }
+    if (repaired) {
+        calculateStats();
+        saveGame();
+        Toastify({ text: '🔧 Save repaired — negative values corrected.', duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a0a,#44cc88)' } }).showToast();
+    }
+}
+
 function enterGame() {
     hideAuthScreen();
     document.getElementById('game-container').style.display = 'block';
     document.getElementById('profile-setup').style.display = 'none';
     tryStartMusic();
+    repairNegativeValues(); // Fix any saves broken by Charon's Oar bug
     calculateStats();
     renderAll();
     initializeChat();
@@ -9298,12 +9326,12 @@ function startShopTimer() {
         const seconds = 59 - now.getSeconds();
         const timerDisplay = document.getElementById('shop-timer');
         if (timerDisplay) {
-            const formattedMinutes = minutes.toString().padStart(2, '0');
-            const formattedSeconds = seconds.toString().padStart(2, '0');
-            timerDisplay.textContent = `${formattedMinutes}:${formattedSeconds}`;
+            timerDisplay.textContent = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
         }
-        if (minutes === 59 && seconds === 59) {
+        // Refresh exactly when the hour ticks over (timer shows 00:00 then regenerates)
+        if (minutes === 0 && seconds === 0) {
             generateHourlyShopItems();
+            Toastify({ text: '⏳ Hourly Offerings have refreshed!', duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#3a2800,#c8a800)' } }).showToast();
         }
     }, 1000);
 }
@@ -9550,10 +9578,15 @@ async function refreshMarketTicker() {
         const mRes = await supabaseClient
             .from('market_listings')
             .select('*')
+            .eq('is_sold', false)
             .order('created_at', { ascending: false })
             .limit(15);
         if (!mRes.error && mRes.data) marketData = mRes.data;
-        else console.warn('Ticker market_listings error:', mRes.error?.message);
+        else {
+            // Fallback without filter if is_sold doesn't exist
+            const mRes2 = await supabaseClient.from('market_listings').select('*').order('created_at', { ascending: false }).limit(15);
+            if (!mRes2.error && mRes2.data) marketData = mRes2.data;
+        }
 
         const bRes = await supabaseClient
             .from('barter_listings')

@@ -3270,9 +3270,9 @@ text-decoration: underline; /* Adds an underline on hover */
                         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
                             <div>
                                 <div style="color:#aa44ff; font-weight:bold; font-size:0.9em;">🎲 Pact Blessing</div>
-                                <div style="color:#666; font-size:0.74em; margin-top:2px;">Roll a random buff for your whole pact. 30 min cooldown.</div>
+                                <div style="color:#666; font-size:0.74em; margin-top:2px;">Roll a random buff now (30 min cooldown) or wait for the auto-blessing every 2 hours.</div>
                             </div>
-                            <button onclick="rollPactBuff()" style="background:linear-gradient(135deg,#2a1050,#1a0830); border:1px solid #aa44ff66; border-radius:9px; padding:8px 18px; color:#aa44ff; cursor:pointer; font-family:inherit; font-size:0.85em; font-weight:bold;">🎲 Roll Blessing</button>
+                            <button onclick="rollPactBuff()" style="background:linear-gradient(135deg,#2a1050,#1a0830); border:1px solid #aa44ff66; border-radius:9px; padding:8px 18px; color:#aa44ff; cursor:pointer; font-family:inherit; font-size:0.85em; font-weight:bold;">🎲 Roll Now</button>
                         </div>
                         <div id="pact-buff-status" style="display:none;"></div>
                         <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
@@ -6661,6 +6661,7 @@ function updateDynamicDisplays() {
 
   // Pact buff live countdown
   if (typeof renderPactBuffStatus === 'function') renderPactBuffStatus();
+  if (typeof checkAutoPactBuff === 'function') checkAutoPactBuff();
 }
 
 
@@ -11879,28 +11880,32 @@ function renderPactScreen() {
         (async () => {
             let memberStats = {};
             try {
-                const { data } = await supabaseClient.from('players').select('name,ascensions,pvpWins').in('name', members).then(r => r).catch(() => ({ data: null }));
-                if (data) data.forEach(p => { memberStats[p.name || p.player_name] = p; });
+                const { data } = await supabaseClient.from('players').select('name,ascensions,pvpWins,lifetimeSouls').in('name', members).then(r => r).catch(() => ({ data: null }));
+                if (data) data.forEach(p => { memberStats[p.name] = p; });
             } catch(e) {}
 
             listEl.innerHTML = members.map((m, i) => {
-                const isMe   = m === gameState.playerName;
-                const color  = memberColors[i % memberColors.length];
-                const stats  = memberStats[m] || {};
-                const sps    = '—';
-                const asc    = stats.ascensions ?? '?';
-                const wins   = stats.pvpWins ?? '?';
+                const isMe    = m === gameState.playerName;
+                const color   = memberColors[i % memberColors.length];
+                const stats   = isMe ? { ascensions: gameState.ascensions, pvpWins: gameState.pvpWins, lifetimeSouls: gameState.lifetimeSouls } : (memberStats[m] || {});
+                const asc     = stats.ascensions ?? '?';
+                const wins    = stats.pvpWins ?? '?';
+                const souls   = stats.lifetimeSouls ? formatNumber(stats.lifetimeSouls) : '?';
                 const canKick = isLeader && !isMe;
 
-                return `<div style="background:#0a0812; border:1px solid ${color}22; border-left:3px solid ${color}44; border-radius:10px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-                    <div style="display:flex; align-items:center; gap:10px; flex:1;">
-                        <span style="font-size:1.4em;">${memberIcons[i]}</span>
-                        <div>
+                return `<div style="background:#0a0812; border:1px solid ${color}22; border-left:3px solid ${color}55; border-radius:10px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; width:100%; box-sizing:border-box;">
+                    <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+                        <span style="font-size:1.4em; flex-shrink:0;">${memberIcons[i]}</span>
+                        <div style="min-width:0;">
                             <div style="color:${color}; font-weight:bold; font-size:0.92em;">${m}${isMe ? ' <span style="color:#555; font-size:0.75em; font-weight:normal;">(you)</span>' : ''}</div>
-                            <div style="color:#555; font-size:0.72em; margin-top:3px;">⚡ ${sps} SPS &nbsp;·&nbsp; ✨ ${asc} Ascensions &nbsp;·&nbsp; ⚔ ${wins} PvP wins</div>
+                            <div style="color:#555; font-size:0.7em; margin-top:3px; display:flex; gap:12px; flex-wrap:wrap;">
+                                <span>✨ ${asc} Asc</span>
+                                <span>👻 ${souls} souls</span>
+                                <span>⚔ ${wins} PvP wins</span>
+                            </div>
                         </div>
                     </div>
-                    ${canKick ? `<button onclick="kickPactMember('${m}')" style="background:#1a0808; border:1px solid #cc333344; border-radius:7px; padding:4px 10px; color:#cc4444; cursor:pointer; font-family:inherit; font-size:0.72em;">✕ Remove</button>` : ''}
+                    ${canKick ? `<button onclick="kickPactMember('${m}')" style="background:#1a0808; border:1px solid #cc333344; border-radius:7px; padding:5px 12px; color:#cc4444; cursor:pointer; font-family:inherit; font-size:0.72em; flex-shrink:0; white-space:nowrap;">✕ Remove</button>` : ''}
                 </div>`;
             }).join('');
         })();
@@ -12124,6 +12129,34 @@ function claimPvpReward() {
 // =================================================================
 // PACT RANDOM BUFFS
 // =================================================================
+// Auto-roll pact buff every 2 hours silently
+function checkAutoPactBuff() {
+    if (!window.playerPact) return;
+    const now = Date.now();
+    const AUTO_INTERVAL = 2 * 60 * 60 * 1000; // 2 hours
+    const lastAuto = gameState.lastAutoPactBuff || 0;
+    if (now - lastAuto < AUTO_INTERVAL) return;
+
+    const buff = PACT_BUFFS[Math.floor(Math.random() * PACT_BUFFS.length)];
+    gameState.lastAutoPactBuff = now;
+
+    if (buff.effect.type === 'instant_essence') {
+        gameState.darkEssence += buff.effect.value;
+    } else {
+        if (!gameState.activeItemBuffs) gameState.activeItemBuffs = {};
+        gameState.activeItemBuffs['pact_buff'] = {
+            type: buff.effect.type,
+            value: buff.effect.value,
+            expiresAt: now + buff.effect.duration * 1000,
+            name: buff.name,
+        };
+        calculateStats();
+    }
+    saveGame();
+    renderPactBuffStatus();
+    Toastify({ text: `${buff.icon} Pact Blessing arrived! ${buff.name}: ${buff.desc}`, duration: 6000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a1050,#8844cc)' } }).showToast();
+}
+
 const PACT_BUFFS = [
     { id:'soul_surge',    name:'Soul Surge',       icon:'💥', desc:'+25% SPS for 10 min',  duration:600,  effect:{ type:'sps_multiplier', value:1.25 } },
     { id:'essence_tide',  name:'Essence Tide',      icon:'🌑', desc:'+3 Dark Essence',      duration:0,    effect:{ type:'instant_essence', value:3  } },
@@ -12225,18 +12258,18 @@ async function fetchPactLeaderboard() {
         const allMembers = [...new Set(pacts.flatMap(p => p.members || []))];
         let memberStats = {};
         try {
-            const { data: players } = await supabaseClient.from('players').select('name,ascensions').in('name', allMembers).then(r => r).catch(() => ({ data: null }));
-            if (players) players.forEach(p => { memberStats[p.player_name] = p; });
+            const { data: players } = await supabaseClient.from('players').select('name,ascensions,lifetimeSouls').in('name', allMembers).then(r => r).catch(() => ({ data: null }));
+            if (players) players.forEach(p => { memberStats[p.name] = p; });
         } catch(e) {}
 
         // Compute scores for sorting
         const enriched = pacts.map(pact => {
             const members = pact.members || [];
-            const totalAsc = members.reduce((s, m) => s + (memberStats[m]?.ascensions || 0), 0);
-            const totalSps = members.reduce((s, m) => s + (memberStats[m]?.sps || 0), 0);
-            return { ...pact, totalAsc, totalSps, memberCount: members.length };
+            const totalAsc   = members.reduce((s, m) => s + (memberStats[m]?.ascensions || 0), 0);
+            const totalSouls = members.reduce((s, m) => s + (memberStats[m]?.lifetimeSouls || 0), 0);
+            return { ...pact, totalAsc, totalSouls, memberCount: members.length };
         });
-        enriched.sort((a, b) => b.totalAsc - a.totalAsc || b.totalSps - a.totalSps);
+        enriched.sort((a, b) => b.totalAsc - a.totalAsc || b.totalSouls - a.totalSouls);
 
         const rankColors  = ['#ffd700','#c0c0c0','#cd7f32'];
         const rankBorders = ['#ffd70066','#c0c0c066','#cd7f3266'];
@@ -12262,8 +12295,8 @@ async function fetchPactLeaderboard() {
                         <div style="color:#555; font-size:0.7em;">Total Ascensions</div>
                     </div>
                     <div>
-                        <div style="color:#888; font-size:0.85em;">${formatNumber(pact.totalSps)}/s</div>
-                        <div style="color:#555; font-size:0.7em;">Combined SPS</div>
+                        <div style="color:#888; font-size:0.85em;">${formatNumber(pact.totalSouls)}</div>
+                        <div style="color:#555; font-size:0.7em;">Total Souls Harvested</div>
                     </div>
                     <div>
                         <div style="color:#666;">${pact.memberCount} / 4</div>

@@ -7228,7 +7228,7 @@ function showScreen(screenId) {
         // Load crash history immediately when rift screen opens
         const db = window._scFirebase?.chatDb;
         if (db) {
-            db.ref('rift_history').orderByChild('t').limitToLast(8).once('value', snap => {
+            db.ref('rift_history').orderByChild('t').limitToLast(10).once('value', snap => {
                 const entries = [];
                 snap.forEach(child => entries.push(child.val().v));
                 const histBar = document.getElementById('rift-history');
@@ -14744,6 +14744,15 @@ async function arenaEndBattle(playerWon) {
         }
 
         function enterRunning(gameStartMs) {
+            // ── Guard: if we're joining mid-round and the crash point is already
+            //    exceeded, skip straight to crashed — never show a misleading high
+            //    multiplier that instantly snaps to a low crash value.
+            const precheck = Math.pow(Math.E, ((Date.now() - gameStartMs) / 1000) * 0.1);
+            if (precheck >= crashPoint) {
+                enterCrashed(crashPoint);
+                return;
+            }
+
             gameStateRift = 'RUNNING';
             clearInterval(waitInterval);
             clearInterval(multiplierInterval);
@@ -14766,7 +14775,8 @@ async function arenaEndBattle(playerWon) {
                 // Same formula for all clients — deterministic from start time
                 currentMultiplier = Math.pow(Math.E, elapsed * 0.1);
 
-                const display = currentMultiplier.toFixed(2) + 'x';
+                // Cap display at crashPoint — never render above what we can actually reach
+                const display = Math.min(currentMultiplier, crashPoint).toFixed(2) + 'x';
                 multiplierText.textContent = display;
 
                 if (currentMultiplier > 5) {
@@ -14814,14 +14824,21 @@ async function arenaEndBattle(playerWon) {
             statusBar.style.borderLeftColor = '#ff4444';
             statusBar.style.color = '#ff6666';
 
-            // Push crash to shared history — only the client who locally detected the crash pushes
+            // Always update local history immediately so the bar shows the current crash right away.
+            // historyPushedForRound deduplicates so multiple enterCrashed calls per round only add once.
             const crashed = Number(atMultiplier);
-            if (riftDB && !fromFirebase) {
-                riftDB.ref('rift_history').push({ v: crashed, t: Date.now() });
-            } else if (!riftDB) {
+            if (historyPushedForRound !== roundId) {
+                historyPushedForRound = roundId;
                 crashHistory.unshift(crashed);
-                if (crashHistory.length > 8) crashHistory.pop();
+                if (crashHistory.length > 10) crashHistory.pop();
                 renderHistory();
+                // ALL clients push to Firebase rift_history — this ensures the list
+                // fills up regardless of which client happens to be the round host.
+                // Firebase .push() is idempotent per key, and we deduplicate locally
+                // above so we only push once per round per client.
+                if (riftDB) {
+                    riftDB.ref('rift_history').push({ v: crashed, t: Date.now() });
+                }
             }
 
             // Handle bet outcome
@@ -14973,7 +14990,7 @@ async function arenaEndBattle(playerWon) {
                 });
 
                 // Shared crash history — shows completed past rounds
-                db.ref('rift_history').orderByChild('t').limitToLast(8).on('value', snap => {
+                db.ref('rift_history').orderByChild('t').limitToLast(10).on('value', snap => {
                     const entries = [];
                     snap.forEach(child => entries.push(child.val().v));
                     crashHistory = entries.reverse(); // newest first

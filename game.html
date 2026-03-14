@@ -10532,13 +10532,19 @@ function initializeChat() {
             // ── Game Update Notice ─────────────────────────────────────────
             // Admins write to Firebase `game_notice` to show an update banner.
             // Set { message: "...", active: true } to show, active: false to hide.
+            // Banner re-appears automatically if the message text changes.
+            let _lastGameNoticeMessage = null;
             db.ref('game_notice').on('value', snap => {
                 const notice = snap.val();
                 const banner = document.getElementById('game-update-banner');
                 if (!banner) return;
                 if (notice && notice.active && notice.message) {
                     document.getElementById('game-update-text').textContent = notice.message;
-                    banner.style.display = 'flex';
+                    // Always show if message changed (even if user dismissed old one)
+                    if (notice.message !== _lastGameNoticeMessage) {
+                        _lastGameNoticeMessage = notice.message;
+                        banner.style.display = 'flex';
+                    }
                 } else {
                     banner.style.display = 'none';
                 }

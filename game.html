@@ -12859,6 +12859,9 @@ async function fetchPvpLeaderboard() {
             const medal  = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `<span style="color:#555;">#${rank}</span>`;
             const wins   = p.pvpWins || 0;
             const losses = p.pvpLosses || 0;
+            const ratio = losses === 0 ? (wins > 0 ? '∞' : '—') : (wins / losses).toFixed(2);
+            const ratioColor = losses === 0 ? (wins > 0 ? '#44cc88' : '#555') : (wins / (wins+losses)) >= 0.6 ? '#44cc88' : (wins / (wins+losses)) >= 0.4 ? '#ff9944' : '#ff4444';
+            const winPct = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
             const rewardBadge = reward
                 ? `<span style="color:${color}; font-size:0.7em;">${reward.essence} Essence${reward.potionName ? ' + ' + reward.potionName : ''}</span>`
                 : '';
@@ -12867,7 +12870,15 @@ async function fetchPvpLeaderboard() {
                     <span style="font-size:1.1em;">${medal}</span>
                     <div>
                         <div style="color:${isMe ? color : '#aaa'}; font-size:0.85em; font-weight:${isMe ? 'bold' : 'normal'};">${p.player_name}${isMe ? ' <span style=\"color:#555;font-size:0.75em;\">(you)</span>' : ''}</div>
-                        <div style="color:#555; font-size:0.7em;">${wins}W · ${losses}L</div>
+                        <div style="display:flex; align-items:center; gap:5px; margin-top:2px;">
+                            <span style="color:#44cc88; font-size:0.7em;">${wins}W</span>
+                            <span style="color:#444; font-size:0.65em;">·</span>
+                            <span style="color:#cc4444; font-size:0.7em;">${losses}L</span>
+                            <span style="color:#444; font-size:0.65em;">·</span>
+                            <span style="color:${ratioColor}; font-size:0.7em; font-weight:bold;">${ratio} KD</span>
+                            ${(wins+losses)>0 ? `<span style="color:#555; font-size:0.65em;">(${winPct}%)</span>` : ''}
+                        </div>
+                        ${(wins+losses)>0 ? `<div style="width:64px; height:4px; background:#1a1030; border-radius:2px; overflow:hidden; margin-top:3px;"><div style="height:100%; width:${winPct}%; background:linear-gradient(90deg,#44cc88,#88ffaa); border-radius:2px;"></div></div>` : ''}
                     </div>
                 </div>
                 <div style="text-align:right;">${rewardBadge}</div>

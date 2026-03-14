@@ -3328,101 +3328,144 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
             </div>
             <!-- ================================================================= -->
-            <!-- BANK SCREEN (NEW) -->
-            <!-- ================================================================= -->
-            <div id="bank-screen" class="screen">
+            <!-- BANK SCREEN (NEW) -->\n            <!-- ================================================================= -->\n            <div id="bank-screen" class="screen">
                 <h2 style="letter-spacing:3px;">🏦 ABYSSAL VAULT</h2>
-                <p style="color:var(--dim-color); max-width:520px; margin:0 auto 24px;">Secure your souls across lives. Deposits survive <strong style="color:#88ff88;">Ascension</strong> but are destroyed by <strong style="color:#ff4444;">Collapse</strong>.</p>
+                <p style="color:var(--dim-color); max-width:580px; margin:0 auto 20px;">Secure your wealth across lifetimes. Your vault is a bridge between lives — use it wisely.</p>
 
-                <!-- Survive/Destroyed badges -->
-                <div style="display:flex; justify-content:center; gap:16px; margin-bottom:28px; flex-wrap:wrap;">
-                    <div style="background:#00440022; border:1px solid #00cc4466; border-radius:8px; padding:8px 18px; font-size:0.82em; color:#88ff88;">✅ Survives Ascension</div>
-                    <div style="background:#44000022; border:1px solid #cc000066; border-radius:8px; padding:8px 18px; font-size:0.82em; color:#ff6666;">💥 Lost on Collapse</div>
+                <!-- Survival badges -->
+                <div style="display:flex; justify-content:center; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
+                    <div style="background:#00440022; border:1px solid #00cc4466; border-radius:8px; padding:7px 16px; font-size:0.8em; color:#88ff88;">✅ Souls survive Ascension</div>
+                    <div style="background:#00440022; border:1px solid #00cc4466; border-radius:8px; padding:7px 16px; font-size:0.8em; color:#88ff88;">✅ Fragments survive Ascension</div>
+                    <div style="background:#44000022; border:1px solid #cc000066; border-radius:8px; padding:7px 16px; font-size:0.8em; color:#ff6666;">💥 Both lost on Collapse</div>
                 </div>
 
-                <!-- Vault Balance Card -->
-                <div id="bank-status" style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; border-top:3px solid #c8a800; border-radius:12px; padding:24px; margin-bottom:20px; position:relative; overflow:hidden;">
-                    <div style="position:absolute; top:0; left:0; right:0; bottom:0; background:radial-gradient(ellipse at top, #c8a80008 0%, transparent 70%); pointer-events:none;"></div>
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-                        <span style="font-size:1.6em;">🏛️</span>
-                        <div>
-                            <div style="color:var(--dim-color); font-size:0.72em; text-transform:uppercase; letter-spacing:2px;">Current Balance</div>
-                            <div style="color:#c8a800; font-size:1.8em; font-weight:bold;" id="banked-souls-display">0</div>
-                            <div style="color:var(--dim-color); font-size:0.75em;">souls secured</div>
+                <!-- Two vault cards side by side -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+
+                    <!-- Soul Vault -->
+                    <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; border-top:3px solid #c8a800; border-radius:12px; padding:20px; position:relative; overflow:hidden;">
+                        <div style="position:absolute; top:0; left:0; right:0; bottom:0; background:radial-gradient(ellipse at top, #c8a80008 0%, transparent 70%); pointer-events:none;"></div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                            <span style="font-size:1.5em;">👻</span>
+                            <div>
+                                <div style="color:#888; font-size:0.7em; text-transform:uppercase; letter-spacing:2px;">Soul Vault</div>
+                                <div style="color:#c8a800; font-size:1.5em; font-weight:bold;" id="banked-souls-display">0</div>
+                                <div style="color:#666; font-size:0.72em;">souls secured</div>
+                            </div>
                         </div>
+                        <button class="upgrade-btn" onclick="depositSouls()" style="width:100%; margin-bottom:8px; border-color:#c8a80066; background:linear-gradient(135deg,#c8a80015,transparent);">
+                            <span style="color:#c8a800; font-weight:bold;">⬆ Deposit Souls</span>
+                            <span style="display:block; font-size:0.72em; color:#888; margin-top:2px;">Store 10× your current SPS · costs 25 DE</span>
+                        </button>
+                        <button class="upgrade-btn" id="withdrawBtn" onclick="withdrawSouls()" style="width:100%; border-color:#8855ff44; background:transparent;">
+                            <span style="color:#b088ff;">⬇ Withdraw</span>
+                            <span style="display:block; font-size:0.72em; color:#666; margin-top:2px;">Fee: <span id="withdrawCost">10</span> DE · once per life</span>
+                        </button>
                     </div>
-                    <button id="withdrawBtn" class="upgrade-btn" onclick="withdrawSouls()" style="width:100%; text-align:left;">
-                        <span class="btn-title">⬇️ Withdraw Souls</span>
-                        <span>Claim your stored souls into this run.</span>
-                        <span class="cost">Fee: <span id="withdrawCost" class="cost-essence">10</span> Dark Essence</span>
-                    </button>
+
+                    <!-- Fragment Vault -->
+                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #3d2a4a; border-top:3px solid #44cc88; border-radius:12px; padding:20px; position:relative; overflow:hidden;">
+                        <div style="position:absolute; top:0; left:0; right:0; bottom:0; background:radial-gradient(ellipse at top, #44cc8808 0%, transparent 70%); pointer-events:none;"></div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                            <span style="font-size:1.5em;">🔮</span>
+                            <div>
+                                <div style="color:#888; font-size:0.7em; text-transform:uppercase; letter-spacing:2px;">Fragment Vault</div>
+                                <div style="color:#44cc88; font-size:1.5em; font-weight:bold;" id="banked-fragments-display">0</div>
+                                <div style="color:#666; font-size:0.72em;">fragments secured</div>
+                            </div>
+                        </div>
+                        <button class="upgrade-btn" onclick="depositFragments()" style="width:100%; margin-bottom:8px; border-color:#44cc8866; background:linear-gradient(135deg,#44cc8815,transparent);">
+                            <span style="color:#44cc88; font-weight:bold;">⬆ Deposit Fragments</span>
+                            <span style="display:block; font-size:0.72em; color:#888; margin-top:2px;">Vault all your fragments · costs 50 DE</span>
+                        </button>
+                        <button class="upgrade-btn" id="withdrawFragmentsBtn" onclick="withdrawFragments()" style="width:100%; border-color:#44cc8822; background:transparent;">
+                            <span style="color:#44cc88;">⬇ Withdraw</span>
+                            <span style="display:block; font-size:0.72em; color:#666; margin-top:2px;">Fee: 25 DE · once per life</span>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Deposit Card -->
-                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1228); border:1px solid #3d2a4a; border-top:3px solid #8855ff; border-radius:12px; padding:20px; margin-bottom:20px;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                        <span style="font-size:1.3em;">💰</span>
-                        <h3 style="margin:0; color:#b088ff;">Make a Deposit</h3>
+                <!-- Interest info -->
+                <div style="background:#0a0812; border:1px solid #c8a80022; border-radius:10px; padding:12px 16px; margin-bottom:20px; display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:1.2em;">📈</span>
+                    <div style="flex:1;">
+                        <div style="color:#c8a800; font-size:0.82em; font-weight:bold;">Soul Vault earns 0.5% interest per hour</div>
+                        <div style="color:#555; font-size:0.72em;">Compounds passively. Fragments do not earn interest.</div>
                     </div>
-                    <p style="color:var(--dim-color); font-size:0.84em; margin:0 0 14px;">Each deposit locks away 50,000 souls for your next life. Available immediately after Ascension.</p>
-                    <button id="depositBtn" class="upgrade-btn" onclick="depositSouls()" style="width:100%;">
-                        <span class="btn-title">🔐 Secure a Soul Package</span>
-                        <span>Store 50,000 souls in the vault.</span>
-                        <span class="cost">Cost: <span id="depositCostSouls" class="cost-souls">100,000</span> souls + <span id="depositCostEssence" class="cost-essence">25</span> DE</span>
-                    </button>
                 </div>
 
                 <!-- Exchange Section -->
-                <div style="background:linear-gradient(135deg,#0a0812,#110d1e); border:1px solid #3d2a4a; border-radius:12px; padding:20px;">
+                <div style="background:linear-gradient(135deg,#0a0812,#110d1e); border:1px solid #3d2a4a; border-top:3px solid #00e5ff; border-radius:12px; padding:20px;">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                         <span style="font-size:1.3em;">🔀</span>
-                        <h3 style="margin:0; color:#00e5ff;">Abyssal Exchange</h3>
+                        <h3 style="margin:0; color:#00e5ff; letter-spacing:2px;">ABYSSAL EXCHANGE</h3>
                     </div>
-                    <p style="color:var(--dim-color); font-size:0.82em; margin:0 0 16px;">Transmute your cosmic assets. These conversions are permanent and costly.</p>
+                    <p style="color:var(--dim-color); font-size:0.8em; margin:0 0 16px;">Transmute your cosmic assets. All conversions are permanent and irreversible.</p>
 
                     <!-- Balances row -->
-                    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
-                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:8px 14px; font-size:0.82em;">
-                            👻 <span id="exchange-souls-balance" class="cost-souls">0</span> Souls
-                        </div>
-                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:8px 14px; font-size:0.82em;">
-                            🌑 <span id="exchange-essence-balance" class="cost-essence">0</span> Dark Essence
-                        </div>
-                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:8px 14px; font-size:0.82em;">
-                            💎 <span id="exchange-shards-balance" class="cost-shards">0</span> Shards
-                        </div>
-                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:8px 14px; font-size:0.82em;">
-                            ⚡ <span id="exchange-aether-balance" style="color:#00e5ff;">0</span> Aether
-                        </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
+                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">👻 <span id="exchange-souls-balance" class="cost-souls">0</span></div>
+                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">🌑 <span id="exchange-essence-balance" class="cost-essence">0</span> DE</div>
+                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">💎 <span id="exchange-shards-balance" class="cost-shards">0</span> Shards</div>
+                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">⚡ <span id="exchange-aether-balance" style="color:#00e5ff;">0</span> Aether</div>
+                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">🔮 <span id="exchange-fragments-balance" style="color:#44cc88;">0</span> Fragments</div>
                     </div>
 
-                    <div class="exchange-offers-grid">
+                    <div class="exchange-offers-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
+                        <!-- Shards → DE -->
                         <div class="upgrade-btn exchange-offer">
-                            <span class="btn-title">💎 Shatter Shards</span>
+                            <span class="btn-title">💎 → 🌑 Shatter Shards</span>
                             <div class="exchange-tier-selector">
                                 <button class="arrow-btn" onclick="cycleConversion('shardsToDe', -1)">&#10094;</button>
                                 <span id="shards-tier-text">Loading...</span>
                                 <button class="arrow-btn" onclick="cycleConversion('shardsToDe', 1)">&#10095;</button>
                             </div>
-                            <button id="convert-shards-btn" class="action-btn" style="width:100%; margin-top:15px; font-size:1rem;">Convert</button>
+                            <button id="convert-shards-btn" class="action-btn" style="width:100%; margin-top:10px; font-size:0.9rem;">Convert</button>
                         </div>
+
+                        <!-- Aether → DE -->
                         <div class="upgrade-btn exchange-offer">
-                            <span class="btn-title">⚡ Bleed Aether</span>
+                            <span class="btn-title">⚡ → 🌑 Bleed Aether</span>
                             <div class="exchange-tier-selector">
                                 <button class="arrow-btn" onclick="cycleConversion('aetherToDe', -1)">&#10094;</button>
                                 <span id="aether-tier-text">Loading...</span>
                                 <button class="arrow-btn" onclick="cycleConversion('aetherToDe', 1)">&#10095;</button>
                             </div>
-                            <button id="convert-aether-btn" class="action-btn" style="width:100%; margin-top:15px; font-size:1rem;">Convert</button>
+                            <button id="convert-aether-btn" class="action-btn" style="width:100%; margin-top:10px; font-size:0.9rem;">Convert</button>
                         </div>
+
+                        <!-- DE → Souls -->
                         <div class="upgrade-btn exchange-offer">
-                            <span class="btn-title">👻 Conjure Souls</span>
+                            <span class="btn-title">🌑 → 👻 Conjure Souls</span>
                             <div class="exchange-tier-selector">
                                 <button class="arrow-btn" onclick="cycleConversion('deToSouls', -1)">&#10094;</button>
                                 <span id="de-tier-text">Loading...</span>
                                 <button class="arrow-btn" onclick="cycleConversion('deToSouls', 1)">&#10095;</button>
                             </div>
-                            <button id="convert-essence-btn" class="action-btn" style="width:100%; margin-top:15px; font-size:1rem;">Convert</button>
+                            <button id="convert-essence-btn" class="action-btn" style="width:100%; margin-top:10px; font-size:0.9rem;">Convert</button>
+                        </div>
+
+                        <!-- DE → Shards -->
+                        <div class="upgrade-btn exchange-offer">
+                            <span class="btn-title">🌑 → 💎 Crystallize Shards</span>
+                            <div class="exchange-tier-selector">
+                                <button class="arrow-btn" onclick="cycleConversion('deToShards', -1)">&#10094;</button>
+                                <span id="de-shards-tier-text">Loading...</span>
+                                <button class="arrow-btn" onclick="cycleConversion('deToShards', 1)">&#10095;</button>
+                            </div>
+                            <button id="convert-de-shards-btn" class="action-btn" style="width:100%; margin-top:10px; font-size:0.9rem;">Convert</button>
+                        </div>
+
+                        <!-- Shards → Fragments (very expensive) -->
+                        <div class="upgrade-btn exchange-offer" style="border-color:#44cc8833; background:linear-gradient(135deg,#44cc8808,transparent);">
+                            <span class="btn-title" style="color:#44cc88;">💎 → 🔮 Forge Fragments</span>
+                            <div style="color:#555; font-size:0.7em; margin:4px 0;">⚠ Extremely expensive</div>
+                            <div class="exchange-tier-selector">
+                                <button class="arrow-btn" onclick="cycleConversion('shardsToFragments', -1)">&#10094;</button>
+                                <span id="shards-fragments-tier-text">Loading...</span>
+                                <button class="arrow-btn" onclick="cycleConversion('shardsToFragments', 1)">&#10095;</button>
+                            </div>
+                            <button id="convert-shards-fragments-btn" class="action-btn" style="width:100%; margin-top:10px; font-size:0.9rem; border-color:#44cc8866;">Convert</button>
                         </div>
                     </div>
                 </div>
@@ -5541,20 +5584,41 @@ const expeditions = {
 // CONVERSION TIER DATA (NEW!)
 // =================================================================
 const conversionTiers = {
+    // Shards → Dark Essence (better rates, more tiers)
     shardsToDe: [
-        { fromAmount: 500000, toAmount: 1 },
-        { fromAmount: 1000000, toAmount: 3 },
-        { fromAmount: 1000000000, toAmount: 100 },
-        { fromAmount: 1000000000000, toAmount: 5000 }
+        { fromAmount: 10,           toAmount: 1,        label: 'Tiny' },
+        { fromAmount: 100,          toAmount: 12,       label: 'Small' },
+        { fromAmount: 1000,         toAmount: 150,      label: 'Moderate' },
+        { fromAmount: 10000,        toAmount: 2000,     label: 'Large' },
+        { fromAmount: 100000,       toAmount: 25000,    label: 'Massive' },
+        { fromAmount: 1e9,          toAmount: 5e8,      label: 'Colossal' },
     ],
+    // Aether → Dark Essence
     aetherToDe: [
-        { fromAmount: 1, toAmount: 50 }, // This will be dynamic later
-        { fromAmount: 2, toAmount: 95 }  // Example: slightly better deal for buying more
+        { fromAmount: 1,  toAmount: 50  },
+        { fromAmount: 5,  toAmount: 300 },
+        { fromAmount: 10, toAmount: 700 },
+        { fromAmount: 25, toAmount: 2000 },
     ],
+    // Dark Essence → Souls (scales with progression)
     deToSouls: [
-        { fromAmount: 10, toAmount: 10000000 },
-        { fromAmount: 200, toAmount: 1000000000 }
-    ]
+        { fromAmount: 5,    toAmount: 1e6,    label: 'Trickle' },
+        { fromAmount: 50,   toAmount: 1e8,    label: 'Stream' },
+        { fromAmount: 500,  toAmount: 5e10,   label: 'Flood' },
+        { fromAmount: 5000, toAmount: 1e14,   label: 'Deluge' },
+    ],
+    // Shards → Abyssal Fragments (extremely expensive)
+    shardsToFragments: [
+        { fromAmount: 1e8,  toAmount: 1,  label: 'Micro' },
+        { fromAmount: 1e10, toAmount: 5,  label: 'Small' },
+        { fromAmount: 1e13, toAmount: 20, label: 'Moderate' },
+    ],
+    // Dark Essence → Abyssal Shards
+    deToShards: [
+        { fromAmount: 100,   toAmount: 1,   label: 'Trickle' },
+        { fromAmount: 1000,  toAmount: 15,  label: 'Modest' },
+        { fromAmount: 10000, toAmount: 200, label: 'Surge' },
+    ],
 };
 
 // =================================================================
@@ -6220,6 +6284,7 @@ function executeAscension() {
 
   const oldPlayerName = gameState.playerName;
   const oldBankedSouls = gameState.bankedSouls;
+  const oldBankedFragments = gameState.bankedFragments || 0;
   const oldAscensions = gameState.ascensions;
   const oldAbyssalShards = gameState.abyssalShards;
   const oldResonance = gameState.upgrades.resonance;
@@ -6247,7 +6312,9 @@ function executeAscension() {
   gameState.playerName = oldPlayerName;
   gameState.souls = startingSouls;
   gameState.bankedSouls = oldBankedSouls;
+  gameState.bankedFragments = oldBankedFragments;
   gameState.hasWithdrawn = false;
+  gameState.hasWithdrawnFragments = false;
   gameState.ascensions = oldAscensions + 1;
   gameState.abyssalShards = oldAbyssalShards + shardsGained;
   gameState.totalShardsEarned = oldTotalShardsEarned + shardsGained;
@@ -9473,21 +9540,71 @@ function startShopTimer() {
 // BANK FUNCTIONS (NEW)
 // =================================================================
 function depositSouls() {
-    const soulCost = 100000;
     const essenceCost = 25;
+    const depositAmt = Math.max(50000, Math.floor(gameState.stats.sps * 10));
 
-    if (gameState.souls >= soulCost && gameState.darkEssence >= essenceCost) {
-        gameState.souls -= soulCost;
-        gameState.darkEssence -= essenceCost;
-        gameState.bankedSouls += 50000; // Deposit 50k souls
-
-        playSound('upgrade');
-        alert("50,000 Souls have been secured in the Abyssal Vault for your next life.");
-        renderAll(); // Update the display
-        saveGame();
-    } else {
-        alert("You do not have enough resources for this deposit.");
+    if (gameState.souls < depositAmt) {
+        Toastify({ text: `Need ${formatNumber(depositAmt)} souls to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
+        return;
     }
+    if (gameState.darkEssence < essenceCost) {
+        Toastify({ text: `Need ${essenceCost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
+        return;
+    }
+    gameState.souls -= depositAmt;
+    gameState.darkEssence -= essenceCost;
+    gameState.bankedSouls += depositAmt;
+    playSound('upgrade');
+    Toastify({ text: `🏦 ${formatNumber(depositAmt)} souls secured in the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a1800,#c8a800)'} }).showToast();
+    renderBank();
+    updateDynamicDisplays();
+    saveGame();
+}
+
+function depositFragments() {
+    const essenceCost = 50;
+    const depositAmt = gameState.corruptedFragments;
+    if (depositAmt <= 0) {
+        Toastify({ text: `You have no fragments to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
+        return;
+    }
+    if (gameState.darkEssence < essenceCost) {
+        Toastify({ text: `Need ${essenceCost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
+        return;
+    }
+    gameState.darkEssence -= essenceCost;
+    gameState.corruptedFragments = 0;
+    gameState.bankedFragments = (gameState.bankedFragments || 0) + depositAmt;
+    playSound('upgrade');
+    Toastify({ text: `🔮 ${formatNumber(depositAmt)} fragments secured in the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
+    renderBank();
+    updateDynamicDisplays();
+    saveGame();
+}
+
+function withdrawFragments() {
+    const withdrawCost = 25;
+    if (gameState.hasWithdrawnFragments) {
+        Toastify({ text: `Already withdrew fragments this life.`, duration:2500, gravity:'top', position:'center' }).showToast();
+        return;
+    }
+    if (!gameState.bankedFragments || gameState.bankedFragments <= 0) {
+        Toastify({ text: `Fragment vault is empty.`, duration:2500, gravity:'top', position:'center' }).showToast();
+        return;
+    }
+    if (gameState.darkEssence < withdrawCost) {
+        Toastify({ text: `Need ${withdrawCost} Dark Essence to withdraw.`, duration:2500, gravity:'top', position:'center' }).showToast();
+        return;
+    }
+    if (!confirm(`Withdraw ${formatNumber(gameState.bankedFragments)} fragments for ${withdrawCost} DE?`)) return;
+    gameState.darkEssence -= withdrawCost;
+    gameState.corruptedFragments += gameState.bankedFragments;
+    gameState.hasWithdrawnFragments = true;
+    playSound('ascend');
+    Toastify({ text: `🔮 Fragments retrieved from the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
+    renderBank();
+    updateDynamicDisplays();
+    saveGame();
 }
 
 function withdrawSouls() {
@@ -9554,6 +9671,18 @@ function convertCurrency(from, to, amountIn, amountOut) {
             gameState.souls += amountOut;
             canAfford = true;
         }
+    } else if (from === 'shards' && to === 'fragments') {
+        if (gameState.abyssalShards >= amountIn) {
+            gameState.abyssalShards -= amountIn;
+            gameState.corruptedFragments += amountOut;
+            canAfford = true;
+        }
+    } else if (from === 'de' && to === 'shards') {
+        if (gameState.darkEssence >= amountIn) {
+            gameState.darkEssence -= amountIn;
+            gameState.abyssalShards += amountOut;
+            canAfford = true;
+        }
     }
 
     // If the transaction was successful, update the game
@@ -9573,60 +9702,67 @@ function convertCurrency(from, to, amountIn, amountOut) {
 
 
 function renderBank() {
-    // This is the original part for depositing/withdrawing (UNCHANGED)
     const bankedSoulsDisplay = document.getElementById('banked-souls-display');
     if (bankedSoulsDisplay) {
         bankedSoulsDisplay.textContent = formatNumber(gameState.bankedSouls || 0);
-        const depositsMade = (gameState.bankedSouls || 0) / 50000;
-        const withdrawCost = 10 * depositsMade;
-        document.getElementById('withdrawCost').textContent = `${formatNumber(withdrawCost)} Dark Essence`;
-        document.getElementById('withdrawBtn').disabled = gameState.hasWithdrawn || gameState.darkEssence < withdrawCost || (gameState.bankedSouls || 0) <= 0;
-        document.getElementById('depositBtn').disabled = gameState.souls < 100000 || gameState.darkEssence < 25;
+        const withdrawCost = Math.max(10, Math.floor((gameState.bankedSouls || 0) / 1e6));
+        const wc = document.getElementById('withdrawCost');
+        if (wc) wc.textContent = formatNumber(withdrawCost);
+        const wb = document.getElementById('withdrawBtn');
+        if (wb) wb.disabled = gameState.hasWithdrawn || gameState.darkEssence < withdrawCost || (gameState.bankedSouls || 0) <= 0;
     }
 
-    // --- THIS IS THE UPGRADED PART FOR THE ABYSSAL EXCHANGE ---
+    const bankedFragDisplay = document.getElementById('banked-fragments-display');
+    if (bankedFragDisplay) {
+        bankedFragDisplay.textContent = formatNumber(gameState.bankedFragments || 0);
+        const wfb = document.getElementById('withdrawFragmentsBtn');
+        if (wfb) wfb.disabled = gameState.hasWithdrawnFragments || gameState.darkEssence < 25 || (gameState.bankedFragments || 0) <= 0;
+    }
+
     const exchangeSouls = document.getElementById('exchange-souls-balance');
-    if (exchangeSouls) {
-        exchangeSouls.innerText = formatNumber(gameState.souls);
-        document.getElementById('exchange-essence-balance').innerText = formatNumber(gameState.darkEssence);
-        document.getElementById('exchange-shards-balance').innerText = formatNumber(gameState.abyssalShards);
-        document.getElementById('exchange-aether-balance').innerText = formatNumber(gameState.aether);
+    if (!exchangeSouls) return;
+    exchangeSouls.innerText = formatNumber(gameState.souls);
+    document.getElementById('exchange-essence-balance').innerText = formatNumber(gameState.darkEssence);
+    document.getElementById('exchange-shards-balance').innerText = formatNumber(gameState.abyssalShards);
+    document.getElementById('exchange-aether-balance').innerText = formatNumber(gameState.aether);
+    const fragBal = document.getElementById('exchange-fragments-balance');
+    if (fragBal) fragBal.innerText = formatNumber(gameState.corruptedFragments);
 
-        // --- Render the dynamic "Shatter Shards" tier ---
-        const shardsTierIndex = currentConversionIndexes.shardsToDe;
-        const selectedShardsTier = conversionTiers.shardsToDe[shardsTierIndex];
-        document.getElementById('shards-tier-text').innerHTML = `
-            Convert <span class="cost-shards">${formatNumber(selectedShardsTier.fromAmount)} Shards</span> into <span class="cost-essence">${formatNumber(selectedShardsTier.toAmount)} DE</span>.
-        `;
-        const convertShardsBtn = document.getElementById('convert-shards-btn');
-        convertShardsBtn.onclick = () => convertCurrency('shards', 'de', selectedShardsTier.fromAmount, selectedShardsTier.toAmount);
-        convertShardsBtn.disabled = gameState.abyssalShards < selectedShardsTier.fromAmount;
+    const shardsTier = conversionTiers.shardsToDe[currentConversionIndexes.shardsToDe];
+    document.getElementById('shards-tier-text').innerHTML = `<span class="cost-shards">${formatNumber(shardsTier.fromAmount)} Shards</span> → <span class="cost-essence">${formatNumber(shardsTier.toAmount)} DE</span>`;
+    const csb = document.getElementById('convert-shards-btn');
+    csb.onclick = () => convertCurrency('shards', 'de', shardsTier.fromAmount, shardsTier.toAmount);
+    csb.disabled = gameState.abyssalShards < shardsTier.fromAmount;
 
-        // --- Render the dynamic "Bleed Aether" tier --- (THIS IS THE NEW PART)
-        const aetherTierIndex = currentConversionIndexes.aetherToDe;
-        const selectedAetherTier = conversionTiers.aetherToDe[aetherTierIndex];
-        // Special dynamic calculation for the first Aether tier
-        const aetherToDeAmount = (aetherTierIndex === 0) ? Math.max(5, 50 - (gameState.aetherToDeConversions * 5)) : selectedAetherTier.toAmount;
-        document.getElementById('aether-tier-text').innerHTML = `
-            Convert <span style="color:#00e5ff;">${formatNumber(selectedAetherTier.fromAmount)} Aether</span> into <span class="cost-essence">${formatNumber(aetherToDeAmount)} DE</span>.
-        `;
-        const convertAetherBtn = document.getElementById('convert-aether-btn');
-        convertAetherBtn.onclick = () => convertCurrency('aether', 'de', selectedAetherTier.fromAmount, aetherToDeAmount);
-        convertAetherBtn.disabled = gameState.aether < selectedAetherTier.fromAmount;
+    const aetherTier = conversionTiers.aetherToDe[currentConversionIndexes.aetherToDe];
+    const aetherOut = (currentConversionIndexes.aetherToDe === 0) ? Math.max(5, 50 - (gameState.aetherToDeConversions * 5)) : aetherTier.toAmount;
+    document.getElementById('aether-tier-text').innerHTML = `<span style="color:#00e5ff;">${formatNumber(aetherTier.fromAmount)} Aether</span> → <span class="cost-essence">${formatNumber(aetherOut)} DE</span>`;
+    const cab = document.getElementById('convert-aether-btn');
+    cab.onclick = () => convertCurrency('aether', 'de', aetherTier.fromAmount, aetherOut);
+    cab.disabled = gameState.aether < aetherTier.fromAmount;
 
+    const deTier = conversionTiers.deToSouls[currentConversionIndexes.deToSouls];
+    document.getElementById('de-tier-text').innerHTML = `<span class="cost-essence">${formatNumber(deTier.fromAmount)} DE</span> → <span class="cost-souls">${formatNumber(deTier.toAmount)} Souls</span>`;
+    const ceb = document.getElementById('convert-essence-btn');
+    ceb.onclick = () => convertCurrency('de', 'souls', deTier.fromAmount, deTier.toAmount);
+    ceb.disabled = gameState.darkEssence < deTier.fromAmount;
 
-        // --- Render the dynamic "Conjure Souls" tier --- (THIS IS THE NEW PART)
-        const deTierIndex = currentConversionIndexes.deToSouls;
-        const selectedDeTier = conversionTiers.deToSouls[deTierIndex];
-        document.getElementById('de-tier-text').innerHTML = `
-            Convert <span class="cost-essence">${formatNumber(selectedDeTier.fromAmount)} DE</span> into <span class="cost-souls">${formatNumber(selectedDeTier.toAmount)} Souls</span>.
-        `;
-        const convertEssenceBtn = document.getElementById('convert-essence-btn');
-        convertEssenceBtn.onclick = () => convertCurrency('de', 'souls', selectedDeTier.fromAmount, selectedDeTier.toAmount);
-        convertEssenceBtn.disabled = gameState.darkEssence < selectedDeTier.fromAmount;
+    const deShardsTier = conversionTiers.deToShards[currentConversionIndexes.deToShards];
+    const dsEl = document.getElementById('de-shards-tier-text');
+    if (dsEl) {
+        dsEl.innerHTML = `<span class="cost-essence">${formatNumber(deShardsTier.fromAmount)} DE</span> → <span class="cost-shards">${formatNumber(deShardsTier.toAmount)} Shards</span>`;
+        const cdsb = document.getElementById('convert-de-shards-btn');
+        if (cdsb) { cdsb.onclick = () => convertCurrency('de', 'shards', deShardsTier.fromAmount, deShardsTier.toAmount); cdsb.disabled = gameState.darkEssence < deShardsTier.fromAmount; }
+    }
+
+    const sfTier = conversionTiers.shardsToFragments[currentConversionIndexes.shardsToFragments];
+    const sfEl = document.getElementById('shards-fragments-tier-text');
+    if (sfEl) {
+        sfEl.innerHTML = `<span class="cost-shards">${formatNumber(sfTier.fromAmount)} Shards</span> → <span style="color:#44cc88;">${formatNumber(sfTier.toAmount)} Fragments</span>`;
+        const csfb = document.getElementById('convert-shards-fragments-btn');
+        if (csfb) { csfb.onclick = () => convertCurrency('shards', 'fragments', sfTier.fromAmount, sfTier.toAmount); csfb.disabled = gameState.abyssalShards < sfTier.fromAmount; }
     }
 }
-
 // ---------------------------------------------------------------
 
 // ------------------------------------------------------------------
@@ -11162,7 +11298,9 @@ function loadFontSetting() {
 let currentConversionIndexes = {
     shardsToDe: 0,
     aetherToDe: 0,
-    deToSouls: 0
+    deToSouls: 0,
+    shardsToFragments: 0,
+    deToShards: 0
 };
 
 function cycleConversion(type, direction) {

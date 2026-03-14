@@ -3262,7 +3262,7 @@ text-decoration: underline; /* Adds an underline on hover */
                             <div style="color:#c8a800; font-size:1.4em; font-weight:bold;" id="pact-name-display"></div>
                         </div>
                     </div>
-                    <div id="pact-members-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;"></div>
+                    <div id="pact-members-list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;"></div>
                     <div id="pact-bonus-display" style="background:#00e5ff11; border:1px solid #00e5ff33; border-radius:6px; padding:8px 14px; color:#00e5ff; font-size:0.9em; margin-bottom:16px; display:inline-block;"></div>
                     <br>
                     <!-- Pact Random Buff -->
@@ -3277,12 +3277,12 @@ text-decoration: underline; /* Adds an underline on hover */
                         <div id="pact-buff-status" style="display:none;"></div>
                         <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
                             <span style="color:#555; font-size:0.7em; flex-basis:100%;">Possible buffs:</span>
-                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">💥 Soul Surge</span>
-                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">🌑 Essence Tide</span>
-                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">🌾 Dark Harvest</span>
-                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">🛡 Void Shield</span>
-                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">🩸 Blood Pact</span>
-                            <span style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:2px 8px; color:#666; font-size:0.68em;">🔊 Abyssal Echo</span>
+                            <span data-tooltip="+25% SPS for 10 minutes" style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:4px 12px; color:#888; font-size:0.75em; cursor:help; position:relative;">💥 Soul Surge</span>
+                            <span data-tooltip="+3 Dark Essence instantly" style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:4px 12px; color:#888; font-size:0.75em; cursor:help;">🌑 Essence Tide</span>
+                            <span data-tooltip="+50% Souls Per Click for 5 minutes" style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:4px 12px; color:#888; font-size:0.75em; cursor:help;">🌾 Dark Harvest</span>
+                            <span data-tooltip="Minions cost 20% less for 5 minutes" style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:4px 12px; color:#888; font-size:0.75em; cursor:help;">🛡 Void Shield</span>
+                            <span data-tooltip="+15% global multiplier for 8 minutes" style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:4px 12px; color:#888; font-size:0.75em; cursor:help;">🩸 Blood Pact</span>
+                            <span data-tooltip="+10 flat Souls Per Click for 5 minutes" style="background:#ffffff08; border:1px solid #333; border-radius:20px; padding:4px 12px; color:#888; font-size:0.75em; cursor:help;">🔊 Abyssal Echo</span>
                         </div>
                     </div>
                     <button class="upgrade-btn" onclick="leavePact()" style="background:#2a0808; border-color:#6a0000; color:#ff6666; margin-top:8px;">🚪 Leave Pact</button>
@@ -7994,6 +7994,12 @@ function enterGame() {
     renderAll();
     initializeChat();
     setTimeout(() => refreshMarketTicker(), 2000);
+    // Keep retrying until ticker actually has scrolling content (in case Supabase is slow)
+    const tickerRetry = setInterval(() => {
+        const inner = document.getElementById('market-ticker-inner');
+        if (inner && inner.children.length > 1) { clearInterval(tickerRetry); return; }
+        refreshMarketTicker();
+    }, 5000);
     updateAccountBtn();
     // Load audio settings
     audio.bgm.muted = localStorage.getItem('musicMuted') === 'true';
@@ -9495,18 +9501,22 @@ async function refreshMarketTicker() {
         // Duplicate enough times to always fill the screen
         const repeated = chips.repeat(3);
         inner.innerHTML = repeated;
-        // Retry setting speed until element is visible and scrollWidth is readable
-        const setSpeed = (attempts) => {
+        // Calculate speed from text length rather than scrollWidth (works even when off-screen)
+        const charCount = chips.length;
+        const speed = Math.max(8, charCount / 25); // faster: ~25 chars per second
+        inner.style.animationDuration = speed + 's';
+        // Also refine with actual scrollWidth once visible
+        const refineSpeed = (attempts) => {
             requestAnimationFrame(() => {
                 const w = inner.scrollWidth / 3;
                 if (w > 0) {
-                    inner.style.animationDuration = Math.max(15, w / 80) + 's';
+                    inner.style.animationDuration = Math.max(8, w / 120) + 's';
                 } else if (attempts > 0) {
-                    setTimeout(() => setSpeed(attempts - 1), 200);
+                    setTimeout(() => refineSpeed(attempts - 1), 500);
                 }
             });
         };
-        setSpeed(10);
+        refineSpeed(20);
     } catch(e) { console.warn('Ticker error:', e); }
 }
 
@@ -11893,19 +11903,19 @@ function renderPactScreen() {
                 const souls   = stats.lifetimeSouls ? formatNumber(stats.lifetimeSouls) : '?';
                 const canKick = isLeader && !isMe;
 
-                return `<div style="background:#0a0812; border:1px solid ${color}22; border-left:3px solid ${color}55; border-radius:10px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; width:100%; box-sizing:border-box;">
-                    <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
-                        <span style="font-size:1.4em; flex-shrink:0;">${memberIcons[i]}</span>
+                return `<div style="background:#0a0812; border:1px solid ${color}22; border-left:3px solid ${color}55; border-radius:10px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; width:100%; box-sizing:border-box;">
+                    <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
+                        <span style="font-size:1.6em; flex-shrink:0;">${memberIcons[i]}</span>
                         <div style="min-width:0;">
-                            <div style="color:${color}; font-weight:bold; font-size:0.92em;">${m}${isMe ? ' <span style="color:#555; font-size:0.75em; font-weight:normal;">(you)</span>' : ''}</div>
-                            <div style="color:#555; font-size:0.7em; margin-top:3px; display:flex; gap:12px; flex-wrap:wrap;">
-                                <span>✨ ${asc} Asc</span>
-                                <span>👻 ${souls} souls</span>
-                                <span>⚔ ${wins} PvP wins</span>
+                            <div style="color:${color}; font-weight:bold; font-size:1.05em;">${m}${isMe ? ' <span style="color:#555; font-size:0.8em; font-weight:normal;">(you)</span>' : ''}</div>
+                            <div style="color:#888; font-size:0.82em; margin-top:5px; display:flex; gap:16px; flex-wrap:wrap;">
+                                <span>✨ <strong style="color:#ccc;">${asc}</strong> Asc</span>
+                                <span>👻 <strong style="color:#ccc;">${souls}</strong> souls</span>
+                                <span>⚔ <strong style="color:#ccc;">${wins}</strong> PvP wins</span>
                             </div>
                         </div>
                     </div>
-                    ${canKick ? `<button onclick="kickPactMember('${m}')" style="background:#1a0808; border:1px solid #cc333344; border-radius:7px; padding:5px 12px; color:#cc4444; cursor:pointer; font-family:inherit; font-size:0.72em; flex-shrink:0; white-space:nowrap;">✕ Remove</button>` : ''}
+                    ${canKick ? `<button onclick="kickPactMember('${m}')" style="background:#1a0808; border:1px solid #cc333366; border-radius:8px; padding:7px 14px; color:#cc4444; cursor:pointer; font-family:inherit; font-size:0.8em; font-weight:bold; flex-shrink:0; white-space:nowrap;">✕ Remove</button>` : ''}
                 </div>`;
             }).join('');
         })();
@@ -12169,11 +12179,22 @@ const PACT_BUFFS = [
 function rollPactBuff() {
     if (!window.playerPact) return;
     const now = Date.now();
+
+    // Block if a buff is currently active
+    const activeBuff = gameState.activeItemBuffs?.pact_buff;
+    if (activeBuff && activeBuff.expiresAt > now) {
+        const secsLeft = Math.ceil((activeBuff.expiresAt - now) / 1000);
+        const mins = Math.floor(secsLeft / 60);
+        const secs = secsLeft % 60;
+        Toastify({ text:`A pact blessing is already active! ${mins}m ${secs}s remaining.`, duration:3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a1050,#1a0830)' } }).showToast();
+        return;
+    }
+
     const lastRoll = gameState.lastPactBuffRoll || 0;
     const cooldownMs = 30 * 60 * 1000; // 30 min cooldown between rolls
     if (now - lastRoll < cooldownMs) {
         const minsLeft = Math.ceil((cooldownMs - (now - lastRoll)) / 60000);
-        Toastify({ text:`Pact buff recharges in ${minsLeft} min.`, duration:2500, gravity:'top', position:'center' }).showToast();
+        Toastify({ text:`Pact blessing recharges in ${minsLeft} min.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
     const buff = PACT_BUFFS[Math.floor(Math.random() * PACT_BUFFS.length)];

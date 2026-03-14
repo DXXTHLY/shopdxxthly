@@ -9872,15 +9872,16 @@ function renderBank() {
     const sfEl = document.getElementById('shards-fragments-tier-text');
     if (sfEl) {
         const forgeCount = gameState.fragmentForgeCount || 0;
-        const BASE_COST = 1e12; // 1 Trillion shards base
-        const COST_MULTIPLIER = 3; // triples each purchase
-        const dynamicCost = Math.floor(BASE_COST * Math.pow(COST_MULTIPLIER, forgeCount));
+        // Base cost = 0.1% of your lifetime souls converted to shards equivalent
+        // This makes it always feel expensive regardless of progression stage
+        const lifetimeSoulsBase = Math.max(1e12, (gameState.lifetimeSouls || 0) * 0.001);
+        const dynamicCost = Math.floor(lifetimeSoulsBase * Math.pow(2.5, forgeCount));
         const canForge = gameState.abyssalShards >= dynamicCost;
-        sfEl.innerHTML = `<span class="cost-shards">${formatNumber(dynamicCost)} Shards</span> → <span style="color:#44cc88;">1 Fragment</span><div style="color:#555;font-size:0.68em;margin-top:2px;">Purchase #${forgeCount+1} · next: ${formatNumber(Math.floor(dynamicCost * COST_MULTIPLIER))}</div>`;
+        sfEl.innerHTML = `<span class="cost-shards">${formatNumber(dynamicCost)} Shards</span> → <span style="color:#44cc88;">1 Fragment</span><div style="color:#555;font-size:0.68em;margin-top:2px;">Purchase #${forgeCount+1} · next: ${formatNumber(Math.floor(dynamicCost * 2.5))}</div>`;
         const csfb = document.getElementById('convert-shards-fragments-btn');
         if (csfb) {
             csfb.onclick = () => {
-                if (!confirm(`Convert ${formatNumber(dynamicCost)} Shards into 1 Fragment?\n\nNext purchase will cost ${formatNumber(Math.floor(dynamicCost * COST_MULTIPLIER))} Shards.`)) return;
+                if (!confirm(`Convert ${formatNumber(dynamicCost)} Shards into 1 Fragment?\n\nNext purchase will cost ${formatNumber(Math.floor(dynamicCost * 2.5))} Shards.`)) return;
                 if (gameState.abyssalShards < dynamicCost) {
                     Toastify({ text:`Need ${formatNumber(dynamicCost)} Shards!`, duration:2500, gravity:'top', position:'center' }).showToast();
                     return;
@@ -9888,7 +9889,7 @@ function renderBank() {
                 gameState.abyssalShards -= dynamicCost;
                 gameState.corruptedFragments += 1;
                 gameState.fragmentForgeCount = (gameState.fragmentForgeCount || 0) + 1;
-                Toastify({ text:`🔮 Fragment forged! Next costs ${formatNumber(Math.floor(dynamicCost * COST_MULTIPLIER))} Shards.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
+                Toastify({ text:`🔮 Fragment forged! Next costs ${formatNumber(Math.floor(dynamicCost * 2.5))} Shards.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
                 saveGame();
                 renderBank();
                 updateDynamicDisplays();

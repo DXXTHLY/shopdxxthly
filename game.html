@@ -8203,9 +8203,14 @@ function openAbyssalCache() {
 
     // ── SECRET MINION DROP (2% chance) ──────────────────────────
     const secretRoll = Math.random();
-    if (secretRoll < 0.02) {
-        const secretIds = Object.keys(minions).filter(id => minions[id].secret);
-        const chosenId  = secretIds[Math.floor(Math.random() * secretIds.length)];
+    if (secretRoll < 0.0075) {
+        // Weighted drop: wraith_of_avarice 40%, hollow_sovereign 40%, the_pale_accord 20%
+        const secretPool = [
+            'wraith_of_avarice', 'wraith_of_avarice', 'wraith_of_avarice', 'wraith_of_avarice',
+            'hollow_sovereign',  'hollow_sovereign',  'hollow_sovereign',  'hollow_sovereign',
+            'the_pale_accord',   'the_pale_accord',
+        ];
+        const chosenId  = secretPool[Math.floor(Math.random() * secretPool.length)];
         const sm = minions[chosenId];
         if (!gameState.minions[chosenId]) gameState.minions[chosenId] = { level: 0, cost: 0, promotionTier: 0 };
         gameState.minions[chosenId].level++;
@@ -9922,12 +9927,16 @@ function generateHourlyShopItems() {
         shopItems.push(selectedItem);
     }
 
-    // ── RARE SECRET MINION SLOT (3% chance per shop refresh) ─────
-    // Uses the seed so all players see the same offering (or absence) each hour.
+    // ── RARE SECRET MINION SLOT (0.5% chance per shop refresh) ─────
+    // Weighted: wraith & sovereign equally likely, pale_accord half as often.
     const secretChanceSeed = ((seed * 7 + 13) % 100) / 100; // deterministic 0–1 from seed
-    if (secretChanceSeed < 0.03) {
-        const secretIds = Object.keys(minions).filter(id => minions[id].secret);
-        const chosenId  = secretIds[(seed * 3 + 7) % secretIds.length];
+    if (secretChanceSeed < 0.005) {
+        const secretPool = [
+            'wraith_of_avarice', 'wraith_of_avarice',
+            'hollow_sovereign',  'hollow_sovereign',
+            'the_pale_accord',
+        ];
+        const chosenId  = secretPool[(seed * 3 + 7) % secretPool.length];
         // Replace slot 1 (middle slot) with the secret minion
         shopItems[1] = { id: chosenId, type: 'secret_minion' };
     }

@@ -7230,10 +7230,15 @@ function showScreen(screenId) {
         if (db) {
             db.ref('rift_history').orderByChild('t').limitToLast(10).once('value', snap => {
                 const entries = [];
-                snap.forEach(child => entries.push(child.val().v));
+                snap.forEach(child => {
+                    const d = child.val();
+                    if (d && typeof d.v === 'number') entries.push({ v: d.v, t: d.t || 0 });
+                });
+                entries.reverse(); // newest first (Firebase returns oldest-first with orderByChild)
                 const histBar = document.getElementById('rift-history');
                 if (histBar && entries.length) {
-                    const chips = entries.reverse().map(v => {
+                    const chips = entries.map(e => {
+                        const v = e.v;
                         const color = v < 1.5 ? '#ff4444' : v < 2 ? '#ff8844' : v < 5 ? '#c8a800' : '#44cc88';
                         return `<div class="rift-history-chip" style="color:${color};border-color:${color}44;background:${color}11;">${v.toFixed(2)}x</div>`;
                     }).join('');
@@ -14824,20 +14829,18 @@ async function arenaEndBattle(playerWon) {
             statusBar.style.borderLeftColor = '#ff4444';
             statusBar.style.color = '#ff6666';
 
-            // Always update local history immediately so the bar shows the current crash right away.
-            // historyPushedForRound deduplicates so multiple enterCrashed calls per round only add once.
+            // Always update local history immediately — store {v,t} objects so we can
+            // merge with Firebase data by timestamp and never clobber a newer local entry.
             const crashed = Number(atMultiplier);
             if (historyPushedForRound !== roundId) {
                 historyPushedForRound = roundId;
-                crashHistory.unshift(crashed);
-                if (crashHistory.length > 10) crashHistory.pop();
+                const entry = { v: crashed, t: Date.now() };
+                // Merge into local history: add entry, deduplicate by timestamp, sort newest-first
+                crashHistory = mergeHistoryEntry(crashHistory, entry);
                 renderHistory();
-                // ALL clients push to Firebase rift_history — this ensures the list
-                // fills up regardless of which client happens to be the round host.
-                // Firebase .push() is idempotent per key, and we deduplicate locally
-                // above so we only push once per round per client.
+                // All clients push so Firebase accumulates across all players
                 if (riftDB) {
-                    riftDB.ref('rift_history').push({ v: crashed, t: Date.now() });
+                    riftDB.ref('rift_history').push(entry);
                 }
             }
 
@@ -14864,10 +14867,28 @@ async function arenaEndBattle(playerWon) {
         // ── Render helpers ────────────────────────────────────────────
         function renderHistory() {
             if (!historyBar) return;
-            historyBar.innerHTML = crashHistory.map(v => {
+            historyBar.innerHTML = crashHistory.map(entry => {
+                // Support both legacy number entries and new {v,t} objects
+                const v = (typeof entry === 'object') ? entry.v : entry;
                 const color = v < 1.5 ? '#ff4444' : v < 2 ? '#ff8844' : v < 5 ? '#c8a800' : '#44cc88';
                 return `<div class="rift-history-chip" style="color:${color};border-color:${color}44;background:${color}11;">${v.toFixed(2)}x</div>`;
             }).join('');
+        }
+
+        // Merge a single new {v,t} entry into the history array: dedup by timestamp,
+        // sort newest-first, cap at 10. Returns the new array.
+        function mergeHistoryEntry(arr, entry) {
+            const merged = arr.filter(x => {
+                const xt = (typeof x === 'object') ? x.t : null;
+                return xt !== entry.t; // remove any existing entry with same timestamp
+            });
+            merged.unshift(entry);
+            merged.sort((a, b) => {
+                const at = (typeof a === 'object') ? a.t : 0;
+                const bt = (typeof b === 'object') ? b.t : 0;
+                return bt - at;
+            });
+            return merged.slice(0, 10);
         }
 
         function updatePlayerList() {
@@ -14989,11 +15010,25 @@ async function arenaEndBattle(playerWon) {
                     }
                 });
 
-                // Shared crash history — shows completed past rounds
+                // Shared crash history — merge incoming Firebase entries with local state
+                // so a stale Firebase snapshot never clobbers a crash we just recorded locally.
                 db.ref('rift_history').orderByChild('t').limitToLast(10).on('value', snap => {
-                    const entries = [];
-                    snap.forEach(child => entries.push(child.val().v));
-                    crashHistory = entries.reverse(); // newest first
+                    const incoming = [];
+                    snap.forEach(child => {
+                        const d = child.val();
+                        if (d && typeof d.v === 'number' && typeof d.t === 'number') {
+                            incoming.push({ v: d.v, t: d.t });
+                        }
+                    });
+                    // Merge: keep all local entries; add any Firebase entries with timestamps
+                    // we don't already have (handles the race where Firebase fires before our push commits)
+                    let merged = [...crashHistory];
+                    for (const e of incoming) {
+                        if (!merged.some(x => x.t === e.t)) merged.push(e);
+                    }
+                    // Sort newest-first, cap at 10
+                    merged.sort((a, b) => b.t - a.t);
+                    crashHistory = merged.slice(0, 10);
                     renderHistory();
                 });
 

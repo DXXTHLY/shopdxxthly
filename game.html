@@ -3214,18 +3214,6 @@ text-decoration: underline; /* Adds an underline on hover */
                     <button class="upgrade-btn" onclick="fetchLeaderboard('pvpWins')">By PvP Wins</button>
                 </div>
                 <h3 id="leaderboard-title">Ranking by Total Souls</h3><ul id="leaderboard-list"></ul>
-                <!-- PLAYER LISTINGS -->
-                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #4488ff44; border-top:3px solid #4488ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
-                    <div style="margin-bottom:16px;">
-                        <div style="background:linear-gradient(90deg,#4488ff22,#4488ff08); border:1px solid #4488ff33; border-radius:8px; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                            <span style="color:#4488ff; font-weight:bold; font-size:1em; letter-spacing:3px; text-transform:uppercase; font-family:var(--font-title);">🏪 CURRENT LISTINGS</span>
-                            <button onclick="fetchMarketListings()" style="background:#4488ff18; border:1px solid #4488ff44; border-radius:7px; padding:5px 14px; color:#4488ff; cursor:pointer; font-family:inherit; font-size:0.78em; font-weight:bold; letter-spacing:1px;">🔄 REFRESH</button>
-                        </div>
-                        <p style="margin:8px 0 0; color:#555; font-size:0.78em;">Items listed by other Soul Collectors for Dark Essence.</p>
-                    </div>
-                    <ul id="market-listing-list" class="leaderboard-list" style="margin:0;"></ul>
-                </div>
-
             </div>
 
             <!-- PACTS SCREEN -->
@@ -7201,12 +7189,15 @@ function renderInventory() {
                 <p style="color:#aaa; font-size:0.82em; margin:2px 0;">${item.desc}</p>
                 ${cooldownBar}
                 <button class="upgrade-btn" style="margin-top:6px; width:100%; border-color:${rc}66;" onclick="activateItemAbility('${itemId}')" ${isOnCooldown ? 'disabled' : ''}>${btnText}</button>
+                <button class="upgrade-btn" style="margin-top:4px; width:100%; border-color:#cc333344; background:#1a0808;" onclick="unequipItem('${itemId}'); renderInventory();"><span style="color:#cc4444;">📤 Unequip</span></button>
             </div>`;
         }
 
         const onclick = isEquipped ? '' : `onclick="openItemModal('${itemId}')"`;
         const badge = isEquipped ? `<span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa;">✦ Equipped</span>` : `<span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa; text-transform:capitalize;">${item.type}</span>`;
-        const btn = isEquipped ? '' : `<button class="upgrade-btn" style="margin-top:8px; width:100%; border-color:${rc}66;" onclick="openItemModal('${itemId}')"><span style="color:${rc};">Manage →</span></button>`;
+        const btn = isEquipped
+            ? `<button class="upgrade-btn" style="margin-top:8px; width:100%; border-color:#cc333344; background:#1a0808;" onclick="unequipItem('${itemId}'); renderInventory();"><span style="color:#cc4444;">📤 Unequip</span></button>`
+            : `<button class="upgrade-btn" style="margin-top:8px; width:100%; border-color:${rc}66;" onclick="openItemModal('${itemId}')"><span style="color:${rc};">Manage →</span></button>`;
         return `<div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${rc}55; border-top:3px solid ${rc}; border-radius:12px; padding:16px; box-shadow:0 0 16px ${rg}; display:flex; flex-direction:column; gap:6px;">
             <div style="display:flex; align-items:center; gap:10px;">
                 <span style="font-size:1.6em;">${icon}</span>

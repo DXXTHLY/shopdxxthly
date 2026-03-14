@@ -2990,6 +2990,12 @@ text-decoration: underline; /* Adds an underline on hover */
                         <!-- Status bar -->
                         <div id="arena-status-bar"></div>
 
+                        <!-- Enemy intel strip — only shown in attack mode -->
+                        <div id="arena-enemy-intel" style="display:none; background:#0e0008; border:1px solid #ff444422; border-left:3px solid #ff4444; border-radius:10px; padding:10px 14px; margin-bottom:10px;">
+                            <div style="color:#555; font-size:0.65em; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px;">⚔ Enemy Formation — <span id="arena-intel-name" style="color:#ff8888;"></span></div>
+                            <div id="arena-intel-units" style="display:flex; flex-direction:column; gap:4px;"></div>
+                        </div>
+
                         <!-- Points budget bar -->
                         <div id="arena-budget-bar" style="background:#0a0812; border:1px solid #33333344; border-radius:10px; padding:12px 16px; margin-bottom:14px; display:flex; align-items:center; gap:12px;">
                             <span style="color:#888; font-size:0.8em; white-space:nowrap;">⚡ Points</span>
@@ -13829,6 +13835,10 @@ function arenaRenderFullUI() {
         statusBar.innerHTML = `⚔ <span style="color:#ff4444;">Attacking</span> <span style="color:#ff8888;">${arenaState.opponent?.player_name}</span> — <span style="color:#aaa; font-size:0.85em;">Deploy in the <span style="color:#ff4444;">red</span> zones (bottom 2 rows)</span>`;
         saveBtn.style.display = 'none'; attackBtn.style.display = 'inline-block'; resetBtn.style.display = 'inline-block';
     }
+
+    // Show/hide intel strip
+    const intel = document.getElementById('arena-enemy-intel');
+    if (intel) intel.style.display = arenaState.mode === 'attack_setup' ? 'block' : 'none';
     arenaRenderGrid();
 }
 
@@ -14040,78 +14050,22 @@ async function arenaFetchOpponents() {
             const defenseCount = opponent.defense_data ? opponent.defense_data.length : 0;
             const units = opponent.defense_data || [];
             const totalCost = units.reduce((s, u) => s + (u.cost || 0), 0);
-            const totalHp   = units.reduce((s, u) => s + (u.hp  || 0), 0);
-            const totalAtk  = units.reduce((s, u) => s + (u.atk || 0), 0);
-
-            // My power: sum of my placed defense units
-            const myUnits = arenaState.playerUnits || [];
-            const myTotalHp  = myUnits.reduce((s, u) => s + (u.hp  || 0), 0);
-            const myTotalAtk = myUnits.reduce((s, u) => s + (u.atk || 0), 0);
-            const myPower    = myTotalHp + myTotalAtk * 3;
-            const theirPower = totalHp   + totalAtk   * 3;
-            const powerRatio = theirPower > 0 ? myPower / theirPower : 999;
-            const powerColor  = powerRatio >= 1.2 ? '#44cc88' : powerRatio >= 0.8 ? '#ff9944' : '#ff4444';
-            const powerLabel  = powerRatio >= 1.2 ? '✅ You have the edge' : powerRatio >= 0.8 ? '⚠ Evenly matched' : '💀 They outpower you';
-
-            const threatColor = totalCost >= 30 ? '#ff4444' : totalCost >= 15 ? '#ff9944' : '#44cc88';
-            const threatLabel = totalCost >= 30 ? '💀 Lethal' : totalCost >= 15 ? '⚠ Dangerous' : '🎯 Manageable';
+            const defenseIcons = units.slice(0, 5).map(u => u.icon || '👿').join(' ');
 
             const beatenDate = gameState.pvpBeatenToday?.[opponent.player_name];
             const alreadyBeaten = beatenDate === today;
 
-            // Build unit breakdown rows
-            const unitRows = units.map(u => {
-                const hasBonus = u._level > 0 || u._promoTier > 0;
-                const bonusTxt = hasBonus
-                    ? `<span style="color:#44cc88; font-size:0.62em; margin-left:4px;">Lv${u._level}${u._promoTier > 0 ? '★'.repeat(u._promoTier) : ''}</span>`
-                    : '';
-                return `<div style="display:flex; align-items:center; gap:8px; padding:4px 6px; background:#ffffff05; border-radius:5px;">
-                    <span style="font-size:1em; flex-shrink:0;">${u.icon || '👿'}</span>
-                    <span style="color:#aaa; font-size:0.78em; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${u.name || '?'}${bonusTxt}</span>
-                    <span style="color:#cc4444; font-size:0.72em; white-space:nowrap;">❤ ${u.hp}</span>
-                    <span style="color:#ff9944; font-size:0.72em; white-space:nowrap;">⚔ ${u.atk}</span>
-                    <span style="color:#4488ff; font-size:0.72em; white-space:nowrap;">↔ ${u.range}</span>
-                </div>`;
-            }).join('');
-
             const li = document.createElement('div');
-            li.style.cssText = `background:linear-gradient(135deg,${alreadyBeaten ? '#0a0a0a' : '#0e0a1a'},${alreadyBeaten ? '#111' : '#1a0a0a'}); border:1px solid ${alreadyBeaten ? '#22222244' : '#ff444422'}; border-left:3px solid ${alreadyBeaten ? '#333' : threatColor}; border-radius:10px; padding:12px 14px; opacity:${alreadyBeaten ? '0.5' : '1'};`;
+            li.style.cssText = `background:linear-gradient(135deg,${alreadyBeaten ? '#0a0a0a' : '#0e0a1a'},${alreadyBeaten ? '#111' : '#1a0a0a'}); border:1px solid ${alreadyBeaten ? '#22222244' : '#ff444422'}; border-left:3px solid ${alreadyBeaten ? '#333' : '#ff4444'}; border-radius:10px; padding:12px 14px; opacity:${alreadyBeaten ? '0.5' : '1'};`;
             li.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-                    <div>
-                        <div style="color:${alreadyBeaten ? '#555' : '#ff8888'}; font-weight:bold; font-size:0.95em;">💀 ${opponent.player_name}</div>
-                        <div style="color:#666; font-size:0.72em; margin-top:2px;">${defenseCount} minions · ${totalCost} pts total</div>
-                    </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="color:${alreadyBeaten ? '#555' : '#ff8888'}; font-weight:bold; font-size:0.95em;">💀 ${opponent.player_name}</div>
                     ${alreadyBeaten
                         ? `<span style="background:#22222244; border:1px solid #33333344; border-radius:6px; padding:2px 8px; font-size:0.68em; color:#555;">✓ Defeated today</span>`
-                        : `<span style="background:${threatColor}22; border:1px solid ${threatColor}44; border-radius:6px; padding:2px 8px; font-size:0.68em; color:${threatColor};">${threatLabel}</span>`
+                        : `<span style="color:#555; font-size:0.72em;">${defenseCount} defenders</span>`
                     }
                 </div>
-
-                <!-- Unit breakdown -->
-                <div style="display:flex; flex-direction:column; gap:3px; margin-bottom:8px;">
-                    ${unitRows || '<div style="color:#444; font-size:0.78em; text-align:center;">No defense set</div>'}
-                </div>
-
-                <!-- Power comparison bar -->
-                ${!alreadyBeaten && theirPower > 0 ? `
-                <div style="background:#0a0812; border:1px solid #ffffff0a; border-radius:6px; padding:6px 8px; margin-bottom:8px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                        <span style="color:#555; font-size:0.65em; text-transform:uppercase; letter-spacing:1px;">Power comparison</span>
-                        <span style="color:${powerColor}; font-size:0.68em;">${powerLabel}</span>
-                    </div>
-                    <div style="display:flex; gap:6px; align-items:center;">
-                        <span style="color:#888; font-size:0.65em; width:24px; text-align:right;">You</span>
-                        <div style="flex:1; background:#ffffff08; border-radius:3px; height:6px; overflow:hidden;">
-                            <div style="height:100%; width:${Math.min(100, (myPower/(myPower+theirPower))*100).toFixed(1)}%; background:linear-gradient(90deg,#44cc88,#88ffaa); border-radius:3px;"></div>
-                        </div>
-                        <span style="color:#888; font-size:0.65em; width:28px;">Them</span>
-                        <div style="flex:1; background:#ffffff08; border-radius:3px; height:6px; overflow:hidden;">
-                            <div style="height:100%; width:${Math.min(100, (theirPower/(myPower+theirPower))*100).toFixed(1)}%; background:linear-gradient(90deg,#ff4444,#ff8888); border-radius:3px;"></div>
-                        </div>
-                    </div>
-                </div>` : ''}
-
+                <div style="color:#666; font-size:1.1em; margin-bottom:10px; letter-spacing:4px;">${defenseIcons || '???'}</div>
                 <button onclick='${alreadyBeaten ? '' : `arenaSetupAttack(${JSON.stringify(opponent)})`}'
                     ${alreadyBeaten ? 'disabled' : ''}
                     style="width:100%; background:${alreadyBeaten ? 'transparent' : 'linear-gradient(135deg,#330000,#1a0000)'}; border:1px solid ${alreadyBeaten ? '#222' : '#ff444455'}; border-radius:7px; padding:7px; color:${alreadyBeaten ? '#333' : '#ff6666'}; cursor:${alreadyBeaten ? 'default' : 'pointer'}; font-family:inherit; font-size:0.8em; font-weight:bold;"
@@ -14208,12 +14162,32 @@ async function arenaFetchLogs(page) {
 }
 
 function arenaSetupAttack(opponentData) {
-    console.log(opponentData);
     arenaState.mode = 'attack_setup';
     arenaState.opponent = opponentData;
     arenaState.playerUnits = [];
     arenaState.pointsSpent = 0;
     arenaState.enemyUnits = arenaState.opponent.defense_data.map((unit, i) => ({ ...unit, id: `enemy_${i}`, currentHp: unit.hp, isPlayer: false }));
+
+    // Show enemy intel strip
+    const intel = document.getElementById('arena-enemy-intel');
+    const intelName = document.getElementById('arena-intel-name');
+    const intelUnits = document.getElementById('arena-intel-units');
+    if (intel && intelName && intelUnits) {
+        intelName.textContent = opponentData.player_name;
+        intelUnits.innerHTML = (opponentData.defense_data || []).map(u => {
+            const hasUpgrade = u._level > 0 || u._promoTier > 0;
+            return `<div style="display:flex; align-items:center; gap:8px; padding:3px 6px; background:#ffffff04; border-radius:5px;">
+                <span style="font-size:0.95em;">${u.icon || '👿'}</span>
+                <span style="color:#888; font-size:0.78em; flex:1;">${u.name || '?'}</span>
+                ${hasUpgrade ? `<span style="color:#44cc88; font-size:0.65em;">Lv${u._level}${'★'.repeat(u._promoTier||0)}</span>` : ''}
+                <span style="color:#cc4444; font-size:0.72em;">❤ ${u.hp}</span>
+                <span style="color:#ff9944; font-size:0.72em;">⚔ ${u.atk}</span>
+                <span style="color:#4488ff; font-size:0.72em;">↔ ${u.range}</span>
+            </div>`;
+        }).join('');
+        intel.style.display = 'block';
+    }
+
     arenaRenderFullUI();
 }
 

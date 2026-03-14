@@ -3990,75 +3990,60 @@ const GAME_VERSION = "V. 0.8.X";
 function formatNumber(num) {
     // Safety check for invalid inputs like null, undefined, NaN, or Infinity
     if (num === null || typeof num === 'undefined' || isNaN(num) || !isFinite(num)) {
-        return String(num); // Return "Infinity" or "NaN" as is
+        return String(num);
     }
 
-    // Convert the number to a BigInt to handle enormous values safely
-    const n = BigInt(Math.floor(Number(num)));
+    const n = Number(num);
+    if (n < 0) return '-' + formatNumber(-n);
+    if (n < 1000000) return Math.floor(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-    // If the number is small enough, use simple comma formatting
-    if (n < 1000000n) { // The 'n' makes it a BigInt comparison
-        return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    }
-
-    // List of abbreviations for huge numbers
-
-    const notations = [
-        // --- WAY BEYOND VIGINTILLION (up to Centillion!) ---
-        { value: 1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "Ce" },    // Centillion (1e303)
-        { value: 1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "Ng" },    // Nonagintillion (1e273)
-        { value: 100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "Og" },    // Octogintillion (1e243)
-        { value: 1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "Spg" },   // Septuagintillion (1e213)
-        { value: 100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "Sxg" },   // Sexagintillion (1e183)
-        { value: 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "Qig" },   // Quinquagintillion (1e153)
-        { value: 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "Qag" },   // Quadragintillion (1e123)
-        { value: 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "Tg" },    // Trigintillion (1e93)
-        { value: 100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "NVg" },   // Novemvigintillion (1e90)
-        { value: 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "OVg" },   // Octovigintillion (1e87)
-        { value: 1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "SVg" },   // Septemvigintillion (1e84)
-        { value: 10000000000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "sVg" },   // Sexvigintillion (1e81)
-        { value: 100000000000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "QVg" },   // Quinvigintillion (1e78)
-        { value: 1000000000000000000000000000000000000000000000000000000000000000000000n, symbol: "qVg" },   // Quattuorvigintillion (1e75)
-        { value: 1000000000000000000000000000000000000000000000000000000000000000n, symbol: "TVg" },   // Tresvigintillion (1e72)
-        { value: 100000000000000000000000000000000000000000000000000000000000n, symbol: "DVg" },   // Duovigintillion (1e69)
-        { value: 100000000000000000000000000000000000000000000000000000000000000000n, symbol: "UVg" },   // Unvigintillion (1e66)
-        // --- Original Extended List ---
-        { value: 100000000000000000000000000000000000000000000000000000000000000000n, symbol: "Vg" },   // Vigintillion (1e63)
-        { value: 100000000000000000000000000000000000000000000000000000000000000n, symbol: "NV" },   // Novemdecillion (1e60)
-        { value: 100000000000000000000000000000000000000000000000000000000000n, symbol: "OD" },   // Octodecillion (1e57)
-        { value: 100000000000000000000000000000000000000000000000000000000n, symbol: "SD" },   // Septemdecillion (1e54)
-        { value: 1000000000000000000000000000000000000000000000000000000n, symbol: "sD" },   // Sexdecillion (1e51)
-        { value: 1000000000000000000000000000000000000000000000000000n, symbol: "QD" },   // Quindecillion (1e48)
-        { value: 1000000000000000000000000000000000000000000000000n, symbol: "qD" },   // Quattuordecillion (1e45)
-        { value: 1000000000000000000000000000000000000000000000n, symbol: "TD" },   // Tredecillion (1e42)
-        { value: 100000000000000000000000000000000000000000n, symbol: "dD" },   // Duodecillion (1e39)
-        { value: 100000000000000000000000000000000000000n, symbol: "UD" },   // Undecillion (1e36)
-        { value: 1000000000000000000000000000000000000n, symbol: "Dc" },   // Decillion (1e33)
-        { value: 1000000000000000000000000000000000n, symbol: "N" },       // Nonillion (1e30)
-        { value: 1000000000000000000000000000000n, symbol: "O" },         // Octillion (1e27)
-        { value: 1000000000000000000000000000n, symbol: "Sp" },          // Septillion (1e24)
-        { value: 1000000000000000000000000n, symbol: "Sx" },            // Sextillion (1e21)
-        { value: 1000000000000000000000n, symbol: "Qi" },              // Quintillion (1e18)
-        { value: 1000000000000000000n, symbol: "Qa" },              // Quadrillion (1e15)
-        { value: 1000000000000000n, symbol: "T" },                     // Trillion (1e12)
-        { value: 1000000000n, symbol: "B" },                      // Billion (1e9)
-        { value: 1000000n, symbol: "M" },                         // Million (1e6)
-        { value: 1000n, symbol: "K" }                             // Thousand (1e3)
-    ];
-
-    // Find the correct abbreviation to use
-    for (const notation of notations) {
-        if (n >= notation.value) {
-            // Calculate the abbreviated number, keeping precision with BigInts
-            const primaryPart = n / (notation.value / 1000n);
-            const formatted = (Number(primaryPart) / 1000).toFixed(2);
-            return `${formatted}${notation.symbol}`;
+    // For very large numbers, use logarithm-based formatting to avoid BigInt precision loss
+    if (n >= 1e15) {
+        const notationList = [
+            { exp: 303, symbol: 'Ce' }, { exp: 273, symbol: 'Ng' }, { exp: 243, symbol: 'Og' },
+            { exp: 213, symbol: 'Spg' }, { exp: 183, symbol: 'Sxg' }, { exp: 153, symbol: 'Qig' },
+            { exp: 123, symbol: 'Qag' }, { exp: 93, symbol: 'Tg' }, { exp: 90, symbol: 'NVg' },
+            { exp: 87, symbol: 'OVg' }, { exp: 84, symbol: 'SVg' }, { exp: 81, symbol: 'sVg' },
+            { exp: 78, symbol: 'QVg' }, { exp: 75, symbol: 'qVg' }, { exp: 72, symbol: 'TVg' },
+            { exp: 69, symbol: 'DVg' }, { exp: 66, symbol: 'UVg' }, { exp: 63, symbol: 'Vg' },
+            { exp: 60, symbol: 'NV' }, { exp: 57, symbol: 'OD' }, { exp: 54, symbol: 'SD' },
+            { exp: 51, symbol: 'sD' }, { exp: 48, symbol: 'QD' }, { exp: 45, symbol: 'qD' },
+            { exp: 42, symbol: 'TD' }, { exp: 39, symbol: 'dD' }, { exp: 36, symbol: 'UD' },
+            { exp: 33, symbol: 'Dc' }, { exp: 30, symbol: 'N' }, { exp: 27, symbol: 'O' },
+            { exp: 24, symbol: 'Sp' }, { exp: 21, symbol: 'Sx' }, { exp: 18, symbol: 'Qi' },
+            { exp: 15, symbol: 'Qa' },
+        ];
+        for (const { exp, symbol } of notationList) {
+            if (n >= Math.pow(10, exp)) {
+                const val = n / Math.pow(10, exp);
+                return val.toFixed(2) + symbol;
+            }
         }
     }
-    
-    // Fallback for numbers between 1K and 1M if needed, though the top check should handle it.
-    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+    // For numbers between 1M and 1Qa, use BigInt safely
+    try {
+        const bn = BigInt(Math.floor(n));
+        const notations = [
+            { value: 1000000000000n, symbol: 'T' },
+            { value: 1000000000n, symbol: 'B' },
+            { value: 1000000n, symbol: 'M' },
+            { value: 1000n, symbol: 'K' },
+        ];
+        for (const { value, symbol } of notations) {
+            if (bn >= value) {
+                const whole = bn / value;
+                const rem = bn % value;
+                const dec = Math.floor(Number(rem) / Number(value / 100n));
+                return `${whole}.${String(dec).padStart(2,'0')}${symbol}`;
+            }
+        }
+        return bn.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    } catch(e) {
+        return n.toExponential(2);
+    }
 }
+
 
 
 const minions = {
@@ -6999,19 +6984,19 @@ function renderMinions() {
         }
 
         grid.innerHTML += `
-        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${theme.color}44; border-top:3px solid ${theme.color}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:0 0 16px ${theme.glow};">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <span style="font-size:2.2em; line-height:1;">${m.icon || '👿'}</span>
-                <div style="flex:1;">
-                    <div style="color:${theme.color}; font-weight:bold; font-size:1em;">${m.name}${tierStars}</div>
-                    <div style="display:flex; gap:8px; align-items:center; margin-top:2px; flex-wrap:wrap;">
-                        <span style="background:${theme.color}22; border:1px solid ${theme.color}44; border-radius:8px; padding:1px 8px; font-size:0.7em; color:${theme.color};">Lv. ${p.level}</span>
-                        <span style="color:#666; font-size:0.75em;">⚡ ${formatNumber(effectiveSps * p.level)} SPS total</span>
+        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${theme.color}44; border-top:3px solid ${theme.color}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:0 0 16px ${theme.glow}; overflow:hidden;">
+            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                <span style="font-size:2em; line-height:1; flex-shrink:0;">${m.icon || '👿'}</span>
+                <div style="flex:1; min-width:0; overflow:hidden;">
+                    <div style="color:${theme.color}; font-weight:bold; font-size:0.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${m.name}${tierStars}</div>
+                    <div style="display:flex; gap:6px; align-items:center; margin-top:2px; flex-wrap:wrap;">
+                        <span style="background:${theme.color}22; border:1px solid ${theme.color}44; border-radius:8px; padding:1px 7px; font-size:0.7em; color:${theme.color}; flex-shrink:0;">Lv. ${p.level}</span>
+                        <span style="color:#666; font-size:0.72em; white-space:nowrap;">⚡ ${formatNumber(effectiveSps * p.level)} SPS</span>
                     </div>
                 </div>
-                <div style="text-align:right; flex-shrink:0;">
-                    <div style="color:#aaa; font-size:0.75em;">per level</div>
-                    <div style="color:${theme.color}; font-weight:bold; font-size:0.9em;">+${formatNumber(effectiveSps)}</div>
+                <div style="text-align:right; flex-shrink:0; max-width:110px;">
+                    <div style="color:#777; font-size:0.68em;">per level</div>
+                    <div style="color:${theme.color}; font-weight:bold; font-size:0.82em; word-break:break-all;">+${formatNumber(effectiveSps)}</div>
                 </div>
             </div>
             ${progressBar}

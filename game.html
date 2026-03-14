@@ -3032,7 +3032,10 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
 
                     <!-- Crash history chips -->
-                    <div id="rift-history" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;min-height:24px;"></div>
+                    <div style="margin-bottom:14px;">
+                        <div style="color:#555; font-size:0.68em; text-transform:uppercase; letter-spacing:2px; text-align:center; margin-bottom:6px;">📜 Recent Crashes</div>
+                        <div id="rift-history" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;min-height:24px;"></div>
+                    </div>
 
                     <!-- Bet controls -->
                     <div id="rift-controls">
@@ -6834,6 +6837,25 @@ function showScreen(screenId) {
         fetchBarterListings();
         setTimeout(() => refreshMarketTicker(), 300);
     }
+    if (screenId === 'crashgame')
+    {
+        // Load crash history immediately when rift screen opens
+        const db = window._scFirebase?.chatDb;
+        if (db) {
+            db.ref('rift_history').orderByChild('t').limitToLast(8).once('value', snap => {
+                const entries = [];
+                snap.forEach(child => entries.push(child.val().v));
+                const histBar = document.getElementById('rift-history');
+                if (histBar && entries.length) {
+                    const chips = entries.reverse().map(v => {
+                        const color = v < 1.5 ? '#ff4444' : v < 2 ? '#ff8844' : v < 5 ? '#c8a800' : '#44cc88';
+                        return `<div class="rift-history-chip" style="color:${color};border-color:${color}44;background:${color}11;">${v.toFixed(2)}x</div>`;
+                    }).join('');
+                    histBar.innerHTML = chips;
+                }
+            });
+        }
+    }
     if (screenId === 'pacts')
     {
         renderPactScreen();
@@ -9623,14 +9645,14 @@ async function refreshMarketTicker() {
         inner.innerHTML = repeated;
         // Calculate speed from text length rather than scrollWidth (works even when off-screen)
         const charCount = chips.length;
-        const speed = Math.max(8, charCount / 25); // faster: ~25 chars per second
+        const speed = Math.max(5, charCount / 40); // fast scroll
         inner.style.animationDuration = speed + 's';
         // Also refine with actual scrollWidth once visible
         const refineSpeed = (attempts) => {
             requestAnimationFrame(() => {
                 const w = inner.scrollWidth / 3;
                 if (w > 0) {
-                    inner.style.animationDuration = Math.max(8, w / 120) + 's';
+                    inner.style.animationDuration = Math.max(5, w / 180) + 's';
                 } else if (attempts > 0) {
                     setTimeout(() => refineSpeed(attempts - 1), 500);
                 }
@@ -12342,6 +12364,19 @@ function rollPactBuff() {
                 name: pick.name,
                 desc: pick.desc,
             });
+
+            // Show toast immediately to the person who rolled
+            Toastify({
+                text: `${pick.icon} You rolled ${pick.name}! ${pick.desc}`,
+                duration: 6000, gravity: 'top', position: 'center',
+                style: { background: 'linear-gradient(135deg,#4a2080,#c8a800)', fontSize: '1em', fontWeight: 'bold' }
+            }).showToast();
+
+            // Apply instant essence locally right away
+            if (pick.effect.type === 'instant_essence') {
+                gameState.darkEssence += pick.effect.value;
+                saveGame();
+            }
         });
     } else {
         // Fallback: local only
@@ -12388,9 +12423,20 @@ function listenPactBuff() {
         const shared = snap.val();
         if (!shared) return;
         const now = Date.now();
+        const isNewRoll = shared.rolledAt && (now - shared.rolledAt) < 5000;
+        const rolledByOther = shared.rolledBy && shared.rolledBy !== gameState.playerName;
 
-        // Apply instant essence
-        if (shared.instantEssence && shared.rolledAt && (now - shared.rolledAt) < 5000) {
+        // Show toast to OTHER members when someone rolls
+        if (isNewRoll && rolledByOther) {
+            Toastify({
+                text: `${shared.icon} ${shared.rolledBy} rolled ${shared.name} for the pact! ${shared.desc}`,
+                duration: 6000, gravity: 'top', position: 'center',
+                style: { background: 'linear-gradient(135deg,#4a2080,#c8a800)', fontWeight: 'bold' }
+            }).showToast();
+        }
+
+        // Apply instant essence (only for other members — roller already got it)
+        if (shared.instantEssence && isNewRoll && rolledByOther) {
             gameState.darkEssence += shared.instantEssence;
             saveGame();
         }

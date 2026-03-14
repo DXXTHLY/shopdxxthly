@@ -11864,6 +11864,7 @@ async function loadMyPact() {
         window.playerPact = data || null;
         calculateStats(); // apply pact bonus
         renderPactScreen();
+        if (window.playerPact) setTimeout(listenPactBuff, 1000);
     } catch(e) { window.playerPact = null; }
 }
 
@@ -12178,44 +12179,120 @@ const PACT_BUFFS = [
 
 function rollPactBuff() {
     if (!window.playerPact) return;
+    const db = window._scFirebase?.chatDb;
+    const pactId = window.playerPact.id;
     const now = Date.now();
+    const COOLDOWN = 30 * 60 * 1000;
 
-    // Block if a buff is currently active
-    const activeBuff = gameState.activeItemBuffs?.pact_buff;
-    if (activeBuff && activeBuff.expiresAt > now) {
-        const secsLeft = Math.ceil((activeBuff.expiresAt - now) / 1000);
-        const mins = Math.floor(secsLeft / 60);
-        const secs = secsLeft % 60;
-        Toastify({ text:`A pact blessing is already active! ${mins}m ${secs}s remaining.`, duration:3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a1050,#1a0830)' } }).showToast();
-        return;
+    // Read shared pact state from Firebase
+    if (db) {
+        db.ref(`pact_buffs/${pactId}`).once('value', snap => {
+            const shared = snap.val() || {};
+            const lastRoll = shared.rolledAt || 0;
+            const activeBuff = shared.buff;
+
+            // Block if buff still active
+            if (activeBuff && activeBuff.expiresAt > now) {
+                const s = Math.ceil((activeBuff.expiresAt - now) / 1000);
+                Toastify({ text:`${activeBuff.icon} ${activeBuff.name} is still active! ${Math.floor(s/60)}m ${s%60}s remaining.`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a1050,#1a0830)'} }).showToast();
+                return;
+            }
+            // Block if on cooldown
+            if (now - lastRoll < COOLDOWN) {
+                const minsLeft = Math.ceil((COOLDOWN - (now - lastRoll)) / 60000);
+                Toastify({ text:`Pact blessing recharges in ${minsLeft} min.`, duration:2500, gravity:'top', position:'center' }).showToast();
+                return;
+            }
+
+            // Roll and broadcast to all members
+            const pick = PACT_BUFFS[Math.floor(Math.random() * PACT_BUFFS.length)];
+            const newBuff = pick.effect.type === 'instant_essence' ? null : {
+                id: pick.id, name: pick.name, icon: pick.icon, desc: pick.desc,
+                type: pick.effect.type, value: pick.effect.value,
+                rolledAt: now,
+                expiresAt: now + pick.effect.duration * 1000,
+            };
+
+            db.ref(`pact_buffs/${pactId}`).set({
+                rolledAt: now,
+                rolledBy: gameState.playerName,
+                buff: newBuff,
+                instantEssence: pick.effect.type === 'instant_essence' ? pick.effect.value : 0,
+                icon: pick.icon,
+                name: pick.name,
+                desc: pick.desc,
+            });
+        });
+    } else {
+        // Fallback: local only
+        const lastRoll = gameState.lastPactBuffRoll || 0;
+        if (now - lastRoll < COOLDOWN) {
+            Toastify({ text:`Recharges in ${Math.ceil((COOLDOWN-(now-lastRoll))/60000)} min.`, duration:2500, gravity:'top', position:'center' }).showToast();
+            return;
+        }
+        const pick = PACT_BUFFS[Math.floor(Math.random() * PACT_BUFFS.length)];
+        applyPactBuff(pick, now, gameState.playerName);
+        gameState.lastPactBuffRoll = now;
+        saveGame();
     }
+}
 
-    const lastRoll = gameState.lastPactBuffRoll || 0;
-    const cooldownMs = 30 * 60 * 1000; // 30 min cooldown between rolls
-    if (now - lastRoll < cooldownMs) {
-        const minsLeft = Math.ceil((cooldownMs - (now - lastRoll)) / 60000);
-        Toastify({ text:`Pact blessing recharges in ${minsLeft} min.`, duration:2500, gravity:'top', position:'center' }).showToast();
-        return;
-    }
-    const buff = PACT_BUFFS[Math.floor(Math.random() * PACT_BUFFS.length)];
-    gameState.lastPactBuffRoll = now;
-
-    if (buff.effect.type === 'instant_essence') {
-        gameState.darkEssence += buff.effect.value;
-        Toastify({ text:`${buff.icon} Pact Buff — ${buff.name}: ${buff.desc}`, duration:4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a1050,#c8a800)' } }).showToast();
+function applyPactBuff(pick, rolledAt, rolledBy) {
+    const now = Date.now();
+    if (pick.effect.type === 'instant_essence') {
+        gameState.darkEssence += pick.effect.value;
+        Toastify({ text:`${pick.icon} ${rolledBy} rolled ${pick.name}: ${pick.desc}`, duration:5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a1050,#c8a800)'} }).showToast();
     } else {
         if (!gameState.activeItemBuffs) gameState.activeItemBuffs = {};
         gameState.activeItemBuffs['pact_buff'] = {
-            type: buff.effect.type,
-            value: buff.effect.value,
-            expiresAt: now + buff.effect.duration * 1000,
-            name: buff.name,
+            type: pick.effect.type, value: pick.effect.value,
+            expiresAt: rolledAt + pick.effect.duration * 1000,
+            name: pick.name, icon: pick.icon,
+            rolledBy, rolledAt,
+            totalDuration: pick.effect.duration * 1000,
         };
-        Toastify({ text:`${buff.icon} Pact Buff — ${buff.name}: ${buff.desc}`, duration:4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a1050,#c8a800)' } }).showToast();
+        Toastify({ text:`${pick.icon} ${rolledBy} rolled ${pick.name}: ${pick.desc}`, duration:5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a1050,#c8a800)'} }).showToast();
         calculateStats();
     }
     saveGame();
     renderPactBuffStatus();
+}
+
+// Listen to shared pact buff state from Firebase
+function listenPactBuff() {
+    const db = window._scFirebase?.chatDb;
+    const pactId = window.playerPact?.id;
+    if (!db || !pactId) return;
+
+    db.ref(`pact_buffs/${pactId}`).on('value', snap => {
+        const shared = snap.val();
+        if (!shared) return;
+        const now = Date.now();
+
+        // Apply instant essence
+        if (shared.instantEssence && shared.rolledAt && (now - shared.rolledAt) < 5000) {
+            gameState.darkEssence += shared.instantEssence;
+            saveGame();
+        }
+
+        // Apply timed buff
+        if (shared.buff && shared.buff.expiresAt > now) {
+            const b = shared.buff;
+            if (!gameState.activeItemBuffs) gameState.activeItemBuffs = {};
+            // Only apply if not already applied for this roll
+            const cur = gameState.activeItemBuffs['pact_buff'];
+            if (!cur || cur.rolledAt !== b.rolledAt) {
+                gameState.activeItemBuffs['pact_buff'] = { ...b, totalDuration: b.expiresAt - b.rolledAt };
+                calculateStats();
+                saveGame();
+            }
+        }
+
+        // Store shared cooldown info for countdown display
+        gameState._pactSharedRolledAt = shared.rolledAt || 0;
+        gameState._pactSharedRolledBy = shared.rolledBy || '';
+        renderPactBuffStatus();
+    });
 }
 
 function renderPactBuffStatus() {
@@ -12223,24 +12300,63 @@ function renderPactBuffStatus() {
     if (!el) return;
     const buff = gameState.activeItemBuffs?.pact_buff;
     const now = Date.now();
+    const COOLDOWN = 30 * 60 * 1000;
+    const lastRoll = gameState._pactSharedRolledAt || gameState.lastPactBuffRoll || 0;
+    const rolledBy = gameState._pactSharedRolledBy || '';
+    const cooldownLeft = Math.max(0, COOLDOWN - (now - lastRoll));
+    const cooldownPct = Math.max(0, 100 - ((now - lastRoll) / COOLDOWN * 100));
+
+    let html = '';
+
+    // Active buff section
     if (buff && buff.expiresAt > now) {
         const secsLeft = Math.ceil((buff.expiresAt - now) / 1000);
         const mins = Math.floor(secsLeft / 60);
         const secs = secsLeft % 60;
-        el.innerHTML = `<div style="background:#2a1050; border:1px solid #aa44ff44; border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:10px;">
-            <span style="font-size:1.3em;">✨</span>
-            <div style="flex:1;">
-                <div style="color:#aa44ff; font-size:0.82em; font-weight:bold;">${buff.name} active</div>
-                <div style="color:#666; font-size:0.72em;">Expires in ${mins}m ${secs}s</div>
+        const total = buff.totalDuration || COOLDOWN;
+        const pct = Math.max(0, ((buff.expiresAt - now) / total) * 100);
+        html += `<div style="background:#1a0a2a; border:1px solid #aa44ff55; border-radius:10px; padding:12px 14px; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <span style="font-size:1.4em;">${buff.icon || '✨'}</span>
+                <div style="flex:1;">
+                    <div style="color:#aa44ff; font-weight:bold; font-size:0.9em;">${buff.name} — ACTIVE</div>
+                    ${buff.rolledBy ? `<div style="color:#666; font-size:0.72em;">Rolled by ${buff.rolledBy}</div>` : ''}
+                </div>
+                <div style="color:#cc99ff; font-weight:bold; font-size:0.9em; font-family:monospace;">${mins}m ${String(secs).padStart(2,'0')}s</div>
+            </div>
+            <div style="background:#ffffff10; border-radius:4px; height:6px; overflow:hidden;">
+                <div style="height:100%; width:${pct}%; background:linear-gradient(90deg,#8822cc,#cc44ff); border-radius:4px; transition:width 1s linear;"></div>
             </div>
         </div>`;
-        el.style.display = 'block';
-    } else {
-        el.style.display = 'none';
-        if (buff && buff.expiresAt <= now) {
-            delete gameState.activeItemBuffs.pact_buff;
-            calculateStats();
+    }
+
+    // Cooldown section
+    if (lastRoll > 0) {
+        if (cooldownLeft > 0) {
+            const cmins = Math.floor(cooldownLeft / 60000);
+            const csecs = Math.floor((cooldownLeft % 60000) / 1000);
+            html += `<div style="background:#0a0812; border:1px solid #33224455; border-radius:10px; padding:10px 14px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                    <span style="color:#555; font-size:0.78em;">🕐 Next blessing available in</span>
+                    <span style="color:#888; font-weight:bold; font-size:0.82em; font-family:monospace;">${cmins}m ${String(csecs).padStart(2,'0')}s</span>
+                </div>
+                <div style="background:#ffffff08; border-radius:4px; height:5px; overflow:hidden;">
+                    <div style="height:100%; width:${100-cooldownPct}%; background:linear-gradient(90deg,#443366,#aa44ff66); border-radius:4px; transition:width 1s linear;"></div>
+                </div>
+                ${rolledBy ? `<div style="color:#444; font-size:0.68em; margin-top:5px;">Last rolled by ${rolledBy}</div>` : ''}
+            </div>`;
+        } else {
+            html += `<div style="background:#0a1208; border:1px solid #44cc8844; border-radius:10px; padding:8px 14px; text-align:center; color:#44cc88; font-size:0.8em; font-weight:bold;">✨ Pact Blessing ready — Roll now!</div>`;
         }
+    }
+
+    el.innerHTML = html;
+    el.style.display = html ? 'block' : 'none';
+
+    // Expire buff
+    if (buff && buff.expiresAt <= now) {
+        delete gameState.activeItemBuffs.pact_buff;
+        calculateStats();
     }
 }
 

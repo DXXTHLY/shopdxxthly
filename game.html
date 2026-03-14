@@ -3457,16 +3457,12 @@ text-decoration: underline; /* Adds an underline on hover */
                             <button id="convert-de-shards-btn" class="action-btn" style="width:100%; margin-top:10px; font-size:0.9rem;">Convert</button>
                         </div>
 
-                        <!-- Shards → Fragments (very expensive) -->
+                        <!-- Shards → Fragments (very expensive, escalating) -->
                         <div class="upgrade-btn exchange-offer" style="border-color:#44cc8833; background:linear-gradient(135deg,#44cc8808,transparent);">
-                            <span class="btn-title" style="color:#44cc88;">💎 → 🔮 Forge Fragments</span>
-                            <div style="color:#555; font-size:0.7em; margin:4px 0;">⚠ Extremely expensive</div>
-                            <div class="exchange-tier-selector">
-                                <button class="arrow-btn" onclick="cycleConversion('shardsToFragments', -1)">&#10094;</button>
-                                <span id="shards-fragments-tier-text">Loading...</span>
-                                <button class="arrow-btn" onclick="cycleConversion('shardsToFragments', 1)">&#10095;</button>
-                            </div>
-                            <button id="convert-shards-fragments-btn" class="action-btn" style="width:100%; margin-top:10px; font-size:0.9rem; border-color:#44cc8866;">Convert</button>
+                            <span class="btn-title" style="color:#44cc88;">💎 → 🔮 Forge Fragment</span>
+                            <div style="color:#555; font-size:0.7em; margin:4px 0;">⚠ Cost triples each purchase · 1 per conversion</div>
+                            <div id="shards-fragments-tier-text" style="font-size:0.82em; margin:8px 0;">Loading...</div>
+                            <button id="convert-shards-fragments-btn" class="action-btn" style="width:100%; margin-top:4px; font-size:0.9rem; border-color:#44cc8866;">Forge</button>
                         </div>
                     </div>
                 </div>
@@ -5361,11 +5357,11 @@ const potions = {
     },
     brew_of_the_void: {
         name: "Brew of the Void",
-        desc: "Instantly gain 2 Dark Essence.",
+        desc: "Instantly gain Dark Essence equal to 1% of your current DE per second rate, minimum 2. Scales with progression.",
         cost: 1e9,
         costType: 'souls_and_shards',
         shardsCost: 1,
-        effect: { type: 'gain_essence_flat', value: 2 }
+        effect: { type: 'gain_essence_flat', value: 2 }  // value is a fallback; actual calc in usePotion
     },
 
     // --- TIER 2: MID GAME (New Additions) ---
@@ -5391,10 +5387,10 @@ const potions = {
     },
     flask_of_temporal_flux: {
         name: "Flask of Temporal Flux",
-        desc: "Reduces all active Ritual cooldowns by 1 hour.",
+        desc: "Instantly resets ALL active Ritual cooldowns. 24h cooldown.",
         cost: 1e16,
-        cooldown: 86400, // 24 hour cooldown
-        effect: { type: 'ritual_cooldown_reduction_flat', value: 3600 } // 3600 seconds
+        cooldown: 86400,
+        effect: { type: 'ritual_cooldown_reduction_flat', value: 9999999 }
     },
 
     // --- TIER 3: LATE GAME (Ascension Focused) ---
@@ -5470,7 +5466,7 @@ const potions = {
     },
     tincture_of_expediency: {
         name: "Tincture of Expediency",
-        desc: "Your next 100 clicks happen instantly.",
+        desc: "Instantly simulate 100 × (Ascensions+1) clicks at your current SPC.",
         cost: 1e18,
         effect: { type: 'instant_clicks_flat', value: 100 }
     },
@@ -5604,13 +5600,16 @@ const conversionTiers = {
         { fromAmount: 25, toAmount: 2000 },
         { fromAmount: 50, toAmount: 5000 },
     ],
-    // Dark Essence → Souls (scales to match progression)
+    // Dark Essence → Souls
+    // Rates are intentionally steep — this should never be a profitable sacrifice loop.
+    // At Singularity (1e9 souls to unlock), spending 5 DE for 1M souls is terrible value.
+    // The point is to help when stuck, not to farm.
     deToSouls: [
-        { fromAmount: 5,     toAmount: 1e6,   label: 'Trickle' },
-        { fromAmount: 50,    toAmount: 1e8,   label: 'Stream'  },
-        { fromAmount: 500,   toAmount: 5e10,  label: 'Flood'   },
-        { fromAmount: 5000,  toAmount: 1e14,  label: 'Deluge'  },
-        { fromAmount: 50000, toAmount: 1e18,  label: 'Tsunami' },
+        { fromAmount: 50,     toAmount: 1e6,    label: 'Trickle' },  // 50 DE per 1M souls
+        { fromAmount: 500,    toAmount: 1e8,    label: 'Stream'  },  // 5 DE per 1M — bulk discount
+        { fromAmount: 5000,   toAmount: 5e10,   label: 'Flood'   },
+        { fromAmount: 50000,  toAmount: 1e14,   label: 'Deluge'  },
+        { fromAmount: 500000, toAmount: 1e18,   label: 'Tsunami' },
     ],
     // Dark Essence → Shards
     // Buying shards with DE should be expensive — prevents bypassing the prestige grind
@@ -5621,12 +5620,11 @@ const conversionTiers = {
         { fromAmount: 5000,  toAmount: 150,  label: 'Surge'    },
         { fromAmount: 50000, toAmount: 1800, label: 'Torrent'  },  // still 28 DE per shard at bulk
     ],
-    // Shards → Fragments (extremely expensive — fragments are the rarest currency)
-    // Cost reference: 1e8 shards for 1 fragment means you need ~Lv.30+ artifact grind
+    // Shards → Fragments: DYNAMIC ESCALATING COST — computed in renderBank, not static tiers
+    // Base: 1e12 shards for 1 fragment, multiplies by 3 each purchase
+    // After 10 purchases: 1e12 * 3^10 = ~59 trillion shards per fragment
     shardsToFragments: [
-        { fromAmount: 1e7,  toAmount: 1,  label: 'Micro'    },  // 10M shards per fragment
-        { fromAmount: 5e7,  toAmount: 6,  label: 'Small'    },  // 8.3M per fragment (bulk discount)
-        { fromAmount: 2e8,  toAmount: 30, label: 'Moderate' },  // 6.7M per fragment
+        { fromAmount: 1e12, toAmount: 1, label: 'Dynamic' }, // placeholder, overridden in renderBank
     ],
 };
 
@@ -5665,6 +5663,7 @@ function getDefaultGameState() {
         aether: 0,
         aetherUpgrades: { shardBonus: { level: 0, cost: 1 }, globalBonus: { level: 0, cost: 1 }, essenceBonus: { level: 0, cost: 2 }, startMinions: { level: 0, cost: 5 }},
         aetherToDeConversions: 0,
+        fragmentForgeCount: 0,
         corruptedFragments: 0, // 
         
         // --- NEW STATS TRACKING SECTION ---
@@ -7720,38 +7719,52 @@ function usePotion(id) {
         const effect = potions[id].effect;
 
         // --- INSTANT EFFECTS ---
-        if (effect.type === 'gain_sps_seconds_flat') gameState.souls += gameState.stats.sps * effect.value;
-        if (effect.type === 'gain_essence_flat') gameState.darkEssence += effect.value;
+        if (effect.type === 'gain_sps_seconds_flat') {
+            const gain = gameState.stats.sps * effect.value;
+            gameState.souls += gain;
+            gameState.lifetimeSouls += gain;
+            Toastify({ text: `⚗️ Gained ${formatNumber(gain)} souls!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#c8a800)'} }).showToast();
+        }
+        if (effect.type === 'gain_essence_flat') {
+            // Scales with ascensions and collapses so it stays relevant late game
+            const scaled = Math.max(effect.value, Math.floor((gameState.ascensions + 1) * 10 * (1 + (gameState.totalCollapses || 0) * 0.5)));
+            gameState.darkEssence += scaled;
+            Toastify({ text: `🌑 Gained ${formatNumber(scaled)} Dark Essence!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#6600cc)'} }).showToast();
+        }
         if (effect.type === 'ritual_cooldown_reduction_flat') {
             for (const ritualId in gameState.activeRituals) {
                 gameState.activeRituals[ritualId].cooldownEndTime -= effect.value * 1000;
             }
+            Toastify({ text: `⏳ All ritual cooldowns reduced!`, duration:3000, gravity:'top', position:'center' }).showToast();
         }
         if (effect.type === 'gain_souls_for_next_world_flat') {
             const worldKeys = Object.keys(worlds);
-            const currentWorldIndex = worldKeys.indexOf(gameState.currentWorld);
-            const nextWorldId = worldKeys[currentWorldIndex + 1];
+            const nextWorldId = worldKeys[worldKeys.indexOf(gameState.currentWorld) + 1];
             if (nextWorldId && worlds[nextWorldId]) {
-                gameState.souls += worlds[nextWorldId].unlockCost * effect.value;
+                const gain = worlds[nextWorldId].unlockCost * effect.value;
+                gameState.souls += gain; gameState.lifetimeSouls += gain;
+                Toastify({ text: `🌍 Gained ${formatNumber(gain)} souls towards the next world!`, duration:3000, gravity:'top', position:'center' }).showToast();
             }
         }
         if (effect.type === 'gain_shards_no_reset_flat') {
-            console.log(gameState.abyssalShards);
-            gameState.abyssalShards += Math.floor(calculateShardsOnAscend() * effect.value);
-            console.log(gameState.abyssalShards);
-			gameState.abyssalShards = isFinite(gameState.abyssalShards) ? gameState.abyssalShards : Number.MAX_VALUE;
-            console.log(gameState.abyssalShards);
+            const gained = Math.floor(calculateShardsOnAscend() * effect.value);
+            gameState.abyssalShards += isFinite(gained) ? gained : 0;
+            Toastify({ text: `💎 Gained ${formatNumber(gained)} Abyssal Shards!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a1a30,#4488ff)'} }).showToast();
         }
         if (effect.type === 'gain_aether_no_reset_flat') {
-            gameState.aether += Math.floor(calculateAetherOnCollapse() * effect.value);
+            const gained = Math.floor(calculateAetherOnCollapse() * effect.value);
+            gameState.aether += gained;
+            Toastify({ text: `⚡ Gained ${formatNumber(gained)} Aether!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#001a2a,#00e5ff)'} }).showToast();
         }
         if (effect.type === 'reset_cache_timer_flat') {
             gameState.nextCacheTime = 0;
+            Toastify({ text: `📦 Abyssal Cache is ready!`, duration:3000, gravity:'top', position:'center' }).showToast();
         }
         if (effect.type === 'instant_clicks_flat') {
-            const gain = gameState.stats.spc * effect.value;
-            gameState.souls += gain;
-            gameState.lifetimeSouls += gain;
+            const clickCount = effect.value * (gameState.ascensions + 1);
+            const gain = gameState.stats.spc * clickCount;
+            gameState.souls += gain; gameState.lifetimeSouls += gain;
+            Toastify({ text: `👻 +${formatNumber(gain)} souls from ${formatNumber(clickCount)} instant clicks!`, duration:3000, gravity:'top', position:'center' }).showToast();
         }
         if (effect.type === 'reset_raid_cooldown_flat') {
             gameState.raidCooldownEnd = 0;
@@ -7760,6 +7773,8 @@ function usePotion(id) {
         // --- DURATION-BASED EFFECTS ---
         if (effect.duration) {
             gameState.activePotions[id] = Date.now() + (effect.duration * 1000);
+            const p = potions[id];
+            Toastify({ text: `⚗️ ${p.name} activated!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#9944cc)'} }).showToast();
         }
 
         playSound('upgrade');
@@ -9721,13 +9736,34 @@ function withdrawSouls() {
 
  
 function convertCurrency(from, to, amountIn, amountOut) {
-    if (!confirm("This conversion is irreversible. Are you sure you wish to proceed?")) {
+    // === ANTI-ABUSE GATES — require world unlock ===
+    const gates = {
+        'shards-de':       'void_threshold',
+        'aether-de':       'nexus_of_all_realities',
+        'de-souls':        'singularity',
+        'de-shards':       'event_horizon',
+    };
+    const gateWorld = gates[`${from}-${to}`];
+    if (gateWorld && !gameState.unlockedWorlds.includes(gateWorld)) {
+        Toastify({ text: `🔒 Unlock ${worlds[gateWorld]?.name || gateWorld} to use this exchange.`, duration:3000, gravity:'top', position:'center' }).showToast();
         return;
     }
 
+    // === LOOP PREVENTION: DE→Souls is limited to 5 times per day ===
+    if (from === 'de' && to === 'souls') {
+        const today = new Date().toDateString();
+        if (gameState._deSoulsDate !== today) { gameState._deSoulsDate = today; gameState._deSoulsCount = 0; }
+        if ((gameState._deSoulsCount || 0) >= 5) {
+            Toastify({ text: `⛔ DE→Souls limit: 5 per day. Prevents exploit loops. Resets at midnight.`, duration:4000, gravity:'top', position:'center' }).showToast();
+            return;
+        }
+        gameState._deSoulsCount = (gameState._deSoulsCount || 0) + 1;
+    }
+
+    if (!confirm(`Convert ${formatNumber(amountIn)} ${from} → ${formatNumber(amountOut)} ${to}? Irreversible.`)) return;
+
     let canAfford = false;
 
-    // --- NEW SIMPLIFIED LOGIC ---
     if (from === 'shards' && to === 'de') {
         if (gameState.abyssalShards >= amountIn) {
             gameState.abyssalShards -= amountIn;
@@ -9738,28 +9774,26 @@ function convertCurrency(from, to, amountIn, amountOut) {
         if (gameState.aether >= amountIn) {
             gameState.aether -= amountIn;
             gameState.darkEssence += amountOut;
-            // Only increment the counter for the special dynamic Aether conversion
-            if (amountIn === 1) { 
-                gameState.aetherToDeConversions++;
-            }
+            if (amountIn === 1) gameState.aetherToDeConversions++;
             canAfford = true;
         }
     } else if (from === 'de' && to === 'souls') {
         if (gameState.darkEssence >= amountIn) {
             gameState.darkEssence -= amountIn;
             gameState.souls += amountOut;
-            canAfford = true;
-        }
-    } else if (from === 'shards' && to === 'fragments') {
-        if (gameState.abyssalShards >= amountIn) {
-            gameState.abyssalShards -= amountIn;
-            gameState.corruptedFragments += amountOut;
+            gameState.lifetimeSouls = Math.max(gameState.lifetimeSouls, gameState.lifetimeSouls + amountOut);
             canAfford = true;
         }
     } else if (from === 'de' && to === 'shards') {
         if (gameState.darkEssence >= amountIn) {
             gameState.darkEssence -= amountIn;
             gameState.abyssalShards += amountOut;
+            canAfford = true;
+        }
+    } else if (from === 'shards' && to === 'fragments') {
+        if (gameState.abyssalShards >= amountIn) {
+            gameState.abyssalShards -= amountIn;
+            gameState.corruptedFragments += amountOut;
             canAfford = true;
         }
     }
@@ -9834,12 +9868,33 @@ function renderBank() {
         if (cdsb) { cdsb.onclick = () => convertCurrency('de', 'shards', deShardsTier.fromAmount, deShardsTier.toAmount); cdsb.disabled = gameState.darkEssence < deShardsTier.fromAmount; }
     }
 
-    const sfTier = conversionTiers.shardsToFragments[currentConversionIndexes.shardsToFragments];
+    // Shards → Fragments (dynamic escalating cost)
     const sfEl = document.getElementById('shards-fragments-tier-text');
     if (sfEl) {
-        sfEl.innerHTML = `<span class="cost-shards">${formatNumber(sfTier.fromAmount)} Shards</span> → <span style="color:#44cc88;">${formatNumber(sfTier.toAmount)} Fragments</span>`;
+        const forgeCount = gameState.fragmentForgeCount || 0;
+        const BASE_COST = 1e12; // 1 Trillion shards base
+        const COST_MULTIPLIER = 3; // triples each purchase
+        const dynamicCost = Math.floor(BASE_COST * Math.pow(COST_MULTIPLIER, forgeCount));
+        const canForge = gameState.abyssalShards >= dynamicCost;
+        sfEl.innerHTML = `<span class="cost-shards">${formatNumber(dynamicCost)} Shards</span> → <span style="color:#44cc88;">1 Fragment</span><div style="color:#555;font-size:0.68em;margin-top:2px;">Purchase #${forgeCount+1} · next: ${formatNumber(Math.floor(dynamicCost * COST_MULTIPLIER))}</div>`;
         const csfb = document.getElementById('convert-shards-fragments-btn');
-        if (csfb) { csfb.onclick = () => convertCurrency('shards', 'fragments', sfTier.fromAmount, sfTier.toAmount); csfb.disabled = gameState.abyssalShards < sfTier.fromAmount; }
+        if (csfb) {
+            csfb.onclick = () => {
+                if (!confirm(`Convert ${formatNumber(dynamicCost)} Shards into 1 Fragment?\n\nNext purchase will cost ${formatNumber(Math.floor(dynamicCost * COST_MULTIPLIER))} Shards.`)) return;
+                if (gameState.abyssalShards < dynamicCost) {
+                    Toastify({ text:`Need ${formatNumber(dynamicCost)} Shards!`, duration:2500, gravity:'top', position:'center' }).showToast();
+                    return;
+                }
+                gameState.abyssalShards -= dynamicCost;
+                gameState.corruptedFragments += 1;
+                gameState.fragmentForgeCount = (gameState.fragmentForgeCount || 0) + 1;
+                Toastify({ text:`🔮 Fragment forged! Next costs ${formatNumber(Math.floor(dynamicCost * COST_MULTIPLIER))} Shards.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
+                saveGame();
+                renderBank();
+                updateDynamicDisplays();
+            };
+            csfb.disabled = !canForge;
+        }
     }
 }
 // ---------------------------------------------------------------

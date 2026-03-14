@@ -5903,6 +5903,7 @@ function getDefaultGameState() {
         inventory: [],
         equipped: { weapon: null, idol: null, sigil: null, helm: null, tome: null },
         nextCacheTime: 0,
+        shopPurchases: {},  // { 'hourKey:itemId': count } — resets each hour
         pvpWins: 0,
         pvpLosses: 0,
         pvpBeatenToday: {},
@@ -9908,193 +9909,210 @@ function generateHourlyShopItems() {
     const grid = document.getElementById('hourly-shop-grid');
     if (!grid) return;
 
-    // --- The Seed ---
-    // This ensures every player sees the same items for the current hour.
-    const now = new Date();
+    // Seed — same for every player each hour
+    const now  = new Date();
     const seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate() * 24 + now.getHours();
+    const hourKey = seed.toString(); // used as the purchase-limit namespace
 
-    // --- Item Selection (NEW & IMPROVED) ---
-    // Combine items, artifacts, and potions into one big pool of potential items.
-    // We add a 'type' to each so we know how to handle the purchase.
-    const allItemKeys = Object.keys(items).map(id => ({ id, type: 'item' }));
-    const allArtifactKeys = Object.keys(artifacts).map(id => ({ id, type: 'artifact' }));
-    const allPotionKeys = Object.keys(potions).map(id => ({ id, type: 'potion' }));
-
-    const itemPool = [...allItemKeys, ...allArtifactKeys, ...allPotionKeys];
-    let availableItems = [...itemPool];
-    
-    let shopItems = [];
-    // Use the seed to pick 3 unique items from the combined pool.
-    for (let i = 0; i < 3; i++) {
-        const randomIndex = (seed + i * 31) % availableItems.length;
-        const selectedItem = availableItems.splice(randomIndex, 1)[0];
-        shopItems.push(selectedItem);
+    // Prune stale purchase records from previous hours
+    if (!gameState.shopPurchases) gameState.shopPurchases = {};
+    for (const key of Object.keys(gameState.shopPurchases)) {
+        if (!key.startsWith(hourKey + ':')) delete gameState.shopPurchases[key];
     }
 
-    // ── RARE SECRET MINION SLOT (0.5% chance per shop refresh) ─────
-    // Weighted: wraith & sovereign equally likely, pale_accord half as often.
-    const secretChanceSeed = ((seed * 7 + 13) % 100) / 100; // deterministic 0–1 from seed
+    // Per-type purchase limits
+    const LIMITS = { item: 1, artifact: 1, potion: 3, secret_minion: 1 };
+
+    // Build item pool
+    const allItemKeys     = Object.keys(items).map(id => ({ id, type: 'item' }));
+    const allArtifactKeys = Object.keys(artifacts).map(id => ({ id, type: 'artifact' }));
+    const allPotionKeys   = Object.keys(potions).map(id => ({ id, type: 'potion' }));
+    let availableItems = [...allItemKeys, ...allArtifactKeys, ...allPotionKeys];
+
+    let shopItems = [];
+    for (let i = 0; i < 3; i++) {
+        const idx = (seed + i * 31) % availableItems.length;
+        shopItems.push(availableItems.splice(idx, 1)[0]);
+    }
+
+    // Rare secret minion slot (0.5% chance, deterministic from seed)
+    const secretChanceSeed = ((seed * 7 + 13) % 100) / 100;
     if (secretChanceSeed < 0.005) {
         const secretPool = [
             'wraith_of_avarice', 'wraith_of_avarice',
             'hollow_sovereign',  'hollow_sovereign',
             'the_pale_accord',
         ];
-        const chosenId  = secretPool[(seed * 3 + 7) % secretPool.length];
-        // Replace slot 1 (middle slot) with the secret minion
-        shopItems[1] = { id: chosenId, type: 'secret_minion' };
+        shopItems[1] = { id: secretPool[(seed * 3 + 7) % secretPool.length], type: 'secret_minion' };
     }
 
-        grid.innerHTML = ''; // Always clear first
+    grid.innerHTML = '';
 
-        // Type icons & colours
-        const typeTheme = {
-            item:     { icon:'⚔️',  color:'#4488ff', label:'Item'     },
-            artifact: { icon:'💠',  color:'#aa44ff', label:'Artifact' },
-            potion:   { icon:'⚗️',  color:'#44cc88', label:'Potion'   },
-        };
-        const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+    const typeTheme  = {
+        item:     { icon:'⚔️',  color:'#4488ff', label:'Item'     },
+        artifact: { icon:'💠',  color:'#aa44ff', label:'Artifact' },
+        potion:   { icon:'⚗️',  color:'#44cc88', label:'Potion'   },
+    };
+    const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
 
-        shopItems.forEach((shopItem, index) => {
-            const { id, type } = shopItem;
-            let itemData;
-            if (type === 'item') itemData = items[id];
-            if (type === 'artifact') itemData = artifacts[id];
-            if (type === 'potion') itemData = potions[id];
-            if (type === 'secret_minion') {
-                const sm = minions[id];
-                const owned = gameState.minions[id]?.level || 0;
-                const smPrice = 35; // fixed cost in Dark Essence
-                const canAffordSM = gameState.darkEssence >= smPrice;
-                grid.innerHTML += `
-                <div onclick="${canAffordSM ? `buyHourlyShopItem('${id}','secret_minion',${smPrice})` : ''}"
-                     style="background:linear-gradient(135deg,#0e0a1a,#1a0a2a); border:1px solid #aa44ff${canAffordSM ? '66' : '22'}; border-top:3px solid #aa44ff${canAffordSM ? '' : '44'}; border-radius:12px; padding:18px; cursor:${canAffordSM ? 'pointer' : 'default'}; opacity:${canAffordSM ? '1' : '0.6'}; transition:all 0.2s; position:relative; overflow:hidden;"
-                     onmouseover="if(${canAffordSM}) this.style.background='linear-gradient(135deg,#aa44ff15,#1a0a2a)'"
-                     onmouseout="this.style.background='linear-gradient(135deg,#0e0a1a,#1a0a2a)'">
-                    <div style="position:absolute; top:8px; right:10px; background:#aa44ff22; border:1px solid #aa44ff44; border-radius:10px; padding:1px 8px; font-size:0.6em; color:#aa44ff; letter-spacing:1px;">SECRET</div>
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-                        <span style="font-size:1.8em; line-height:1;">${sm.icon}</span>
-                        <span style="background:#aa44ff22; border:1px solid #aa44ff44; border-radius:8px; padding:2px 8px; font-size:0.68em; color:#aa44ff; text-transform:uppercase; letter-spacing:1px;">Minion</span>
-                    </div>
-                    <div style="color:#cc88ff; font-weight:bold; font-size:1em; margin-bottom:4px;">${sm.name}</div>
-                    ${owned > 0 ? `<div style="color:#44cc88; font-size:0.72em; margin-bottom:4px;">✓ Owned (×${owned})</div>` : ''}
-                    <div style="color:#888; font-size:0.8em; line-height:1.4; margin-bottom:14px; font-style:italic;">A rare entity of unknown origin. Usable in PvP &amp; Proving Grounds.</div>
-                    <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #ffffff0a; padding-top:10px;">
-                        <div>
-                            <div style="color:#666; font-size:0.7em;">COST</div>
-                            <div style="color:${canAffordSM ? '#9944cc' : '#664466'}; font-weight:bold;">${smPrice} <span style="font-size:0.75em;">Dark Essence</span></div>
-                        </div>
-                        <div style="background:${canAffordSM ? '#aa44ff33' : '#33333333'}; border:1px solid ${canAffordSM ? '#aa44ff66' : '#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${canAffordSM ? '#cc88ff' : '#555'};">
-                            ${canAffordSM ? '🔮 Acquire' : '🔒 Need More'}
-                        </div>
-                    </div>
-                </div>`;
-                return;
-            }
+    shopItems.forEach((shopItem, index) => {
+        const { id, type } = shopItem;
 
-            if (type === 'artifact' && gameState.ownedArtifacts[id]) {
-                const replacementIndex = (seed + 40 + index) % availableItems.length;
-                const replacement = availableItems.splice(replacementIndex, 1)[0];
-                shopItem.id = replacement.id; shopItem.type = replacement.type;
-                if (replacement.type === 'item') itemData = items[replacement.id];
-                if (replacement.type === 'artifact') itemData = artifacts[replacement.id];
-                if (replacement.type === 'potion') itemData = potions[replacement.id];
-            }
+        // Purchase tracking
+        const purchaseKey  = hourKey + ':' + id;
+        const bought       = gameState.shopPurchases[purchaseKey] || 0;
+        const limit        = LIMITS[type] || 1;
+        const remaining    = Math.max(0, limit - bought);
+        const soldOut      = remaining === 0;
 
-            let finalPrice = shopItem.id === 'mark_of_the_first' ? 150 : ((seed + index * 13) % 20) + 1;
-
-            const canAfford = gameState.darkEssence >= finalPrice;
-            const theme = typeTheme[shopItem.type] || typeTheme.item;
-            const rc = rarityColor[itemData?.rarity] || theme.color;
-
+        // ── SECRET MINION slot ────────────────────────────────────────
+        if (type === 'secret_minion') {
+            const sm         = minions[id];
+            const smPrice    = 35;
+            const canBuy     = !soldOut && gameState.darkEssence >= smPrice;
+            const statusHtml = soldOut
+                ? `<div style="background:#33333333; border:1px solid #444; border-radius:6px; padding:5px 12px; font-size:0.8em; color:#555;">✓ Purchased</div>`
+                : `<div style="background:${canBuy ? '#aa44ff33' : '#33333333'}; border:1px solid ${canBuy ? '#aa44ff66' : '#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${canBuy ? '#cc88ff' : '#555'};">${canBuy ? '🔮 Acquire' : '🔒 Need More'}</div>`;
             grid.innerHTML += `
-            <div onclick="${canAfford ? `buyHourlyShopItem('${shopItem.id}','${shopItem.type}',${finalPrice})` : ''}"
-                 style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${theme.color}${canAfford?'66':'22'}; border-top:3px solid ${theme.color}${canAfford?'':'44'}; border-radius:12px; padding:18px; cursor:${canAfford?'pointer':'default'}; opacity:${canAfford?'1':'0.6'}; transition:all 0.2s; position:relative; overflow:hidden;"
-                 onmouseover="if(${canAfford}) this.style.background='linear-gradient(135deg,${theme.color}15,#1a1020)'"
-                 onmouseout="this.style.background='linear-gradient(135deg,#0e0a1a,#1a1020)'">
+            <div onclick="${canBuy ? `buyHourlyShopItem('${id}','secret_minion',${smPrice},'${hourKey}')` : ''}"
+                 style="background:linear-gradient(135deg,#0e0a1a,#1a0a2a); border:1px solid #aa44ff${canBuy?'66':'22'}; border-top:3px solid #aa44ff${soldOut?'22':canBuy?'':'44'}; border-radius:12px; padding:18px; cursor:${canBuy?'pointer':'default'}; opacity:${soldOut?'0.45':canBuy?'1':'0.6'}; transition:all 0.2s; position:relative; overflow:hidden;"
+                 onmouseover="if(${canBuy}) this.style.background='linear-gradient(135deg,#aa44ff15,#1a0a2a)'"
+                 onmouseout="this.style.background='linear-gradient(135deg,#0e0a1a,#1a0a2a)'">
+                <div style="position:absolute; top:8px; right:10px; background:#aa44ff22; border:1px solid #aa44ff44; border-radius:10px; padding:1px 8px; font-size:0.6em; color:#aa44ff; letter-spacing:1px;">${soldOut ? '✓ SOLD' : 'SECRET'}</div>
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-                    <span style="font-size:1.8em; line-height:1;">${theme.icon}</span>
-                    <div style="display:flex; gap:5px; align-items:center;">
-                        <span style="background:${theme.color}22; border:1px solid ${theme.color}44; border-radius:8px; padding:2px 8px; font-size:0.68em; color:${theme.color}; text-transform:uppercase; letter-spacing:1px;">${theme.label}</span>
-                        ${itemData?.rarity ? `<span style="background:${rc}22; border:1px solid ${rc}44; border-radius:8px; padding:2px 8px; font-size:0.68em; color:${rc}; text-transform:uppercase;">${itemData.rarity}</span>` : ''}
-                    </div>
+                    <span style="font-size:1.8em; line-height:1; filter:${soldOut?'grayscale(1)':'none'}">${sm.icon}</span>
+                    <span style="background:#aa44ff22; border:1px solid #aa44ff44; border-radius:8px; padding:2px 8px; font-size:0.68em; color:#aa44ff; text-transform:uppercase; letter-spacing:1px;">Minion</span>
                 </div>
-                <div style="color:${rc}; font-weight:bold; font-size:1em; margin-bottom:6px;">${itemData?.name || 'Unknown'}</div>
-                <div style="color:#888; font-size:0.8em; line-height:1.4; margin-bottom:14px;">${itemData?.desc || ''}</div>
+                <div style="color:${soldOut?'#555':'#cc88ff'}; font-weight:bold; font-size:1em; margin-bottom:14px;">${sm.name}</div>
                 <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #ffffff0a; padding-top:10px;">
                     <div>
                         <div style="color:#666; font-size:0.7em;">COST</div>
-                        <div style="color:${canAfford?'#9944cc':'#664466'}; font-weight:bold;">${formatNumber(finalPrice)} <span style="font-size:0.75em;">Dark Essence</span></div>
+                        <div style="color:${canBuy?'#9944cc':'#664466'}; font-weight:bold;">${smPrice} <span style="font-size:0.75em;">Dark Essence</span></div>
                     </div>
-                    <div style="background:${canAfford?theme.color+'33':'#33333333'}; border:1px solid ${canAfford?theme.color+'66':'#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${canAfford?theme.color:'#555'};">
-                        ${canAfford ? '🛒 Buy' : '🔒 Need More'}
-                    </div>
+                    ${statusHtml}
                 </div>
             </div>`;
-        });
+            return;
+        }
+
+        // ── Normal slot — replace owned artifacts ─────────────────────
+        let itemData;
+        if (type === 'item') itemData = items[id];
+        if (type === 'artifact') itemData = artifacts[id];
+        if (type === 'potion') itemData = potions[id];
+
+        if (type === 'artifact' && gameState.ownedArtifacts[id] && availableItems.length) {
+            const ri = (seed + 40 + index) % availableItems.length;
+            const replacement = availableItems.splice(ri, 1)[0];
+            shopItem.id = replacement.id; shopItem.type = replacement.type;
+            if (replacement.type === 'item') itemData = items[replacement.id];
+            if (replacement.type === 'artifact') itemData = artifacts[replacement.id];
+            if (replacement.type === 'potion') itemData = potions[replacement.id];
+        }
+
+        const finalPrice = shopItem.id === 'mark_of_the_first' ? 150 : ((seed + index * 13) % 20) + 1;
+        const canAfford  = !soldOut && gameState.darkEssence >= finalPrice;
+        const theme      = typeTheme[shopItem.type] || typeTheme.item;
+        const rc         = rarityColor[itemData?.rarity] || theme.color;
+
+        // Remaining label for potions (show e.g. "2 / 3 left")
+        const remainingHtml = (limit > 1 && !soldOut)
+            ? `<div style="color:#888; font-size:0.68em; margin-top:3px;">${remaining} / ${limit} remaining this hour</div>`
+            : '';
+        const soldOutHtml = soldOut
+            ? `<div style="position:absolute; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; border-radius:12px; font-family:var(--font-title); font-size:1.1em; color:#555; letter-spacing:3px; pointer-events:none;">SOLD OUT</div>`
+            : '';
+
+        grid.innerHTML += `
+        <div onclick="${canAfford ? `buyHourlyShopItem('${shopItem.id}','${shopItem.type}',${finalPrice},'${hourKey}')` : ''}"
+             style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${theme.color}${soldOut?'11':canAfford?'66':'22'}; border-top:3px solid ${theme.color}${soldOut?'22':canAfford?'':'44'}; border-radius:12px; padding:18px; cursor:${canAfford?'pointer':'default'}; opacity:${soldOut?'0.4':canAfford?'1':'0.6'}; transition:all 0.2s; position:relative; overflow:hidden;"
+             onmouseover="if(${canAfford}) this.style.background='linear-gradient(135deg,${theme.color}15,#1a1020)'"
+             onmouseout="this.style.background='linear-gradient(135deg,#0e0a1a,#1a1020)'">
+            ${soldOutHtml}
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                <span style="font-size:1.8em; line-height:1;">${theme.icon}</span>
+                <div style="display:flex; gap:5px; align-items:center;">
+                    <span style="background:${theme.color}22; border:1px solid ${theme.color}44; border-radius:8px; padding:2px 8px; font-size:0.68em; color:${theme.color}; text-transform:uppercase; letter-spacing:1px;">${theme.label}</span>
+                    ${itemData?.rarity ? `<span style="background:${rc}22; border:1px solid ${rc}44; border-radius:8px; padding:2px 8px; font-size:0.68em; color:${rc}; text-transform:uppercase;">${itemData.rarity}</span>` : ''}
+                </div>
+            </div>
+            <div style="color:${soldOut?'#444':rc}; font-weight:bold; font-size:1em; margin-bottom:6px;">${itemData?.name || 'Unknown'}</div>
+            <div style="color:#888; font-size:0.8em; line-height:1.4; margin-bottom:14px;">${itemData?.desc || ''}</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #ffffff0a; padding-top:10px;">
+                <div>
+                    <div style="color:#666; font-size:0.7em;">COST</div>
+                    <div style="color:${canAfford?'#9944cc':'#664466'}; font-weight:bold;">${formatNumber(finalPrice)} <span style="font-size:0.75em;">Dark Essence</span></div>
+                    ${remainingHtml}
+                </div>
+                <div style="background:${soldOut?'#11111133':canAfford?theme.color+'33':'#33333333'}; border:1px solid ${soldOut?'#222':canAfford?theme.color+'66':'#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${soldOut?'#333':canAfford?theme.color:'#555'};">
+                    ${soldOut ? '✓ Purchased' : canAfford ? '🛒 Buy' : '🔒 Need More'}
+                </div>
+            </div>
+        </div>`;
+    });
 }
 
 // =================================================================
-// START: CORRECTED buyHourlyShopItem FUNCTION
+// buyHourlyShopItem — enforces per-hour purchase limits
 // =================================================================
-function buyHourlyShopItem(itemId, itemType, price) {
+function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     if (gameState.darkEssence < price) {
-        alert("You cannot afford this.");
+        Toastify({ text: 'Not enough Dark Essence.', duration: 2500, gravity:'top', position:'center', style:{ background:'#aa2222' } }).showToast();
+        return;
+    }
+
+    // Enforce limit
+    if (!gameState.shopPurchases) gameState.shopPurchases = {};
+    const LIMITS       = { item: 1, artifact: 1, potion: 3, secret_minion: 1 };
+    const purchaseKey  = (hourKey || 'x') + ':' + itemId;
+    const bought       = gameState.shopPurchases[purchaseKey] || 0;
+    const limit        = LIMITS[itemType] || 1;
+    if (bought >= limit) {
+        Toastify({ text: `You've already purchased this item the maximum number of times this hour.`, duration: 3000, gravity:'top', position:'center', style:{ background:'#883300' } }).showToast();
         return;
     }
 
     let itemName = '';
-    if (itemType === 'item') itemName = items[itemId].name;
-    if (itemType === 'artifact') itemName = artifacts[itemId].name;
-    if (itemType === 'potion') itemName = potions[itemId].name;
-    if (itemType === 'secret_minion') itemName = minions[itemId].name;
+    if (itemType === 'item') itemName = items[itemId]?.name || itemId;
+    if (itemType === 'artifact') itemName = artifacts[itemId]?.name || itemId;
+    if (itemType === 'potion') itemName = potions[itemId]?.name || itemId;
+    if (itemType === 'secret_minion') itemName = minions[itemId]?.name || itemId;
 
-    if (confirm(`Are you sure you want to buy ${itemName} for ${formatNumber(price)} Dark Essence?`)) {
-        gameState.darkEssence -= price;
+    const limitMsg = limit > 1 ? ` (${bought + 1}/${limit} this hour)` : '';
+    if (!confirm(`Buy ${itemName} for ${formatNumber(price)} Dark Essence?${limitMsg}`)) return;
 
-        if (itemType === 'secret_minion') {
-            const sm = minions[itemId];
-            if (!gameState.minions[itemId]) gameState.minions[itemId] = { level: 0, cost: 0, promotionTier: 0 };
-            gameState.minions[itemId].level++;
-            const lvl = gameState.minions[itemId].level;
-            Toastify({ text: `🔮 ${sm.icon} ${sm.name} obtained! (×${lvl}) — Check your Bestiary.`, duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0050,#aa44ff)' } }).showToast();
-            calculateStats();
-            renderAll();
-            saveGame();
-            generateHourlyShopItems(); // refresh so the slot changes
-            return;
-        } else if (itemType === 'item') {
-            gameState.inventory.push(itemId);
-            alert("Purchase successful! The item has been added to your inventory.");
-        } else if (itemType === 'artifact') {
-            // --- THIS IS THE lncr_ FIX ---
-            // The new code correctly initializes the artifact with a level,
-            // or increments the level if you already own it.. duh.
-            
-            // Check if we already own this artifact. If not, create its object.
-            if (!gameState.ownedArtifacts[itemId]) {
-                gameState.ownedArtifacts[itemId] = { level: 0 };
-            }
-            // Increment the artifact's level.
-            gameState.ownedArtifacts[itemId].level++;
-            
-            // Give a more accurate success message.
-            alert(`Acquisition successful! ${artifacts[itemId].name} is now Level ${gameState.ownedArtifacts[itemId].level}.`);
+    // Charge
+    gameState.darkEssence -= price;
 
-        } else if (itemType === 'potion') {
-            gameState.potions[itemId] = (gameState.potions[itemId] || 0) + 1;
-            alert("Purchase successful! The potion has been added to your brewery.");
-        }
-        
-        playSound('upgrade');
-        // We need to recalculate stats immediately after buying an artifact
-        calculateStats(); 
-        renderAll();
-        saveGame();
+    // Record purchase
+    gameState.shopPurchases[purchaseKey] = bought + 1;
+
+    // Grant item
+    if (itemType === 'secret_minion') {
+        const sm = minions[itemId];
+        if (!gameState.minions[itemId]) gameState.minions[itemId] = { level: 0, cost: 0, promotionTier: 0 };
+        gameState.minions[itemId].level++;
+        const lvl = gameState.minions[itemId].level;
+        Toastify({ text: `🔮 ${sm.icon} ${sm.name} obtained! (×${lvl}) — Check your Bestiary.`, duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0050,#aa44ff)' } }).showToast();
+    } else if (itemType === 'item') {
+        gameState.inventory.push(itemId);
+        Toastify({ text: `✔ ${itemName} added to your inventory.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a44,#4488ff)' } }).showToast();
+    } else if (itemType === 'artifact') {
+        if (!gameState.ownedArtifacts[itemId]) gameState.ownedArtifacts[itemId] = { level: 0 };
+        gameState.ownedArtifacts[itemId].level++;
+        Toastify({ text: `✔ ${itemName} is now Level ${gameState.ownedArtifacts[itemId].level}.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#1a0a2a,#aa44ff)' } }).showToast();
+    } else if (itemType === 'potion') {
+        gameState.potions[itemId] = (gameState.potions[itemId] || 0) + 1;
+        Toastify({ text: `✔ ${itemName} added to your brewery.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a14,#44cc88)' } }).showToast();
     }
+
+    playSound('upgrade');
+    calculateStats();
+    renderAll();
+    saveGame();
+    generateHourlyShopItems(); // re-render so sold-out state is immediately visible
 }
-// =================================================================
-// END: CORRECTED buyHourlyShopItem FUNCTION
+// END: buyHourlyShopItem
 // =================================================================
 
 function startShopTimer() {
@@ -14623,27 +14641,44 @@ async function arenaEndBattle(playerWon) {
         const playerCountEl     = document.getElementById('rift-player-count');
         const syncBadge         = document.getElementById('rift-sync-badge');
 
-        // ── Constants ─────────────────────────────────────────────────
-        const WAITING_TIME = 15000; // ms of betting window before each round
+        // ─────────────────────────────────────────────────────────────
+        // THE UNSTABLE RIFT — clean deterministic engine
+        //
+        // DESIGN:
+        //  • Firebase stores only one thing: the current round record
+        //    { id, gameStart, crash }  (written once per round)
+        //  • Every client derives the exact crash timestamp:
+        //    crashMs = gameStart + ln(crash) / 0.1 * 1000
+        //  • All phase transitions use setTimeout — no polling for crash
+        //  • The display interval only updates the number on screen
+        //  • New rounds are started by whichever client's timer fires first;
+        //    a transaction guarantees only one round is ever created
+        //  • History is keyed by roundId — impossible to duplicate
+        // ─────────────────────────────────────────────────────────────
+        const WAIT_MS  = 15000; // ms of betting window
 
-        // ── State ─────────────────────────────────────────────────────
-        let gameStateRift     = 'WAITING';
+        // ── state ────────────────────────────────────────────────────
+        let riftPhase         = 'IDLE';   // IDLE | WAITING | RUNNING | CRASHED
         let currentMultiplier = 1.00;
-        let crashPoint        = 0;
+        let crashPoint        = 1.10;
         let roundId           = '';
+        let gameStartMs       = 0;
         let playerBet         = null;
         let myDBId            = null;
         let livePlayers       = {};
         let lastRoundPlayers  = {};
-        let crashHistory      = [];   // [{v, rid, t}]
-        let multiplierInterval = null;
-        let waitInterval       = null;
-        let localRoundTimer    = null;
-        let nextRoundTimer     = null;
-        let riftDB             = null;
-        let usingFirebase      = false;
+        let crashHistory      = [];       // [{v, rid, t}]
 
-        // ── Seeded RNG ────────────────────────────────────────────────
+        // timers — all tracked so they can be cancelled cleanly
+        let displayInterval   = null;   // ~100ms tick for the multiplier number
+        let waitCountdown     = null;   // 1s tick for "starts in Xs" counter
+        let crashTimer        = null;   // fires at the EXACT crash moment
+        let nextRoundTimer    = null;   // fires 5s after crash to start next round
+
+        let riftDB            = null;
+        let usingFirebase     = false;
+
+        // ── helpers ──────────────────────────────────────────────────
         function seededRandom(seed) {
             let t = seed + 0x6D2B79F5;
             t = Math.imul(t ^ t >>> 15, t | 1);
@@ -14651,111 +14686,82 @@ async function arenaEndBattle(playerWon) {
             return ((t ^ t >>> 14) >>> 0) / 4294967296;
         }
         function crashPointFromSeed(seed) {
-            const r = seededRandom(seed);
+            const r    = seededRandom(seed);
             const base = Math.max(1.10, 1 / (1 - r * 0.99));
-            if (base > 10) {
-                const boost = Math.pow(base / 10, 2.5);
-                return Math.round(base * boost * 10) / 10;
-            }
+            if (base > 10) return Math.round(base * Math.pow(base / 10, 2.5) * 10) / 10;
             return Math.round(base * 10) / 10;
         }
+        // Exact ms from gameStart until crash
+        function msToCrash(gStart, cp) {
+            return Math.max(0, gStart + Math.log(cp) / 0.1 * 1000 - Date.now());
+        }
 
-        // ── Firebase helpers (transaction-based — no host tracking needed) ──
-        //
-        // DESIGN: Every client independently runs the round ticker.
-        // Any client can attempt to write phase changes or start new rounds.
-        // Firebase transactions guarantee only the FIRST writer wins — no
-        // duplicate rounds, no duplicate history entries, no stale host state.
+        function clearAllTimers() {
+            clearInterval(displayInterval); displayInterval = null;
+            clearInterval(waitCountdown);   waitCountdown   = null;
+            clearTimeout(crashTimer);       crashTimer      = null;
+            clearTimeout(nextRoundTimer);   nextRoundTimer  = null;
+        }
 
-        // Try to create a new round.  Aborts if a non-crashed round already exists.
-        function txStartNewRound(db, afterRoundId) {
+        // ── write a new round to Firebase (transaction = only one wins) ──
+        function writeNewRound(db, prevRoundId) {
             const now   = Date.now();
-            const id    = now.toString(36);
+            const id    = now.toString(36) + Math.random().toString(36).slice(2, 5);
             const seed  = now % 2147483647;
             const crash = crashPointFromSeed(seed);
             db.ref('rift_round').transaction(cur => {
-                // Only create if: nothing exists, or the previous round has crashed
-                if (!cur || (cur.phase === 'CRASHED' && cur.id === afterRoundId)) {
-                    return { id, phase: 'WAITING', startedAt: now,
-                             gameStart: now + WAITING_TIME, seed, crash };
+                // Create only if nothing exists, or the previous round is still current
+                // (id match ensures we don't clobber a round another client just created)
+                if (!cur || cur.id === prevRoundId) {
+                    return { id, gameStart: now + WAIT_MS, crash };
                 }
-                return; // abort — someone else already started a round
+                // abort — someone else already wrote a new round
             });
         }
 
-        // Try to mark the current round as crashed.  Aborts if already crashed or wrong round.
-        function txBroadcastCrash(db, forRoundId, crashValue) {
-            db.ref('rift_round').transaction(cur => {
-                if (cur && cur.id === forRoundId && cur.phase !== 'CRASHED') {
-                    return { ...cur, phase: 'CRASHED' };
-                }
-                return; // abort
-            });
-            // History key = roundId → naturally deduplicated, safe for all clients to write
-            db.ref('rift_history/' + forRoundId).set({ v: crashValue, t: Date.now() });
-        }
+        // ── applyRound: called whenever Firebase delivers round data ──
+        // This is the ONLY entry point from Firebase.
+        function applyRound(data) {
+            if (!data) {
+                // No round exists — try to create one
+                writeNewRound(riftDB, null);
+                return;
+            }
 
-        // ── syncToRound: fired by Firebase on every round change ──────
-        function syncToRound(data) {
-            const now = Date.now();
+            // Ignore if this is a round we're already running correctly
+            if (data.id === roundId && riftPhase === 'RUNNING') return;
+            if (data.id === roundId && riftPhase === 'WAITING')  return;
 
-            if (data.id !== roundId) {
-                // New round — cancel any old timers
-                if (localRoundTimer) { clearTimeout(localRoundTimer); localRoundTimer = null; }
-                if (nextRoundTimer)  { clearTimeout(nextRoundTimer);  nextRoundTimer  = null; }
+            clearAllTimers();
+            roundId    = data.id;
+            gameStartMs = data.gameStart;
+            crashPoint  = data.crash;
 
-                roundId    = data.id;
-                crashPoint = data.crash;
+            const now     = Date.now();
+            const crashAt = data.gameStart + Math.log(data.crash) / 0.1 * 1000;
 
-                if (data.phase === 'CRASHED') {
-                    showCrashedState(data.crash);
-                    scheduleNextRound(data.id);
-                } else if (now >= data.gameStart) {
-                    // Joined mid-round — check if it should already be over
-                    const elapsed = (now - data.gameStart) / 1000;
-                    if (Math.pow(Math.E, elapsed * 0.1) >= data.crash) {
-                        showCrashedState(data.crash);
-                        scheduleNextRound(data.id);
-                    } else {
-                        enterRunning(data.gameStart);
-                    }
-                } else {
-                    const msUntilStart = data.gameStart - now;
-                    enterWaiting(msUntilStart);
-                    localRoundTimer = setTimeout(() => {
-                        if (gameStateRift === 'WAITING') enterRunning(data.gameStart);
-                    }, msUntilStart);
-                }
-            } else if (data.phase === 'CRASHED' && gameStateRift !== 'CRASHED') {
-                // Another client won the crash transaction
-                enterCrashed(data.crash);
+            if (now >= crashAt) {
+                // Round already over — show result and schedule next round
+                doShowCrashed(data.crash);
+                doScheduleNext(data.id);
+            } else if (now >= data.gameStart) {
+                // Round is mid-flight — join it
+                doStartRunning(data.gameStart, data.crash);
+            } else {
+                // Round is in the betting window
+                doStartWaiting(data.gameStart - now, data.gameStart, data.crash);
             }
         }
 
-        // Schedule every client to attempt starting the next round.
-        // Transaction ensures only the first one actually creates it.
-        function scheduleNextRound(crashedRoundId) {
-            if (nextRoundTimer) clearTimeout(nextRoundTimer);
-            nextRoundTimer = setTimeout(() => {
-                nextRoundTimer = null;
-                if (usingFirebase && riftDB) txStartNewRound(riftDB, crashedRoundId);
-                else startLocalRound();
-            }, 5000);
-        }
-
-        // ── Phase transitions ─────────────────────────────────────────
-        function enterWaiting(msRemaining) {
-            gameStateRift = 'WAITING';
-            playerBet     = null;
-            myDBId        = null;
-            livePlayers   = {};
+        // ── doStartWaiting ────────────────────────────────────────────
+        function doStartWaiting(msLeft, gStart, cp) {
+            riftPhase = 'WAITING';
+            playerBet = null; myDBId = null; livePlayers = {};
             currentMultiplier = 1.00;
-            clearInterval(multiplierInterval);
-            clearInterval(waitInterval);
 
-            riftElement.className = 'state-safe';
-            multiplierText.style.display = 'block';
+            riftElement.className        = 'state-safe';
             multiplierText.textContent   = '1.00x';
+            multiplierText.style.display = 'block';
             multiplierText.style.color   = '#fff';
             crashMessageText.style.display = 'none';
             actionButton.textContent  = 'Place Bet';
@@ -14765,30 +14771,33 @@ async function arenaEndBattle(playerWon) {
             betCurrencySelect.disabled = false;
             updatePlayerList();
 
-            let remaining = Math.ceil(msRemaining / 1000);
-            const tick = () => {
-                statusBar.textContent = remaining > 0
-                    ? `⏳ Betting open — round starts in ${remaining}s`
+            // Countdown display
+            let secs = Math.ceil(msLeft / 1000);
+            const tickStatus = () => {
+                statusBar.textContent = secs > 0
+                    ? `⏳ Betting open — round starts in ${secs}s`
                     : `🌀 Rift is opening...`;
-                statusBar.style.borderLeftColor = remaining > 0 ? '#44cc88' : '#aa44ff';
-                statusBar.style.color           = remaining > 0 ? '#44cc88' : '#aa88cc';
+                statusBar.style.borderLeftColor = secs > 0 ? '#44cc88' : '#aa44ff';
+                statusBar.style.color           = secs > 0 ? '#44cc88' : '#aa88cc';
             };
-            tick();
-            waitInterval = setInterval(() => { remaining--; tick(); if (remaining <= -2) clearInterval(waitInterval); }, 1000);
+            tickStatus();
+            waitCountdown = setInterval(() => { secs--; tickStatus(); if (secs < -2) clearInterval(waitCountdown); }, 1000);
+            syncBadge.textContent = `ROUND ${roundId.slice(-4).toUpperCase()}`;
+
+            // Transition to RUNNING at the exact gameStart time
+            const msUntilRun = gStart - Date.now();
+            crashTimer = setTimeout(() => {
+                crashTimer = null;
+                if (riftPhase === 'WAITING') doStartRunning(gStart, cp);
+            }, Math.max(0, msUntilRun));
         }
 
-        function enterRunning(gameStartMs) {
-            // Guard: if the round already crashed by the time we enter, skip silently
-            const elapsedNow = Math.max(0, (Date.now() - gameStartMs) / 1000);
-            if (crashPoint > 1.0 && Math.pow(Math.E, elapsedNow * 0.1) >= crashPoint) {
-                showCrashedState(crashPoint);
-                scheduleNextRound(roundId);
-                return;
-            }
+        // ── doStartRunning ────────────────────────────────────────────
+        function doStartRunning(gStart, cp) {
+            riftPhase = 'RUNNING';
+            clearInterval(waitCountdown); waitCountdown = null;
+            clearInterval(displayInterval);
 
-            gameStateRift = 'RUNNING';
-            clearInterval(waitInterval);
-            clearInterval(multiplierInterval);
             actionButton.disabled    = playerBet === null;
             actionButton.textContent = 'Cash Out';
             actionButton.className   = 'cashing-out';
@@ -14797,58 +14806,66 @@ async function arenaEndBattle(playerWon) {
             statusBar.textContent = '🌀 Rift is unstable — cash out now!';
             statusBar.style.borderLeftColor = '#c8a800';
             statusBar.style.color = '#c8a800';
+            syncBadge.textContent = `ROUND ${roundId.slice(-4).toUpperCase()}`;
 
-            multiplierInterval = setInterval(() => {
-                if (gameStateRift !== 'RUNNING') { clearInterval(multiplierInterval); return; }
-                const el = Math.max(0, (Date.now() - gameStartMs) / 1000);
+            // Display ticker — only updates the number, never decides the crash
+            displayInterval = setInterval(() => {
+                if (riftPhase !== 'RUNNING') { clearInterval(displayInterval); return; }
+                const el = Math.max(0, (Date.now() - gStart) / 1000);
                 currentMultiplier = Math.pow(Math.E, el * 0.1);
-
-                multiplierText.textContent    = Math.min(currentMultiplier, crashPoint).toFixed(2) + 'x';
+                multiplierText.textContent    = Math.min(currentMultiplier, cp).toFixed(2) + 'x';
                 multiplierText.style.display  = 'block';
                 crashMessageText.style.display = 'none';
                 riftElement.className   = currentMultiplier > 5  ? 'state-danger'
                                         : currentMultiplier > 2  ? 'state-tense' : 'state-safe';
                 multiplierText.style.color = currentMultiplier > 5  ? '#ff8888'
                                            : currentMultiplier > 2  ? '#c8a800'  : '#fff';
-                syncBadge.textContent = `ROUND ${roundId.slice(-4).toUpperCase()}`;
                 updatePlayerList();
-
-                if (currentMultiplier >= crashPoint) {
-                    clearInterval(multiplierInterval);
-                    currentMultiplier = crashPoint;
-                    multiplierText.textContent = crashPoint.toFixed(2) + 'x';
-                    // Every client attempts the crash broadcast — transaction picks one winner
-                    if (riftDB) txBroadcastCrash(riftDB, roundId, crashPoint);
-                    enterCrashed(crashPoint);
-                }
             }, 100);
+
+            // Single precise timeout fires at the EXACT crash moment
+            // Every client sets this — first one to call doEnterCrashed wins the Firebase write
+            const msUntilCrash = msToCrash(gStart, cp);
+            crashTimer = setTimeout(() => {
+                crashTimer = null;
+                if (riftPhase !== 'RUNNING') return;
+                clearInterval(displayInterval); displayInterval = null;
+                currentMultiplier = cp;
+                multiplierText.textContent = cp.toFixed(2) + 'x';
+                // Write to Firebase — transaction deduplicates
+                if (riftDB) {
+                    const rid = roundId;
+                    riftDB.ref('rift_history/' + rid).transaction(cur => {
+                        return cur ? undefined : { v: cp, t: Date.now() };
+                    });
+                }
+                doEnterCrashed(cp);
+            }, msUntilCrash);
         }
 
-        // enterCrashed: full crash with history + next round scheduling
-        function enterCrashed(atMultiplier) {
-            clearInterval(multiplierInterval);
-            clearInterval(waitInterval);
-            gameStateRift = 'CRASHED';
+        // ── doEnterCrashed: full crash — resolves bets, updates history ──
+        function doEnterCrashed(cp) {
+            riftPhase = 'CRASHED';
+            clearInterval(displayInterval); displayInterval = null;
+            clearInterval(waitCountdown);   waitCountdown   = null;
             playSound('harvest');
 
-            riftElement.className = 'state-crashed';
-            multiplierText.style.display   = 'none';
-            crashMessageText.textContent   = `CRASHED @ ${Number(atMultiplier).toFixed(2)}x`;
+            riftElement.className        = 'state-crashed';
+            multiplierText.style.display = 'none';
+            crashMessageText.textContent = `CRASHED @ ${Number(cp).toFixed(2)}x`;
             crashMessageText.style.display = 'block';
             actionButton.disabled  = true;
             actionButton.className = '';
-            statusBar.textContent  = `💥 Rift collapsed at ${Number(atMultiplier).toFixed(2)}x`;
+            statusBar.textContent  = `💥 Rift collapsed at ${Number(cp).toFixed(2)}x`;
             statusBar.style.borderLeftColor = '#ff4444';
             statusBar.style.color = '#ff6666';
 
             // Local history — deduped by roundId
-            const crashed = Number(atMultiplier);
             if (roundId && !crashHistory.some(e => e.rid === roundId)) {
-                crashHistory.unshift({ v: crashed, rid: roundId, t: Date.now() });
+                crashHistory.unshift({ v: Number(cp), rid: roundId, t: Date.now() });
                 if (crashHistory.length > 10) crashHistory.pop();
                 renderHistory();
             }
-
             // Resolve bets
             const myBet = livePlayers[myDBId];
             if (myBet && myBet.status === 'playing') {
@@ -14859,23 +14876,32 @@ async function arenaEndBattle(playerWon) {
             lastRoundPlayers = { ...lastRoundPlayers, ...livePlayers };
             updatePlayerList();
 
-            scheduleNextRound(roundId);
+            doScheduleNext(roundId);
         }
 
-        // showCrashedState: display-only, no side effects (used when joining a finished round)
-        function showCrashedState(atMultiplier) {
-            clearInterval(multiplierInterval);
-            clearInterval(waitInterval);
-            gameStateRift = 'CRASHED';
-            riftElement.className = 'state-crashed';
-            multiplierText.style.display   = 'none';
-            crashMessageText.textContent   = `CRASHED @ ${Number(atMultiplier).toFixed(2)}x`;
+        // ── doShowCrashed: display only — no bets, no history, no next-round ──
+        // Used when joining a round that already ended.
+        function doShowCrashed(cp) {
+            riftPhase = 'CRASHED';
+            riftElement.className        = 'state-crashed';
+            multiplierText.style.display = 'none';
+            crashMessageText.textContent = `CRASHED @ ${Number(cp).toFixed(2)}x`;
             crashMessageText.style.display = 'block';
             actionButton.disabled  = true;
             actionButton.className = '';
-            statusBar.textContent  = `💥 Rift collapsed at ${Number(atMultiplier).toFixed(2)}x`;
+            statusBar.textContent  = `💥 Rift collapsed at ${Number(cp).toFixed(2)}x`;
             statusBar.style.borderLeftColor = '#ff4444';
             statusBar.style.color = '#ff6666';
+        }
+
+        // ── doScheduleNext ────────────────────────────────────────────
+        function doScheduleNext(prevId) {
+            if (nextRoundTimer) clearTimeout(nextRoundTimer);
+            nextRoundTimer = setTimeout(() => {
+                nextRoundTimer = null;
+                if (usingFirebase && riftDB) writeNewRound(riftDB, prevId);
+                else startLocalRound();
+            }, 5000);
         }
 
         // ── renderHistory ─────────────────────────────────────────────
@@ -14883,8 +14909,8 @@ async function arenaEndBattle(playerWon) {
             if (!historyBar) return;
             historyBar.innerHTML = crashHistory.map(e => {
                 const v = typeof e === 'object' ? e.v : e;
-                const color = v < 1.5 ? '#ff4444' : v < 2 ? '#ff8844' : v < 5 ? '#c8a800' : '#44cc88';
-                return `<div class="rift-history-chip" style="color:${color};border-color:${color}44;background:${color}11;">${Number(v).toFixed(2)}x</div>`;
+                const c = v < 1.5 ? '#ff4444' : v < 2 ? '#ff8844' : v < 5 ? '#c8a800' : '#44cc88';
+                return `<div class="rift-history-chip" style="color:${c};border-color:${c}44;background:${c}11;">${Number(v).toFixed(2)}x</div>`;
             }).join('');
         }
 
@@ -14894,28 +14920,18 @@ async function arenaEndBattle(playerWon) {
             if (db) {
                 riftDB        = db;
                 usingFirebase = true;
-                if (localRoundTimer) { clearTimeout(localRoundTimer); localRoundTimer = null; }
-                if (nextRoundTimer)  { clearTimeout(nextRoundTimer);  nextRoundTimer  = null; }
+                clearAllTimers();
 
-                // Round state
-                db.ref('rift_round').on('value', snap => {
-                    const data = snap.val();
-                    if (!data) {
-                        // No round exists — use transaction so only one client creates it
-                        txStartNewRound(db, null);
-                    } else {
-                        syncToRound(data);
-                    }
-                });
+                // Single listener — delivers every round change
+                db.ref('rift_round').on('value', snap => applyRound(snap.val()));
 
-                // Crash history — key per roundId, duplicates impossible
+                // History listener — merges Firebase entries with local
                 db.ref('rift_history').orderByChild('t').limitToLast(10).on('value', snap => {
                     const fromDB = [];
                     snap.forEach(child => {
                         const d = child.val();
                         if (d && typeof d.v === 'number') fromDB.push({ v: d.v, t: d.t || 0, rid: child.key });
                     });
-                    // Merge: keep any local entries Firebase hasn't confirmed yet
                     const dbRids  = new Set(fromDB.map(e => e.rid));
                     const pending = crashHistory.filter(e => e.rid && !dbRids.has(e.rid));
                     const merged  = [...pending, ...fromDB];
@@ -14928,21 +14944,22 @@ async function arenaEndBattle(playerWon) {
                 setTimeout(() => tryAttachFirebase(attempts - 1), 800);
             }
         }
-        tryAttachFirebase(25);
 
-        // ── startLocalRound: offline fallback only ────────────────────
+        // ── startLocalRound: offline / pre-Firebase fallback ─────────
         function startLocalRound() {
             if (usingFirebase) return;
-            const now       = Date.now();
-            const seed      = now % 2147483647;
-            roundId         = now.toString(36);
-            crashPoint      = crashPointFromSeed(seed);
-            const gameStart = now + WAITING_TIME;
-            enterWaiting(gameStart - now);
-            localRoundTimer = setTimeout(() => {
-                if (gameStateRift === 'WAITING' && !usingFirebase) enterRunning(gameStart);
-            }, WAITING_TIME);
+            const now  = Date.now();
+            const seed = now % 2147483647;
+            roundId    = now.toString(36);
+            gameStartMs = now + WAIT_MS;
+            crashPoint  = crashPointFromSeed(seed);
+            doStartWaiting(WAIT_MS, gameStartMs, crashPoint);
         }
+
+        // Bootstrap — start local immediately, hand off to Firebase when ready
+        startLocalRound();
+        tryAttachFirebase(25);
+        listenForPlayerUpdates();
     });
 </script>
 <!-- ================================================================= -->

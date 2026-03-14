@@ -12372,6 +12372,11 @@ function rollPactBuff() {
                 style: { background: 'linear-gradient(135deg,#4a2080,#c8a800)', fontSize: '1em', fontWeight: 'bold' }
             }).showToast();
 
+            // Store for persistent display
+            gameState._pactLastRollName = pick.name;
+            gameState._pactLastRollIcon = pick.icon;
+            gameState._pactLastRollDesc = pick.desc;
+
             // Apply instant essence locally right away
             if (pick.effect.type === 'instant_essence') {
                 gameState.darkEssence += pick.effect.value;
@@ -12455,8 +12460,11 @@ function listenPactBuff() {
         }
 
         // Store shared cooldown info for countdown display
-        gameState._pactSharedRolledAt = shared.rolledAt || 0;
-        gameState._pactSharedRolledBy = shared.rolledBy || '';
+        gameState._pactSharedRolledAt  = shared.rolledAt || 0;
+        gameState._pactSharedRolledBy  = shared.rolledBy || '';
+        gameState._pactLastRollName    = shared.name || '';
+        gameState._pactLastRollIcon    = shared.icon || '🎲';
+        gameState._pactLastRollDesc    = shared.desc || '';
         renderPactBuffStatus();
     });
 }
@@ -12498,6 +12506,9 @@ function renderPactBuffStatus() {
 
     // Cooldown section
     if (lastRoll > 0) {
+        const lastRollName = gameState._pactLastRollName || '';
+        const lastRollIcon = gameState._pactLastRollIcon || '🎲';
+        const lastRollDesc = gameState._pactLastRollDesc || '';
         if (cooldownLeft > 0) {
             const cmins = Math.floor(cooldownLeft / 60000);
             const csecs = Math.floor((cooldownLeft % 60000) / 1000);
@@ -12509,7 +12520,13 @@ function renderPactBuffStatus() {
                 <div style="background:#ffffff08; border-radius:4px; height:5px; overflow:hidden;">
                     <div style="height:100%; width:${100-cooldownPct}%; background:linear-gradient(90deg,#443366,#aa44ff66); border-radius:4px; transition:width 1s linear;"></div>
                 </div>
-                ${rolledBy ? `<div style="color:#444; font-size:0.68em; margin-top:5px;">Last rolled by ${rolledBy}</div>` : ''}
+                ${lastRollName ? `<div style="background:#1a1028; border-radius:7px; padding:7px 10px; margin-top:8px; display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.2em;">${lastRollIcon}</span>
+                    <div>
+                        <div style="color:#aa44ff; font-size:0.8em; font-weight:bold;">${lastRollName}</div>
+                        <div style="color:#666; font-size:0.72em;">${lastRollDesc}${rolledBy ? ` · rolled by ${rolledBy}` : ''}</div>
+                    </div>
+                </div>` : rolledBy ? `<div style="color:#444; font-size:0.68em; margin-top:5px;">Last rolled by ${rolledBy}</div>` : ''}
             </div>`;
         } else {
             html += `<div style="background:#0a1208; border:1px solid #44cc8844; border-radius:10px; padding:8px 14px; text-align:center; color:#44cc88; font-size:0.8em; font-weight:bold;">✨ Pact Blessing ready — Roll now!</div>`;

@@ -4307,21 +4307,64 @@ const fusionRecipes = [
 
 // Look up recipe — order-independent
 function getFusionResult(idA, idB) {
+    // Always sort so A+B == B+A
+    const sorted = [idA, idB].sort();
+    const key = sorted[0] + '|' + sorted[1];
+
+    // Check specific recipes first
     const recipe = fusionRecipes.find(r =>
         (r.a === idA && r.b === idB) || (r.a === idB && r.b === idA)
     );
     if (recipe) return recipe.result;
 
-    // Both market potions → generic super fusion
+    // Simple but stable hash so the same pair always gives the same fallback
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
+    hash = Math.abs(hash);
+
     const aIsMarket = potions[idA]?.marketOnly;
     const bIsMarket = potions[idB]?.marketOnly;
-    if (aIsMarket && bIsMarket) return 'fusion_market_obliterator';
 
-    // One market + one standard → souls burst
-    if (aIsMarket || bIsMarket) return 'fusion_souls_burst';
+    if (aIsMarket && bIsMarket) {
+        // Market + Market fallback pool — 5 options
+        const mktPool = [
+            'fusion_market_obliterator',
+            'fusion_market_singularity',
+            'fusion_market_annihilator',
+            'fusion_market_omega',
+            'fusion_market_eternity',
+        ];
+        return mktPool[hash % mktPool.length];
+    }
 
-    // Two standards → dual SPS/SPC
-    return 'fusion_sps_spc';
+    if (aIsMarket || bIsMarket) {
+        // Mixed fallback pool — 6 options
+        const mixPool = [
+            'fusion_souls_burst',
+            'fusion_all_in_one',
+            'fusion_passive_god',
+            'fusion_click_god',
+            'fusion_instant_wealth',
+            'fusion_shard_explosion',
+        ];
+        return mixPool[hash % mixPool.length];
+    }
+
+    // Both standard — largest fallback pool, 11 options
+    const stdPool = [
+        'fusion_sps_spc',
+        'fusion_essence_shards',
+        'fusion_souls_burst',
+        'fusion_cost_reduction',
+        'fusion_cooldown_master',
+        'fusion_prestige_power',
+        'fusion_click_god',
+        'fusion_world_rush',
+        'fusion_essence_bomb',
+        'fusion_time_warp',
+        'fusion_cache_rush',
+    ];
+    return stdPool[hash % stdPool.length];
 }
 
 const minions = {

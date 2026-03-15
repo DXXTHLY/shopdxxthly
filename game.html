@@ -8902,7 +8902,7 @@ function calculateStats() {
             for (let i = 0; i < playerMinion.promotionTier; i++) {
                 minionSps *= minionData.promotions[i].multiplier;
             }
-            sps += minionSps;
+            if (isFinite(minionSps)) sps += minionSps;
         }
     }
 
@@ -8984,13 +8984,16 @@ function calculateStats() {
     // =================================================================
     // 6. FINAL CALCULATION
     // =================================================================
-    // Use Decimal for final multiplication so extreme multipliers don't overflow to Infinity
+    // Use Decimal for final multiplication.
+    // NaN guard: if any multiplier is NaN (from Decimal-as-number bug), fall back to 1.
+    // Do NOT fall back on Infinity — pass it to D() which stores it as a huge-but-valid Decimal.
+    const _safeMult = v => isNaN(v) ? 1 : (isFinite(v) ? v : 1e300);
     let final_sps_D = D(isFinite(sps) ? sps : 0)
-        .mul(D(isFinite(sps_multiplier) ? sps_multiplier : 1))
-        .mul(D(isFinite(global_multiplier) ? global_multiplier : 1));
+        .mul(D(_safeMult(sps_multiplier)))
+        .mul(D(_safeMult(global_multiplier)));
     let final_spc_D = D(isFinite(baseSpc) ? baseSpc : 1)
-        .mul(D(isFinite(spc_multiplier) ? spc_multiplier : 1))
-        .mul(D(isFinite(global_multiplier) ? global_multiplier : 1));
+        .mul(D(_safeMult(spc_multiplier)))
+        .mul(D(_safeMult(global_multiplier)));
     // Keep plain number versions for legacy code paths that need them
     const final_sps = final_sps_D.toNumber();
     const final_spc = final_spc_D.toNumber();

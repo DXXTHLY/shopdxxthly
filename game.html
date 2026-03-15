@@ -3996,78 +3996,42 @@ const GAME_VERSION = "V. 0.9.1";
 // FINAL, BigInt-AWARE NUMBER FORMATTING
 // =================================================================
 function formatNumber(num) {
-    // Handle Decimal objects
+    // Handle Decimal objects from break_infinity.js
     if (num instanceof Decimal) {
+        // Use Decimal's own log10 for safe exponent calculation
         if (num.lt(0)) return '-' + formatNumber(num.neg());
-        if (num.lt(1e6)) return Math.floor(num.toNumber()).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-        // Dense notation table — entry every 3 powers from 6 to 3003
-        // Key: exponent (multiple of 3), Value: suffix symbol
-        const SYM = {
-            3030:'NYg', 3027:'OYg', 3024:'SYg', 3021:'sYg', 3018:'QYg', 3015:'qYg', 3012:'TYg', 3009:'DYg',
-            3006:'UYg', 3003:'Yg', 2730:'NZg', 2727:'OZg', 2724:'SZg', 2721:'sZg', 2718:'QZg', 2715:'qZg',
-            2712:'TZg', 2709:'DZg', 2706:'UZg', 2703:'Zg', 2430:'NEg', 2427:'OEg', 2424:'SEg', 2421:'sEg',
-            2418:'QEg', 2415:'qEg', 2412:'TEg', 2409:'DEg', 2406:'UEg', 2403:'Eg', 2130:'NPg', 2127:'OPg',
-            2124:'SPg', 2121:'sPg', 2118:'QPg', 2115:'qPg', 2112:'TPg', 2109:'DPg', 2106:'UPg', 2103:'Pg',
-            1830:'NTg2', 1827:'OTg2', 1824:'STg2', 1821:'sTg2', 1818:'QTg2', 1815:'qTg2', 1812:'TTg2', 1809:'DTg2',
-            1806:'UTg2', 1803:'Tg2', 1530:'NGg', 1527:'OGg', 1524:'SGg', 1521:'sGg', 1518:'QGg', 1515:'qGg',
-            1512:'TGg', 1509:'DGg', 1506:'UGg', 1503:'Gg', 1230:'NMg', 1227:'OMg', 1224:'SMg', 1221:'sMg',
-            1218:'QMg', 1215:'qMg', 1212:'TMg', 1209:'DMg', 1206:'UMg', 1203:'Mg', 930:'NKl', 927:'OKl',
-            924:'SKl', 921:'sKl', 918:'QKl', 915:'qKl', 912:'TKl', 909:'DKl', 906:'UKl', 903:'Kl',
-            630:'NHec', 627:'OHec', 624:'SHec', 621:'sHec', 618:'QHec', 615:'qHec', 612:'THec', 609:'DHec',
-            606:'UHec', 603:'Hec', 600:'NNCe', 597:'ONCe', 594:'SNCe', 591:'sNCe', 588:'QNCe', 585:'qNCe',
-            582:'TNCe', 579:'DNCe', 576:'UNCe', 573:'NCe', 570:'NOCe', 567:'OOCe', 564:'SOCe', 561:'sOCe',
-            558:'QOCe', 555:'qOCe', 552:'TOCe', 549:'DOCe', 546:'UOCe', 543:'OCe', 540:'NSCe', 537:'OSCe',
-            534:'SSCe', 531:'sSCe', 528:'QSCe', 525:'qSCe', 522:'TSCe', 519:'DSCe', 516:'USCe', 513:'SCe',
-            510:'NsCe', 507:'OsCe', 504:'SsCe', 501:'ssCe', 498:'QsCe', 495:'qsCe', 492:'TsCe', 489:'DsCe',
-            486:'UsCe', 483:'sCe', 480:'NQCe', 477:'OQCe', 474:'SQCe', 471:'sQCe', 468:'QQCe', 465:'qQCe',
-            462:'TQCe', 459:'DQCe', 456:'UQCe', 453:'QCe', 450:'NqCe', 447:'OqCe', 444:'SqCe', 441:'sqCe',
-            438:'QqCe', 435:'qqCe', 432:'TqCe', 429:'DqCe', 426:'UqCe', 423:'qCe', 420:'NTCe', 417:'OTCe',
-            414:'STCe', 411:'sTCe', 408:'QTCe', 405:'qTCe', 402:'TTCe', 399:'DTCe', 396:'UTCe', 393:'TCe',
-            390:'NDCe', 387:'ODCe', 384:'SDCe', 381:'sDCe', 378:'QDCe', 375:'qDCe', 372:'TDCe', 369:'DDCe',
-            366:'UDCe', 363:'DCe', 360:'NUCe', 357:'OUCe', 354:'SUCe', 351:'sUCe', 348:'QUCe', 345:'qUCe',
-            342:'TUCe', 339:'DUCe', 336:'UUCe', 333:'UCe', 330:'NCe', 327:'OCe', 324:'SCe', 321:'sCe',
-            318:'QCe', 315:'qCe', 312:'TCe', 309:'DCe', 306:'UCe', 303:'Ce', 300:'NNg', 297:'ONg',
-            294:'SNg', 291:'sNg', 288:'QNg', 285:'qNg', 282:'TNg', 279:'DNg', 276:'UNg', 273:'Ng',
-            270:'NOg', 267:'OOg', 264:'SOg', 261:'sOg', 258:'QOg', 255:'qOg', 252:'TOg', 249:'DOg',
-            246:'UOg', 243:'Og', 240:'NSpg', 237:'OSpg', 234:'SSpg', 231:'sSpg', 228:'QSpg', 225:'qSpg',
-            222:'TSpg', 219:'DSpg', 216:'USpg', 213:'Spg', 210:'NSxg', 207:'OSxg', 204:'SSxg', 201:'sSxg',
-            198:'QSxg', 195:'qSxg', 192:'TSxg', 189:'DSxg', 186:'USxg', 183:'Sxg', 180:'NQig', 177:'OQig',
-            174:'SQig', 171:'sQig', 168:'QQig', 165:'qQig', 162:'TQig', 159:'DQig', 156:'UQig', 153:'Qig',
-            150:'NQag', 147:'OQag', 144:'SQag', 141:'sQag', 138:'QQag', 135:'qQag', 132:'TQag', 129:'DQag',
-            126:'UQag', 123:'Qag', 120:'NTg', 117:'OTg', 114:'STg', 111:'sTg', 108:'QTg', 105:'qTg',
-            102:'TTg', 99:'DTg', 96:'UTg', 93:'Tg', 90:'NVg', 87:'OVg', 84:'SVg', 81:'sVg',
-            78:'QVg', 75:'qVg', 72:'TVg', 69:'DVg', 66:'UVg', 63:'Vg', 60:'NV', 57:'OD',
-            54:'SD', 51:'sD', 48:'QD', 45:'qD', 42:'TD', 39:'dD', 36:'UD', 33:'Dc',
-            30:'N', 27:'O', 24:'Sp', 21:'Sx', 18:'Qi', 15:'Qa', 12:'T', 9:'B',
-            6:'M'
-        };
-
-        const rawExp = num.log10().toNumber();
-        const exp    = Math.floor(rawExp);
-        // Round down to nearest multiple of 3 so val is always 1.00–999.99
-        const dispExp = exp - (exp % 3);
-        const sym = SYM[dispExp];
-
-        if (sym) {
-            // Mantissa is always 1.000–999.999 (dispExp is floor'd to mult of 3)
-            const val = num.div(Decimal.pow(10, dispExp)).toNumber();
-            // Always X.XX or XX.X or XXX.X format — 3–6 chars before suffix
-            const mant = val >= 100 ? val.toFixed(1) : val.toFixed(2);
-            const full = mant + sym;
-            // Visual cap: never render more than 14 chars total
-            // If suffix is long (e.g. "QDCe" = 4 chars), mant is already short (3-5)
-            // so this is mostly a safety net
-            return full.length > 14 ? val.toFixed(0) + sym : full;
+        if (num.lt(1000000)) return Math.floor(num.toNumber()).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        const exp = Math.floor(num.log10().toNumber());
+        const notationList = [
+            {exp:303,symbol:'Ce'},{exp:273,symbol:'Ng'},{exp:243,symbol:'Og'},
+            {exp:213,symbol:'Spg'},{exp:183,symbol:'Sxg'},{exp:153,symbol:'Qig'},
+            {exp:123,symbol:'Qag'},{exp:93,symbol:'Tg'},{exp:90,symbol:'NVg'},
+            {exp:87,symbol:'OVg'},{exp:84,symbol:'SVg'},{exp:81,symbol:'sVg'},
+            {exp:78,symbol:'QVg'},{exp:75,symbol:'qVg'},{exp:72,symbol:'TVg'},
+            {exp:69,symbol:'DVg'},{exp:66,symbol:'UVg'},{exp:63,symbol:'Vg'},
+            {exp:60,symbol:'NV'},{exp:57,symbol:'OD'},{exp:54,symbol:'SD'},
+            {exp:51,symbol:'sD'},{exp:48,symbol:'QD'},{exp:45,symbol:'qD'},
+            {exp:42,symbol:'TD'},{exp:39,symbol:'dD'},{exp:36,symbol:'UD'},
+            {exp:33,symbol:'Dc'},{exp:30,symbol:'N'},{exp:27,symbol:'O'},
+            {exp:24,symbol:'Sp'},{exp:21,symbol:'Sx'},{exp:18,symbol:'Qi'},
+            {exp:15,symbol:'Qa'},{exp:12,symbol:'T'},{exp:9,symbol:'B'},
+            {exp:6,symbol:'M'},
+        ];
+        for (const {exp: e, symbol} of notationList) {
+            if (exp >= e) {
+                const val = num.div(Decimal.pow(10, e)).toNumber();
+                return val.toFixed(2) + symbol;
+            }
         }
-
-        // Beyond Yg (10^3003) — unlimited, always X.XXe+N format
-        // Exponent shown as plain number — max ~10 chars regardless of size
-        const mantissa = num.div(Decimal.pow(10, exp)).toNumber();
-        return mantissa.toFixed(2) + 'e+' + exp;
+        // Beyond Ce (10^303) — show as scientific
+        if (exp >= 303) {
+            const val = num.div(Decimal.pow(10, exp)).toNumber();
+            return val.toFixed(2) + 'e' + exp;
+        }
+        return num.toFixed(0);
     }
 
-    // Safety check for plain numbers
+    // Safety check for invalid inputs like null, undefined, NaN, or Infinity
     if (num === null || typeof num === 'undefined' || isNaN(num) || !isFinite(num)) {
         return '0';
     }
@@ -4076,19 +4040,51 @@ function formatNumber(num) {
     if (n < 0) return '-' + formatNumber(-n);
     if (n < 1000000) return Math.floor(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-    // Use same dense SYM table as the Decimal branch above
-    const _exp    = Math.floor(Math.log10(n));
-    const _disp   = _exp - (_exp % 3);
-    const _sym    = SYM[_disp];
-    if (_sym) {
-        const _val = n / Math.pow(10, _disp);
-        const _mant = _val >= 100 ? _val.toFixed(1) : _val.toFixed(2);
-        const _full = _mant + _sym;
-        return _full.length > 14 ? _val.toFixed(0) + _sym : _full;
+    // For very large numbers, use logarithm-based formatting to avoid BigInt precision loss
+    if (n >= 1e15) {
+        const notationList = [
+            { exp: 303, symbol: 'Ce' }, { exp: 273, symbol: 'Ng' }, { exp: 243, symbol: 'Og' },
+            { exp: 213, symbol: 'Spg' }, { exp: 183, symbol: 'Sxg' }, { exp: 153, symbol: 'Qig' },
+            { exp: 123, symbol: 'Qag' }, { exp: 93, symbol: 'Tg' }, { exp: 90, symbol: 'NVg' },
+            { exp: 87, symbol: 'OVg' }, { exp: 84, symbol: 'SVg' }, { exp: 81, symbol: 'sVg' },
+            { exp: 78, symbol: 'QVg' }, { exp: 75, symbol: 'qVg' }, { exp: 72, symbol: 'TVg' },
+            { exp: 69, symbol: 'DVg' }, { exp: 66, symbol: 'UVg' }, { exp: 63, symbol: 'Vg' },
+            { exp: 60, symbol: 'NV' }, { exp: 57, symbol: 'OD' }, { exp: 54, symbol: 'SD' },
+            { exp: 51, symbol: 'sD' }, { exp: 48, symbol: 'QD' }, { exp: 45, symbol: 'qD' },
+            { exp: 42, symbol: 'TD' }, { exp: 39, symbol: 'dD' }, { exp: 36, symbol: 'UD' },
+            { exp: 33, symbol: 'Dc' }, { exp: 30, symbol: 'N' }, { exp: 27, symbol: 'O' },
+            { exp: 24, symbol: 'Sp' }, { exp: 21, symbol: 'Sx' }, { exp: 18, symbol: 'Qi' },
+            { exp: 15, symbol: 'Qa' },
+        ];
+        for (const { exp, symbol } of notationList) {
+            if (n >= Math.pow(10, exp)) {
+                const val = n / Math.pow(10, exp);
+                return val.toFixed(2) + symbol;
+            }
+        }
     }
-    // Beyond table or very large — clean X.XXe+N
-    const _mant2 = (n / Math.pow(10, _exp));
-    return (isFinite(_mant2) ? _mant2.toFixed(2) : '1.00') + 'e+' + _exp;
+
+    // For numbers between 1M and 1Qa, use BigInt safely
+    try {
+        const bn = BigInt(Math.floor(n));
+        const notations = [
+            { value: 1000000000000n, symbol: 'T' },
+            { value: 1000000000n, symbol: 'B' },
+            { value: 1000000n, symbol: 'M' },
+            { value: 1000n, symbol: 'K' },
+        ];
+        for (const { value, symbol } of notations) {
+            if (bn >= value) {
+                const whole = bn / value;
+                const rem = bn % value;
+                const dec = Math.floor(Number(rem) / Number(value / 100n));
+                return `${whole}.${String(dec).padStart(2,'0')}${symbol}`;
+            }
+        }
+        return bn.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    } catch(e) {
+        return n.toExponential(2);
+    }
 }
 
 
@@ -6677,7 +6673,7 @@ function executeCollapse() {
 
 function calculateShardsOnAscend() {
     // 1. Calculate the base Shards from lifetime souls.
-    let baseShards = Math.floor(Math.pow(D(gameState.lifetimeSouls).div(1e7).toNumber(), 0.5));
+    let baseShards = Math.floor(Math.pow(gameState.lifetimeSouls / 1e7, 0.5));
 
     // 2. Calculate the bonus from the "Soul Resonance" upgrade.
     let resonanceEffectiveness = 0.05;
@@ -8815,7 +8811,7 @@ function repairNegativeValues() {
         gameState.lifetimeSouls = D(gameState.souls);
         repaired = true;
     }
-    if (D(gameState.lifetimeSouls).lt(0)) {
+    if (gameState.lifetimeSouls < 0 || !isFinite(gameState.lifetimeSouls)) {
         gameState.lifetimeSouls = Dmax0(gameState.souls);
         repaired = true;
     }
@@ -9430,7 +9426,7 @@ async function fetchPvpTargets() {
             .from('players')
             .select('*')
             .neq('name', gameState.playerName)
-            .gte('lifetimeSouls', D(gameState.lifetimeSouls).mul(0.25).toNumber()) // Widen the search range
+            .gte('lifetimeSouls', gameState.lifetimeSouls * 0.25) // Widen the search range
             .lte('lifetimeSouls', gameState.lifetimeSouls * 4);
         if (error) throw error;
         
@@ -9568,7 +9564,7 @@ function startDuel(defender) {
     vfxCanvas.height = vfxCanvas.parentElement.offsetHeight;
     particles = []; // Clear old particles
 
-    const difficulty = Math.min(10, Math.max(1, Math.floor(D(defender.lifetimeSouls || 1).log10().toNumber())));
+    const difficulty = Math.min(10, Math.max(1, Math.floor(Math.log10(defender.lifetimeSouls || 1))));
 
     duelState = {
         active: true,
@@ -9910,9 +9906,9 @@ function renderStatsPage() {
         ]),
 
         statCard('Soul & Currencies', '#ff6644', '👻', [
-            ['Total Souls Ever Earned', formatNumber(D(gs.lifetimeSouls).max(D(gs.souls).add(D(gs.soulsSpent||0))))],
-            ['Currently Held',          formatNumber(D(gs.souls))],
-            ['Souls Spent (All Time)',  formatNumber(D(gs.soulsSpent||0))],
+            ['Total Souls Ever Earned', formatNumber(Math.max(gs.lifetimeSouls, (gs.souls||0) + (gs.soulsSpent||0)))],
+            ['Currently Held',          formatNumber(gs.souls || 0)],
+            ['Souls Spent (All Time)',  formatNumber(gs.soulsSpent || 0)],
             ['Souls / Second',          formatNumber(gs.stats?.sps || 0)],
             ['Souls / Click',           formatNumber(gs.stats?.spc || 1)],
             ['Manual Harvests',         formatNumber(gs.manualHarvests || 0)],

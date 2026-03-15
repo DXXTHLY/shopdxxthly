@@ -16712,7 +16712,7 @@ let gntState = { phase:'LOBBY', wave:1, betAmount:0, betCurrency:'souls', player
 
 function gntLog(msg,color){const log=document.getElementById('gnt-log');if(!log)return;const el=document.createElement('div');el.style.color=color||'#888';el.textContent=msg;log.prepend(el);while(log.children.length>30)log.removeChild(log.lastChild);}
 function gntSetBet(v){const el=document.getElementById('gnt-bet-input');if(el)el.value=v;}
-function gntSetBetMax(){const cur=document.getElementById('gnt-currency')?.value||'souls';gntSetBet(Math.floor(gameState[cur]||0));}
+function gntSetBetMax(){const cur=document.getElementById('gnt-currency')?.value||'souls';gntSetBet(D(gameState[cur]||0).toNumber().toFixed(0));}
 function gntCurrencyLabel(key){return{souls:'👻 Souls',darkEssence:'🌑 Dark Essence',abyssalShards:'💎 Shards',aether:'✨ Aether',corruptedFragments:'🔮 Fragments'}[key]||key;}
 function gntCalcBudget(){return 10+(gameState.ascensions||0)*3+(gntState.wave-1)*2;}
 function gntUpdateBudgetBar(){
@@ -16722,12 +16722,13 @@ function gntUpdateBudgetBar(){
     if(txt)txt.textContent=`${gntState.pointsSpent} / ${gntState.pointBudget}`;
 }
 function gntUpdateInfoBar(){
-    const wd=gntGetWaveData(gntState.wave),win=Math.floor(gntState.betAmount*wd.mult);
+    const wd=gntGetWaveData(gntState.wave);
+    const winD = D(gntState.betAmount).mul(D(wd.mult));
     document.getElementById('gnt-wave-display').textContent=gntState.wave;
     document.getElementById('gnt-bet-display').textContent=`${formatNumber(gntState.betAmount)} ${gntCurrencyLabel(gntState.betCurrency)}`;
     document.getElementById('gnt-mult-display').textContent=wd.label;
     document.getElementById('gnt-mult-display').style.color=wd.color;
-    document.getElementById('gnt-win-display').textContent=formatNumber(win);
+    document.getElementById('gnt-win-display').textContent=formatNumber(winD);
     document.getElementById('gnt-info-bar').style.display='flex';
 }
 function gntSetPhase(phase){
@@ -16833,9 +16834,17 @@ function gntBeginWave(){
     const currency=document.getElementById('gnt-currency')?.value||'souls';
     if(gntState.wave===1){
         if(isNaN(betInput)||betInput<=0){Toastify({text:'Enter a valid bet amount.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
-        if(gameState[currency]<betInput){Toastify({text:'Not enough resources.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
+        if(D(gameState[currency] || 0).lt(D(betInput))){Toastify({text:'Not enough resources.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
         if(gntState.playerUnits.length===0){Toastify({text:'Deploy at least one minion.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
-        gntState.betAmount=betInput;gntState.betCurrency=currency;gameState[currency]-=betInput;updateDynamicDisplays();saveGame();
+        gntState.betAmount=betInput;gntState.betCurrency=currency;
+        // Deduct bet — souls is Decimal, others may be too
+        if (currency === 'souls') {
+            gameState.souls = D(gameState.souls).sub(D(betInput));
+            gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(betInput));
+        } else {
+            gameState[currency] = D(gameState[currency] || 0).sub(D(betInput));
+        }
+        updateDynamicDisplays();saveGame();
     } else {
         if(gntState.playerUnits.length===0){Toastify({text:'Deploy at least one minion.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
     }
@@ -16883,10 +16892,12 @@ function gntRunTurn(){
     },400);
 }
 function gntWaveWon(){
-    const wd=gntGetWaveData(gntState.wave),win=Math.floor(gntState.betAmount*wd.mult),next=gntGetWaveData(gntState.wave+1);
+    const wd=gntGetWaveData(gntState.wave),next=gntGetWaveData(gntState.wave+1);
+    const winD = D(gntState.betAmount).mul(D(wd.mult));
+    const winDisplay = formatNumber(winD);
     gntLog(`✦ Wave ${gntState.wave} cleared at ${wd.label}!`,'#44cc88');playSound('ascend');
     const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`✦ Wave ${gntState.wave} cleared! Cash out or push deeper.`;sb.style.borderLeftColor='#44cc88';sb.style.color='#44cc88';}
-    const bt=document.getElementById('gnt-between-text');if(bt)bt.innerHTML=`Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>Cash out: <strong style="color:#44cc88;">${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}</strong><br><br>Next: <strong style="color:${next.color};">${next.label}</strong> — lose everything if you fall.`;
+    const bt=document.getElementById('gnt-between-text');if(bt)bt.innerHTML=`Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>Cash out: <strong style="color:#44cc88;">${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)}</strong><br><br>Next: <strong style="color:${next.color};">${next.label}</strong> — lose everything if you fall.`;
     const nb=document.getElementById('gnt-next-btn');if(nb)nb.textContent=`⚔ Wave ${gntState.wave+1} (${next.label})`;
     gntState.playerUnits=[];gntState.pointsSpent=0;gntState.pointBudget=gntCalcBudget();gntUpdateBudgetBar();gntSetPhase('BETWEEN');gntRenderGrid();gntRenderWaveTable();
 }
@@ -16897,11 +16908,21 @@ function gntWaveLost(){
     gntSetPhase('RESULT');gntRenderGrid();
 }
 function gntCashOut(){
-    const wd=gntGetWaveData(gntState.wave),win=Math.floor(gntState.betAmount*wd.mult);
-    _safeAddCur(gntState.betCurrency, win);updateDynamicDisplays();saveGame();playSound('upgrade');
-    gntLog(`💰 Cashed out at ${wd.label} — +${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}!`,'#c8a800');
-    const box=document.getElementById('gnt-result-box');if(box){box.style.borderTopColor='#44cc88';box.innerHTML=`<div style="font-size:2em;margin-bottom:8px;">💰</div><div style="color:#44cc88;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:8px;">CASHED OUT</div><div style="color:#aaa;font-size:0.82em;line-height:1.6;">Survived ${gntState.wave} wave${gntState.wave>1?'s':''}.<br>Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>Winnings: <strong style="color:#44cc88;">+${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}</strong></div>`;}
-    const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`💰 Cashed out — ${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)} collected!`;sb.style.borderLeftColor='#44cc88';sb.style.color='#44cc88';}
+    const wd=gntGetWaveData(gntState.wave);
+    // Use Decimal for win calculation — bet could be huge souls value
+    const winD = D(gntState.betAmount).mul(D(wd.mult));
+    const winDisplay = formatNumber(winD);
+    // Add winnings back
+    if (gntState.betCurrency === 'souls') {
+        gameState.souls = D(gameState.souls).add(winD);
+        gameState.lifetimeSouls = D(gameState.lifetimeSouls); // lifetimeSouls not affected by winnings
+    } else {
+        gameState[gntState.betCurrency] = D(gameState[gntState.betCurrency] || 0).add(winD);
+    }
+    updateDynamicDisplays();saveGame();playSound('upgrade');
+    gntLog(`💰 Cashed out at ${wd.label} — +${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)}!`,'#c8a800');
+    const box=document.getElementById('gnt-result-box');if(box){box.style.borderTopColor='#44cc88';box.innerHTML=`<div style="font-size:2em;margin-bottom:8px;">💰</div><div style="color:#44cc88;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:8px;">CASHED OUT</div><div style="color:#aaa;font-size:0.82em;line-height:1.6;">Survived ${gntState.wave} wave${gntState.wave>1?'s':''}.<br>Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>Winnings: <strong style="color:#44cc88;">+${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)}</strong></div>`;}
+    const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`💰 Cashed out — ${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)} collected!`;sb.style.borderLeftColor='#44cc88';sb.style.color='#44cc88';}
     gntSetPhase('RESULT');
 }
 function gntNextWave(){

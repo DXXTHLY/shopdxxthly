@@ -14235,10 +14235,12 @@ function renderPactScreen() {
             listEl.innerHTML = members.map((m, i) => {
                 const isMe    = m === gameState.playerName;
                 const color   = memberColors[i % memberColors.length];
-                const stats   = isMe ? { ascensions: gameState.ascensions, pvpWins: gameState.pvpWins, lifetimeSouls: gameState.lifetimeSouls } : (memberStats[m] || {});
+                const stats   = isMe ? { ascensions: gameState.ascensions, pvpWins: gameState.pvpWins, lifetimeSouls: D(gameState.lifetimeSouls) } : (memberStats[m] || {});
                 const asc     = stats.ascensions ?? '?';
                 const wins    = stats.pvpWins ?? '?';
-                const souls   = stats.lifetimeSouls ? formatNumber(stats.lifetimeSouls) : '?';
+                const souls   = stats.lifetimeSouls
+                    ? formatNumber(stats.lifetimeSouls instanceof Decimal ? stats.lifetimeSouls : D(stats.lifetimeSouls))
+                    : '?';
                 const canKick = isLeader && !isMe;
 
                 return `<div style="background:#0a0812; border:1px solid ${color}22; border-left:3px solid ${color}55; border-radius:10px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; width:100%; box-sizing:border-box;">
@@ -14807,10 +14809,10 @@ async function fetchPactLeaderboard() {
         const enriched = pacts.map(pact => {
             const members = pact.members || [];
             const totalAsc   = members.reduce((s, m) => s + (memberStats[m]?.ascensions || 0), 0);
-            const totalSouls = members.reduce((s, m) => s + (memberStats[m]?.lifetimeSouls || 0), 0);
+            const totalSouls = members.reduce((s, m) => D(s).add(D(memberStats[m]?.lifetimeSouls || 0)), D(0));
             return { ...pact, totalAsc, totalSouls, memberCount: members.length };
         });
-        enriched.sort((a, b) => b.totalAsc - a.totalAsc || b.totalSouls - a.totalSouls);
+        enriched.sort((a, b) => b.totalAsc - a.totalAsc || (D(b.totalSouls).gt(D(a.totalSouls)) ? 1 : -1));
 
         const rankColors  = ['#ffd700','#c0c0c0','#cd7f32'];
         const rankBorders = ['#ffd70066','#c0c0c066','#cd7f3266'];
@@ -14836,7 +14838,7 @@ async function fetchPactLeaderboard() {
                         <div style="color:#555; font-size:0.7em;">Total Ascensions</div>
                     </div>
                     <div>
-                        <div style="color:#888; font-size:0.85em;">${formatNumber(pact.totalSouls)}</div>
+                        <div style="color:#888; font-size:0.85em;">${formatNumber(pact.totalSouls instanceof Decimal ? pact.totalSouls : D(pact.totalSouls))}</div>
                         <div style="color:#555; font-size:0.7em;">Total Souls Harvested</div>
                     </div>
                     <div>

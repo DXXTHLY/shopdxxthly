@@ -9240,42 +9240,41 @@ function renderAscensionScreen() { document.getElementById('ascendBtn').disabled
 // PVP & LEADERBOARD FUNCTIONS (FIXED & UPGRADED)
 // =================================================================
 
-// Returns colored HTML for a souls value — shows ∞ × multiplier if above 1e100
+// Returns colored HTML for a souls value — uses real notation now that Decimal handles any size
 function formatSoulsLeaderboard(soulsVal, soulsLogVal) {
-    // soulsLogVal is stored as a regular float in Supabase (log10 of lifetimeSouls)
-    // soulsVal may be a large number or string from the DB
+    // Use soulsLog (a plain float stored in Supabase) to reconstruct a Decimal for display
+    // soulsLog = log10(lifetimeSouls), so the value = 10^soulsLog
     const log = (soulsLogVal != null && soulsLogVal > 0)
         ? soulsLogVal
         : (soulsVal ? D(soulsVal).log10().toNumber() : 0);
-    const INF_THRESHOLD = 100; // display ∞ for anything above 10^100
 
-    if (log >= INF_THRESHOLD) {
-        // Map log value to a color gradient: blue(100) → cyan → green → yellow → orange → bright red(310)
-        const t = Math.min(1, (log - INF_THRESHOLD) / 210);
-        const stops = [
-            [80,  80, 220],  // muted blue
-            [0,  180, 255],  // cyan
-            [0,  220, 100],  // green
-            [200,220,   0],  // yellow
-            [255,140,   0],  // orange
-            [255, 30,  30],  // bright red
-        ];
-        const seg  = t * (stops.length - 1);
-        const idx  = Math.min(Math.floor(seg), stops.length - 2);
-        const frac = seg - idx;
-        const lerp = (a, b) => Math.round(a + (b - a) * frac);
-        const [r, g, b] = [0, 1, 2].map(i => lerp(stops[idx][i], stops[idx+1][i]));
-        const color = `rgb(${r},${g},${b})`;
+    if (!log || log <= 0) return `<span style="color:#555;">0</span>`;
 
-        // Multiplier: exponent above 100, mantissa from fractional part of log
-        const expAbove = Math.floor(log - INF_THRESHOLD);
-        const mantissa  = Math.pow(10, log - Math.floor(log));
-        const multStr   = expAbove > 0 ? ` × ${mantissa.toFixed(1)}e${expAbove}` : '';
-        const tooltip   = `~10^${log.toFixed(1)} souls`;
+    // Reconstruct the Decimal from its log so we get accurate formatting at any scale
+    const decVal = Decimal.pow(10, log);
+    const formatted = formatNumber(decVal);
 
-        return `<span style="color:${color};font-weight:bold;text-shadow:0 0 8px ${color}88;cursor:default;" title="${tooltip}">∞${multStr}</span>`;
-    }
-    return `<span>${formatNumber(soulsVal || 0)}</span>`;
+    // Color gradient based on magnitude: grey(0) → blue(50) → cyan(100) → green(150)
+    // → yellow(200) → orange(250) → bright red(300+)
+    const t = Math.min(1, log / 300);
+    const stops = [
+        [100, 100, 100],  // grey (small)
+        [80,   80, 220],  // blue
+        [0,   180, 255],  // cyan
+        [0,   220, 100],  // green
+        [200, 220,   0],  // yellow
+        [255, 140,   0],  // orange
+        [255,  30,  30],  // bright red (300+)
+    ];
+    const seg  = t * (stops.length - 1);
+    const idx  = Math.min(Math.floor(seg), stops.length - 2);
+    const frac = seg - idx;
+    const lerp = (a, b) => Math.round(a + (b - a) * frac);
+    const [r, g, b2] = [0, 1, 2].map(i => lerp(stops[idx][i], stops[idx+1][i]));
+    const color = `rgb(${r},${g},${b2})`;
+    const tooltip = `~10^${log.toFixed(1)} souls`;
+
+    return `<span style="color:${color};font-weight:bold;text-shadow:0 0 8px ${color}66;cursor:default;" title="${tooltip}">${formatted}</span>`;
 }
 
 async function fetchLeaderboard(type = 'lifetimeSouls') {

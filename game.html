@@ -2361,7 +2361,7 @@ text-decoration: underline; /* Adds an underline on hover */
         <!-- ================================================================= -->
             <header id="player-stats-container">
                 <div id="stats-row-top">
-                    <div id="stats-player-name">⚰ <span id="playerName-display"></span></div>
+                    <div id="stats-player-name" onclick="openRenameModal()" title="Click to change your name" style="cursor:pointer;">⚰ <span id="playerName-display"></span> <span style="color:#3a2a4a; font-size:0.6em; vertical-align:middle;">✎</span></div>
                     <div id="stats-rates">
                         <span>SPS:</span> <span id="sps-display">0</span>
                         &nbsp;&nbsp;
@@ -7542,6 +7542,7 @@ function getDefaultGameState() {
     }
     return {
         playerName: "Unnamed",
+        lastNameChange: 0, // timestamp of last rename
         souls: 0,
         lifetimeSouls: 0,
         darkEssence: 0,
@@ -19052,6 +19053,169 @@ showBarterTab = function(tab) {
     if (tab === 'post') setTimeout(updateBarterDropdowns, 50);
 };
 
+
+// =================================================================
+// ✎ PLAYER RENAME SYSTEM
+// 7-day cooldown. Updates: gameState, localStorage, Firebase,
+// Supabase (players row, barter listings, arena defense),
+// chat presence node.
+// =================================================================
+
+const RENAME_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function openRenameModal() {
+    const overlay = document.getElementById('rename-modal-overlay');
+    const input   = document.getElementById('rename-input');
+    const coolMsg = document.getElementById('rename-cooldown-msg');
+    const btn     = document.getElementById('rename-confirm-btn');
+    const status  = document.getElementById('rename-status');
+    if (!overlay) return;
+
+    // Pre-fill with current name
+    if (input) input.value = gameState.playerName !== 'Unnamed' ? gameState.playerName : '';
+    if (status) status.textContent = '';
+
+    // Check cooldown
+    const lastChange = gameState.lastNameChange || 0;
+    const msLeft = RENAME_COOLDOWN_MS - (Date.now() - lastChange);
+    if (msLeft > 0 && lastChange > 0) {
+        const daysLeft  = Math.floor(msLeft / 86400000);
+        const hoursLeft = Math.floor((msLeft % 86400000) / 3600000);
+        const minsLeft  = Math.floor((msLeft % 3600000) / 60000);
+        if (coolMsg) {
+            coolMsg.style.display = 'block';
+            coolMsg.textContent = `⏳ You can rename again in ${daysLeft}d ${hoursLeft}h ${minsLeft}m.`;
+        }
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed'; }
+    } else {
+        if (coolMsg) coolMsg.style.display = 'none';
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+    }
+
+    overlay.style.display = 'flex';
+    setTimeout(() => input && input.focus(), 100);
+}
+
+function closeRenameModal() {
+    const overlay = document.getElementById('rename-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+async function confirmRename() {
+    const input  = document.getElementById('rename-input');
+    const status = document.getElementById('rename-status');
+    const btn    = document.getElementById('rename-confirm-btn');
+    const newName = (input?.value || '').trim();
+
+    const setStatus = (msg, color) => { if (status) { status.textContent = msg; status.style.color = color || '#cc4444'; } };
+
+    // Validate
+    if (!newName || newName.length < 3) { setStatus('Name must be at least 3 characters.'); return; }
+    if (newName.length > 15)            { setStatus('Name must be 15 characters or less.'); return; }
+    if (!/^[a-zA-Z0-9_]+$/.test(newName)) { setStatus('Only letters, numbers, and underscores allowed.'); return; }
+    if (newName === gameState.playerName)  { setStatus('That is already your name.', '#888'); return; }
+
+    // Must be logged in
+    const uid = window._scFirebase?.auth?.currentUser?.uid;
+    if (!uid) { setStatus('You must be logged in to rename.'); return; }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Updating...'; }
+    setStatus('Checking availability...', '#888');
+
+    try {
+        // ── Check name not already taken in Supabase ─────────────────
+        if (supabaseClient) {
+            const { data: existing } = await supabaseClient
+                .from('players').select('name').eq('name', newName).maybeSingle();
+            if (existing) {
+                setStatus('That name is already taken. Try another.');
+                if (btn) { btn.disabled = false; btn.textContent = 'CONFIRM RENAME'; }
+                return;
+            }
+        }
+
+        const oldName = gameState.playerName;
+
+        // ── 1. Update gameState & localStorage ───────────────────────
+        gameState.playerName    = newName;
+        gameState.lastNameChange = Date.now();
+        saveGame();
+
+        // ── 2. Update Firebase gameSaves/{uid} playerName field ───────
+        if (window._scFirebase?.db) {
+            await window._scFirebase.db.ref('gameSaves/' + uid).update({
+                playerName: newName
+            });
+        }
+
+        // ── 3. Supabase: simple UPDATE — id is the real primary key, name is just text ──
+        if (supabaseClient) {
+            const { error: renameErr } = await supabaseClient
+                .from('players')
+                .update({ name: newName, user_id: newName, bin_id: newName })
+                .eq('name', oldName);
+            if (renameErr) console.warn('Supabase rename error:', renameErr.message);
+
+            // Update barter listings poster_name
+            await supabaseClient.from('barter_listings')
+                .update({ poster_name: newName })
+                .eq('poster_name', oldName);
+
+            // Update arena defense
+            await supabaseClient.from('arena_defenses')
+                .update({ player_name: newName })
+                .eq('player_name', oldName);
+
+            // Update pact membership — pacts store member names in an array
+            const { data: pacts } = await supabaseClient
+                .from('pacts')
+                .select('id, members')
+                .contains('members', [oldName]);
+            if (pacts && pacts.length > 0) {
+                for (const pact of pacts) {
+                    const updatedMembers = (pact.members || []).map(m => m === oldName ? newName : m);
+                    await supabaseClient.from('pacts')
+                        .update({ members: updatedMembers })
+                        .eq('id', pact.id);
+                }
+            }
+        }
+
+        // ── 4. Update chat presence + nickname ───────────────────────
+        const chatUid = window._scChatUid;
+        if (chatUid && window._scFirebase?.chatDb) {
+            await window._scFirebase.chatDb.ref('onlineUsers/' + chatUid).update({ name: newName });
+        }
+        localStorage.setItem('slitherChatNickname', newName);
+
+        // ── 5. Update UI ─────────────────────────────────────────────
+        const nameDisplay = document.getElementById('playerName-display');
+        if (nameDisplay) nameDisplay.innerText = newName;
+
+        setStatus('✓ Name changed successfully!', '#44cc88');
+        if (btn) btn.textContent = 'CONFIRM RENAME';
+
+        Toastify({
+            text: `✎ Name changed to "${newName}"! Takes effect everywhere within a minute.`,
+            duration: 6000, gravity:'top', position:'center',
+            style: { background: 'linear-gradient(135deg,#0a0814,#aa44ff88)' }
+        }).showToast();
+
+        setTimeout(closeRenameModal, 2000);
+
+    } catch(e) {
+        console.error('Rename error:', e);
+        setStatus('Something went wrong. Try again.');
+        if (btn) { btn.disabled = false; btn.textContent = 'CONFIRM RENAME'; }
+    }
+}
+
+// Close rename modal on overlay click
+document.addEventListener('click', e => {
+    const overlay = document.getElementById('rename-modal-overlay');
+    if (overlay && e.target === overlay) closeRenameModal();
+});
+
 // Close key modal on overlay click
 document.addEventListener('click', e => {
     const overlay = document.getElementById('key-modal-overlay');
@@ -19065,6 +19229,28 @@ showScreen = function(screenId) {
     if (screenId === 'settings') renderKeyInSettings();
 };
 </script>
+
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- RENAME MODAL                                          -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="rename-modal-overlay" style="display:none; position:fixed; inset:0; background:#000000dd; z-index:700; align-items:center; justify-content:center; backdrop-filter:blur(6px);">
+    <div style="background:linear-gradient(160deg,#06040f,#0e0a1a); border:1px solid #3a1a5a; border-top:3px solid #aa44ff; border-radius:16px; max-width:420px; width:92%; padding:28px; box-shadow:0 0 60px #aa44ff22;">
+        <div style="color:#aa44ff; font-family:var(--font-title); font-size:0.95em; letter-spacing:2px; margin-bottom:6px;">✎ CHANGE YOUR NAME</div>
+        <div style="color:#555; font-size:0.78em; margin-bottom:20px;">Names can be changed once every 7 days. Your stats, rank, and history all follow your new name.</div>
+        <div id="rename-cooldown-msg" style="display:none; background:#1a0a0a; border:1px solid #cc333344; border-radius:8px; padding:10px 14px; color:#cc4444; font-size:0.8em; margin-bottom:16px;"></div>
+        <label style="color:#666; font-size:0.75em; text-transform:uppercase; letter-spacing:1px;">New Name</label>
+        <input id="rename-input" type="text" maxlength="15" placeholder="Your new name..."
+            style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #3a1a5a; color:#ddd; padding:10px 14px; border-radius:8px; font-family:inherit; font-size:0.95em; margin:6px 0 6px; outline:none;"
+            oninput="this.style.borderColor=this.value.length>=3?'#aa44ff66':'#3a1a5a'">
+        <div id="rename-input-hint" style="color:#444; font-size:0.7em; margin-bottom:16px;">3–15 characters. Letters, numbers, underscores only.</div>
+        <div style="display:flex; gap:10px;">
+            <button onclick="closeRenameModal()" style="flex:1; background:transparent; border:1px solid #2a1a3a; border-radius:8px; padding:11px; color:#555; font-family:var(--font-title); font-size:0.8em; letter-spacing:1px; cursor:pointer;">CANCEL</button>
+            <button id="rename-confirm-btn" onclick="confirmRename()" style="flex:2; background:linear-gradient(135deg,#aa44ff22,transparent); border:1px solid #aa44ff66; border-radius:8px; padding:11px; color:#aa44ff; font-family:var(--font-title); font-size:0.8em; letter-spacing:1px; cursor:pointer;">CONFIRM RENAME</button>
+        </div>
+        <div id="rename-status" style="color:#cc4444; font-size:0.78em; margin-top:10px; text-align:center; min-height:18px;"></div>
+    </div>
+</div>
 
 </body>
 </html>

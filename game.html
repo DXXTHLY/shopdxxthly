@@ -3470,6 +3470,19 @@ text-decoration: underline; /* Adds an underline on hover */
                         </button>
                     </div>
 
+                    <!-- Codex -->
+                    <div style="background:linear-gradient(135deg,#0a0a18,#0e0a1a); border:1px solid #c8a80033; border-top:3px solid #c8a800; border-radius:14px; padding:20px 24px;">
+                        <h3 style="margin:0 0 6px; color:#c8a800; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">📖 Codex of the Abyss</h3>
+                        <p style="color:#555; font-size:0.78em; margin:0 0 14px;">Lore, mechanics, and secrets — revealed as you grow stronger. New chapters unlock with your progress.</p>
+                        <button onclick="openCodex()" style="width:100%; background:linear-gradient(135deg,#1a1200,#0e0a00); border:1px solid #c8a80044; border-radius:10px; padding:12px 18px; cursor:pointer; font-family:inherit; text-align:left; display:flex; align-items:center; gap:12px; transition:all 0.2s;" onmouseover="this.style.borderColor='#c8a800aa'" onmouseout="this.style.borderColor='#c8a80044'">
+                            <span style="font-size:1.6em;">📖</span>
+                            <div>
+                                <div style="color:#c8a800; font-weight:bold; font-size:0.88em;">Open the Codex</div>
+                                <div id="codex-btn-sub" style="color:#555; font-size:0.75em; margin-top:2px;">Your knowledge grows with you</div>
+                            </div>
+                        </button>
+                    </div>
+
                     <!-- Danger Zone -->
                     <div style="background:linear-gradient(135deg,#0e0a1a,#1a0a0a); border:1px solid #cc333322; border-top:3px solid #cc3333; border-radius:14px; padding:20px 24px;">
                         <h3 style="margin:0 0 6px; color:#cc3333; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">⚠ Danger Zone</h3>
@@ -3501,6 +3514,30 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
             </div>
             
+            <!-- ================================================================= -->
+            <!-- CODEX OF THE ABYSS MODAL -->
+            <!-- ================================================================= -->
+            <div id="codex-overlay" style="display:none; position:fixed; inset:0; background:#000000cc; z-index:500; align-items:flex-start; justify-content:center; overflow-y:auto; padding:30px 10px; backdrop-filter:blur(4px);">
+                <div style="background:linear-gradient(160deg,#06040f,#0e0a1a); border:1px solid #c8a80033; border-top:4px solid #c8a800; border-radius:18px; max-width:760px; width:100%; box-shadow:0 0 60px #c8a80022; overflow:hidden;">
+
+                    <!-- Header -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:22px 28px 0; border-bottom:1px solid #1a1030; padding-bottom:18px;">
+                        <div>
+                            <h2 style="margin:0; color:#c8a800; font-family:var(--font-title); font-size:1.1em; letter-spacing:3px;">📖 CODEX OF THE ABYSS</h2>
+                            <div style="color:#555; font-size:0.72em; margin-top:4px; letter-spacing:1px;">Your knowledge grows as you descend deeper</div>
+                        </div>
+                        <button onclick="closeCodex()" style="background:none; border:1px solid #2a1a3a; border-radius:8px; color:#666; font-size:1.2em; cursor:pointer; padding:6px 12px; transition:all 0.15s;" onmouseover="this.style.color='#ddd'" onmouseout="this.style.color='#666'">✕</button>
+                    </div>
+
+                    <!-- Chapter nav tabs -->
+                    <div id="codex-tabs" style="display:flex; gap:6px; padding:14px 28px; flex-wrap:wrap; border-bottom:1px solid #1a1030; background:#06040f88;"></div>
+
+                    <!-- Chapter content -->
+                    <div id="codex-content" style="padding:28px; min-height:300px; line-height:1.75;"></div>
+
+                </div>
+            </div>
+
             <!-- Prestige Confirm Modal -->
             <div id="prestige-confirm-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); justify-content:center; align-items:center; z-index:400; backdrop-filter:blur(6px);">
                 <div id="prestige-confirm-modal" style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:2px solid #444; border-radius:16px; padding:32px 28px; max-width:420px; width:90%; text-align:center; box-shadow:0 0 40px #00000088;">
@@ -16493,5 +16530,380 @@ function gntInit() {
         <button onclick="dismissAccountPopup()" style="background:linear-gradient(160deg,#8a0f0f,#c41818,#8a0f0f); border:1px solid #3d0808; border-bottom:3px solid #000; color:#ffe8e8; font-family:'Metamorphous',serif; font-size:1rem; letter-spacing:2px; padding:12px 40px; cursor:pointer; text-transform:uppercase; box-shadow:0 0 20px rgba(196,24,24,0.3);">OK</button>
     </div>
 </div>
+
+<script>
+// =================================================================
+// 📖 CODEX OF THE ABYSS — dynamic in-game manual
+// Chapters unlock progressively based on player progression
+// =================================================================
+
+const CODEX_CHAPTERS = [
+    // ── CHAPTER 0: Always visible ─────────────────────────────────
+    {
+        id: 'origin',
+        title: '📜 The Origin',
+        unlockCondition: () => true,
+        content: () => `
+            <div style="color:#c8a800; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">THE BEGINNING OF HUNGER</div>
+            <p style="color:#aaa; margin-bottom:14px;">You are a soul harvester — a being of ancient, hungry power dwelling at the edge of reality. With nothing but your will and a cracked altar, you begin pulling souls from the living world. One by one at first. Then in streams. Then in floods.</p>
+            <p style="color:#aaa; margin-bottom:14px;">The more you consume, the more the darkness bends to serve you. But power at this scale has a cost. The very fabric of reality grows thin. And when it finally breaks — you will be the one holding the pieces.</p>
+            <div style="background:#0a0812; border:1px solid #c8a80033; border-left:3px solid #c8a800; border-radius:8px; padding:14px 16px; margin-top:20px;">
+                <div style="color:#c8a800; font-size:0.8em; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">🕯 How to Begin</div>
+                <p style="color:#888; font-size:0.85em; margin:0; line-height:1.6;">Click the <strong style="color:#ddd;">altar</strong> at the center of your screen to harvest souls manually. Each click yields <strong style="color:#ddd;">Souls Per Click (SPC)</strong>. Souls accumulate automatically over time via <strong style="color:#ddd;">Souls Per Second (SPS)</strong> — both shown in your top status bar.</p>
+            </div>
+        `
+    },
+
+    // ── CHAPTER 1: Unlocks on first minion ────────────────────────
+    {
+        id: 'minions',
+        title: '👿 The Minions',
+        unlockCondition: () => Object.values(gameState.minions || {}).some(m => m.level > 0),
+        content: () => {
+            const owned = Object.entries(gameState.minions || {}).filter(([,m]) => m.level > 0);
+            const totalLevels = owned.reduce((s,[,m]) => s + m.level, 0);
+            return `
+            <div style="color:#ff6644; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">YOUR DEMONIC ARMY</div>
+            <p style="color:#aaa; margin-bottom:14px;">As your hunger grew, lesser beings were drawn to you. They do not serve out of loyalty — they serve because they have no choice. Each minion works endlessly, pulling souls so you do not have to.</p>
+            <p style="color:#aaa; margin-bottom:18px;">You currently command <strong style="color:#ff6644;">${owned.length}</strong> type${owned.length !== 1?'s':''} of minion at a combined <strong style="color:#ff6644;">${totalLevels}</strong> levels.</p>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;">
+                <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px;">
+                    <div style="color:#ff6644; font-size:0.78em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Leveling Up</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Each level costs souls and scales exponentially. Higher levels = more SPS, but each level costs more than the last.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px;">
+                    <div style="color:#ff6644; font-size:0.78em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Promotions</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">At levels 25, 50, and 100 you can <strong style="color:#ddd;">Promote</strong> a minion — a costly permanent multiplier to their SPS output. Promotions survive Ascension.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px;">
+                    <div style="color:#ff6644; font-size:0.78em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Research Tiers</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Every 25 levels unlocks a <strong style="color:#ddd;">Research Bonus</strong> — a permanent global buff that persists forever, even after resetting.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px;">
+                    <div style="color:#ff6644; font-size:0.78em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Secret Minions</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Three hidden minions exist that cannot be bought normally. They appear only in the <strong style="color:#ddd;">Hourly Shop</strong> and from <strong style="color:#ddd;">Abyssal Caches</strong> — at very low odds.</div>
+                </div>
+            </div>
+            <div style="background:#0d0508; border:1px solid #ff664433; border-left:3px solid #ff6644; border-radius:8px; padding:12px 16px;">
+                <div style="color:#ff6644; font-size:0.78em; margin-bottom:4px;">💀 What survives Ascension?</div>
+                <div style="color:#666; font-size:0.82em;">Minion <strong style="color:#aaa;">levels reset</strong> on Ascension. But <strong style="color:#ddd;">Promotions</strong> and <strong style="color:#ddd;">Research Bonuses</strong> are permanent and carry over forever.</div>
+            </div>`;
+        }
+    },
+
+    // ── CHAPTER 2: Unlocks on first world unlock ──────────────────
+    {
+        id: 'worlds',
+        title: '🌐 The Worlds',
+        unlockCondition: () => (gameState.unlockedWorlds || []).length > 1,
+        content: () => {
+            const unlocked = gameState.unlockedWorlds || [];
+            const worldList = Object.entries(worlds).map(([id, w]) => {
+                const done = unlocked.includes(id);
+                return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:${done?'#0a1a0a':'#0a0812'}; border:1px solid ${done?'#44cc8822':'#1a1030'}; border-radius:6px; margin-bottom:4px;">
+                    <span style="color:${done?'#44cc88':'#444'}; font-size:0.82em;">${done?'✔':''} ${w.name}</span>
+                    ${done ? `<span style="color:#2a6a3a; font-size:0.7em;">${w.bonus?.type !== 'none' ? '+bonus' : ''}</span>` : '<span style="color:#333; font-size:0.7em;">🔒 locked</span>'}
+                </div>`;
+            }).join('');
+            return `
+            <div style="color:#44cc88; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">THE REALMS BEYOND</div>
+            <p style="color:#aaa; margin-bottom:14px;">Your hunger was never meant to be contained in one realm. As you consumed more souls, new planes of existence cracked open — each darker, more dangerous, and more rewarding than the last.</p>
+            <p style="color:#aaa; margin-bottom:18px;">Each world you unlock grants a <strong style="color:#ddd;">permanent global bonus</strong> — SPS multipliers, click multipliers, global power boosts — that stacks with everything else you own. You've unlocked <strong style="color:#44cc88;">${unlocked.length}</strong> of ${Object.keys(worlds).length} worlds.</p>
+            <div style="margin-bottom:16px;">${worldList}</div>
+            <div style="background:#0a0812; border:1px solid #44cc8822; border-left:3px solid #44cc88; border-radius:8px; padding:12px 16px;">
+                <div style="color:#44cc88; font-size:0.78em; margin-bottom:4px;">🌐 World unlocks are permanent</div>
+                <div style="color:#666; font-size:0.82em;">Unlike minion levels, worlds you have unlocked stay unlocked through Ascension and Collapse. New minion types become available as you enter new worlds.</div>
+            </div>`;
+        }
+    },
+
+    // ── CHAPTER 3: Unlocks on first ascension ────────────────────
+    {
+        id: 'ascension',
+        title: '⬆ Ascension & Shards',
+        unlockCondition: () => (gameState.ascensions || 0) > 0 || (gameState.abyssalShards || 0) > 0,
+        content: () => `
+            <div style="color:#4488ff; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">THE FIRST SACRIFICE</div>
+            <p style="color:#aaa; margin-bottom:14px;">At some point the souls stop being enough. The power plateau looms. And so you make the unthinkable choice — you sacrifice everything you have built and begin again, but forever changed.</p>
+            <p style="color:#aaa; margin-bottom:18px;">This is <strong style="color:#4488ff;">Ascension</strong>. You've done it <strong style="color:#4488ff;">${gameState.ascensions || 0}</strong> time${(gameState.ascensions||0)!==1?'s':''}.</p>
+
+            <div style="display:grid; gap:10px; margin-bottom:18px;">
+                <div style="background:#0a0812; border:1px solid #4488ff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#4488ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">💎 What you gain — Abyssal Shards</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Shards are a permanent prestige currency. Your Shard count provides a <strong style="color:#ddd;">flat % bonus to all soul gain</strong> that compounds with everything else. More Shards = more powerful every run.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #4488ff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#4488ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">💀 What you lose</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Souls, Dark Essence, minion levels, and most items reset. <strong style="color:#ddd;">Worlds, promotions, research tiers, artifacts, rituals, and Shards</strong> are all kept.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #4488ff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#4488ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">📈 Shard formula</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Shards earned = √(lifetimeSouls ÷ 10M). The more souls you accumulate before ascending, the more Shards you earn. Wait longer between Ascensions to maximise your Shard gain.</div>
+                </div>
+            </div>
+            <div style="color:#333; font-size:0.78em; text-align:center; font-style:italic;">You currently hold ${formatNumber(gameState.abyssalShards||0)} Abyssal Shards.</div>
+        `
+    },
+
+    // ── CHAPTER 4: Unlocks on first artifact ─────────────────────
+    {
+        id: 'artifacts',
+        title: '💎 Artifacts',
+        unlockCondition: () => Object.values(gameState.ownedArtifacts || {}).some(a => a.level > 0),
+        content: () => {
+            const ownedArts = Object.entries(gameState.ownedArtifacts||{}).filter(([,a]) => a.level > 0);
+            return `
+            <div style="color:#44aaff; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">RELICS OF THE VOID</div>
+            <p style="color:#aaa; margin-bottom:14px;">Not all power is fleeting. Some fragments of the abyss crystallise into objects of permanent, compounding strength. You've collected <strong style="color:#44aaff;">${ownedArts.length}</strong> artifact${ownedArts.length!==1?'s':''} so far.</p>
+
+            <div style="display:grid; gap:10px; margin-bottom:18px;">
+                <div style="background:#0a0812; border:1px solid #44aaff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#44aaff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">💎 Shard Artifacts</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Purchased with Abyssal Shards — the most powerful type. Their bonuses scale per level, compounding exponentially. Every level you upgrade them multiplies their effect.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #44aaff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#44aaff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🌑 Essence Artifacts</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Purchased with Dark Essence. Generally more accessible early, but still scale powerfully with levels.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #44aaff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#44aaff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">♾️ Do artifacts survive resets?</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;"><strong style="color:#ddd;">Yes — fully.</strong> Artifacts and all their levels persist through every Ascension and Collapse. They are one of the most valuable long-term investments in the game.</div>
+                </div>
+            </div>`;
+        }
+    },
+
+    // ── CHAPTER 5: Unlocks on first ritual ───────────────────────
+    {
+        id: 'rituals',
+        title: '🔥 Rituals & Potions',
+        unlockCondition: () => Object.keys(gameState.activeRituals || {}).length > 0 || Object.keys(gameState.potions || {}).some(k => (gameState.potions[k]||0) > 0),
+        content: () => `
+            <div style="color:#ff9900; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">DARK RITES & BREWED POWER</div>
+            <p style="color:#aaa; margin-bottom:18px;">Beyond passive accumulation lies active power. Rituals and Potions are temporary bursts — but the right one at the right moment can accelerate your progress by hours.</p>
+
+            <div style="display:grid; gap:10px; margin-bottom:18px;">
+                <div style="background:#0a0812; border:1px solid #ff990022; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff9900; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔥 Rituals</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Activated from the Rituals screen. Each costs souls and has a cooldown. Effects are temporary but powerful — SPS multipliers, instant soul gains, essence boosts. Unlock new rituals by reaching new worlds.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff990022; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff9900; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚗️ Potions — Brewery</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Brewed in the Brewery for souls (and sometimes Shards). They go to your shelf and can be used any time. The cooldown only starts when you <strong style="color:#ddd;">use</strong> a potion — not when you brew it.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff990022; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff9900; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🟣 Market Potions</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">A rotating selection of exclusive, more powerful potions appears in the <strong style="color:#ddd;">Hourly Shop</strong> every hour. These cannot be brewed — only purchased with Dark Essence.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff990022; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff9900; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔮 Fusion Cauldron</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">At the top of the Brewery, you can combine two potions to create a single fused result — significantly more powerful than either ingredient. Market potions fuse into legendary effects.</div>
+                </div>
+            </div>
+        `
+    },
+
+    // ── CHAPTER 6: Unlocks on first collapse/aether ───────────────
+    {
+        id: 'collapse',
+        title: '💥 Collapse & Aether',
+        unlockCondition: () => (gameState.totalCollapses || 0) > 0 || (gameState.aether || 0) > 0,
+        content: () => `
+            <div style="color:#00e5ff; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">TEARING REALITY ITSELF</div>
+            <p style="color:#aaa; margin-bottom:14px;">You thought Ascension was the limit. You were wrong. There is a deeper reset — one that does not just reset your run, but <em>rewrites the rules of the game itself.</em></p>
+            <p style="color:#aaa; margin-bottom:18px;">This is <strong style="color:#00e5ff;">Collapse</strong>. You've done it <strong style="color:#00e5ff;">${gameState.totalCollapses||0}</strong> time${(gameState.totalCollapses||0)!==1?'s':''}.</p>
+
+            <div style="display:grid; gap:10px; margin-bottom:18px;">
+                <div style="background:#0a0812; border:1px solid #00e5ff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#00e5ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚡ Aether</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Aether is the deepest prestige currency. Unlike Shards, Aether can be spent on <strong style="color:#ddd;">Aether Upgrades</strong> — permanent enhancements that fundamentally change how you grow. Aether is never lost.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #00e5ff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#00e5ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">💀 What Collapse costs</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Everything from Ascension resets — <em>plus</em> your Abyssal Shards. Worlds and artifacts remain. You trade Shards for the far more powerful Aether.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #00e5ff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#00e5ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">📈 Aether formula</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Aether earned scales with your total lifetime Shards. The deeper you have ascended before collapsing, the more Aether you receive.</div>
+                </div>
+            </div>
+            <div style="color:#333; font-size:0.78em; text-align:center; font-style:italic;">You currently hold ${formatNumber(gameState.aether||0)} Aether.</div>
+        `
+    },
+
+    // ── CHAPTER 7: Unlocks after first PvP encounter ──────────────
+    {
+        id: 'pvp',
+        title: '⚔️ PvP & Raids',
+        unlockCondition: () => (gameState.pvpWins||0) + (gameState.pvpLosses||0) > 0,
+        content: () => `
+            <div style="color:#ff4444; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">THE ARENA OF SOULS</div>
+            <p style="color:#aaa; margin-bottom:18px;">Your hunger turned outward. Why harvest souls from nothing when you can take them from others? The abyss rewards the strong — and punishes the weak.</p>
+
+            <div style="display:grid; gap:10px; margin-bottom:18px;">
+                <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔️ PvP Duels</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Challenge real players from the Abyssal Arena. Victories earn <strong style="color:#ddd;">Dark Essence</strong> and climb the leaderboard. Defeats cost nothing — but your pride. Each player can only be challenged once per day.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🎯 Raids</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Raid other players' soul caches to steal a percentage of their wealth. Success gives you souls; failure means you walk away empty. Your own cache can be raided while you are away.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔️ Gauntlet</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">The Abyssal Gauntlet is a solo wave-based challenge. Deploy your minions, bet your currencies, and survive as many waves as possible. Cash out between waves or risk it all for a larger multiplier. Once a wave starts — there is no retreat.</div>
+                </div>
+            </div>
+        `
+    },
+
+    // ── CHAPTER 8: Unlocks on first expedition ────────────────────
+    {
+        id: 'expeditions',
+        title: '🗺️ Expeditions & Breaches',
+        unlockCondition: () => Object.keys(gameState.activeExpeditions||{}).length > 0 || (gameState.breachesCompleted||0) > 0,
+        content: () => `
+            <div style="color:#ff8844; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">INTO THE UNKNOWN</div>
+            <p style="color:#aaa; margin-bottom:18px;">Some treasures cannot be taken by force of will alone. They must be discovered — sent for — ventured toward.</p>
+
+            <div style="display:grid; gap:10px; margin-bottom:18px;">
+                <div style="background:#0a0812; border:1px solid #ff884422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff8844; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🗺️ Expeditions</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Send your minions out on time-based missions. They return with items, Essence, Shards, and lore fragments. Higher-tier expeditions require stronger minion configurations and offer better rewards.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff884422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff8844; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🌀 Abyssal Breach</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">A rogue-like exploration mini-game. Navigate a grid, fight guardians, collect clusters, and complete your objective. Each breach is unique. The right minion loadout grants special abilities inside the breach.</div>
+                </div>
+            </div>
+        `
+    },
+
+    // ── CHAPTER 9: Unlocks after visiting market ──────────────────
+    {
+        id: 'economy',
+        title: '💰 Currencies & Economy',
+        unlockCondition: () => (gameState.darkEssence||0) > 0 || (gameState.abyssalShards||0) > 0,
+        content: () => `
+            <div style="color:#c8a800; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">THE CURRENCIES OF POWER</div>
+            <p style="color:#aaa; margin-bottom:18px;">Six currencies flow through the abyss. Each has its purpose, its source, and its limits.</p>
+
+            <div style="display:grid; gap:8px; margin-bottom:18px;">
+                ${[
+                    ['👻','Souls','#ff6644','The primary currency. Used to buy minion levels, upgrades, rituals, and world unlocks. Resets on Ascension.'],
+                    ['🌑','Dark Essence','#9944cc','Earned from clicking, artifacts, potions, and shop sales. Spent on artifacts and the Hourly Shop. Partially retained on Ascension (with bonuses).'],
+                    ['💎','Abyssal Shards','#44aaff','Earned on Ascension. Provide a permanent soul gain bonus and buy powerful Shard Artifacts. Reset on Collapse.'],
+                    ['⚡','Aether','#00e5ff','The deepest currency — earned on Collapse. Spent on permanent Aether Upgrades that permanently change how the game works. Never lost.'],
+                    ['🔮','Corrupted Fragments','#aa44ff','Rare currency from expeditions and the shop. Used in the Soul Forge to create powerful infused gear.'],
+                ].map(([icon,name,color,desc]) => `
+                    <div style="display:flex; gap:12px; align-items:flex-start; background:#0a0812; border:1px solid ${color}22; border-left:3px solid ${color}; border-radius:8px; padding:10px 14px;">
+                        <span style="font-size:1.4em; flex-shrink:0;">${icon}</span>
+                        <div>
+                            <div style="color:${color}; font-weight:bold; font-size:0.85em; margin-bottom:3px;">${name}</div>
+                            <div style="color:#777; font-size:0.78em; line-height:1.45;">${desc}</div>
+                        </div>
+                    </div>`).join('')}
+            </div>
+
+            <div style="background:#0a0812; border:1px solid #c8a80022; border-left:3px solid #c8a800; border-radius:8px; padding:12px 16px;">
+                <div style="color:#c8a800; font-size:0.78em; margin-bottom:4px;">🏪 The Marketplace</div>
+                <div style="color:#666; font-size:0.82em; line-height:1.5;">A live server-wide player economy. Veterans sell rare items from their caches; newcomers buy them for Essence. Prices fluctuate based on supply and demand. Post your own items to earn passive Essence while you play.</div>
+            </div>
+        `
+    },
+
+    // ── CHAPTER 10: Always visible at end — tips ──────────────────
+    {
+        id: 'tips',
+        title: '💡 Strategies',
+        unlockCondition: () => true,
+        content: () => `
+            <div style="color:#44cc88; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">WISDOM OF THE ABYSS</div>
+
+            <div style="display:grid; gap:8px;">
+                ${[
+                    ["🔁","Ascend often early","The first few Ascensions are fast. Each one multiplies your next run speed. Do not wait too long to Ascend the first few times."],
+                    ["💎","Prioritise Shard Artifacts","Artifacts persist forever. Every Shard spent on artifacts compounds across every future run."],
+                    ["⬆️","Promote strategically","Promotion costs are massive but permanent. Promote your highest-SPS minions first for maximum impact."],
+                    ["⚗️","Stack potions before key moments","Brew potions in advance and use them together just before ascending for a massive Shard bonus."],
+                    ["🔮","Fuse market potions","Two market potions fused together create results far more powerful than using them separately."],
+                    ["📦","Check the Hourly Shop","It refreshes every hour and may contain secret minions, market-only potions, and rare items you cannot get anywhere else."],
+                    ["⚔️","Gauntlet = free multiplied currency","If your minions are strong, the Gauntlet can return 25-50x your bet in a single run. Risk nothing you cannot afford to lose."],
+                    ["🏦","Bank your souls","The Soul Vault locks souls away safely so raids cannot steal them. Use it when you are about to log off."],
+                ].map(([icon,title,tip]) => `
+                    <div style="display:flex; gap:12px; align-items:flex-start; background:#0a0812; border:1px solid #44cc8811; border-radius:8px; padding:10px 14px;">
+                        <span style="font-size:1.2em; flex-shrink:0;">${icon}</span>
+                        <div>
+                            <div style="color:#44cc88; font-size:0.82em; font-weight:bold; margin-bottom:2px;">${title}</div>
+                            <div style="color:#666; font-size:0.78em; line-height:1.45;">${tip}</div>
+                        </div>
+                    </div>`).join('')}
+            </div>
+        `
+    },
+];
+
+let activeCodexChapter = 'origin';
+
+function openCodex() {
+    // Update the subtitle to reflect unlocked chapters
+    const unlocked = CODEX_CHAPTERS.filter(c => {
+        try { return c.unlockCondition(); } catch(e) { return false; }
+    });
+    const sub = document.getElementById('codex-btn-sub');
+    if (sub) sub.textContent = `${unlocked.length} of ${CODEX_CHAPTERS.length} chapters unlocked`;
+
+    renderCodexTabs();
+    renderCodexContent(activeCodexChapter);
+    document.getElementById('codex-overlay').style.display = 'flex';
+}
+
+function closeCodex() {
+    document.getElementById('codex-overlay').style.display = 'none';
+}
+
+function renderCodexTabs() {
+    const tabs = document.getElementById('codex-tabs');
+    if (!tabs) return;
+    tabs.innerHTML = '';
+    CODEX_CHAPTERS.forEach(chapter => {
+        let unlocked;
+        try { unlocked = chapter.unlockCondition(); } catch(e) { unlocked = false; }
+        const isActive = chapter.id === activeCodexChapter;
+        const btn = document.createElement('button');
+        btn.style.cssText = `background:${isActive ? 'linear-gradient(135deg,#1a1200,#0e0a00)' : '#0a0812'}; border:1px solid ${isActive ? '#c8a80088' : unlocked ? '#2a1a3a' : '#151020'}; border-bottom:${isActive ? '2px solid #c8a800' : '2px solid transparent'}; border-radius:8px 8px 0 0; padding:8px 14px; cursor:${unlocked ? 'pointer' : 'default'}; font-family:inherit; font-size:0.72em; color:${isActive ? '#c8a800' : unlocked ? '#888' : '#2a1a4a'}; white-space:nowrap; transition:all 0.15s;`;
+        btn.textContent = unlocked ? chapter.title : '🔒 ???';
+        btn.title = unlocked ? chapter.title : 'Keep playing to unlock this chapter';
+        if (unlocked) {
+            btn.onmouseover = () => { if (!isActive) btn.style.borderColor = '#aa44ff44'; };
+            btn.onmouseout  = () => { if (!isActive) btn.style.borderColor = '#2a1a3a'; };
+            btn.onclick = () => { activeCodexChapter = chapter.id; renderCodexTabs(); renderCodexContent(chapter.id); };
+        }
+        tabs.appendChild(btn);
+    });
+}
+
+function renderCodexContent(chapterId) {
+    const content = document.getElementById('codex-content');
+    if (!content) return;
+    const chapter = CODEX_CHAPTERS.find(c => c.id === chapterId);
+    if (!chapter) return;
+    let unlocked;
+    try { unlocked = chapter.unlockCondition(); } catch(e) { unlocked = false; }
+    if (!unlocked) {
+        content.innerHTML = `<div style="text-align:center; padding:60px 20px; color:#333;"><div style="font-size:3em; margin-bottom:12px;">🔒</div><div style="font-size:0.9em; letter-spacing:2px;">LOCKED</div><div style="color:#2a1a4a; font-size:0.78em; margin-top:8px;">Continue your journey to unlock this knowledge.</div></div>`;
+        return;
+    }
+    try { content.innerHTML = chapter.content(); } catch(e) { content.innerHTML = `<div style="color:#cc3333;">Error rendering chapter: ${e.message}</div>`; }
+}
+
+// Close on overlay click
+document.addEventListener('click', e => {
+    const overlay = document.getElementById('codex-overlay');
+    if (e.target === overlay) closeCodex();
+});
+</script>
+
 </body>
 </html>

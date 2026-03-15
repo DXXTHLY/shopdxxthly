@@ -1969,6 +1969,17 @@
             justify-content: center;
         }
         
+        @keyframes keyFloat {
+            0%,100% { transform: translateY(0) rotate(-5deg); }
+            50%      { transform: translateY(-8px) rotate(5deg); }
+        }
+        @keyframes keyPanelPulse {
+            0%,100% { box-shadow: 0 0 20px transparent; }
+            50%      { box-shadow: 0 0 30px rgba(200,168,0,0.15); }
+        }
+        @keyframes urgentPulse {
+            0%,100% { opacity:1; } 50% { opacity:0.4; }
+        }
         @keyframes shimmerPot {
             0%   { background-position: 200% 0; }
             100% { background-position: -200% 0; }
@@ -2971,7 +2982,7 @@ text-decoration: underline; /* Adds an underline on hover */
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
                                 <div>
                                     <label style="color:#888; font-size:0.8em; text-transform:uppercase; letter-spacing:1px;">I'm offering</label>
-                                    <select id="barter-offer-type" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:6px;">
+                                    <select id="barter-offer-type" onchange="updateBarterDropdowns()" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:6px;">
                                         <option value="souls">👻 Souls</option>
                                         <option value="darkEssence">🌑 Dark Essence</option>
                                         <option value="abyssalShards">💎 Abyssal Shards</option>
@@ -3479,6 +3490,9 @@ text-decoration: underline; /* Adds an underline on hover */
                         </button>
                     </div>
 
+                    <!-- Keys of the Abyss — hidden until you hold one -->
+                    <div id="key-settings-panel" style="display:none;"></div>
+
                     <!-- Codex -->
                     <div style="background:linear-gradient(135deg,#0a0a18,#0e0a1a); border:1px solid #c8a80033; border-top:3px solid #c8a800; border-radius:14px; padding:20px 24px;">
                         <h3 style="margin:0 0 6px; color:#c8a800; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">📖 Codex of the Abyss</h3>
@@ -3523,6 +3537,15 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
             </div>
             
+            <!-- ================================================================= -->
+            <!-- KEY OF THE ABYSS MODAL -->
+            <!-- ================================================================= -->
+            <div id="key-modal-overlay" style="display:none; position:fixed; inset:0; background:#000000dd; z-index:600; align-items:center; justify-content:center; backdrop-filter:blur(6px);">
+                <div style="background:linear-gradient(160deg,#06040f,#0e0a1a); border:1px solid #c8a80033; border-top:4px solid #c8a800; border-radius:18px; max-width:480px; width:92%; padding:28px; box-shadow:0 0 60px #c8a80033; overflow:hidden; position:relative;">
+                    <div id="key-modal-content"></div>
+                </div>
+            </div>
+
             <!-- ================================================================= -->
             <!-- CODEX OF THE ABYSS MODAL -->
             <!-- ================================================================= -->
@@ -7195,6 +7218,7 @@ function getDefaultGameState() {
         lastPactBuffRoll: 0,
         attackLog: [],
         raidCooldownEnd: 0,
+        heldKey: null, // { id, obtainedAt } — one key at a time, expires 24h
         completedPuzzles: [],
         activeExpeditions: {}, 
         anomalyTimers: {},
@@ -9787,6 +9811,10 @@ function usePotion(id) {
             gameState.nextCacheTime = 0;
             Toastify({ text: `📦 Abyssal Cache is ready!`, duration:3000, gravity:'top', position:'center' }).showToast();
         }
+        // 0.05% chance to find a Key of the Abyss in a cache (very rare secondary source)
+        if (typeof rollForKey === 'function' && Math.random() < 0.0005) {
+            setTimeout(() => rollForKey('cache'), 1500);
+        }
         if (effect.type === 'instant_clicks_flat') {
             const clickCount = effect.value * (gameState.ascensions + 1);
             const gain = gameState.stats.spc * clickCount;
@@ -11739,6 +11767,13 @@ function generateHourlyShopItems() {
     const mpIdx = (seed * 17 + 5) % marketPotionKeys.length;
     shopItems[2] = marketPotionKeys[mpIdx];
 
+    // 0.5% chance this hour has a Key slot (roughly once every 200 hours)
+    const keySlotChance = ((seed * 31 + 97) % 200) === 0;
+    if (keySlotChance) {
+        const keyIdx = (seed * 13 + 3) % KEY_IDS.length;
+        shopItems[3] = { id: KEY_IDS[keyIdx], type: 'key' };
+    }
+
     // Rare secret minion slot (0.5% chance, deterministic from seed)
     const secretChanceSeed = ((seed * 7 + 13) % 100) / 100;
     if (secretChanceSeed < 0.005) {
@@ -11825,6 +11860,7 @@ function generateHourlyShopItems() {
         if (type === 'artifact') itemData = artifacts[id];
         if (type === 'potion') itemData = potions[id];
         if (type === 'market_potion') itemData = potions[id];
+        if (type === 'key') itemData = { name: KEYS[id]?.name || 'Key', desc: KEYS[id]?.desc || '', icon: KEYS[id]?.icon || '🗝️' };
 
         if (type === 'artifact' && gameState.ownedArtifacts[id] && availableItems.length) {
             const ri = (seed + 40 + index) % availableItems.length;
@@ -11901,6 +11937,7 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     if (itemType === 'item') itemName = items[itemId]?.name || itemId;
     if (itemType === 'artifact') itemName = artifacts[itemId]?.name || itemId;
     if (itemType === 'potion' || itemType === 'market_potion') itemName = potions[itemId]?.name || itemId;
+    if (itemType === 'key') itemName = KEYS[itemId]?.name || 'A Key';
     if (itemType === 'secret_minion') itemName = minions[itemId]?.name || itemId;
 
     const limitMsg = limit > 1 ? ` (${bought + 1}/${limit} this hour)` : '';
@@ -11938,6 +11975,8 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
         Toastify({ text: `✔ ${itemName} added to your brewery.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a14,#44cc88)' } }).showToast();
     } else if (itemType === 'market_potion') {
         gameState.potions[itemId] = (gameState.potions[itemId] || 0) + 1;
+    } else if (itemType === 'key') {
+        if (typeof presentKey === 'function') presentKey(itemId, 'shop');
         Toastify({ text: `🔥 ${itemName} secured! Check your Brewery.`, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0a00,#ff6644)' } }).showToast();
     }
 
@@ -13467,6 +13506,10 @@ function endBreach(isVictory) {
         const bonusFrags = 10;
         gameState.corruptedFragments += bonusFrags;
         Toastify({ text: `Breach Cleared! You gained a bonus of ${bonusFrags} Corrupted Fragments!`, duration: 5000, style: { background: "linear-gradient(to right, #1eff00, #16a085)" } }).showToast();
+        // 0.5% chance a Key of the Abyss was hidden in the breach
+        if (typeof rollForKey === 'function' && Math.random() < 0.005) {
+            setTimeout(() => rollForKey('breach'), 2000);
+        }
     } else {
          Toastify({ text: "You fled the breach, your energy depleted.", duration: 5000, style: { background: "var(--primary-color)" } }).showToast();
     }
@@ -13923,6 +13966,21 @@ function generateBreachMap(size) {
         const randomEventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
         breachState.map[randY][randX].event = { type: randomEventType, icon: breachEvents[randomEventType].icon };
     }
+
+    // 2% chance this breach contains a hidden key room — one tile, deep in the grid
+    // It looks exactly like an empty unexplored tile. No hint. No marking.
+    if (Math.random() < 0.02) {
+        let kx, ky;
+        let attempts = 0;
+        do {
+            kx = Math.floor(Math.random() * size);
+            ky = Math.floor(Math.random() * size);
+            attempts++;
+        } while ((breachState.map[ky][kx].event !== null || (kx === 0 && ky === 0)) && attempts < 50);
+        if (attempts < 50) {
+            breachState.map[ky][kx].event = { type: 'key_room', icon: '' }; // blank icon — hidden
+        }
+    }
 }
 function renderBreach() {
     const TILE_SIZE = 90;
@@ -14101,6 +14159,14 @@ function resolveTileEvent(tile) {
             addBreachLog('📜 Found ancient remains... a Soul Collector\'s journal.', 'neutral');
             Toastify({ text: '📜 You find the dusty remains of another Soul Collector\'s journal...', duration: 3000 }).showToast();
             break;
+        case 'key_room': {
+            // An unmarked room. No icon. No warning. Something ancient was waiting here.
+            tile.event = null; // consume so it can't trigger twice
+            addBreachLog('🗝️ The air changes. Something ancient stirs in the dark.', 'objective');
+            const _keyId = KEY_IDS[Math.floor(Math.random() * KEY_IDS.length)];
+            setTimeout(() => { if (typeof presentKey === 'function') presentKey(_keyId, 'breach'); }, 800);
+            break;
+        }
         case 'stabilizer':
             addBreachLog('🌀 Objective complete! Rift Stabilizer activated!', 'objective');
             Toastify({ text: '🌀 Objective Complete! Rift Stabilizer found!', duration: 3500, style: { background: 'linear-gradient(135deg,#001a10,#003a20)' } }).showToast();
@@ -15468,7 +15534,8 @@ async function fetchPactLeaderboard() {
 // =================================================================
 const BARTER_LABELS = {
     souls: '👻 Souls', darkEssence: '🌑 Dark Essence',
-    abyssalShards: '💎 Abyssal Shards', corruptedFragments: '🔮 Corrupted Fragments'
+    abyssalShards: '💎 Abyssal Shards', corruptedFragments: '🔮 Corrupted Fragments',
+    key: '🗝️ Key of the Abyss'
 };
 
 function showBarterTab(tab) {
@@ -15601,6 +15668,11 @@ function hasEnough(type, amt) {
         case 'darkEssence':        return gameState.darkEssence >= amt;
         case 'abyssalShards':      return gameState.abyssalShards >= amt;
         case 'corruptedFragments': return gameState.corruptedFragments >= amt;
+        case 'key': {
+            // Can sell if holding a key that hasn't expired
+            if (!gameState.heldKey) return false;
+            return (Date.now() - gameState.heldKey.obtainedAt) < KEY_EXPIRY_MS;
+        }
     }
     return false;
 }
@@ -15611,6 +15683,12 @@ function deductCurrency(type, amt) {
         case 'darkEssence':        gameState.darkEssence -= amt; break;
         case 'abyssalShards':      gameState.abyssalShards -= amt; break;
         case 'corruptedFragments': gameState.corruptedFragments -= amt; break;
+        case 'key':
+            // Selling the key — remove it from inventory, transfer to pending
+            gameState._barterHeldKeyId = gameState.heldKey?.id || null;
+            gameState.heldKey = null;
+            renderKeyInSettings();
+            break;
     }
 }
 
@@ -15620,6 +15698,14 @@ function addCurrency(type, amt) {
         case 'darkEssence':        gameState.darkEssence += amt; break;
         case 'abyssalShards':      gameState.abyssalShards += amt; break;
         case 'corruptedFragments': gameState.corruptedFragments += amt; break;
+        case 'key': {
+            // Buyer receives key — grant it to them
+            // The barter listing stores which key it was in offer_note or defaults to a random one
+            const keyId = gameState._pendingBarterKeyId || KEY_IDS[Math.floor(Math.random() * KEY_IDS.length)];
+            delete gameState._pendingBarterKeyId;
+            if (typeof presentKey === 'function') presentKey(keyId, 'barter');
+            break;
+        }
     }
 }
 
@@ -15660,32 +15746,36 @@ async function postBarterListing() {
     const offerAmt  = parseInt(document.getElementById('barter-offer-amt')?.value);
     const wantAmt   = parseInt(document.getElementById('barter-want-amt')?.value);
 
-    if (!offerType || !wantType || isNaN(offerAmt) || isNaN(wantAmt) || offerAmt < 1 || wantAmt < 1) {
+    const offerAmtFinal = offerType === 'key' ? 1 : offerAmt;
+    const wantAmtFinal  = wantType  === 'key' ? 1 : wantAmt;
+    if (!offerType || !wantType || isNaN(offerAmtFinal) || isNaN(wantAmtFinal) || offerAmtFinal < 1 || wantAmtFinal < 1) {
         if(statusEl) statusEl.textContent = 'Fill in all fields with valid amounts.'; return;
     }
     if (offerType === wantType) {
         if(statusEl) statusEl.textContent = 'You can\'t trade a resource for itself.'; return;
     }
-    if (!hasEnough(offerType, offerAmt)) {
+    if (!hasEnough(offerType, offerAmtFinal)) {
         if(statusEl) statusEl.textContent = `You don't have enough ${BARTER_LABELS[offerType]}.`; return;
     }
 
     try {
         // Deduct the offered amount upfront (held in escrow concept)
-        deductCurrency(offerType, offerAmt);
+        deductCurrency(offerType, offerAmtFinal);
         calculateStats(); renderAll();
 
+        const offerNote = (offerType === 'key' && gameState._barterHeldKeyId) ? gameState._barterHeldKeyId : null;
         const { error } = await supabaseClient.from('barter_listings').insert({
             poster_name: gameState.playerName,
             offer_type: offerType,
-            offer_amt: offerAmt,
+            offer_amt: offerAmtFinal,
             want_type: wantType,
-            want_amt: wantAmt,
-            is_complete: false
+            want_amt: wantAmtFinal,
+            is_complete: false,
+            offer_note: offerNote
         });
         if (error) {
             // Refund on failure
-            addCurrency(offerType, offerAmt);
+            addCurrency(offerType, offerAmtFinal);
             calculateStats(); renderAll();
             throw error;
         }
@@ -15724,6 +15814,9 @@ async function acceptBarterListing(listingId) {
         if (updErr) throw updErr;
 
         // Pay buyer immediately
+        if (listing.offer_type === 'key' && listing.offer_note) {
+            gameState._pendingBarterKeyId = listing.offer_note;
+        }
         deductCurrency(listing.want_type, listing.want_amt);
         addCurrency(listing.offer_type, listing.offer_amt);
         calculateStats(); renderAll(); saveGame();
@@ -17629,6 +17722,447 @@ window._auditSoulsLog = async function(playerName) {
     console.log('Supabase soulsLog:', sbData?.soulsLog, '| lifetimeSouls:', sbData?.lifetimeSouls, '| ascensions:', sbData?.ascensions);
     const diff = Math.abs((fbData?.soulsLog||0) - (sbData?.soulsLog||0));
     console.log(diff > 1 ? `⚠️ MISMATCH of ${diff.toFixed(2)} orders of magnitude` : '✅ Values match');
+};
+</script>
+
+
+<script>
+// =================================================================
+// 🗝️ THE KEYS OF THE ABYSS
+// 10 unique keys, one held at a time, expires 24h after obtaining.
+// Acquisition: Hourly Shop (ultra-rare free slot), Abyssal Cache
+// (0.15% chance), Expedition (ultra-rare), rare chat event.
+// =================================================================
+
+const KEYS = {
+    skeleton_key: {
+        name: "The Skeleton Key",
+        icon: "🗝️",
+        color: "#c8a800",
+        glow: "#c8a80099",
+        desc: "Unlocks every minion in your current world to level 1 instantly — free.",
+        lore: "It fits every lock. Every cage. Every soul.",
+        effect: () => {
+            for (const id in minions) {
+                if (gameState.unlockedWorlds.includes(minions[id].requiredWorld)) {
+                    if (!gameState.minions[id] || gameState.minions[id].level === 0) {
+                        if (!gameState.minions[id]) gameState.minions[id] = { level: 0, cost: D(minions[id].cost), promotionTier: 0 };
+                        gameState.minions[id].level = 1;
+                    }
+                }
+            }
+            return "Every minion in your current world has been awakened to level 1.";
+        }
+    },
+    void_key: {
+        name: "The Void Key",
+        icon: "🔑",
+        color: "#aa44ff",
+        glow: "#aa44ff99",
+        desc: "Instantly gain 100% of your next Ascension's Shards — without ascending.",
+        lore: "The void doesn't ask what you'll give up. It already knows.",
+        effect: () => {
+            const gained = calculateShardsOnAscend();
+            gameState.abyssalShards += isFinite(gained) ? gained : 0;
+            return `Gained ${formatNumber(gained)} Abyssal Shards without ascending.`;
+        }
+    },
+    blood_key: {
+        name: "The Blood Key",
+        icon: "🩸",
+        color: "#cc0022",
+        glow: "#cc002299",
+        desc: "For 24 hours, all soul gain is multiplied by 5. The price is already paid.",
+        lore: "Some doors only open when you bleed for them.",
+        effect: () => {
+            gameState.activePotions['blood_key_buff'] = Date.now() + 86400000;
+            return "Soul gain ×5 active for 24 hours.";
+        }
+    },
+    eclipse_key: {
+        name: "The Eclipse Key",
+        icon: "🌑",
+        color: "#ff8800",
+        glow: "#ff880099",
+        desc: "All ritual cooldowns are instantly reset AND rituals cost nothing for 1 hour.",
+        lore: "Between light and dark, the ritual burns brightest.",
+        effect: () => {
+            for (const id in gameState.activeRituals) {
+                if (gameState.activeRituals[id]) gameState.activeRituals[id].cooldownEndTime = 0;
+            }
+            gameState.activePotions['eclipse_key_buff'] = Date.now() + 3600000;
+            return "All ritual cooldowns reset. Rituals are free for 1 hour.";
+        }
+    },
+    aether_key: {
+        name: "The Aether Key",
+        icon: "⚡",
+        color: "#00e5ff",
+        glow: "#00e5ff99",
+        desc: "Instantly gain Aether equal to 300% of your next Collapse's yield.",
+        lore: "Reality cracked open and something poured out. You caught it.",
+        effect: () => {
+            const gained = Math.floor(calculateAetherOnCollapse() * 3);
+            gameState.aether = (gameState.aether || 0) + (isFinite(gained) ? gained : 3);
+            return `Gained ${formatNumber(gained)} Aether.`;
+        }
+    },
+    cache_key: {
+        name: "The Cache Key",
+        icon: "📦",
+        color: "#44cc88",
+        glow: "#44cc8899",
+        desc: "Instantly opens 5 Abyssal Caches back-to-back, ignoring all timers.",
+        lore: "Every lock yields. Every chest opens. Five times.",
+        effect: () => {
+            for (let i = 0; i < 5; i++) {
+                gameState.nextCacheTime = 0;
+                openAbyssalCache();
+            }
+            return "5 Abyssal Caches opened instantly.";
+        }
+    },
+    time_key: {
+        name: "The Time Key",
+        icon: "⏳",
+        color: "#00ffcc",
+        glow: "#00ffcc99",
+        desc: "Resets ALL cooldowns — rituals, potions, items, cache — and freezes them for 6 hours.",
+        lore: "Time is just another lock. You found the master key.",
+        effect: () => {
+            for (const id in gameState.activeRituals) {
+                if (gameState.activeRituals[id]) gameState.activeRituals[id].cooldownEndTime = 0;
+            }
+            for (const id in gameState.itemCooldowns) gameState.itemCooldowns[id] = 0;
+            for (const id in gameState.potionCooldowns) gameState.potionCooldowns[id] = 0;
+            gameState.nextCacheTime = 0;
+            gameState.activePotions['time_key_buff'] = Date.now() + 21600000;
+            return "All cooldowns reset. Cooldown immunity active for 6 hours.";
+        }
+    },
+    soul_key: {
+        name: "The Soul Key",
+        icon: "👻",
+        color: "#ffcc44",
+        glow: "#ffcc4499",
+        desc: "Instantly gain souls equal to 7 full days of your current SPS.",
+        lore: "A week's worth of hunger, delivered in a single breath.",
+        effect: () => {
+            const gain = D(gameState.stats.sps).mul(604800);
+            gameState.souls = D(gameState.souls).add(gain);
+            gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(gain);
+            return `Gained ${formatNumber(gain)} souls (7 days of SPS).`;
+        }
+    },
+    corruption_key: {
+        name: "The Corruption Key",
+        icon: "☣️",
+        color: "#44ff44",
+        glow: "#44ff4499",
+        desc: "Converts 50% of your current souls to Dark Essence at 10× the normal rate.",
+        lore: "Purity is just corruption that hasn't happened yet.",
+        effect: () => {
+            const soulsToConvert = D(gameState.souls).mul(0.5);
+            const essenceGained = Math.floor(soulsToConvert.toNumber() / 1e6 * 10);
+            gameState.souls = D(gameState.souls).sub(soulsToConvert);
+            gameState.darkEssence += isFinite(essenceGained) ? essenceGained : 1000;
+            return `Converted ${formatNumber(soulsToConvert)} souls into ${formatNumber(essenceGained)} Dark Essence.`;
+        }
+    },
+    omega_key: {
+        name: "The Omega Key",
+        icon: "♾️",
+        color: "#ff44ff",
+        glow: "#ff44ff99",
+        desc: "For 24 hours, ALL soul gain is raised to the power of 1.05. The final key.",
+        lore: "There is no door beyond this one. Only what you make.",
+        effect: () => {
+            gameState.activePotions['omega_key_buff'] = Date.now() + 86400000;
+            return "Exponential gain (^1.05) active for 24 hours.";
+        }
+    },
+};
+
+const KEY_IDS = Object.keys(KEYS);
+const KEY_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// ── Acquisition ─────────────────────────────────────────────────────────
+function rollForKey(source) {
+    // Chance is pre-checked at call site — this just picks a random key and presents it
+    // Sources: 'breach' (0.5%), 'cache' (0.05%), 'shop' (0.5% of hours, separate logic)
+    const keyId = KEY_IDS[Math.floor(Math.random() * KEY_IDS.length)];
+    presentKey(keyId, source);
+}
+
+function presentKey(keyId, source) {
+    const key = KEYS[keyId];
+    if (!key) return;
+
+    // Check expiry on current key
+    if (gameState.heldKey) {
+        const expired = Date.now() - gameState.heldKey.obtainedAt > KEY_EXPIRY_MS;
+        if (!expired) {
+            // Player already holds a valid key — show choice modal
+            showKeyChoiceModal(keyId, source);
+            return;
+        }
+    }
+    // No key or expired — grant directly
+    grantKey(keyId);
+}
+
+function grantKey(keyId) {
+    const key = KEYS[keyId];
+    gameState.heldKey = { id: keyId, obtainedAt: Date.now() };
+    saveGame();
+    showKeyFoundModal(keyId);
+    renderKeyInSettings();
+}
+
+function showKeyFoundModal(keyId) {
+    const key = KEYS[keyId];
+    const overlay = document.getElementById('key-modal-overlay');
+    const content = document.getElementById('key-modal-content');
+    if (!overlay || !content) return;
+
+    content.innerHTML = `
+        <div style="text-align:center; margin-bottom:20px;">
+            <div style="font-size:4em; filter:drop-shadow(0 0 20px ${key.glow}); animation:keyFloat 2s ease-in-out infinite;">${key.icon}</div>
+            <div style="color:${key.color}; font-family:var(--font-title); font-size:1.1em; letter-spacing:3px; margin-top:12px; text-shadow:0 0 20px ${key.color};">A KEY HAS FOUND YOU</div>
+        </div>
+        <div style="color:${key.color}; font-weight:bold; font-size:1.05em; text-align:center; margin-bottom:8px;">${key.name}</div>
+        <p style="color:#888; font-size:0.82em; text-align:center; font-style:italic; margin-bottom:16px;">"${key.lore}"</p>
+        <div style="background:#0a0812; border:1px solid ${key.color}44; border-left:3px solid ${key.color}; border-radius:8px; padding:12px 14px; margin-bottom:16px;">
+            <div style="color:#aaa; font-size:0.82em; line-height:1.5;">${key.desc}</div>
+        </div>
+
+        <button onclick="closeKeyModal()" style="width:100%; background:linear-gradient(135deg,${key.color}22,transparent); border:1px solid ${key.color}66; border-radius:10px; padding:12px; color:${key.color}; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:pointer;">
+            🗝️ TAKE THE KEY
+        </button>`;
+    overlay.style.display = 'flex';
+}
+
+function showKeyChoiceModal(newKeyId, source) {
+    const newKey = KEYS[newKeyId];
+    const oldKey = KEYS[gameState.heldKey.id];
+    const timeLeft = KEY_EXPIRY_MS - (Date.now() - gameState.heldKey.obtainedAt);
+    const hoursLeft = Math.floor(timeLeft / 3600000);
+    const minsLeft  = Math.floor((timeLeft % 3600000) / 60000);
+
+    const overlay = document.getElementById('key-modal-overlay');
+    const content = document.getElementById('key-modal-content');
+    if (!overlay || !content) return;
+
+    content.innerHTML = `
+        <div style="color:#c8a800; font-family:var(--font-title); font-size:0.95em; letter-spacing:2px; text-align:center; margin-bottom:18px;">A NEW KEY APPEARS</div>
+        <p style="color:#666; font-size:0.8em; text-align:center; margin-bottom:20px;">You can only hold one. Choose wisely — the unchosen key is gone forever.</p>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+            <div style="background:#0a0812; border:2px solid ${oldKey.color}66; border-radius:10px; padding:14px; text-align:center; cursor:pointer; transition:all 0.2s;"
+                 onmouseover="this.style.borderColor='${oldKey.color}'" onmouseout="this.style.borderColor='${oldKey.color}66'"
+                 onclick="keepOldKey('${newKeyId}')">
+                <div style="font-size:2.5em; filter:drop-shadow(0 0 10px ${oldKey.glow});">${oldKey.icon}</div>
+                <div style="color:${oldKey.color}; font-weight:bold; font-size:0.82em; margin:8px 0 4px;">${oldKey.name}</div>
+
+                <div style="color:${oldKey.color}; font-size:0.7em; margin-top:6px; background:${oldKey.color}18; border-radius:6px; padding:4px;">KEEP THIS KEY</div>
+            </div>
+            <div style="background:#0a0812; border:2px solid ${newKey.color}66; border-radius:10px; padding:14px; text-align:center; cursor:pointer; transition:all 0.2s;"
+                 onmouseover="this.style.borderColor='${newKey.color}'" onmouseout="this.style.borderColor='${newKey.color}66'"
+                 onclick="takeNewKey('${newKeyId}')">
+                <div style="font-size:2.5em; filter:drop-shadow(0 0 10px ${newKey.glow});">${newKey.icon}</div>
+                <div style="color:${newKey.color}; font-weight:bold; font-size:0.82em; margin:8px 0 4px;">${newKey.name}</div>
+                <div style="color:#555; font-size:0.72em;">NEW</div>
+                <div style="color:${newKey.color}; font-size:0.7em; margin-top:6px; background:${newKey.color}18; border-radius:6px; padding:4px;">TAKE THIS KEY</div>
+            </div>
+        </div>
+
+        <div style="display:grid; gap:6px; margin-bottom:16px;">
+            <div style="background:#0a0812; border-left:2px solid ${oldKey.color}; border-radius:6px; padding:8px 12px; font-size:0.75em; color:#888;">${oldKey.desc}</div>
+            <div style="background:#0a0812; border-left:2px solid ${newKey.color}; border-radius:6px; padding:8px 12px; font-size:0.75em; color:#888;">${newKey.desc}</div>
+        </div>`;
+    overlay.style.display = 'flex';
+}
+
+function keepOldKey(rejectedKeyId) { closeKeyModal(); Toastify({text:'You kept your current key. The other key faded.', duration:4000, gravity:'top', position:'center', style:{background:'#1a0820'}}).showToast(); }
+function takeNewKey(newKeyId) { grantKey(newKeyId); }
+function closeKeyModal() { document.getElementById('key-modal-overlay').style.display = 'none'; }
+
+// ── Usage ───────────────────────────────────────────────────────────────
+function useKey() {
+    if (!gameState.heldKey) return;
+    const keyId = gameState.heldKey.id;
+    const expired = Date.now() - gameState.heldKey.obtainedAt > KEY_EXPIRY_MS;
+    if (expired) {
+        // Expired silently — just clear it, no message
+        gameState.heldKey = null;
+        saveGame();
+        renderKeyInSettings();
+        return;
+    }
+    const key = KEYS[keyId];
+    const result = key.effect();
+
+    // Using the key resets the 24h timer — key stays with the player
+    // It only disappears if they go 24h WITHOUT using it
+    gameState.heldKey.obtainedAt = Date.now();
+
+    saveGame();
+    calculateStats();
+    renderAll();
+    renderKeyInSettings();
+    Toastify({ text: `🗝️ ${key.name} used!\n${result}`, duration:7000, gravity:'top', position:'center',
+        style:{ background:`linear-gradient(135deg,#0a0812,${key.color}88)`, border:`1px solid ${key.color}66`, fontSize:'0.9em' }
+    }).showToast();
+}
+
+// ── Expiry ticker — runs every minute, SILENT loss ───────────────────────
+setInterval(() => {
+    if (!gameState.heldKey) return;
+    const timeLeft = KEY_EXPIRY_MS - (Date.now() - gameState.heldKey.obtainedAt);
+    if (timeLeft <= 0) {
+        // Key is gone. No announcement. No toast. It simply... isn't there anymore.
+        gameState.heldKey = null;
+        saveGame();
+        renderKeyInSettings();
+    } else {
+        renderKeyInSettings(); // refresh colour indicator
+    }
+}, 60000);
+
+// ── Settings panel render ────────────────────────────────────────────────
+function renderKeyInSettings() {
+    const panel = document.getElementById('key-settings-panel');
+    if (!panel) return;
+
+    if (!gameState.heldKey) {
+        panel.style.display = 'none';
+        return;
+    }
+
+    const expired = Date.now() - gameState.heldKey.obtainedAt > KEY_EXPIRY_MS;
+    if (expired) {
+        gameState.heldKey = null;
+        panel.style.display = 'none';
+        return;
+    }
+
+    panel.style.display = 'block';
+    const key = KEYS[gameState.heldKey.id];
+    const timeLeft = KEY_EXPIRY_MS - (Date.now() - gameState.heldKey.obtainedAt);
+    const hoursLeft = timeLeft / 3600000;
+
+    // Colour indicator only — no countdown, no numbers
+    // Green: >8h left. Yellow: 1–8h left. Red: <1h left (pulsing)
+    const dotColor  = hoursLeft > 8 ? '#44ff88' : hoursLeft > 1 ? '#ffcc00' : '#ff3322';
+    const dotAnim   = hoursLeft < 1 ? 'animation:urgentPulse 1s ease-in-out infinite;' : '';
+    const dotLabel  = hoursLeft > 8 ? 'Active' : hoursLeft > 1 ? 'Fading' : 'Fading Fast';
+    const borderColor = hoursLeft > 8 ? key.color + '88' : hoursLeft > 1 ? '#ffcc0088' : '#ff332288';
+    const topColor    = hoursLeft > 8 ? key.color : hoursLeft > 1 ? '#ffcc00' : '#ff3322';
+
+    panel.innerHTML = `
+        <div style="background:linear-gradient(135deg,#0a0812,${key.color}11); border:2px solid ${borderColor}; border-top:4px solid ${topColor}; border-radius:14px; padding:20px 24px; position:relative; overflow:hidden;">
+            <div style="position:absolute;inset:0;background:radial-gradient(ellipse at top right,${key.color}08,transparent 60%);pointer-events:none;"></div>
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px;">
+                <span style="font-size:2.2em; filter:drop-shadow(0 0 12px ${key.glow}); animation:keyFloat 2s ease-in-out infinite;">${key.icon}</span>
+                <div style="flex:1;">
+                    <div style="color:${key.color}; font-family:var(--font-title); font-size:0.85em; letter-spacing:2px; text-shadow:0 0 10px ${key.color}66;">YOU HOLD A KEY</div>
+                    <div style="color:${key.color}; font-weight:bold; font-size:1.1em; margin-top:2px;">${key.name}</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; ${dotAnim}">
+                    <div style="width:10px; height:10px; border-radius:50%; background:${dotColor}; box-shadow:0 0 8px ${dotColor}; ${dotAnim}"></div>
+                    <span style="color:${dotColor}; font-size:0.7em; font-weight:bold; letter-spacing:1px;">${dotLabel}</span>
+                </div>
+            </div>
+            <p style="color:#888; font-size:0.8em; font-style:italic; margin:0 0 10px;">"${key.lore}"</p>
+            <p style="color:#aaa; font-size:0.8em; margin:0 0 18px; border-left:2px solid ${key.color}66; padding-left:8px;">${key.desc}</p>
+            <button onclick="useKey()" style="width:100%; background:linear-gradient(135deg,${key.color}33,${key.color}11); border:1px solid ${key.color}88; border-radius:10px; padding:13px; color:${key.color}; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:pointer; text-shadow:0 0 8px ${key.color}66; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,${key.color}55,${key.color}22)'" onmouseout="this.style.background='linear-gradient(135deg,${key.color}33,${key.color}11)'">
+                🗝️ USE THE KEY
+            </button>
+        </div>`;
+}
+
+// ── Hook into calculateStats so key buffs apply ──────────────────────────
+// blood_key_buff → global ×5 (handled via activePotions in calculateStats)
+// eclipse_key_buff → free rituals (checked in activateRitual)
+// time_key_buff → cooldown immunity (checked in ritual/potion/cache)
+// omega_key_buff → gain^1.05 (handled via activePotions gain_exponent)
+// These all piggyback on existing active potion check infra.
+
+// Hook calculateStats for eclipse key (free rituals)
+const _origActivateRitual = activateRitual;
+activateRitual = function(id) {
+    const eclipseActive = gameState.activePotions['eclipse_key_buff'] && Date.now() < gameState.activePotions['eclipse_key_buff'];
+    if (eclipseActive) {
+        // Temporarily zero the cost for this call
+        const origCost = rituals[id].cost;
+        rituals[id].cost = 0;
+        _origActivateRitual(id);
+        rituals[id].cost = origCost;
+    } else {
+        _origActivateRitual(id);
+    }
+};
+
+
+// ── Barter key injection — only show key option if player holds one ────────
+function updateBarterDropdowns() {
+    const offerSel = document.getElementById('barter-offer-type');
+    const wantSel  = document.getElementById('barter-want-type');
+    if (!offerSel || !wantSel) return;
+
+    const holdsKey = gameState.heldKey &&
+        (Date.now() - gameState.heldKey.obtainedAt) < KEY_EXPIRY_MS;
+    const keyName = holdsKey ? (KEYS[gameState.heldKey.id]?.name || 'Key of the Abyss') : 'Key of the Abyss';
+
+    // Offer dropdown — add/remove key option
+    const existingOfferKey = offerSel.querySelector('option[value="key"]');
+    if (holdsKey && !existingOfferKey) {
+        const opt = document.createElement('option');
+        opt.value = 'key';
+        opt.textContent = `🗝️ ${keyName}`;
+        offerSel.appendChild(opt);
+    } else if (!holdsKey && existingOfferKey) {
+        existingOfferKey.remove();
+    } else if (holdsKey && existingOfferKey) {
+        existingOfferKey.textContent = `🗝️ ${keyName}`;
+    }
+
+    // Want dropdown — add/remove key option (only visible if you know keys exist)
+    const existingWantKey = wantSel.querySelector('option[value="key"]');
+    if (holdsKey && !existingWantKey) {
+        const opt = document.createElement('option');
+        opt.value = 'key';
+        opt.textContent = `🗝️ A Key of the Abyss`;
+        wantSel.appendChild(opt);
+    } else if (!holdsKey && existingWantKey) {
+        existingWantKey.remove();
+    }
+
+    // Hide amount input when key is selected (keys are quantity 1)
+    const offerAmt = document.getElementById('barter-offer-amt');
+    const wantAmt  = document.getElementById('barter-want-amt');
+    if (offerAmt) offerAmt.style.display = offerSel.value === 'key' ? 'none' : '';
+    if (wantAmt)  wantAmt.style.display  = wantSel.value  === 'key' ? 'none' : '';
+}
+
+// Run on barter tab open
+const _origShowBarterTab = showBarterTab;
+showBarterTab = function(tab) {
+    _origShowBarterTab(tab);
+    if (tab === 'post') setTimeout(updateBarterDropdowns, 50);
+};
+
+// Close key modal on overlay click
+document.addEventListener('click', e => {
+    const overlay = document.getElementById('key-modal-overlay');
+    if (overlay && e.target === overlay) closeKeyModal();
+});
+
+// Render key panel whenever settings screen is opened
+const _origShowScreen = showScreen;
+showScreen = function(screenId) {
+    _origShowScreen(screenId);
+    if (screenId === 'settings') renderKeyInSettings();
 };
 </script>
 

@@ -3571,171 +3571,6 @@ text-decoration: underline; /* Adds an underline on hover */
 </div>
 
 <script>
-// =================================================================
-// DECIMAL — inline big-number library (break_infinity.js compatible)
-// Stores numbers as mantissa * 10^exponent. Supports 10^(9×10^15).
-// =================================================================
-(function(global) {
-    'use strict';
-    const MAX_SAFE = 9007199254740992;
-    const EXP_LIMIT = 9e15;
-    const NUMBER_EXP_MAX = 308;
-
-    function normalize(m, e) {
-        if (!isFinite(m) || m === 0) return [0, 0];
-        const a = Math.abs(m);
-        const extra = Math.floor(Math.log10(a));
-        return [m / Math.pow(10, extra), e + extra];
-    }
-
-    class Decimal {
-        constructor(value) {
-            if (value instanceof Decimal) { this.m = value.m; this.e = value.e; return; }
-            if (value === null || value === undefined) { this.m = 0; this.e = 0; return; }
-            if (typeof value === 'string') {
-                value = value.trim();
-                if (value === 'Infinity' || value === '+Infinity') { this.m = 1; this.e = EXP_LIMIT; return; }
-                if (value === '-Infinity') { this.m = -1; this.e = EXP_LIMIT; return; }
-                if (value === 'NaN' || value === '') { this.m = 0; this.e = 0; return; }
-                // Scientific notation e.g. "1.5e200"
-                const eIdx = value.toLowerCase().indexOf('e');
-                if (eIdx !== -1) {
-                    const mantStr = parseFloat(value.slice(0, eIdx));
-                    const expStr  = parseInt(value.slice(eIdx + 1), 10);
-                    if (isNaN(mantStr) || isNaN(expStr)) { this.m = 0; this.e = 0; return; }
-                    const [nm, ne] = normalize(mantStr, expStr);
-                    this.m = nm; this.e = ne; return;
-                }
-                const n = parseFloat(value);
-                if (isNaN(n) || !isFinite(n)) { this.m = 0; this.e = 0; return; }
-                const [nm, ne] = normalize(n, 0);
-                this.m = nm; this.e = ne; return;
-            }
-            if (typeof value === 'number') {
-                if (!isFinite(value) || isNaN(value)) { this.m = 0; this.e = 0; return; }
-                if (value === 0) { this.m = 0; this.e = 0; return; }
-                // Use exponential string to avoid precision loss at JS float boundary
-                const str = value.toExponential();
-                const eIdx = str.indexOf('e');
-                if (eIdx !== -1) {
-                    const mantStr = parseFloat(str.slice(0, eIdx));
-                    const expStr  = parseInt(str.slice(eIdx + 1), 10);
-                    const [nm, ne] = normalize(mantStr, expStr);
-                    this.m = nm; this.e = ne; return;
-                }
-                const [nm, ne] = normalize(value, 0);
-                this.m = nm; this.e = ne; return;
-            }
-            this.m = 0; this.e = 0;
-        }
-
-        // ── Comparison ─────────────────────────────────────────────
-        _cmp(other) {
-            const o = D(other);
-            const sm = Math.sign(this.m), so = Math.sign(o.m);
-            if (sm !== so) return sm > so ? 1 : -1;
-            if (sm === 0) return 0;
-            if (this.e !== o.e) return sm * (this.e > o.e ? 1 : -1);
-            const diff = this.m - o.m;
-            return diff > 1e-10 ? 1 : diff < -1e-10 ? -1 : 0;
-        }
-        gt(o)  { return this._cmp(o) > 0; }
-        gte(o) { return this._cmp(o) >= 0; }
-        lt(o)  { return this._cmp(o) < 0; }
-        lte(o) { return this._cmp(o) <= 0; }
-        eq(o)  { return this._cmp(o) === 0; }
-
-        // ── Arithmetic ─────────────────────────────────────────────
-        add(other) {
-            const o = D(other);
-            if (this.m === 0) return new Decimal(o);
-            if (o.m === 0) return new Decimal(this);
-            let bigM, bigE, smallM, smallE;
-            if (this.e >= o.e) { bigM = this.m; bigE = this.e; smallM = o.m; smallE = o.e; }
-            else               { bigM = o.m;    bigE = o.e;    smallM = this.m; smallE = this.e; }
-            const diff = bigE - smallE;
-            if (diff > 17) return new Decimal(this.e >= o.e ? this : o); // tiny contribution
-            const result = bigM + smallM * Math.pow(10, -diff);
-            const [nm, ne] = normalize(result, bigE);
-            const d = new Decimal(0); d.m = nm; d.e = ne; return d;
-        }
-        sub(other) { const o = D(other); const neg = new Decimal(o); neg.m = -neg.m; return this.add(neg); }
-        mul(other) {
-            const o = D(other);
-            if (this.m === 0 || o.m === 0) return new Decimal(0);
-            const [nm, ne] = normalize(this.m * o.m, this.e + o.e);
-            const d = new Decimal(0); d.m = nm; d.e = ne; return d;
-        }
-        div(other) {
-            const o = D(other);
-            if (o.m === 0) return new Decimal(0);
-            const [nm, ne] = normalize(this.m / o.m, this.e - o.e);
-            const d = new Decimal(0); d.m = nm; d.e = ne; return d;
-        }
-        pow(other) {
-            const exp = typeof other === 'number' ? other : D(other).toNumber();
-            if (this.m === 0) return new Decimal(0);
-            if (exp === 0) return new Decimal(1);
-            // log10(this) * exp  -> result
-            const log = this.log10().toNumber();
-            const newE = log * exp;
-            if (!isFinite(newE)) return new Decimal(0);
-            const expPart = Math.floor(newE);
-            const mantPart = Math.pow(10, newE - expPart);
-            const d = new Decimal(0);
-            d.m = this.m < 0 && exp % 2 !== 0 ? -mantPart : mantPart;
-            d.e = expPart;
-            return d;
-        }
-        neg()   { const d = new Decimal(this); d.m = -d.m; return d; }
-        abs()   { const d = new Decimal(this); d.m = Math.abs(d.m); return d; }
-        max(o)  { return this._cmp(o) >= 0 ? new Decimal(this) : new Decimal(D(o)); }
-        min(o)  { return this._cmp(o) <= 0 ? new Decimal(this) : new Decimal(D(o)); }
-        floor() {
-            if (this.e >= 17) return new Decimal(this);
-            if (this.e < 0)   return new Decimal(this.m < 0 ? -1 : 0);
-            const n = Math.floor(this.toNumber());
-            return new Decimal(n);
-        }
-        ceil() {
-            if (this.e >= 17) return new Decimal(this);
-            if (this.e < 0)   return new Decimal(this.m < 0 ? 0 : 1);
-            return new Decimal(Math.ceil(this.toNumber()));
-        }
-        log10() {
-            if (this.m <= 0) return 0;
-            return this.e + Math.log10(Math.abs(this.m));
-        }
-        // ── Conversion ─────────────────────────────────────────────
-        toNumber() {
-            if (this.e > 308) return this.m > 0 ? Infinity : -Infinity;
-            if (this.e < -324) return 0;
-            return this.m * Math.pow(10, this.e);
-        }
-        toString() {
-            if (this.m === 0) return '0';
-            if (this.e <= 17 && this.e >= -7) {
-                // representable without scientific notation
-                return this.toNumber().toString();
-            }
-            return this.m.toPrecision(9).replace(/\.?0+$/, '') + 'e' + this.e;
-        }
-        toFixed(dp) {
-            if (this.e >= 17) return this.toString();
-            return this.toNumber().toFixed(dp);
-        }
-        // Static helpers
-        static pow(base, exp) { return D(base).pow(exp); }
-        static log10(x) { return D(x).log10().toNumber(); }
-        static max(a, b) { return D(a).max(b); }
-        static min(a, b) { return D(a).min(b); }
-    }
-
-    global.Decimal = Decimal;
-})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
-</script>
-
-<script>
 // NEW, CORRECTED CODE
 
 		
@@ -3868,21 +3703,21 @@ window.onload = function() {
         // The broken anti-cheat checks have been removed from here.
         
         const now = Date.now();
-        const passiveGain = D(gameState.stats.sps).div(TICKS_PER_SECOND);
-        gameState.souls = D(gameState.souls).add(passiveGain);
-        gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(passiveGain);
+        const passiveGain = gameState.stats.sps / TICKS_PER_SECOND;
+        gameState.souls += passiveGain;
+        gameState.lifetimeSouls += passiveGain;
 		
 		// Cap stats — clamp all currencies to 0 minimum (prevents Charon's Oar or other bugs from going negative)
-		gameState.souls          = Dmax0(gameState.souls);
+		gameState.souls          = Math.max(0, isFinite(gameState.souls)          ? gameState.souls          : 0);
 		gameState.darkEssence    = Math.max(0, isFinite(gameState.darkEssence)    ? gameState.darkEssence    : 0);
 		gameState.abyssalShards  = Math.max(0, isFinite(gameState.abyssalShards)  ? gameState.abyssalShards  : 0);
 		gameState.aether         = Math.max(0, isFinite(gameState.aether)         ? gameState.aether         : 0);
 		gameState.corruptedFragments = Math.max(0, isFinite(gameState.corruptedFragments) ? gameState.corruptedFragments : 0);
 		// lifetimeSouls must always be >= souls + soulsSpent (self-healing)
-		const trueMinLifetime = D(gameState.souls).add(D(gameState.soulsSpent || 0));
-		gameState.lifetimeSouls = D(gameState.lifetimeSouls).lt(trueMinLifetime) ? trueMinLifetime : D(gameState.lifetimeSouls);
+		const trueMinLifetime = (gameState.souls || 0) + (gameState.soulsSpent || 0);
+		gameState.lifetimeSouls = Math.max(trueMinLifetime, isFinite(gameState.lifetimeSouls) ? gameState.lifetimeSouls : trueMinLifetime);
 		// Cap SPS/SPC to prevent negative display
-		if (D(gameState.stats.sps).lt(0)) { gameState.stats.sps = D(0); calculateStats(); }
+		if (gameState.stats.sps < 0 || !isFinite(gameState.stats.sps)) { gameState.stats.sps = 0; calculateStats(); }
 		if (gameState.stats.spc < 0 || !isFinite(gameState.stats.spc)) { gameState.stats.spc = 1; calculateStats(); }
         
         updateDynamicDisplays(); // Moved this up to give more immediate visual feedback
@@ -3994,44 +3829,9 @@ const GAME_VERSION = "V. 0.9.1";
 // FINAL, BigInt-AWARE NUMBER FORMATTING
 // =================================================================
 function formatNumber(num) {
-    // Handle Decimal objects from break_infinity.js
-    if (num instanceof Decimal) {
-        // Use Decimal's own log10 for safe exponent calculation
-        if (num.lt(0)) return '-' + formatNumber(num.neg());
-        if (num.lt(1000000)) return Math.floor(num.toNumber()).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        const exp = Math.floor(num.log10().toNumber());
-        const notationList = [
-            {exp:303,symbol:'Ce'},{exp:273,symbol:'Ng'},{exp:243,symbol:'Og'},
-            {exp:213,symbol:'Spg'},{exp:183,symbol:'Sxg'},{exp:153,symbol:'Qig'},
-            {exp:123,symbol:'Qag'},{exp:93,symbol:'Tg'},{exp:90,symbol:'NVg'},
-            {exp:87,symbol:'OVg'},{exp:84,symbol:'SVg'},{exp:81,symbol:'sVg'},
-            {exp:78,symbol:'QVg'},{exp:75,symbol:'qVg'},{exp:72,symbol:'TVg'},
-            {exp:69,symbol:'DVg'},{exp:66,symbol:'UVg'},{exp:63,symbol:'Vg'},
-            {exp:60,symbol:'NV'},{exp:57,symbol:'OD'},{exp:54,symbol:'SD'},
-            {exp:51,symbol:'sD'},{exp:48,symbol:'QD'},{exp:45,symbol:'qD'},
-            {exp:42,symbol:'TD'},{exp:39,symbol:'dD'},{exp:36,symbol:'UD'},
-            {exp:33,symbol:'Dc'},{exp:30,symbol:'N'},{exp:27,symbol:'O'},
-            {exp:24,symbol:'Sp'},{exp:21,symbol:'Sx'},{exp:18,symbol:'Qi'},
-            {exp:15,symbol:'Qa'},{exp:12,symbol:'T'},{exp:9,symbol:'B'},
-            {exp:6,symbol:'M'},
-        ];
-        for (const {exp: e, symbol} of notationList) {
-            if (exp >= e) {
-                const val = num.div(Decimal.pow(10, e)).toNumber();
-                return val.toFixed(2) + symbol;
-            }
-        }
-        // Beyond Ce (10^303) — show as scientific
-        if (exp >= 303) {
-            const val = num.div(Decimal.pow(10, exp)).toNumber();
-            return val.toFixed(2) + 'e' + exp;
-        }
-        return num.toFixed(0);
-    }
-
     // Safety check for invalid inputs like null, undefined, NaN, or Infinity
     if (num === null || typeof num === 'undefined' || isNaN(num) || !isFinite(num)) {
-        return '0';
+        return String(num);
     }
 
     const n = Number(num);
@@ -4085,23 +3885,6 @@ function formatNumber(num) {
     }
 }
 
-
-
-// =================================================================
-// DECIMAL HELPERS — break_infinity.js wrapper for overflow-safe arithmetic
-// Supports numbers up to 10^(9×10^15) — effectively infinite for any game.
-// =================================================================
-function D(x) {
-    if (x instanceof Decimal) return x;
-    if (x === null || x === undefined) return new Decimal(0);
-    if (typeof x === 'string') { try { return new Decimal(x); } catch(e) { return new Decimal(0); } }
-    if (typeof x === 'number') { if (!isFinite(x) || isNaN(x)) return new Decimal(0); return new Decimal(x); }
-    return new Decimal(0);
-}
-// Safe toNumber — returns 0 for values beyond JS number range (used only for small quantities)
-function DN(x) { try { const n = D(x).toNumber(); return isFinite(n) ? n : 0; } catch(e) { return 0; } }
-// Decimal-aware max(0, x)
-function Dmax0(x) { return D(x).lt(0) ? D(0) : D(x); }
 
 
 const minions = {
@@ -6027,14 +5810,7 @@ async function createProfile() {
 }
 async function saveGame() {
     gameState._savedAt = Date.now(); // timestamp for cloud vs local comparison
-    // Serialize Decimal fields to strings before saving
-    const stateToSave = { ...gameState,
-        souls:         D(gameState.souls).toString(),
-        lifetimeSouls: D(gameState.lifetimeSouls).toString(),
-        'stats.sps':   undefined, // recomputed on load
-    };
-    if (stateToSave.stats) stateToSave.stats = { ...gameState.stats, sps: D(gameState.stats.sps).toString() };
-    localStorage.setItem('soulCollectorSave_v3', JSON.stringify(stateToSave));
+    localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
 
     if (gameState.playerName === "Unnamed") return;
 
@@ -6058,8 +5834,8 @@ async function saveGame() {
     const publicData = {
         name: gameState.playerName,
         user_id: gameState.playerName,
-        lifetimeSouls:     safe(D(gameState.lifetimeSouls).toNumber()),
-        soulsLog:          safe(D(gameState.lifetimeSouls).gt(0) ? D(gameState.lifetimeSouls).log10().toNumber() : 0, 0),
+        lifetimeSouls:     safe(Math.max(gameState.lifetimeSouls, gameState.souls + (gameState.soulsSpent||0))),
+        soulsLog:          safe(Math.log10(Math.max(1, gameState.lifetimeSouls)), 0),
         ascensions:        safe(gameState.ascensions),
         aether:            safe(gameState.aether),
         totalAetherEarned: safe(gameState.totalAetherEarned),
@@ -6094,10 +5870,6 @@ function loadGame() {
         try {
             let loadedState = JSON.parse(savedGame);
             gameState = deepMerge(defaultState, loadedState);
-            // Restore Decimal fields from serialized strings
-            gameState.souls = D(gameState.souls || 0);
-            gameState.lifetimeSouls = D(gameState.lifetimeSouls || 0);
-            if (gameState.stats && gameState.stats.sps) gameState.stats.sps = D(gameState.stats.sps);
             // Existing player — go straight into the game
             document.getElementById('game-container').style.display = 'block';
             audio.bgm.muted = localStorage.getItem('musicMuted') === 'true';
@@ -6114,10 +5886,6 @@ function loadGame() {
     } else {
         // New player — show auth/signup screen
         gameState = defaultState;
-        // Ensure Decimal types on fresh start
-        gameState.souls = D(gameState.souls || 0);
-        gameState.lifetimeSouls = D(gameState.lifetimeSouls || 0);
-        if (gameState.stats) gameState.stats.sps = D(gameState.stats.sps || 0);
         showAuthScreen();
     }
     loadFontSetting();
@@ -6141,8 +5909,8 @@ function harvestSoul() {
     if (antiCheatState.isLockedOut) return;
     const gain = gameState.stats.spc;
     gameState.manualHarvests++;
-    gameState.souls = D(gameState.souls).add(D(gain));
-    gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(D(gain));
+    gameState.souls += gain;
+    gameState.lifetimeSouls += gain;
     const btn = document.querySelector('.action-btn');
     btn.classList.remove('thump-animation');
     void btn.offsetWidth;
@@ -6182,9 +5950,9 @@ function buyUpgrade(type) {
     
     // This part handles upgrades that cost Souls
     if (type === 'click' || type === 'sacrifice') {
-        if (D(gameState.souls).lt(D(upgrade.cost))) return; // Stop if the player can't afford it
-        gameState.souls = D(gameState.souls).sub(D(upgrade.cost));
-        gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(upgrade.cost));
+        if (gameState.souls < upgrade.cost) return; // Stop if the player can't afford it
+        gameState.souls -= upgrade.cost;
+        gameState.soulsSpent += upgrade.cost;
         
         if (type === 'click') {
             upgrade.level++;
@@ -6244,9 +6012,9 @@ function buyMinion(id) {
   const minionData = minions[id];
   const playerMinion = gameState.minions[id];
 
-  if (D(gameState.souls).gte(D(playerMinion.cost))) {
-    gameState.souls = D(gameState.souls).sub(D(playerMinion.cost));
-    gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(playerMinion.cost));
+  if (gameState.souls >= playerMinion.cost) {
+    gameState.souls -= playerMinion.cost;
+    gameState.soulsSpent += playerMinion.cost;
     playerMinion.level++;
     // Achievement Check
     if (id === 'imp' && playerMinion.level === 1) {
@@ -6292,13 +6060,13 @@ function promoteMinion(id) {
     // --- END: NEW REWARD LOGIC ---
 
     // Check if the player meets all requirements, using the newly calculated cost.
-    const canAffordSouls = D(gameState.souls).gte(D(nextPromotion.soulCost))
+    const canAffordSouls = gameState.souls >= nextPromotion.soulCost;
     const canAffordEssence = gameState.darkEssence >= effectiveEssenceCost; // Use the calculated cost for the check
     const hasRequiredLevel = playerMinion.level >= nextPromotion.level;
 
     if (canAffordSouls && canAffordEssence && hasRequiredLevel) {
         // Subtract the cost from the player's resources.
-        gameState.souls = D(gameState.souls).sub(D(nextPromotion.soulCost));
+        gameState.souls -= nextPromotion.soulCost;
         gameState.darkEssence -= effectiveEssenceCost; // Subtract the calculated cost
 
         // Increase the minion's promotion tier.
@@ -6421,14 +6189,14 @@ function activateRitual(id) {
         console.log("Ritual stopped: Still on cooldown.");
         return; // Stop if THIS ritual is on cooldown
     }
-    if (D(gameState.souls).lt(D(ritualData.cost))) {
+    if (gameState.souls < ritualData.cost) {
         console.log("Ritual stopped: Not enough souls.");
         return; // Stop if you can't afford it
     }
 
     // --- All checks passed, let's activate it! ---
-    gameState.souls = D(gameState.souls).sub(D(ritualData.cost));
-    gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(ritualData.cost));
+    gameState.souls -= ritualData.cost;
+    gameState.soulsSpent += ritualData.cost;
     gameState.ritualsPerformed++;
 
     const effect = ritualData.effect;
@@ -6446,14 +6214,14 @@ function activateRitual(id) {
         gameState.darkEssence += effect.value;
     }
     if (effect.type === 'gain_sps_seconds') {
-        gameState.souls = D(gameState.souls).add(D(gameState.stats.sps).mul(effect.value));
+        gameState.souls += gameState.stats.sps * effect.value;
     }
     if (effect.type === 'gain_souls_for_next_world') {
         const worldKeys = Object.keys(worlds);
         const currentWorldIndex = worldKeys.indexOf(gameState.currentWorld);
         const nextWorldId = worldKeys[currentWorldIndex + 1];
         if (nextWorldId && worlds[nextWorldId]) {
-            gameState.souls = D(gameState.souls).add(D(worlds[nextWorldId].unlockCost * effect.value));
+            gameState.souls += worlds[nextWorldId].unlockCost * effect.value;
         }
     }
     if (effect.type === 'gain_shards_no_reset') {
@@ -6537,7 +6305,7 @@ function executeAscension() {
   gameState.permanentRitualBonuses = { spc_multiplier: 1, sps_multiplier: 1, global_multiplier: 1 };
 
   gameState.playerName = oldPlayerName;
-  gameState.souls = D(startingSouls);
+  gameState.souls = startingSouls;
   gameState.bankedSouls = oldBankedSouls;
   gameState.bankedFragments = oldBankedFragments;
   gameState.hasWithdrawn = false;
@@ -6736,7 +6504,7 @@ function calculateStats() {
     // 1. INITIALIZE MULTIPLIERS & BASE VALUES (CORRECTED ORDER)
     // =================================================================
     let baseSpc = 1 + (gameState.upgrades.click.level - 1) * 2.5;
-    let sps = D(0);  // Decimal for overflow-safe SPS accumulation
+    let sps = 0;
 
     let spc_multiplier = 1;
     let sps_multiplier = 1;
@@ -6968,12 +6736,12 @@ function calculateStats() {
         const playerMinion = gameState.minions[id];
         const minionData = minions[id];
         if (playerMinion.level > 0) {
-            let minionSps = D(playerMinion.level).mul(D(minionData.baseSps));
+            let minionSps = playerMinion.level * minionData.baseSps;
 
             for (const artifactId in gameState.ownedArtifacts) {
                 const artifactBonus = artifacts[artifactId]?.bonus;
                 if (artifactBonus && artifactBonus.type === 'minion_specific_multiplier' && artifactBonus.target.includes(id)) {
-                    minionSps = minionSps.mul(D(Math.pow(artifactBonus.value, gameState.ownedArtifacts[artifactId].level)));
+                    minionSps *= Math.pow(artifactBonus.value, gameState.ownedArtifacts[artifactId].level);
                 }
             }
 
@@ -6983,14 +6751,14 @@ function calculateStats() {
                 if (researchTiers[i].bonus.type === 'minion_self_multiplier') {
                     let value = researchTiers[i].bonus.value;
                     if (meta_research_doubler > 1) value = 1 + ((value - 1) * meta_research_doubler);
-                    minionSps = minionSps.mul(D(value));
+                    minionSps *= value;
                 }
             }
 
             for (let i = 0; i < playerMinion.promotionTier; i++) {
-                minionSps = minionSps.mul(D(minionData.promotions[i].multiplier));
+                minionSps *= minionData.promotions[i].multiplier;
             }
-            sps = sps.add(minionSps);
+            sps += minionSps;
         }
     }
 
@@ -7072,14 +6840,14 @@ function calculateStats() {
     // =================================================================
     // 6. FINAL CALCULATION
     // =================================================================
-    let final_sps = D(sps).mul(D(sps_multiplier)).mul(D(global_multiplier));
+    let final_sps = sps * sps_multiplier * global_multiplier;
     let final_spc = baseSpc * spc_multiplier * global_multiplier;
 
     for (const id in gameState.minions) {
         if (gameState.minions[id].level > 0) {
             const minionBonus = minions[id]?.bonus;
             if (minionBonus && minionBonus.type === 'sps_to_spc') {
-                final_spc += D(final_sps).mul(D(minionBonus.value)).toNumber();
+                final_spc += (final_sps * minionBonus.value);
             }
             // Broken Halo artifact: specific minion SPS boosts SPC
             if (gameState.ownedArtifacts['broken_halo']?.level > 0) {
@@ -7096,13 +6864,13 @@ function calculateStats() {
         let bonus = items[weaponId_final].bonus;
         do {
             if (bonus.type === 'spc_to_sps') {
-                final_sps = D(final_sps).add(D(final_spc * bonus.value));
+                final_sps += final_spc * bonus.value;
             }
             bonus = bonus.and ? bonus.and : null;
         } while (bonus);
     }
 
-    gameState.stats.sps = D(final_sps);  // Decimal — overflow-safe
+    gameState.stats.sps = isFinite(final_sps) ? final_sps : Number.MAX_VALUE;
     gameState.stats.spc = isFinite(final_spc) ? final_spc : Number.MAX_VALUE;
 
     // =================================================================
@@ -7147,16 +6915,16 @@ function renderAll() {
 }
 
 function updateDynamicDisplays() {
-  document.getElementById('souls-display').innerText = formatNumber(D(gameState.souls));
+  document.getElementById('souls-display').innerText = formatNumber(gameState.souls);
   document.getElementById('essence-display').innerText = formatNumber(gameState.darkEssence);
   document.getElementById('shards-display').innerText = formatNumber(gameState.abyssalShards);
   document.getElementById('aether-display').innerText = formatNumber(gameState.aether);
   document.getElementById('fragments-display').innerText = formatNumber(gameState.corruptedFragments);
-  document.getElementById('sps-display').innerText = formatNumber(D(gameState.stats.sps));
+  document.getElementById('sps-display').innerText = formatNumber(gameState.stats.sps);
   document.getElementById('spc-display').innerText = formatNumber(gameState.stats.spc);
   const altarSps = document.getElementById('sps-display-altar');
   const altarSpc = document.getElementById('spc-display-altar');
-  if (altarSps) altarSps.innerText = formatNumber(D(gameState.stats.sps));
+  if (altarSps) altarSps.innerText = formatNumber(gameState.stats.sps);
   if (altarSpc) altarSpc.innerText = formatNumber(gameState.stats.spc);
 
   // Pact buff live countdown
@@ -7169,8 +6937,8 @@ function updateDynamicDisplays() {
 // REPLACE your old checkButtons function with this FINAL, CORRECT version:
 function checkButtons() {
     // Standard upgrade checks
-    document.getElementById('clickUpgradeBtn').disabled = D(gameState.souls).lt(D(gameState.upgrades.click.cost))
-    document.getElementById('sacrificeBtn').disabled = D(gameState.souls).lt(D(gameState.upgrades.sacrifice.cost))
+    document.getElementById('clickUpgradeBtn').disabled = gameState.souls < gameState.upgrades.click.cost;
+    document.getElementById('sacrificeBtn').disabled = gameState.souls < gameState.upgrades.sacrifice.cost;
     document.getElementById('resonanceUpgradeBtn').disabled = gameState.darkEssence < gameState.upgrades.resonance.cost;
 
     // Minion checks — update both disabled state AND visual styles
@@ -7178,7 +6946,7 @@ function checkButtons() {
         const btn = document.getElementById(`minion-btn-${id}`);
         if (!btn) continue;
         const cost = gameState.minions[id].cost;
-        const canAfford = D(gameState.souls).gte(D(cost))
+        const canAfford = gameState.souls >= cost;
         btn.disabled = !canAfford;
         const theme = { nether_plains:'#ff6644', ashen_wastes:'#ff9944', stygian_depths:'#4488ff', burning_hells:'#ff4444', frozen_abyss:'#44ccff', celestial_ruins:'#aa44ff', void_threshold:'#00ffcc', nexus_of_all_realities:'#ffcc00' };
         const c = theme[minions[id].requiredWorld] || '#aaa';
@@ -7338,8 +7106,8 @@ function renderMinions() {
 
         const nextPromotion = m.promotions ? m.promotions[p.promotionTier] : null;
         const canPromote = nextPromotion && p.level >= nextPromotion.level;
-        const canAffordPromote = canPromote && D(gameState.souls).gte(D(nextPromotion.soulCost)) && gameState.darkEssence >= nextPromotion.essenceCost;
-        const canAffordBuy = D(gameState.souls).gte(D(p.cost))
+        const canAffordPromote = canPromote && gameState.souls >= nextPromotion.soulCost && gameState.darkEssence >= nextPromotion.essenceCost;
+        const canAffordBuy = gameState.souls >= p.cost;
 
         // Promotion tier stars
         const tierStars = p.promotionTier > 0
@@ -7932,7 +7700,7 @@ function renderBrewery() {
     for (const id in potions) {
         const p = potions[id];
         const meta = potionMeta[id] || { icon:'⚗️', color:'#9944cc' };
-        const canAffordSouls = D(gameState.souls).gte(D(p.cost))
+        const canAffordSouls = gameState.souls >= p.cost;
         const canAffordShards = !p.shardsCost || gameState.abyssalShards >= p.shardsCost;
         const canAfford = canAffordSouls && canAffordShards;
 
@@ -8067,14 +7835,14 @@ function brewPotion(id) {
         return; 
     }
 
-    let canAfford = D(gameState.souls).gte(D(p.cost))
+    let canAfford = gameState.souls >= p.cost;
     if (p.costType === 'souls_and_shards') {
-        canAfford = D(gameState.souls).gte(D(p.cost)) && gameState.abyssalShards >= p.shardsCost;
+        canAfford = gameState.souls >= p.cost && gameState.abyssalShards >= p.shardsCost;
     }
     
     if (canAfford) {
-        gameState.souls = D(gameState.souls).sub(D(p.cost));
-        gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(p.cost));
+        gameState.souls -= p.cost;
+        gameState.soulsSpent += p.cost;
         if (p.shardsCost) gameState.abyssalShards -= p.shardsCost;
         gameState.potions[id] = (gameState.potions[id] || 0) + 1;
         gameState.potionsBrewed++; 
@@ -8097,9 +7865,9 @@ function usePotion(id) {
 
         // --- INSTANT EFFECTS ---
         if (effect.type === 'gain_sps_seconds_flat') {
-            const gain = D(gameState.stats.sps).mul(effect.value);
-            gameState.souls = D(gameState.souls).add(D(gain));
-            gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(D(gain));
+            const gain = gameState.stats.sps * effect.value;
+            gameState.souls += gain;
+            gameState.lifetimeSouls += gain;
             Toastify({ text: `⚗️ Gained ${formatNumber(gain)} souls!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#c8a800)'} }).showToast();
         }
         if (effect.type === 'gain_essence_flat') {
@@ -8119,7 +7887,7 @@ function usePotion(id) {
             const nextWorldId = worldKeys[worldKeys.indexOf(gameState.currentWorld) + 1];
             if (nextWorldId && worlds[nextWorldId]) {
                 const gain = worlds[nextWorldId].unlockCost * effect.value;
-                gameState.souls = D(gameState.souls).add(D(gain)); gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(D(gain));
+                gameState.souls += gain; gameState.lifetimeSouls += gain;
                 Toastify({ text: `🌍 Gained ${formatNumber(gain)} souls towards the next world!`, duration:3000, gravity:'top', position:'center' }).showToast();
             }
         }
@@ -8140,7 +7908,7 @@ function usePotion(id) {
         if (effect.type === 'instant_clicks_flat') {
             const clickCount = effect.value * (gameState.ascensions + 1);
             const gain = gameState.stats.spc * clickCount;
-            gameState.souls = D(gameState.souls).add(D(gain)); gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(D(gain));
+            gameState.souls += gain; gameState.lifetimeSouls += gain;
             Toastify({ text: `👻 +${formatNumber(gain)} souls from ${formatNumber(clickCount)} instant clicks!`, duration:3000, gravity:'top', position:'center' }).showToast();
         }
         if (effect.type === 'reset_raid_cooldown_flat') {
@@ -8177,7 +7945,7 @@ function activateItemAbility(itemId) {
     const effect = ability.effect;
     
     if (effect.type === 'gain_sps_seconds_flat') {
-        gameState.souls = D(gameState.souls).add(D(D(gameState.stats.sps).mul(effect.value)));
+        gameState.souls += gameState.stats.sps * effect.value;
     }
     
     if (effect.type === 'reset_cache_timer_flat') {
@@ -8790,12 +8558,12 @@ function repairNegativeValues() {
         }
     });
     // lifetimeSouls should always be >= current souls
-    if (D(gameState.lifetimeSouls).lt(D(gameState.souls))) {
-        gameState.lifetimeSouls = D(gameState.souls);
+    if (gameState.lifetimeSouls < gameState.souls) {
+        gameState.lifetimeSouls = gameState.souls;
         repaired = true;
     }
     if (gameState.lifetimeSouls < 0 || !isFinite(gameState.lifetimeSouls)) {
-        gameState.lifetimeSouls = Dmax0(gameState.souls);
+        gameState.lifetimeSouls = Math.max(0, gameState.souls);
         repaired = true;
     }
     if (gameState.stats) {
@@ -8996,7 +8764,7 @@ function renderRituals() {
         const r = rituals[id];
         const ritualState = gameState.activeRituals[id];
         const isOnCooldown = ritualState && Date.now() < ritualState.cooldownEndTime;
-        const cannotAfford = D(gameState.souls).lt(D(r.cost))
+        const cannotAfford = gameState.souls < r.cost;
         const meta = ritualMeta[id] || { icon:'🔮', color:'#8855ff', glow:'#8855ff44' };
         const effectLabel = effectLabels[r.effect?.type] || '✨ Special';
 
@@ -9110,7 +8878,7 @@ function renderMap() {
         const theme = worldThemes[id] || { icon:'🌐', color:'#888', tier:'Unknown' };
         const isUnlocked = gameState.unlockedWorlds.includes(id);
         const isActive = gameState.currentWorld === id;
-        const canAfford = D(gameState.souls).gte(D(w.unlockCost))
+        const canAfford = gameState.souls >= w.unlockCost;
         const bonus = bonusLabel(w.bonus);
 
         // Tier divider
@@ -9190,15 +8958,15 @@ function travelToWorld(id)
 	{
 		gameState.currentWorld = id;
 	}
-	else if (D(gameState.souls).gte(D(worlds[id].unlockCost)))
+	else if (gameState.souls >= worlds[id].unlockCost)
 	{
 		let actualCost = worlds[id].unlockCost;
 		for (const artId in gameState.ownedArtifacts) {
 			const ab = artifacts[artId]?.bonus;
 			if (ab?.type === 'world_cost_reducer') actualCost *= Math.pow(ab.value, gameState.ownedArtifacts[artId].level || 1);
 		}
-		gameState.souls = D(gameState.souls).sub(D(actualCost));
-		gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(actualCost));
+		gameState.souls -= actualCost;
+		gameState.soulsSpent += actualCost;
 		gameState.unlockedWorlds.push(id);
 		gameState.currentWorld = id;
 		try{if(devsettings.show_world_lore)showLore(id);}
@@ -9219,11 +8987,7 @@ function renderAscensionScreen() { document.getElementById('ascendBtn').disabled
 
 // Returns colored HTML for a souls value — shows ∞ × multiplier if above 1e100
 function formatSoulsLeaderboard(soulsVal, soulsLogVal) {
-    // soulsLogVal is stored as a regular float in Supabase (log10 of lifetimeSouls)
-    // soulsVal may be a large number or string from the DB
-    const log = (soulsLogVal != null && soulsLogVal > 0)
-        ? soulsLogVal
-        : (soulsVal ? D(soulsVal).log10().toNumber() : 0);
+    const log = (soulsLogVal != null && soulsLogVal > 0) ? soulsLogVal : Math.log10(Math.max(1, soulsVal || 0));
     const INF_THRESHOLD = 100; // display ∞ for anything above 10^100
 
     if (log >= INF_THRESHOLD) {
@@ -9278,12 +9042,11 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
 
         let players = data || [];
 
-        // Filter out players with NULL/invalid lifetimeSouls
+        // Filter out players with NULL/invalid lifetimeSouls and abnormal values
         players = players.filter(p => {
             if (p.lifetimeSouls === null || p.lifetimeSouls === undefined) return false;
-            // Handle both plain numbers and Decimal objects
-            const ls = (p.lifetimeSouls instanceof Decimal) ? p.lifetimeSouls.toNumber() : Number(p.lifetimeSouls);
-            if (!isFinite(ls) && ls !== Infinity) return false; // allow Infinity (beyond float range but valid)
+            if (!isFinite(p.lifetimeSouls)) return false;
+            if (p.soulsLog === null || p.soulsLog === undefined) return false;
             return true;
         });
 
@@ -9291,8 +9054,8 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
         const localPlayerIdx = players.findIndex(p => p.name === gameState.playerName);
         const localPlayerData = {
             name:              gameState.playerName,
-            lifetimeSouls:     D(gameState.lifetimeSouls).toNumber(),
-            soulsLog:          D(gameState.lifetimeSouls).gt(0) ? D(gameState.lifetimeSouls).log10().toNumber() : 0,
+            lifetimeSouls:     gameState.lifetimeSouls,
+            soulsLog:          Math.log10(Math.max(1, gameState.lifetimeSouls)),
             ascensions:        gameState.ascensions,
             aether:            gameState.aether,
             totalAetherEarned: gameState.totalAetherEarned,
@@ -9668,7 +9431,7 @@ function endDuel(playerWon) {
 
     if (playerWon) {
         const soulsStolen = Math.floor((defender.lifetimeSouls || 0) * 0.05) + 100;
-        gameState.souls = D(gameState.souls).add(D(soulsStolen));
+        gameState.souls += soulsStolen;
         gameState.pvpWins++;
         gameState.attackLog.push({ type: 'win', message: `You crushed ${defender.name} and claimed ${formatNumber(soulsStolen)} souls.` });
 
@@ -9676,8 +9439,8 @@ function endDuel(playerWon) {
                                <p>You have overwhelmed ${defender.name}!</p>
                                <p>Stolen: <span class="cost-souls">${formatNumber(soulsStolen)}</span> souls.</p>`;
     } else {
-        const soulsLost = Math.floor(D(gameState.souls).mul(0.05).toNumber());
-        gameState.souls = D(gameState.souls).sub(D(soulsLost)).max(0);
+        const soulsLost = Math.floor(gameState.souls * 0.05);
+        gameState.souls = Math.max(0, gameState.souls - soulsLost);
         gameState.pvpLosses++;
         gameState.attackLog.push({ type: 'loss', message: `You were defeated by ${defender.name} and lost ${formatNumber(soulsLost)} souls.` });
         
@@ -10193,9 +9956,9 @@ function startShopTimer() {
 // =================================================================
 function depositSouls() {
     const essenceCost = 25;
-    const depositAmt = Math.max(50000, Math.floor(D(gameState.stats.sps).mul(10).toNumber()));
+    const depositAmt = Math.max(50000, Math.floor(gameState.stats.sps * 10));
 
-    if (D(gameState.souls).lt(D(depositAmt))) {
+    if (gameState.souls < depositAmt) {
         Toastify({ text: `Need ${formatNumber(depositAmt)} souls to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
@@ -10203,7 +9966,7 @@ function depositSouls() {
         Toastify({ text: `Need ${essenceCost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    gameState.souls = D(gameState.souls).sub(D(depositAmt));
+    gameState.souls -= depositAmt;
     gameState.darkEssence -= essenceCost;
     gameState.bankedSouls += depositAmt;
     playSound('upgrade');
@@ -10281,7 +10044,7 @@ function withdrawSouls() {
 
     if (confirm(`This will cost ${withdrawCost} Dark Essence. Are you sure you want to withdraw ${formatNumber(gameState.bankedSouls)} souls?`)) {
         gameState.darkEssence -= withdrawCost;
-        gameState.souls = D(gameState.souls).add(D(gameState.bankedSouls));
+        gameState.souls += gameState.bankedSouls;
         gameState.hasWithdrawn = true;
 
         playSound('ascend'); // A nice "power up" sound
@@ -10338,8 +10101,8 @@ function convertCurrency(from, to, amountIn, amountOut) {
     } else if (from === 'de' && to === 'souls') {
         if (gameState.darkEssence >= amountIn) {
             gameState.darkEssence -= amountIn;
-            gameState.souls = D(gameState.souls).add(D(amountOut));
-            gameState.lifetimeSouls = (D(gameState.lifetimeSouls).lt(D(gameState.lifetimeSouls + amountOut)) ? D(gameState.lifetimeSouls + amountOut) : D(gameState.lifetimeSouls));
+            gameState.souls += amountOut;
+            gameState.lifetimeSouls = Math.max(gameState.lifetimeSouls, gameState.lifetimeSouls + amountOut);
             canAfford = true;
         }
     } else if (from === 'de' && to === 'shards') {
@@ -10392,7 +10155,7 @@ function renderBank() {
 
     const exchangeSouls = document.getElementById('exchange-souls-balance');
     if (!exchangeSouls) return;
-    exchangeSouls.innerText = formatNumber(D(gameState.souls));
+    exchangeSouls.innerText = formatNumber(gameState.souls);
     document.getElementById('exchange-essence-balance').innerText = formatNumber(gameState.darkEssence);
     document.getElementById('exchange-shards-balance').innerText = formatNumber(gameState.abyssalShards);
     document.getElementById('exchange-aether-balance').innerText = formatNumber(gameState.aether);
@@ -10860,7 +10623,7 @@ function punishPlayer(isSevere = false) {
 
     if (isSevere) {
         lockoutTime = 60000 * antiCheatState.punishmentLevel;
-        gameState.souls = D(0);
+        gameState.souls = 0;
         alertMessage = `A hostile entity has corrupted your soul stream! Your current souls have been lost and harvesting is disabled for ${lockoutTime / 1000} seconds. This realm will now collapse.`;
         setTimeout(() => window.location.reload(), 3000);
     }
@@ -11482,10 +11245,10 @@ function confirmExpedition() {
     
     if (totalPower < data.powerReq) { alert("Not enough power to start this expedition."); return; }
     const costType = data.costType || 'souls';
-    if (costType === 'souls' && D(gameState.souls).lt(D(data.cost))) { alert("Not enough souls."); return; }
+    if (costType === 'souls' && gameState.souls < data.cost) { alert("Not enough souls."); return; }
     if (costType === 'essence' && gameState.darkEssence < data.cost) { alert("Not enough Dark Essence."); return; }
 
-    if (costType === 'souls') gameState.souls = D(gameState.souls).sub(D(data.cost));
+    if (costType === 'souls') gameState.souls -= data.cost;
     else gameState.darkEssence -= data.cost;
     
     for (const minionId in sentMinions) {
@@ -11622,7 +11385,7 @@ function renderExpeditions() {
         const data = expeditions[id];
         const theme = expColors[id] || { color:'#888', icon:'🗺️' };
         const costType = data.costType || 'souls';
-        const canAfford = costType === 'souls' ? D(gameState.souls).gte(D(data.cost)) : gameState.darkEssence >= data.cost;
+        const canAfford = costType === 'souls' ? gameState.souls >= data.cost : gameState.darkEssence >= data.cost;
         const costLabel = costType === 'souls' ? `${formatNumber(data.cost)} Souls` : `${formatNumber(data.cost)} Dark Essence`;
         const costColor = canAfford ? (costType === 'souls' ? '#f0d8d8' : '#c8a800') : '#cc4444';
 
@@ -11874,7 +11637,7 @@ function renderSoulForge() {
         };
         const itemsOfRarity = gameState.inventory.filter(id => items[id]?.rarity === rarity);
         const count = itemsOfRarity.length;
-        const canInfuse = count >= 3 && D(gameState.souls).gte(D(currentCost.souls)) && gameState.corruptedFragments >= currentCost.fragments;
+        const canInfuse = count >= 3 && gameState.souls >= currentCost.souls && gameState.corruptedFragments >= currentCost.fragments;
         const rc  = rarityColor[rarity]  || '#aaa';
         const nrc = rarityColor[nextRarity[rarity]] || '#fff';
         const pct = Math.min(100, (count / 3) * 100);
@@ -11917,7 +11680,7 @@ function renderSoulForge() {
             <!-- Cost + Button -->
             <div style="border-top:1px solid #ffffff0a; padding-top:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
                 <div style="font-size:0.78em; color:#666; line-height:1.6;">
-                    <div>💀 <span style="color:${D(gameState.souls).gte(D(currentCost.souls)) ? '#aaa' : '#ff4444'}">${formatNumber(currentCost.souls)} Souls</span></div>
+                    <div>💀 <span style="color:${gameState.souls >= currentCost.souls ? '#aaa' : '#ff4444'}">${formatNumber(currentCost.souls)} Souls</span></div>
                     <div>🔮 <span style="color:${gameState.corruptedFragments >= currentCost.fragments ? '#aaa' : '#ff4444'}">${currentCost.fragments} Fragments</span></div>
                 </div>
                 <button onclick="performInfusion('${rarity}')" ${!canInfuse ? 'disabled' : ''}
@@ -11957,10 +11720,10 @@ function performInfusion(rarity) {
     const itemsToInfuse = gameState.inventory.filter(itemId => items[itemId].rarity === rarity);
 
     if (itemsToInfuse.length < 3) { alert("Not enough items to infuse."); return; }
-    if (D(gameState.souls).lt(D(currentCost.souls))) { alert("Not enough Souls."); return; }
+    if (gameState.souls < currentCost.souls) { alert("Not enough Souls."); return; }
     if (gameState.corruptedFragments < currentCost.fragments) { alert("Not enough Corrupted Fragments."); return; }
 
-    gameState.souls = D(gameState.souls).sub(D(currentCost.souls));
+    gameState.souls -= currentCost.souls;
     gameState.corruptedFragments -= currentCost.fragments;
 
     for (let i = 0; i < 3; i++) {
@@ -12965,8 +12728,8 @@ async function tryAbsorbGhost(msgKey) {
             switch(rType) {
                 case 'souls':
                     amt = Math.max(1000000, Math.floor(gameState.lifetimeSouls * 0.10));
-                    gameState.souls = D(gameState.souls).add(D(amt));
-                    gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(D(amt));
+                    gameState.souls += amt;
+                    gameState.lifetimeSouls += amt;
                     break;
                 case 'darkEssence':
                     amt = Math.max(10, Math.floor((gameState.darkEssence || 0) * 0.15));
@@ -13109,7 +12872,7 @@ async function createPact() {
         const { error } = await supabaseClient.from('pacts').insert({
             pact_name: pactName,
             members: [gameState.playerName],
-            combined_souls_log: (D(gameState.lifetimeSouls).gt(0) ? D(gameState.lifetimeSouls).log10().toNumber() : 0)
+            combined_souls_log: Math.log10(Math.max(1, gameState.lifetimeSouls))
         });
         if (error) throw error;
 
@@ -13138,7 +12901,7 @@ async function joinPact() {
         if (members.includes(gameState.playerName)) { if(statusEl) statusEl.textContent = 'You are already in this pact.'; return; }
 
         const newMembers = [...members, gameState.playerName];
-        const combLog = newMembers.reduce((sum, m) => sum, (D(gameState.lifetimeSouls).gt(0) ? D(gameState.lifetimeSouls).log10().toNumber() : 0));
+        const combLog = newMembers.reduce((sum, m) => sum, Math.log10(Math.max(1, gameState.lifetimeSouls)));
 
         const { error: updErr } = await supabaseClient.from('pacts').update({ members: newMembers }).eq('id', data.id);
         if (updErr) throw updErr;
@@ -13808,7 +13571,7 @@ async function fetchBarterListings(page) {
 
 function hasEnough(type, amt) {
     switch(type) {
-        case 'souls':              return D(gameState.souls).gte(D(amt))
+        case 'souls':              return gameState.souls >= amt;
         case 'darkEssence':        return gameState.darkEssence >= amt;
         case 'abyssalShards':      return gameState.abyssalShards >= amt;
         case 'corruptedFragments': return gameState.corruptedFragments >= amt;
@@ -13818,7 +13581,7 @@ function hasEnough(type, amt) {
 
 function deductCurrency(type, amt) {
     switch(type) {
-        case 'souls':              gameState.souls = D(gameState.souls).sub(D(amt)); break;
+        case 'souls':              gameState.souls -= amt; break;
         case 'darkEssence':        gameState.darkEssence -= amt; break;
         case 'abyssalShards':      gameState.abyssalShards -= amt; break;
         case 'corruptedFragments': gameState.corruptedFragments -= amt; break;
@@ -13827,7 +13590,7 @@ function deductCurrency(type, amt) {
 
 function addCurrency(type, amt) {
     switch(type) {
-        case 'souls':              gameState.souls = D(gameState.souls).add(D(amt)); gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(D(amt)); break;
+        case 'souls':              gameState.souls += amt; gameState.lifetimeSouls += amt; break;
         case 'darkEssence':        gameState.darkEssence += amt; break;
         case 'abyssalShards':      gameState.abyssalShards += amt; break;
         case 'corruptedFragments': gameState.corruptedFragments += amt; break;

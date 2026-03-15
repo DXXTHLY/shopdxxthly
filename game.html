@@ -7689,11 +7689,29 @@ function getMaxDurability(itemId) {
     return table[item.rarity] || 100;
 }
 
-function getItemDurability(itemId) {
-    if (gameState.itemDurability[itemId] === undefined) {
-        gameState.itemDurability[itemId] = getMaxDurability(itemId);
+// Durability is tracked per SLOT (weapon/idol/sigil/helm/tome), not per itemId.
+// This means all copies of the same item in inventory are unaffected —
+// only the currently equipped item in a slot drains.
+function getSlotDurability(slot) {
+    const id = gameState.equipped[slot];
+    if (!id) return 0;
+    const max = getMaxDurability(id);
+    if (gameState.itemDurability[slot] === undefined) {
+        gameState.itemDurability[slot] = max;
     }
-    return gameState.itemDurability[itemId];
+    return gameState.itemDurability[slot];
+}
+
+// Legacy — kept for repair function compatibility
+function getItemDurability(itemId) {
+    // Find what slot this item is in
+    for (const slot in gameState.equipped) {
+        if (gameState.equipped[slot] === itemId) {
+            return getSlotDurability(slot);
+        }
+    }
+    // Item is in inventory — return full durability (not tracked)
+    return getMaxDurability(itemId);
 }
 
 function getDurabilityColor(pct) {
@@ -7710,49 +7728,63 @@ function getDurabilityLabel(pct) {
     return 'Broken';
 }
 
-// Called each game tick — drains equipped items
+// Called every 60s — only drains the currently EQUIPPED item in each slot.
+// Inventory items are completely unaffected regardless of itemId overlap.
 function tickItemDurability() {
     let anyBroken = false;
+    const hoursToBreak = { common:8, uncommon:12, rare:18, epic:24, legendary:36, forged:48 };
+
     for (const slot in gameState.equipped) {
         const id = gameState.equipped[slot];
         if (!id) continue;
+
         const max = getMaxDurability(id);
-        if (gameState.itemDurability[id] === undefined) {
-            gameState.itemDurability[id] = max;
+        // Initialize slot durability if this is a freshly equipped item
+        if (gameState.itemDurability[slot] === undefined) {
+            gameState.itemDurability[slot] = max;
         }
-        // Drain 1 durability per hour of game time (per 3600 ticks at 1/s)
-        // We run this every 60s, so drain = max / (hours_to_full_break * 60)
-        // Common breaks in ~8h, legendary in ~24h, forged in ~48h
-        const hoursToBreak = { common:8, uncommon:12, rare:18, epic:24, legendary:36, forged:48 };
+
         const item = items[id];
         const h = hoursToBreak[item?.rarity] || 18;
         const drainPerMinute = max / (h * 60);
-        gameState.itemDurability[id] = Math.max(0, (gameState.itemDurability[id] || max) - drainPerMinute);
+        gameState.itemDurability[slot] = Math.max(0, gameState.itemDurability[slot] - drainPerMinute);
 
-        if (gameState.itemDurability[id] <= 0) {
-            // Item broke — unequip it silently (add back to inventory as broken)
+        if (gameState.itemDurability[slot] <= 0) {
+            const brokenName = items[id]?.name || 'Item';
             gameState.equipped[slot] = null;
-            // DON'T put it back in inventory — it's destroyed
-            delete gameState.itemDurability[id];
+            delete gameState.itemDurability[slot];
             anyBroken = true;
             Toastify({
-                text: `🔧 ${items[id]?.name || 'Item'} has broken and crumbled! Equip a replacement.`,
+                text: `🔧 ${brokenName} has broken from overuse! Equip a replacement.`,
                 duration: 8000, gravity:'top', position:'center',
                 style: { background: 'linear-gradient(135deg,#1a0000,#660000)', border:'1px solid #ff444466' }
             }).showToast();
         }
     }
 
-    // Inventory items: durability is frozen — no drain, no passive repair.
-    // Durability only changes while the item is equipped and being used.
+    // Wipe any stale itemId-based keys from old system (one-time migration)
+    for (const key in gameState.itemDurability) {
+        if (!['weapon','idol','sigil','helm','tome'].includes(key)) {
+            delete gameState.itemDurability[key];
+        }
+    }
 
     if (anyBroken) { calculateStats(); renderAll(); saveGame(); }
 }
 
 // Repair an item using Dark Essence (cost scales with rarity)
 function repairItem(itemId) {
+    // Find the slot this item occupies
+    let targetSlot = null;
+    for (const slot in gameState.equipped) {
+        if (gameState.equipped[slot] === itemId) { targetSlot = slot; break; }
+    }
+    if (!targetSlot) {
+        Toastify({ text: "Equip this item first, then repair it.", duration:2500, gravity:'top', position:'center' }).showToast();
+        return;
+    }
     const max = getMaxDurability(itemId);
-    const current = getItemDurability(itemId);
+    const current = gameState.itemDurability[targetSlot] ?? max;
     if (current >= max) {
         Toastify({ text: "Item is already at full durability.", duration:2000, gravity:'top', position:'center' }).showToast();
         return;
@@ -7765,7 +7797,7 @@ function repairItem(itemId) {
         return;
     }
     gameState.darkEssence = D(gameState.darkEssence).sub(cost);
-    gameState.itemDurability[itemId] = max;
+    gameState.itemDurability[targetSlot] = max;
     Toastify({
         text: `🔧 ${item?.name} repaired to full! Cost: ${cost} DE`,
         duration: 3000, gravity:'top', position:'center',
@@ -9631,9 +9663,12 @@ function renderInventory() {
         const onclick = isEquipped ? '' : `onclick="openItemModal('${itemId}')"`;
         const badge = isEquipped ? `<span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa;">✦ Equipped</span>` : `<span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa; text-transform:capitalize;">${item.type}</span>`;
 
-        // Durability bar
+        // Durability bar — only show on equipped items, not inventory items
+        const equippedSlot = Object.entries(gameState.equipped || {}).find(([,v]) => v === itemId)?.[0];
         const maxDur = typeof getMaxDurability === 'function' ? getMaxDurability(itemId) : 100;
-        const curDur = typeof getItemDurability === 'function' ? getItemDurability(itemId) : maxDur;
+        const curDur = (equippedSlot && typeof getSlotDurability === 'function')
+            ? getSlotDurability(equippedSlot)
+            : maxDur; // inventory items always show full
         const durPct = Math.max(0, curDur / maxDur);
         const durColor = typeof getDurabilityColor === 'function' ? getDurabilityColor(durPct) : '#44cc88';
         const durLabel = typeof getDurabilityLabel === 'function' ? getDurabilityLabel(durPct) : 'Good';
@@ -9647,7 +9682,7 @@ function renderInventory() {
                 <div style="background:#1a1030; border-radius:4px; height:5px; overflow:hidden;">
                     <div style="height:100%; width:${Math.round(durPct*100)}%; background:${durColor}; border-radius:4px; transition:width 0.5s;"></div>
                 </div>
-                ${curDur < maxDur ? `<button class="upgrade-btn" style="margin-top:5px; width:100%; border-color:${durColor}44; padding:4px;" onclick="repairItem('${itemId}'); renderInventory();">
+                ${(curDur < maxDur && equippedSlot) ? `<button class="upgrade-btn" style="margin-top:5px; width:100%; border-color:${durColor}44; padding:4px;" onclick="repairItem('${itemId}'); renderInventory();">
                     <span style="color:${durColor}; font-size:0.75em;">🔧 Repair (${repairCost} DE)</span>
                 </button>` : ''}
             </div>`;
@@ -9688,7 +9723,18 @@ function renderInventory() {
     }
 }
 
-function equipItem(itemId) { const itemToEquip = items[itemId]; if (!itemToEquip) return; const itemIndex = gameState.inventory.indexOf(itemId); if (itemIndex === -1) return; const slot = itemToEquip.type; const currentlyEquippedId = gameState.equipped[slot]; if (currentlyEquippedId) gameState.inventory.push(currentlyEquippedId); gameState.inventory.splice(itemIndex, 1); gameState.equipped[slot] = itemId; audio.click.play().catch(e => {}); playSound('click'); calculateStats(); renderAll(); saveGame(); }
+function equipItem(itemId) {
+    const itemToEquip = items[itemId]; if (!itemToEquip) return;
+    const itemIndex = gameState.inventory.indexOf(itemId); if (itemIndex === -1) return;
+    const slot = itemToEquip.type;
+    const currentlyEquippedId = gameState.equipped[slot];
+    if (currentlyEquippedId) gameState.inventory.push(currentlyEquippedId);
+    gameState.inventory.splice(itemIndex, 1);
+    gameState.equipped[slot] = itemId;
+    // Reset slot durability to full for the newly equipped item
+    gameState.itemDurability[slot] = getMaxDurability(itemId);
+    audio.click.play().catch(e => {}); playSound('click'); calculateStats(); renderAll(); saveGame();
+}
 function renderArtifacts() {
     const grid = document.getElementById('artifact-grid');
     if (!grid) return;

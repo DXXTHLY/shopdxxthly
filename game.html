@@ -7543,6 +7543,7 @@ function getDefaultGameState() {
     return {
         playerName: "Unnamed",
         lastNameChange: 0, // timestamp of last rename
+        supabaseRowId: null, // the actual Supabase players.id — so saves always hit the same row
         souls: 0,
         lifetimeSouls: 0,
         darkEssence: 0,
@@ -7906,14 +7907,36 @@ async function saveGame() {
         totalCollapses:    safe(gameState.totalCollapses)
     };
     try {
-        const { error } = await supabaseClient.from('players').upsert(publicData, { onConflict: 'name' });
+        let error;
+        if (gameState.supabaseRowId) {
+            // We know our exact row — UPDATE by id, never creates duplicates
+            ({ error } = await supabaseClient
+                .from('players')
+                .update(publicData)
+                .eq('id', gameState.supabaseRowId));
+        }
+        if (!gameState.supabaseRowId || error) {
+            // First save or row id unknown — upsert by name, then store the id
+            const { data: upserted, error: upsertErr } = await supabaseClient
+                .from('players')
+                .upsert(publicData, { onConflict: 'name' })
+                .select('id')
+                .single();
+            error = upsertErr;
+            if (upserted?.id) {
+                gameState.supabaseRowId = upserted.id;
+                // Also delete any OTHER rows with same name (old duplicates from before this fix)
+                await supabaseClient.from('players')
+                    .delete()
+                    .eq('name', gameState.playerName)
+                    .neq('id', gameState.supabaseRowId);
+            }
+        }
         if (error) {
             console.error("Supabase save error:", error.message);
-            // If pvpWins column missing, try without it to at least save other data
-            if (error.message && error.message.includes('pvpWins')) {
+            if (error.message?.includes('pvpWins')) {
                 const { pvpWins, pvpLosses, ...safeData } = publicData;
                 await supabaseClient.from('players').upsert(safeData, { onConflict: 'name' });
-                console.warn('⚠️ pvpWins/pvpLosses columns missing from Supabase players table. Run: ALTER TABLE players ADD COLUMN IF NOT EXISTS "pvpWins" integer DEFAULT 0, ADD COLUMN IF NOT EXISTS "pvpLosses" integer DEFAULT 0;');
             }
         }
     } catch (error) {
@@ -14069,6 +14092,9 @@ async function syncCurrency() {
         if (error) throw error;
 
         // If the server has more essence than the game, update the game.
+        if (data && data.id && !gameState.supabaseRowId) {
+            gameState.supabaseRowId = data.id; // store row id for future saves
+        }
         if (data && data.dark_essence != null) {
             console.log(`Synced Dark Essence.`);
             gameState.darkEssence = D(data.dark_essence || 0);
@@ -19148,13 +19174,29 @@ async function confirmRename() {
             });
         }
 
-        // ── 3. Supabase: simple UPDATE — id is the real primary key, name is just text ──
+        // ── 3. Supabase: UPDATE by row id (most reliable) ──────────────────
         if (supabaseClient) {
-            const { error: renameErr } = await supabaseClient
-                .from('players')
-                .update({ name: newName, user_id: newName, bin_id: newName })
-                .eq('name', oldName);
-            if (renameErr) console.warn('Supabase rename error:', renameErr.message);
+            if (gameState.supabaseRowId) {
+                // Update our exact row by id — zero chance of touching someone else's row
+                await supabaseClient.from('players')
+                    .update({ name: newName, user_id: newName, bin_id: newName })
+                    .eq('id', gameState.supabaseRowId);
+            } else {
+                // No id cached — update by old name
+                await supabaseClient.from('players')
+                    .update({ name: newName, user_id: newName, bin_id: newName })
+                    .eq('name', oldName);
+            }
+            // Always clean up any stale duplicate rows with the old name
+            // (rows not matching our known id, or if id unknown, any row with old name)
+            if (gameState.supabaseRowId) {
+                await supabaseClient.from('players')
+                    .delete()
+                    .eq('name', oldName)
+                    .neq('id', gameState.supabaseRowId);
+            } else {
+                await supabaseClient.from('players').delete().eq('name', oldName);
+            }
 
             // Update barter listings poster_name
             await supabaseClient.from('barter_listings')

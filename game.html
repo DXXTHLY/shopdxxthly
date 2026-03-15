@@ -4099,8 +4099,8 @@ window.onload = function() {
 		const trueMinLifetime = D(gameState.souls).add(D(gameState.soulsSpent || 0));
 		gameState.lifetimeSouls = D(gameState.lifetimeSouls).lt(trueMinLifetime) ? trueMinLifetime : D(gameState.lifetimeSouls);
 		// Cap SPS/SPC to prevent negative display
-		if (!D(gameState.stats.sps).isFinite() || D(gameState.stats.sps).lt(0)) { gameState.stats.sps = D(0); calculateStats(); }
-		if (D(gameState.stats.spc).lt(0) || !D(gameState.stats.spc).isFinite()) { gameState.stats.spc = D(1); calculateStats(); }
+		if (!isFinite(gameState.stats.sps) || gameState.stats.sps < 0) { gameState.stats.sps = 0; calculateStats(); }
+		if (gameState.stats.spc < 0 || !isFinite(gameState.stats.spc)) { gameState.stats.spc = 1; calculateStats(); }
         
         updateDynamicDisplays(); // Moved this up to give more immediate visual feedback
         
@@ -8013,7 +8013,7 @@ function deepMerge(target, source) {
 function harvestSoul() {
     tryStartMusic();
     if (antiCheatState.isLockedOut) return;
-    const gain = D(gameState.stats.spc);
+    const gain = gameState.stats.spc;
     gameState.manualHarvests++;
     gameState.souls = D(gameState.souls).add(D(gain));
     gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(D(gain));
@@ -8984,16 +8984,8 @@ function calculateStats() {
     // =================================================================
     // 6. FINAL CALCULATION
     // =================================================================
-    // Use Decimal for final multiplication so extreme multipliers don't overflow to Infinity
-    let final_sps_D = D(isFinite(sps) ? sps : 0)
-        .mul(D(isFinite(sps_multiplier) ? sps_multiplier : 1))
-        .mul(D(isFinite(global_multiplier) ? global_multiplier : 1));
-    let final_spc_D = D(isFinite(baseSpc) ? baseSpc : 1)
-        .mul(D(isFinite(spc_multiplier) ? spc_multiplier : 1))
-        .mul(D(isFinite(global_multiplier) ? global_multiplier : 1));
-    // Keep plain number versions for legacy code paths that need them
-    const final_sps = final_sps_D.toNumber();
-    const final_spc = final_spc_D.toNumber();
+    let final_sps = sps * sps_multiplier * global_multiplier;
+    let final_spc = baseSpc * spc_multiplier * global_multiplier;
 
     for (const id in gameState.minions) {
         if (gameState.minions[id].level > 0) {
@@ -9016,15 +9008,14 @@ function calculateStats() {
         let bonus = items[weaponId_final].bonus;
         do {
             if (bonus.type === 'spc_to_sps') {
-                final_sps_D = final_sps_D.add(final_spc_D.mul(bonus.value));
+                final_sps += final_spc * bonus.value;
             }
             bonus = bonus.and ? bonus.and : null;
         } while (bonus);
     }
 
-    // Store as Decimal — uses Decimal result directly for accuracy
-    gameState.stats.sps = final_sps_D.gt(0) ? final_sps_D : D(0);
-    gameState.stats.spc = final_spc_D.gt(0) ? final_spc_D : D(1);
+    gameState.stats.sps = isFinite(final_sps) ? final_sps : Number.MAX_VALUE;
+    gameState.stats.spc = isFinite(final_spc) ? final_spc : Number.MAX_VALUE;
 
     // =================================================================
     // 7. COST RE-CALCULATION
@@ -9074,11 +9065,11 @@ function updateDynamicDisplays() {
   document.getElementById('aether-display').innerText = formatNumber(gameState.aether);
   document.getElementById('fragments-display').innerText = formatNumber(gameState.corruptedFragments);
   document.getElementById('sps-display').innerText = formatNumber(D(gameState.stats.sps));
-  document.getElementById('spc-display').innerText = formatNumber(D(gameState.stats.spc));
+  document.getElementById('spc-display').innerText = formatNumber(gameState.stats.spc);
   const altarSps = document.getElementById('sps-display-altar');
   const altarSpc = document.getElementById('spc-display-altar');
   if (altarSps) altarSps.innerText = formatNumber(D(gameState.stats.sps));
-  if (altarSpc) altarSpc.innerText = formatNumber(D(gameState.stats.spc));
+  if (altarSpc) altarSpc.innerText = formatNumber(gameState.stats.spc);
 
   // Pact buff live countdown
   if (typeof renderPactBuffStatus === 'function') renderPactBuffStatus();
@@ -10509,7 +10500,7 @@ function usePotion(id) {
         }
         if (effect.type === 'instant_clicks_flat') {
             const clickCount = effect.value * (gameState.ascensions + 1);
-            const gain = D(gameState.stats.spc).mul(clickCount);
+            const gain = gameState.stats.spc * clickCount;
             gameState.souls = D(gameState.souls).add(D(gain)); gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(D(gain));
             Toastify({ text: `👻 +${formatNumber(gain)} souls from ${formatNumber(clickCount)} instant clicks!`, duration:3000, gravity:'top', position:'center' }).showToast();
         }
@@ -11255,8 +11246,8 @@ function repairNegativeValues() {
         repaired = true;
     }
     if (gameState.stats) {
-        if (D(gameState.stats.sps).lt(0) || !D(gameState.stats.sps).isFinite()) { gameState.stats.sps = D(0); repaired = true; }
-        if (D(gameState.stats.spc).lt(0) || !D(gameState.stats.spc).isFinite()) { gameState.stats.spc = D(1); repaired = true; }
+        if (gameState.stats.sps < 0 || !isFinite(gameState.stats.sps)) { gameState.stats.sps = 0; repaired = true; }
+        if (gameState.stats.spc < 0 || !isFinite(gameState.stats.spc)) { gameState.stats.spc = 1; repaired = true; }
     }
     if (repaired) {
         calculateStats();
@@ -13533,7 +13524,7 @@ function drawRift() {
             p.y = canvas.height / 2;
             p.life = 0;
             // Speed is influenced by Souls Per Click, making the rift more violent as you get stronger
-            const power = Math.min(10, 1 + D(gameState.stats.spc).log10().toNumber());
+            const power = Math.min(10, 1 + Math.log10(gameState.stats.spc || 1));
             p.speedX = (Math.random() - 0.5) * power;
             p.speedY = (Math.random() - 0.5) * power;
         }

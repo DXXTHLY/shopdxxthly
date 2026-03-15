@@ -4507,6 +4507,35 @@ const fusionRecipes = [
     { a: 'flask_of_soul_overload',   b: 'soul_torrent',              result: 'fusion_time_thief' },
     { a: 'vial_of_stolen_time',      b: 'ichor_of_the_cosmos',       result: 'fusion_time_thief' },
 
+    // ── RARE SPECIFIC COMBOS (new) ───────────────────────────────────────
+    // Aether + Time combos → surge
+    { a: 'flask_of_temporal_flux',   b: 'vial_of_stolen_time',        result: 'fusion_aether_lattice' },
+    { a: 'temporal_overdrive',       b: 'vial_of_stolen_time',        result: 'fusion_aether_lattice' },
+    { a: 'flask_of_soul_overload',   b: 'flask_of_temporal_flux',     result: 'fusion_ascension_surge' },
+
+    // Market potion + standard specific outcomes
+    { a: 'elixir_of_the_unbound',    b: 'tincture_of_rage',           result: 'fusion_pvp_destroyer' },
+    { a: 'draught_of_the_void_herald',b: 'tincture_of_rage',          result: 'fusion_pvp_destroyer' },
+    { a: 'elixir_of_the_unbound',    b: 'flask_of_soul_overload',     result: 'fusion_soul_devourer' },
+    { a: 'draught_of_the_void_herald',b: 'soul_torrent',              result: 'fusion_soul_devourer' },
+    { a: 'ichor_of_the_cosmos',      b: 'elixir_of_the_unbound',      result: 'fusion_passive_god' },
+    { a: 'vial_of_the_eternal_harvest',b:'elixir_of_the_unbound',     result: 'fusion_passive_god' },
+    { a: 'brew_of_the_void',         b: 'essence_cascade',            result: 'fusion_void_tyrant' },
+    { a: 'brew_of_the_void',         b: 'dark_convergence',           result: 'fusion_void_tyrant' },
+
+    // Soul + shard cross-synergies
+    { a: 'soul_torrent',             b: 'brew_of_shattered_stars',    result: 'fusion_prestige_power' },
+    { a: 'soul_torrent',             b: 'shardbreaker_tonic',         result: 'fusion_shard_explosion' },
+    { a: 'philter_of_forgotten_souls',b:'shardbreaker_tonic',         result: 'fusion_shard_explosion' },
+    { a: 'philter_of_forgotten_souls',b:'brew_of_shattered_stars',    result: 'fusion_prestige_power' },
+
+    // Wisdom / insight combos
+    { a: 'elixir_of_wisdom',         b: 'phial_of_brilliance',        result: 'fusion_world_rush' },
+    { a: 'elixir_of_wisdom',         b: 'essence_of_the_void_walker', result: 'fusion_world_rush' },
+    { a: 'elixir_of_wisdom',         b: 'vial_of_the_abyss',          result: 'fusion_cost_reduction' },
+    { a: 'elixir_of_wisdom',         b: 'dark_convergence',           result: 'fusion_cost_reduction' },
+    { a: 'elixir_of_wisdom',         b: 'soul_torrent',               result: 'fusion_all_in_one' },
+
     // ── NEW SPECIFIC RECIPES ─────────────────────────────────────────────
     // Essence combos → essence-focused fusions
     { a: 'tincture_of_essence',      b: 'essence_of_avarice',         result: 'fusion_essence_tyrant' },
@@ -9094,6 +9123,10 @@ function showScreen(screenId) {
     {
         renderSoulForge();
     }
+    if (screenId === 'brewery')
+    {
+        renderBrewery();
+    }
     if (screenId === 'market')
     {
         generateHourlyShopItems();
@@ -10051,9 +10084,9 @@ function updateFusionUI() {
         if (msLeft > 0) {
             fusionBtn.disabled = true;
             const sLeft = Math.ceil(msLeft / 1000);
-            fusionBtn.textContent = `⚗️ Cooling Down (${sLeft}s)`;
+            fusionBtn.innerHTML = `⚗️ Cooling Down (${sLeft}s)`;
         } else {
-            fusionBtn.textContent = '⚗️ FUSE';
+            fusionBtn.innerHTML = '⚗️ FUSE';
         }
     }
 
@@ -10170,10 +10203,10 @@ function tickFusionCooldown() {
     if (msLeft > 0) {
         fusionBtn.disabled = true;
         const sLeft = Math.ceil(msLeft / 1000);
-        fusionBtn.textContent = `⚗️ Cooling Down (${sLeft}s)`;
+        fusionBtn.innerHTML = `⚗️ Cooling Down (${sLeft}s)`;
     } else if (hasSlots) {
         fusionBtn.disabled = false;
-        fusionBtn.textContent = '⚗️ FUSE';
+        fusionBtn.innerHTML = '⚗️ FUSE';
     }
 }
 setInterval(tickFusionCooldown, 1000);
@@ -10360,7 +10393,7 @@ function brewPotion(id) {
     const cooldownEndTime = gameState.potionCooldowns[id];
 
     // Prevent brewing if on cooldown
-    if (cooldownEndTime && Date.now() < cooldownEndTime) {
+    if (cooldownEndTime && cooldownEndTime > 0 && Date.now() < cooldownEndTime) {
         return;
     }
 

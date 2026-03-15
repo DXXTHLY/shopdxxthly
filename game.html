@@ -6929,17 +6929,20 @@ async function saveGame() {
     // Supabase leaderboard save (public data only — unchanged)
     if (!supabaseClient) return;
 
-    // Sanitize helper — clamp to safe float range, never send Infinity/NaN/negative
+    // Sanitize helper — clamp to safe float8 range for Supabase
+    // Values beyond 1.7e308 are clamped to 1.7e308 (max float8) NOT zeroed
     const safe = (v, fallback = 0) => {
         const n = Number(v);
-        if (!isFinite(n) || isNaN(n) || n < 0) return fallback;
-        if (n > 1.7e308) return fallback; // float8 max
+        if (isNaN(n) || n < 0) return fallback;
+        if (!isFinite(n) || n > 1.7e308) return 1.7e308; // cap at float8 max, never zero
         return n;
     };
 
     const publicData = {
         name: gameState.playerName,
         user_id: gameState.playerName,
+        // lifetimeSouls: store capped value. For display in leaderboard we use soulsLog.
+        // toNumber() returns Infinity when souls > 1.79e308, safe() now caps to 1.7e308.
         lifetimeSouls:     safe(D(gameState.lifetimeSouls).toNumber()),
         soulsLog:          safe(D(gameState.lifetimeSouls).gt(0) ? D(gameState.lifetimeSouls).log10().toNumber() : 0, 0),
         ascensions:        safe(gameState.ascensions),
@@ -9872,10 +9875,16 @@ async function saveGameToCloud(uid, db) {
         // stats.sps is recomputed on load — not serialized
         const ts = Date.now();
         saveData._savedAt = ts;
+        const soulsLogVal = D(gameState.lifetimeSouls).gt(0)
+            ? parseFloat(D(gameState.lifetimeSouls).log10().toNumber().toFixed(6))
+            : 0;
         await db.ref('gameSaves/' + uid).set({
             state: JSON.stringify(saveData),
             savedAt: ts,
-            playerName: gameState.playerName
+            playerName: gameState.playerName,
+            soulsLog: soulsLogVal,        // auth-protected — can't be faked by other users
+            ascensions: gameState.ascensions || 0,
+            pvpWins: gameState.pvpWins || 0
         });
     } catch(e) { console.error('Cloud save failed:', e); }
 }
@@ -9906,10 +9915,15 @@ async function loadGameFromCloud(uid, db) {
                 console.log('Using newer local save over cloud save');
                 chosenState = localState;
                 // Push newer local state to cloud immediately
+                const _ls2 = D(chosenState.lifetimeSouls || 0);
+                const _log2 = _ls2.gt(0) ? parseFloat(_ls2.log10().toNumber().toFixed(6)) : 0;
                 await db.ref('gameSaves/' + uid).set({
                     state: JSON.stringify(chosenState),
                     savedAt: localSavedAt,
-                    playerName: chosenState.playerName || 'Unknown'
+                    playerName: chosenState.playerName || 'Unknown',
+                    soulsLog: _log2,
+                    ascensions: chosenState.ascensions || 0,
+                    pvpWins: chosenState.pvpWins || 0
                 });
             } else {
                 console.log('Using cloud save');
@@ -10458,7 +10472,7 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
         const localPlayerData = {
             name:              gameState.playerName,
             lifetimeSouls:     D(gameState.lifetimeSouls).toNumber(),
-            soulsLog:          D(gameState.lifetimeSouls).gt(0) ? D(gameState.lifetimeSouls).log10().toNumber() : 0,
+            soulsLog:          D(gameState.lifetimeSouls).gt(0) ? parseFloat(D(gameState.lifetimeSouls).log10().toNumber().toFixed(6)) : 0,
             ascensions:        gameState.ascensions,
             aether:            gameState.aether,
             totalAetherEarned: gameState.totalAetherEarned,
@@ -14228,7 +14242,7 @@ function renderPactScreen() {
         (async () => {
             let memberStats = {};
             try {
-                const { data } = await supabaseClient.from('players').select('name,ascensions,pvpWins,lifetimeSouls').in('name', members).then(r => r).catch(() => ({ data: null }));
+                const { data } = await supabaseClient.from('players').select('name,ascensions,pvpWins,lifetimeSouls,soulsLog').in('name', members).then(r => r).catch(() => ({ data: null }));
                 if (data) data.forEach(p => { memberStats[p.name] = p; });
             } catch(e) {}
 
@@ -14238,9 +14252,16 @@ function renderPactScreen() {
                 const stats   = isMe ? { ascensions: gameState.ascensions, pvpWins: gameState.pvpWins, lifetimeSouls: D(gameState.lifetimeSouls) } : (memberStats[m] || {});
                 const asc     = stats.ascensions ?? '?';
                 const wins    = stats.pvpWins ?? '?';
-                const souls   = stats.lifetimeSouls
-                    ? formatNumber(stats.lifetimeSouls instanceof Decimal ? stats.lifetimeSouls : D(stats.lifetimeSouls))
-                    : '?';
+                // Use lifetimeSouls directly, or reconstruct from soulsLog if lifetimeSouls is null
+                let souls;
+                if (stats.lifetimeSouls != null) {
+                    souls = formatNumber(stats.lifetimeSouls instanceof Decimal ? stats.lifetimeSouls : D(stats.lifetimeSouls));
+                } else if (stats.soulsLog && stats.soulsLog > 0) {
+                    // Reconstruct from log: 10^soulsLog
+                    souls = formatNumber(Decimal.pow(10, stats.soulsLog));
+                } else {
+                    souls = '—';
+                }
                 const canKick = isLeader && !isMe;
 
                 return `<div style="background:#0a0812; border:1px solid ${color}22; border-left:3px solid ${color}55; border-radius:10px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; width:100%; box-sizing:border-box;">
@@ -16947,6 +16968,78 @@ document.addEventListener('click', e => {
     if (e.target === overlay) closeCodex();
 });
 </script>
+
+
+// =================================================================
+// 🔒 SOULS LOG VALIDATION
+// Firebase soulsLog is auth-protected (users can only write their own UID).
+// On every Supabase save we cross-check the value written matches Firebase.
+// Dev command: /auditsouls <name> — compares Firebase vs Supabase for a player.
+// =================================================================
+
+async function validateAndSyncSoulsLog() {
+    const fb = window._scFirebase;
+    if (!fb || !fb.auth || !fb.db) return;
+    const user = fb.auth.currentUser;
+    if (!user) return;
+
+    try {
+        const snap = await fb.db.ref('gameSaves/' + user.uid + '/soulsLog').once('value');
+        const fbLog = snap.exists() ? snap.val() : null;
+        if (fbLog === null) return; // not yet saved to Firebase
+
+        // Get Supabase value
+        const { data } = await supabaseClient
+            .from('players')
+            .select('soulsLog, name')
+            .eq('user_id', gameState.playerName)
+            .single().catch(() => ({ data: null }));
+
+        if (!data) return;
+
+        const sbLog = data.soulsLog || 0;
+        const diff = Math.abs(fbLog - sbLog);
+
+        // If Supabase soulsLog differs from Firebase by more than 1 order of magnitude
+        // (could happen if someone edited Supabase directly), correct it from Firebase
+        if (diff > 1.0) {
+            console.warn(`[SoulsLog] Mismatch detected for ${data.name}: Firebase=${fbLog.toFixed(2)} Supabase=${sbLog.toFixed(2)} — correcting from Firebase.`);
+            await supabaseClient.from('players').update({ soulsLog: fbLog }).eq('user_id', gameState.playerName);
+        }
+    } catch(e) {
+        // silent — validation is best-effort
+    }
+}
+
+// Run validation after every cloud save
+const _origSaveToCloud = saveGameToCloud;
+saveGameToCloud = async function(uid, db) {
+    await _origSaveToCloud(uid, db);
+    // Small delay so Firebase write completes before we read it back
+    setTimeout(validateAndSyncSoulsLog, 3000);
+};
+
+// Dev-only audit command accessible via chat: /auditsouls <playerName>
+window._auditSoulsLog = async function(playerName) {
+    if (!window._scIsDev || !window._scIsDev(window._scCurrentUid)) {
+        console.log('Dev only.');
+        return;
+    }
+    const fb = window._scFirebase;
+    // Look up their UID from accountNames
+    const snap = await fb.db.ref('accountNames').orderByValue().equalTo(playerName).once('value');
+    const entries = snap.val();
+    if (!entries) { console.log('Player not found in Firebase accountNames:', playerName); return; }
+    const uid = Object.keys(entries)[0];
+    const saveSnap = await fb.db.ref('gameSaves/' + uid).once('value');
+    const fbData = saveSnap.exists() ? saveSnap.val() : null;
+    const { data: sbData } = await supabaseClient.from('players').select('soulsLog,lifetimeSouls,ascensions').eq('name', playerName).single();
+    console.log(`=== Audit: ${playerName} ===`);
+    console.log('Firebase soulsLog:', fbData?.soulsLog, '| ascensions:', fbData?.ascensions);
+    console.log('Supabase soulsLog:', sbData?.soulsLog, '| lifetimeSouls:', sbData?.lifetimeSouls, '| ascensions:', sbData?.ascensions);
+    const diff = Math.abs((fbData?.soulsLog||0) - (sbData?.soulsLog||0));
+    console.log(diff > 1 ? `⚠️ MISMATCH of ${diff.toFixed(2)} orders of magnitude` : '✅ Values match');
+};
 
 </body>
 </html>

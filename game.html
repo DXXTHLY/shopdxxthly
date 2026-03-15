@@ -6231,7 +6231,7 @@ function buyUpgrade(type) {
             // 5. Add the final calculated amount to the player's total.
             gameState.darkEssence += Math.floor(essenceGain);
             gameState.essenceGainedThisRun += Math.floor(essenceGain); // <<< ADD THIS LINE
-            upgrade.cost = Math.floor(upgrade.cost * 1.15);
+            upgrade.cost = D(upgrade.cost).mul(1.15).floor();
         }
     } 
     // This part handles upgrades that cost Dark Essence
@@ -6335,16 +6335,16 @@ function buyArtifact(id) {
     const baseCost = artifact.shardsCost || artifact.cost;
     const costType = artifact.shardsCost ? 'shards' : 'essence';
     
-    // Calculate the cost for the NEXT level
-    const currentCost = Math.floor(baseCost * Math.pow(costMultiplier, level));
+    // Calculate the cost for the NEXT level — Decimal so it stays accurate at any scale
+    const currentCost = D(baseCost).mul(D(costMultiplier).pow(level)).floor();
 
     let canAfford = false;
     // THIS IS THE FIXED PART: We now check against the calculated 'currentCost' for BOTH types
-    if (costType === 'shards' && gameState.abyssalShards >= currentCost) {
-        gameState.abyssalShards -= currentCost;
+    if (costType === 'shards' && D(gameState.abyssalShards).gte(currentCost)) {
+        gameState.abyssalShards = D(gameState.abyssalShards).sub(currentCost).toNumber();
         canAfford = true;
-    } else if (costType === 'essence' && gameState.darkEssence >= currentCost) {
-        gameState.darkEssence -= currentCost;
+    } else if (costType === 'essence' && D(gameState.darkEssence).gte(currentCost)) {
+        gameState.darkEssence = D(gameState.darkEssence).sub(currentCost).toNumber();
         canAfford = true;
     }
 
@@ -7116,7 +7116,7 @@ function calculateStats() {
     // =================================================================
     // 7. COST RE-CALCULATION
     // =================================================================
-    gameState.upgrades.click.cost = Math.floor(10 * Math.pow(gameState.upgrades.click.multiplier, gameState.upgrades.click.level - 1) * clickUpgradeCostFactor);
+    gameState.upgrades.click.cost = D(10).mul(D(gameState.upgrades.click.multiplier).pow(gameState.upgrades.click.level - 1)).mul(clickUpgradeCostFactor).floor();
     for (const minionId in minions) {
         const playerMinion = gameState.minions[minionId];
         // Use Decimal.pow so cost stays accurate past 10^308
@@ -7871,8 +7871,8 @@ function renderArtifacts() {
         const baseCost = a.shardsCost || a.cost;
         const costType = a.shardsCost ? 'shards' : 'essence';
         const costMultiplier = a.costMultiplier || 1.5;
-        const nextLevelCost = Math.floor(baseCost * Math.pow(costMultiplier, level));
-        const canAfford = costType === 'shards' ? gameState.abyssalShards >= nextLevelCost : gameState.darkEssence >= nextLevelCost;
+        const nextLevelCost = D(baseCost).mul(D(costMultiplier).pow(level)).floor();
+        const canAfford = costType === 'shards' ? D(gameState.abyssalShards).gte(nextLevelCost) : D(gameState.darkEssence).gte(nextLevelCost);
 
         const costColor = costType === 'shards' ? '#44aaff' : '#9944cc';
         const costIcon  = costType === 'shards' ? '💎' : '🌑';
@@ -7897,7 +7897,7 @@ function renderArtifacts() {
             <p style="color:#aaa; font-size:0.82em; margin:0; line-height:1.4;">${a.desc}</p>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px; flex-wrap:wrap; gap:6px;">
                 <div style="font-size:0.8em; color:${canAfford ? costColor : '#555'}; font-weight:bold;">${costIcon} ${formatNumber(nextLevelCost)} ${costType === 'shards' ? 'Shards' : 'Dark Essence'}</div>
-                ${level > 0 ? `<div style="font-size:0.72em; color:#555;">Next: ${formatNumber(Math.floor(nextLevelCost * costMultiplier))}</div>` : ''}
+                ${level > 0 ? `<div style="font-size:0.72em; color:#555;">Next: ${formatNumber(D(nextLevelCost).mul(costMultiplier).floor())}</div>` : ''}
             </div>
             <button id="artifact-btn-${id}" class="upgrade-btn" onclick="buyArtifact('${id}')" ${!canAfford ? 'disabled' : ''}
                 style="width:100%; border-color:${costColor}66; ${canAfford ? `background:linear-gradient(135deg,${costColor}18,transparent);` : 'opacity:0.5;'}">
@@ -9218,7 +9218,7 @@ function travelToWorld(id)
 		let actualCost = worlds[id].unlockCost;
 		for (const artId in gameState.ownedArtifacts) {
 			const ab = artifacts[artId]?.bonus;
-			if (ab?.type === 'world_cost_reducer') actualCost *= Math.pow(ab.value, gameState.ownedArtifacts[artId].level || 1);
+			if (ab?.type === 'world_cost_reducer') actualCost = D(actualCost).mul(D(Math.pow(ab.value, gameState.ownedArtifacts[artId].level || 1)));
 		}
 		gameState.souls = D(gameState.souls).sub(D(actualCost));
 		gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(actualCost));

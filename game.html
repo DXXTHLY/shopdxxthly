@@ -7794,6 +7794,7 @@ async function saveGame() {
     const stateToSave = { ...gameState,
         souls:         D(gameState.souls).toString(),
         lifetimeSouls: D(gameState.lifetimeSouls).toString(),
+        soulsSpent:    D(gameState.soulsSpent || 0).toString(),
         darkEssence:   D(gameState.darkEssence).toString(),
         abyssalShards: D(gameState.abyssalShards).toString(),
         aether:        D(gameState.aether).toString(),
@@ -7819,8 +7820,9 @@ async function saveGame() {
     const safe = (v, fallback = 0) => {
         const n = Number(v);
         if (isNaN(n) || n < 0) return fallback;
-        if (!isFinite(n) || n > 1.7e308) return 1.7e308; // cap at float8 max, never zero
-        return n;
+        if (!isFinite(n) || n > 1.7e308) return 1.7e308;
+        // Always floor to integer — Supabase bigint columns reject floats like 82.000000001
+        return Math.floor(n);
     };
 
     const publicData = {
@@ -7865,8 +7867,17 @@ function loadGame() {
             let loadedState = JSON.parse(savedGame);
             gameState = deepMerge(defaultState, loadedState);
             // Restore Decimal fields from serialized strings
-            gameState.souls = D(gameState.souls || 0);
-            gameState.lifetimeSouls = D(gameState.lifetimeSouls || 0);
+            gameState.souls              = D(gameState.souls              || 0);
+            gameState.lifetimeSouls      = D(gameState.lifetimeSouls      || 0);
+            gameState.soulsSpent         = D(gameState.soulsSpent         || 0);
+            // Reconstruct soulsSpent if it was never saved (shows as 0 but lifetime > current)
+            // soulsSpent = lifetime earned - currently held - banked - lifetime not yet accounted
+            if (D(gameState.soulsSpent).lte(0) && D(gameState.lifetimeSouls).gt(0)) {
+                const held   = D(gameState.souls        || 0);
+                const banked = D(gameState.bankedSouls  || 0);
+                const reconstructed = D(gameState.lifetimeSouls).sub(held).sub(banked);
+                gameState.soulsSpent = reconstructed.gt(0) ? reconstructed : D(0);
+            }
             gameState.darkEssence        = D(gameState.darkEssence        || 0);
             gameState.abyssalShards      = D(gameState.abyssalShards      || 0);
             gameState.aether             = D(gameState.aether             || 0);
@@ -11084,8 +11095,9 @@ async function loadGameFromCloud(uid, db) {
             gameState = deepMerge(defaultState, chosenState);
             gameState.firebaseUid = uid;
             // Restore Decimal fields from serialized strings (same as loadGame)
-            gameState.souls = D(gameState.souls || 0);
+            gameState.souls         = D(gameState.souls         || 0);
             gameState.lifetimeSouls = D(gameState.lifetimeSouls || 0);
+            gameState.soulsSpent    = D(gameState.soulsSpent    || 0);
             // stats.sps always recomputed by calculateStats() in enterGame()
             localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
         } else {

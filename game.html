@@ -2495,7 +2495,66 @@ text-decoration: underline; /* Adds an underline on hover */
             </div>
             <div id="brewery-screen" class="screen">
                 <h2 style="letter-spacing:3px; color:#9944cc;">⚗️ ALCHEMICAL BREWERY ⚗️</h2>
-                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Concoct powerful potions from souls and rare materials. Brew them, then use them from your potion shelf.</p>
+                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Concoct powerful potions from souls and rare materials — or fuse two together for something far greater.</p>
+
+                <!-- ═══ FUSION CAULDRON ═══ -->
+                <div id="fusion-cauldron" style="max-width:700px; margin:0 auto 28px; background:linear-gradient(135deg,#0a0614,#160a28); border:2px solid #7722cc66; border-top:3px solid #aa44ff; border-radius:16px; padding:22px 24px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                        <span style="font-size:1.5em;">🔮</span>
+                        <h3 style="margin:0; color:#aa44ff; font-size:0.9em; text-transform:uppercase; letter-spacing:3px;">Fusion Cauldron</h3>
+                        <span style="margin-left:auto; background:#aa44ff22; border:1px solid #aa44ff44; border-radius:8px; padding:2px 10px; font-size:0.65em; color:#aa44ff; letter-spacing:1px;">EXPERIMENTAL</span>
+                    </div>
+                    <p style="color:#666; font-size:0.78em; margin:0 0 18px; line-height:1.5;">Combine two potions from your shelf into something far more powerful. Market potions fuse into legendary results. Fusing consumes both potions.</p>
+
+                    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center;">
+                        <!-- Slot A -->
+                        <div id="fusion-slot-a" onclick="openFusionPicker('a')"
+                             style="width:130px; min-height:90px; background:#0d0a18; border:2px dashed #2a1a4a; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; transition:all 0.2s; padding:10px; text-align:center;"
+                             onmouseover="this.style.borderColor='#aa44ff66'" onmouseout="this.style.borderColor='#2a1a4a'">
+                            <div style="font-size:2em; color:#2a1a4a;">⚗️</div>
+                            <div style="color:#444; font-size:0.72em;">Click to select</div>
+                        </div>
+
+                        <!-- Plus sign -->
+                        <div style="font-size:2em; color:#aa44ff66; font-weight:bold; flex-shrink:0;">+</div>
+
+                        <!-- Slot B -->
+                        <div id="fusion-slot-b" onclick="openFusionPicker('b')"
+                             style="width:130px; min-height:90px; background:#0d0a18; border:2px dashed #2a1a4a; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; transition:all 0.2s; padding:10px; text-align:center;"
+                             onmouseover="this.style.borderColor='#aa44ff66'" onmouseout="this.style.borderColor='#2a1a4a'">
+                            <div style="font-size:2em; color:#2a1a4a;">⚗️</div>
+                            <div style="color:#444; font-size:0.72em;">Click to select</div>
+                        </div>
+
+                        <!-- Arrow -->
+                        <div style="font-size:1.5em; color:#aa44ff66; flex-shrink:0;">→</div>
+
+                        <!-- Result preview -->
+                        <div id="fusion-result-preview"
+                             style="flex:1; min-width:160px; min-height:90px; background:#0a0614; border:2px solid #1a0a30; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; text-align:center;">
+                            <div style="font-size:1.6em; color:#2a1a4a;">?</div>
+                            <div style="color:#333; font-size:0.72em;">Select both potions to preview</div>
+                        </div>
+                    </div>
+
+                    <!-- Fuse button -->
+                    <button id="fusion-btn" onclick="executeFusion()" disabled
+                        style="width:100%; margin-top:16px; padding:12px; background:linear-gradient(135deg,#1a0a2a,#2a0a4a); border:1px solid #aa44ff44; border-bottom:3px solid #000; border-radius:10px; color:#444; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:not-allowed; text-transform:uppercase; transition:all 0.2s;">
+                        🔮 Fuse Potions
+                    </button>
+                </div>
+
+                <!-- Fusion picker modal -->
+                <div id="fusion-picker-overlay" style="display:none; position:fixed; inset:0; background:#00000099; z-index:2000; align-items:center; justify-content:center;">
+                    <div style="background:#0e0a1a; border:2px solid #aa44ff44; border-radius:16px; padding:24px; max-width:500px; width:90%; max-height:80vh; overflow-y:auto;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <h3 style="margin:0; color:#aa44ff; font-size:0.9em; text-transform:uppercase; letter-spacing:2px;">🔮 Select Potion for Slot</h3>
+                            <button onclick="closeFusionPicker()" style="background:none; border:none; color:#666; font-size:1.4em; cursor:pointer; padding:0 4px;">×</button>
+                        </div>
+                        <div id="fusion-picker-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
+                    </div>
+                </div>
+
                 <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:12px;">🧪 YOUR POTION SHELF</h3>
                 <div id="potion-inventory" class="ritual-grid"></div>
                 <hr style="border-color:#3d2a4a; margin:24px 0;">
@@ -4111,6 +4170,159 @@ function DN(x) { try { const n = D(x).toNumber(); return isFinite(n) ? n : 0; } 
 // Decimal-aware max(0, x)
 function Dmax0(x) { return D(x).lt(0) ? D(0) : D(x); }
 
+
+
+// =================================================================
+// FUSION CAULDRON RECIPES
+// Each entry: { a, b, result }  — a+b always matches regardless of order
+// If both a and b are marketOnly potions and no specific recipe exists,
+// the fallback produces fusion_market_obliterator
+// =================================================================
+const fusionRecipes = [
+    // SPS + SPC = Dual Ascendant
+    { a: 'tincture_of_rage',      b: 'essence_of_avarice',        result: 'fusion_sps_spc' },
+    { a: 'draught_of_might',      b: 'ichor_of_wealth',           result: 'fusion_sps_spc' },
+    { a: 'vial_of_the_abyss',     b: 'dark_convergence',          result: 'fusion_sps_spc' },
+
+    // Essence + Shards = Prismatic
+    { a: 'void_essence_flask',     b: 'essence_cascade',          result: 'fusion_essence_shards' },
+    { a: 'brew_of_the_void',       b: 'brew_of_shattered_stars',  result: 'fusion_essence_shards' },
+    { a: 'shardbreaker_tonic',     b: 'abyssal_catalyst',         result: 'fusion_essence_shards' },
+
+    // Instant souls + multiplier = Cataclysm
+    { a: 'ichor_of_the_cosmos',    b: 'vial_of_soul_fission',     result: 'fusion_souls_burst' },
+    { a: 'soul_torrent',           b: 'elixir_of_dominion',       result: 'fusion_souls_burst' },
+    { a: 'ichor_of_wealth',        b: 'unholy_power',             result: 'fusion_souls_burst' },
+
+    // Cost reducers = Tycoon
+    { a: 'ichor_of_eternity',      b: 'flask_of_the_abyss_warden',result: 'fusion_cost_reduction' },
+    { a: 'elixir_of_wisdom',       b: 'devils_bargain',           result: 'fusion_cost_reduction' },
+
+    // Cooldown related = Temporal Shatter
+    { a: 'temporal_overdrive',     b: 'flask_of_temporal_flux',   result: 'fusion_cooldown_master' },
+    { a: 'distillate_of_oblivion', b: 'temporal_overdrive',       result: 'fusion_cooldown_master' },
+
+    // Prestige/shards = Ascendant's Blood
+    { a: 'brew_of_shattered_stars',b: 'potion_of_the_abyss',      result: 'fusion_prestige_power' },
+    { a: 'elixir_of_resonance',    b: 'reagent_of_resonance',     result: 'fusion_prestige_power' },
+    { a: 'venom_of_collapsed_stars',b:'elixir_of_resonance',      result: 'fusion_prestige_power' },
+
+    // MARKET + MARKET SPECIFIC COMBOS
+    { a: 'singularity_core',       b: 'singularity_draught',      result: 'fusion_market_singularity' },
+    { a: 'draught_of_soul_overflow',b:'vial_of_the_eternal_harvest',result:'fusion_market_singularity' },
+    { a: 'essence_of_collapse',    b: 'void_amplifier',           result: 'fusion_market_collapse' },
+    { a: 'venom_of_collapsed_stars',b:'essence_of_collapse',      result: 'fusion_market_collapse' },
+    { a: 'draught_of_soul_overflow',b:'flask_of_the_void_king',   result: 'fusion_market_eternity' },
+    { a: 'serum_of_the_first_god', b: 'draught_of_void_herald',   result: 'fusion_market_eternity' },
+    { a: 'elixir_of_the_unbound',  b: 'singularity_core',         result: 'fusion_market_godhood' },
+    { a: 'vial_of_the_eternal_harvest', b: 'singularity_core',    result: 'fusion_market_godhood' },
+
+    // ── Standard potions with no previous recipe ──────────────────────────
+    // draught_of_the_hoarder (shard-chance clicks) + brew_of_luck (cache luck) = Fortune's Cache
+    { a: 'draught_of_the_hoarder',     b: 'brew_of_luck',                result: 'fusion_lucky_hoarder' },
+    { a: 'phial_of_brilliance',        b: 'brew_of_luck',                result: 'fusion_lucky_hoarder' },
+    { a: 'phial_of_brilliance',        b: 'draught_of_the_hoarder',      result: 'fusion_lucky_hoarder' },
+
+    // philter_of_forgotten_souls (next world souls) + vial_of_singularity (next collapse aether) = Convergence
+    { a: 'philter_of_forgotten_souls', b: 'vial_of_singularity',         result: 'fusion_worlds_collide' },
+    { a: 'philter_of_forgotten_souls', b: 'draught_of_cosmic_insight',   result: 'fusion_worlds_collide' },
+
+    // draught_of_cosmic_insight (aether boost) + elixir_of_the_final_word (gain^1.05) = Cosmic Truth
+    { a: 'draught_of_cosmic_insight',  b: 'elixir_of_the_final_word',    result: 'fusion_cosmic_transcendence' },
+    { a: 'draught_of_cosmic_insight',  b: 'vial_of_singularity',         result: 'fusion_cosmic_transcendence' },
+
+    // ichor_of_the_first_minion (minion transform) + tincture_of_expediency (instant clicks) = Demonlord's
+    { a: 'ichor_of_the_first_minion',  b: 'tincture_of_expediency',      result: 'fusion_minion_frenzy' },
+    { a: 'ichor_of_the_first_minion',  b: 'elixir_of_wisdom',            result: 'fusion_minion_frenzy' },
+
+    // tincture_of_expediency + draught_of_might = Thousand-Soul Strike
+    { a: 'tincture_of_expediency',     b: 'draught_of_might',            result: 'fusion_click_explosion' },
+    { a: 'tincture_of_expediency',     b: 'essence_of_avarice',          result: 'fusion_click_explosion' },
+
+    // draught_of_the_raider + anything pvp/luck = Warlord's Grand Omen
+    { a: 'draught_of_the_raider',      b: 'brew_of_luck',                result: 'fusion_battle_fortune' },
+    { a: 'draught_of_the_raider',      b: 'extract_of_the_fallen',       result: 'fusion_battle_fortune' },
+    { a: 'draught_of_the_raider',      b: 'tincture_of_the_dead_sun',    result: 'fusion_battle_fortune' },
+
+    // ── Market potions with no previous recipe ─────────────────────────────
+    // Click-chain potions together = Click Apocalypse
+    { a: 'abyssal_surge',              b: 'brew_of_echoing_void',        result: 'fusion_click_apocalypse' },
+    { a: 'abyssal_surge',              b: 'tincture_of_expediency',      result: 'fusion_click_apocalypse' },
+
+    // Two SPS-heavy market potions = Void Supremacy
+    { a: 'flask_of_the_void_king',     b: 'draught_of_the_void_herald',  result: 'fusion_void_supremacy' },
+    { a: 'flask_of_the_void_king',     b: 'draught_of_soul_overflow',    result: 'fusion_void_supremacy' },
+    { a: 'flask_of_the_void_king',     b: 'ichor_of_shadow_dominion',    result: 'fusion_void_supremacy' },
+    { a: 'draught_of_dimensional_rift',b: 'draught_of_the_void_herald',  result: 'fusion_void_supremacy' },
+
+    // Essence-related market potions = Essence Nova
+    { a: 'soul_compressor',            b: 'essence_of_primordial_fire',  result: 'fusion_essence_nova' },
+    { a: 'soul_compressor',            b: 'void_essence_flask',          result: 'fusion_essence_nova' },
+    { a: 'essence_of_primordial_fire', b: 'draught_of_the_overlord',     result: 'fusion_essence_nova' },
+    { a: 'phial_of_world_shattering',  b: 'essence_of_primordial_fire',  result: 'fusion_essence_nova' },
+
+    // PvP market potions = Warlord's Grand Omen
+    { a: 'extract_of_the_fallen',      b: 'tincture_of_the_dead_sun',   result: 'fusion_battle_fortune' },
+
+    // Click + SPC market potions = Thousand-Soul Strike  
+    { a: 'brew_of_echoing_void',       b: 'serum_of_the_first_god',      result: 'fusion_click_explosion' },
+    { a: 'draught_of_the_overlord',    b: 'venom_of_the_primordial',     result: 'fusion_click_explosion' },
+
+    // Prestige/shard market potions = Shadow Lord
+    { a: 'tincture_of_the_deep_abyss', b: 'ichor_of_shadow_dominion',   result: 'fusion_shadow_lord' },
+    { a: 'tincture_of_the_deep_abyss', b: 'venom_of_the_primordial',    result: 'fusion_shadow_lord' },
+    { a: 'reagent_of_resonance',       b: 'ichor_of_shadow_dominion',   result: 'fusion_shadow_lord' },
+
+    // Fragment market potions = Fragment Supernova
+    { a: 'rift_serum',                 b: 'phial_of_world_shattering',   result: 'fusion_fragment_nova' },
+    { a: 'rift_serum',                 b: 'shardbreaker_tonic',          result: 'fusion_fragment_nova' },
+
+    // Infinite hunger + dimension = Infinite Loop
+    { a: 'elixir_of_infinite_hunger',  b: 'draught_of_dimensional_rift', result: 'fusion_infinite_loop' },
+    { a: 'elixir_of_infinite_hunger',  b: 'flask_of_the_void_king',      result: 'fusion_infinite_loop' },
+    { a: 'elixir_of_infinite_hunger',  b: 'draught_of_soul_overflow',    result: 'fusion_infinite_loop' },
+
+    // ── Gap-fill: every potion gets at least 2 recipes ────────────────
+    { a: 'abyssal_catalyst',          b: 'void_essence_flask',          result: 'fusion_essence_bomb' },
+    { a: 'brew_of_the_void',          b: 'ichor_of_wealth',             result: 'fusion_instant_wealth' },
+    { a: 'dark_convergence',          b: 'serum_of_the_first_god',      result: 'fusion_click_god' },
+    { a: 'distillate_of_oblivion',    b: 'flask_of_temporal_flux',      result: 'fusion_time_warp' },
+    { a: 'elixir_of_dominion',        b: 'draught_of_the_void_herald',  result: 'fusion_all_in_one' },
+    { a: 'elixir_of_the_final_word',  b: 'potion_of_the_abyss',         result: 'fusion_all_in_one' },
+    { a: 'elixir_of_the_unbound',     b: 'draught_of_the_void_herald',  result: 'fusion_market_annihilator' },
+    { a: 'essence_cascade',           b: 'abyssal_catalyst',            result: 'fusion_essence_bomb' },
+    { a: 'flask_of_temporal_flux',    b: 'phial_of_brilliance',         result: 'fusion_cache_rush' },
+    { a: 'flask_of_the_abyss_warden', b: 'draught_of_soul_overflow',    result: 'fusion_passive_god' },
+    { a: 'ichor_of_eternity',         b: 'flask_of_the_void_king',      result: 'fusion_passive_god' },
+    { a: 'ichor_of_the_cosmos',       b: 'soul_torrent',                result: 'fusion_instant_wealth' },
+    { a: 'potion_of_the_abyss',       b: 'elixir_of_resonance',         result: 'fusion_shard_explosion' },
+    { a: 'singularity_draught',       b: 'vial_of_the_eternal_harvest', result: 'fusion_market_singularity' },
+    { a: 'soul_torrent',              b: 'elixir_of_dominion',          result: 'fusion_instant_wealth' },
+    { a: 'tincture_of_rage',          b: 'draught_of_the_void_herald',  result: 'fusion_passive_god' },
+    { a: 'vial_of_soul_fission',      b: 'soul_torrent',                result: 'fusion_souls_burst' },
+    { a: 'vial_of_the_abyss',         b: 'flask_of_the_void_king',      result: 'fusion_all_in_one' },
+    { a: 'void_amplifier',            b: 'tincture_of_the_deep_abyss',  result: 'fusion_shard_explosion' },
+
+];
+
+// Look up recipe — order-independent
+function getFusionResult(idA, idB) {
+    const recipe = fusionRecipes.find(r =>
+        (r.a === idA && r.b === idB) || (r.a === idB && r.b === idA)
+    );
+    if (recipe) return recipe.result;
+
+    // Both market potions → generic super fusion
+    const aIsMarket = potions[idA]?.marketOnly;
+    const bIsMarket = potions[idB]?.marketOnly;
+    if (aIsMarket && bIsMarket) return 'fusion_market_obliterator';
+
+    // One market + one standard → souls burst
+    if (aIsMarket || bIsMarket) return 'fusion_souls_burst';
+
+    // Two standards → dual SPS/SPC
+    return 'fusion_sps_spc';
+}
 
 const minions = {
     imp: { 
@@ -5946,6 +6158,275 @@ const potions = {
         marketOnly: true,
         shopPrice: 250,
         effect: { type: 'global_multiplier_flat', value: 100, duration: 90 }
+    },
+
+    // ================================================================
+    // FUSED POTIONS — created in the Fusion Cauldron only
+    // fusedOnly: true  — never sold or brewed normally
+    // ================================================================
+
+    // Standard + Standard fusions
+    fusion_sps_spc: {
+        name: "⚗️ Dual Ascendant Brew",
+        desc: "For 5 minutes, SPS is ×25 and SPC is ×20 simultaneously.",
+        fusedOnly: true,
+        effect: { type: 'sps_multiplier_flat', value: 25, duration: 300 },
+        effect2: { type: 'spc_multiplier_flat', value: 20, duration: 300 }
+    },
+    fusion_essence_shards: {
+        name: "⚗️ Prismatic Distillate",
+        desc: "Instantly gain 5,000 Dark Essence AND 50 Abyssal Shards.",
+        fusedOnly: true,
+        effect: { type: 'gain_essence_flat', value: 5000 },
+        effect2: { type: 'gain_shards_bonus_flat', value: 50 }
+    },
+    fusion_souls_burst: {
+        name: "⚗️ Cataclysm Flask",
+        desc: "Instantly gain 48 hours of SPS AND all soul gain is ×5 for 3 minutes.",
+        fusedOnly: true,
+        effect: { type: 'gain_sps_seconds_flat', value: 172800 },
+        effect2: { type: 'global_multiplier_flat', value: 5, duration: 180 }
+    },
+    fusion_cost_reduction: {
+        name: "⚗️ Abyssal Tycoon Serum",
+        desc: "For 30 minutes, all minion costs are reduced by 95%.",
+        fusedOnly: true,
+        effect: { type: 'temp_minion_cost_reducer_flat', value: 0.05, duration: 1800 }
+    },
+    fusion_cooldown_master: {
+        name: "⚗️ Temporal Shatter",
+        desc: "Resets ALL cooldowns and for 5 minutes, ritual cooldowns regenerate 10x faster.",
+        fusedOnly: true,
+        effect: { type: 'reset_all_cooldowns_flat' },
+        effect2: { type: 'cooldown_haste', value: 10, duration: 300 }
+    },
+    fusion_prestige_power: {
+        name: "⚗️ Ascendant's Blood",
+        desc: "Gain 25% of your next ascension shards AND the prestige bonus is cubed for 20 minutes.",
+        fusedOnly: true,
+        effect: { type: 'gain_shards_no_reset_flat', value: 0.25 },
+        effect2: { type: 'prestige_bonus_squared_flat', duration: 1200 }
+    },
+
+    // Market + Market fusions — significantly more powerful
+    fusion_market_obliterator: {
+        name: "⚗️ Void Obliterator",
+        desc: "For 5 minutes, ALL gains are ×100. Stacks multiplicatively with everything.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'global_multiplier_flat', value: 100, duration: 300 }
+    },
+    fusion_market_singularity: {
+        name: "⚗️ Grand Singularity",
+        desc: "For 3 minutes, all soul gain is SQUARED — and SPS is ×1000.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'square_all_gain', duration: 180 },
+        effect2: { type: 'sps_multiplier_flat', value: 1000, duration: 180 }
+    },
+    fusion_market_collapse: {
+        name: "⚗️ Collapse Accelerator",
+        desc: "Gain 50% of next Collapse's Aether, 50% of next Ascension's Shards, and doubles your Essence instantly.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'gain_aether_no_reset_flat', value: 0.5 },
+        effect2: { type: 'gain_shards_no_reset_flat', value: 0.5 }
+    },
+    fusion_market_eternity: {
+        name: "⚗️ Draught of Eternity",
+        desc: "For 10 minutes, SPS ×500, SPC ×500, and all costs reduced 99%.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'sps_multiplier_flat', value: 500, duration: 600 },
+        effect2: { type: 'temp_minion_cost_reducer_flat', value: 0.01, duration: 600 }
+    },
+    fusion_market_godhood: {
+        name: "⚗️ Elixir of Godhood",
+        desc: "For 2 minutes, soul gain is cubed. For real. Everything ×everything.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'gain_exponent_flat', value: 1.5, duration: 120 }
+    },
+
+    // ── Additional fused results ──────────────────────────────────────
+    fusion_click_god: {
+        name: "⚗️ Draught of the Click God",
+        desc: "For 10 minutes, SPC is ×100 and every click also fires 50 auto-harvests.",
+        fusedOnly: true,
+        effect: { type: 'spc_multiplier_flat', value: 100, duration: 600 },
+        effect2: { type: 'click_chain_flat', value: 50, duration: 600 }
+    },
+    fusion_world_rush: {
+        name: "⚗️ Vial of World Collapse",
+        desc: "Gain 25% of the next world's soul requirement AND 10% of next Ascension shards instantly.",
+        fusedOnly: true,
+        effect: { type: 'gain_souls_for_next_world_flat', value: 0.25 },
+        effect2: { type: 'gain_shards_no_reset_flat', value: 0.10 }
+    },
+    fusion_essence_bomb: {
+        name: "⚗️ Essence Detonator",
+        desc: "Doubles your entire Dark Essence stockpile AND grants 100 Corrupted Fragments.",
+        fusedOnly: true,
+        effect: { type: 'double_essence_flat' },
+        effect2: { type: 'gain_fragments_per_ascension_flat', value: 20 }
+    },
+    fusion_time_warp: {
+        name: "⚗️ Temporal Warp Serum",
+        desc: "Resets all cooldowns AND for 10 minutes ritual cooldowns tick 20× faster.",
+        fusedOnly: true,
+        effect: { type: 'reset_all_cooldowns_flat' },
+        effect2: { type: 'cooldown_haste', value: 20, duration: 600 }
+    },
+    fusion_aether_surge: {
+        name: "⚗️ Aether Surge Tonic",
+        desc: "Gain 50% of next Collapse Aether AND for 5 minutes Aether generates 10× faster.",
+        fusedOnly: true,
+        effect: { type: 'gain_aether_no_reset_flat', value: 0.5 },
+        effect2: { type: 'global_multiplier_flat', value: 5, duration: 300 }
+    },
+    fusion_pvp_destroyer: {
+        name: "⚗️ Blood of the Warlord",
+        desc: "For 15 minutes, PvP loot is ×30 and all minion costs are reduced 80%.",
+        fusedOnly: true,
+        effect: { type: 'pvp_loot_multiplier_flat', value: 30, duration: 900 },
+        effect2: { type: 'temp_minion_cost_reducer_flat', value: 0.20, duration: 900 }
+    },
+    fusion_shard_explosion: {
+        name: "⚗️ Shard Supernova",
+        desc: "Gain 40% of your next Ascension shards AND the prestige bonus is squared for 30 minutes.",
+        fusedOnly: true,
+        effect: { type: 'gain_shards_no_reset_flat', value: 0.40 },
+        effect2: { type: 'prestige_bonus_squared_flat', duration: 1800 }
+    },
+    fusion_passive_god: {
+        name: "⚗️ Elixir of the Passive God",
+        desc: "For 20 minutes, SPS ×100, and minion costs reduced 90%.",
+        fusedOnly: true,
+        effect: { type: 'sps_multiplier_flat', value: 100, duration: 1200 },
+        effect2: { type: 'temp_minion_cost_reducer_flat', value: 0.10, duration: 1200 }
+    },
+    fusion_cache_rush: {
+        name: "⚗️ Cache Accelerant",
+        desc: "Opens the Abyssal Cache immediately AND for 1 hour rare item luck is doubled.",
+        fusedOnly: true,
+        effect: { type: 'reset_cache_timer_flat' },
+        effect2: { type: 'rare_item_luck_flat', value: 2, duration: 3600 }
+    },
+    fusion_instant_wealth: {
+        name: "⚗️ Flask of Instant Wealth",
+        desc: "Instantly gain 72 hours of SPS AND 10,000 Dark Essence.",
+        fusedOnly: true,
+        effect: { type: 'gain_sps_seconds_flat', value: 259200 },
+        effect2: { type: 'gain_essence_flat', value: 10000 }
+    },
+    fusion_all_in_one: {
+        name: "⚗️ Omnipotent Brew",
+        desc: "For 5 minutes: SPS ×50, SPC ×50, costs -80%, and all soul gain is squared.",
+        fusedOnly: true,
+        effect: { type: 'square_all_gain', duration: 300 },
+        effect2: { type: 'sps_multiplier_flat', value: 50, duration: 300 }
+    },
+    // Market + Market extras
+    fusion_market_annihilator: {
+        name: "⚗️ Void Annihilator",
+        desc: "For 3 minutes, ALL gains are ×500. The most powerful timed brew in existence.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'global_multiplier_flat', value: 500, duration: 180 }
+    },
+    fusion_market_ascendant: {
+        name: "⚗️ Grand Ascendant's Elixir",
+        desc: "Gain 100% of next Ascension shards, 100% of next Collapse Aether, and doubles Essence.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'gain_shards_no_reset_flat', value: 1.0 },
+        effect2: { type: 'gain_aether_no_reset_flat', value: 1.0 }
+    },
+    fusion_market_omega: {
+        name: "⚗️ Omega Catalyst",
+        desc: "For 5 min: gain^1.25, SPS ×200, SPC ×200, costs -99%, cooldowns reset.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'gain_exponent_flat', value: 1.25, duration: 300 },
+        effect2: { type: 'sps_multiplier_flat', value: 200, duration: 300 }
+    },
+
+    // ── Additional fusion results covering all remaining potions ─────────
+
+    fusion_lucky_hoarder: {
+        name: "⚗️ Fortune's Grand Cache",
+        desc: "Abyssal Cache is ready instantly, drops 3 items, and rare item chance is ×5 for 24 hours.",
+        fusedOnly: true,
+        effect: { type: 'reset_cache_timer_flat' },
+        effect2: { type: 'rare_item_luck_flat', value: 5, duration: 86400 }
+    },
+    fusion_worlds_collide: {
+        name: "⚗️ Convergence Draught",
+        desc: "Gain 10% of next world's souls AND 5% of next Collapse's Aether instantly.",
+        fusedOnly: true,
+        effect: { type: 'gain_souls_for_next_world_flat', value: 0.10 },
+        effect2: { type: 'gain_aether_no_reset_flat', value: 0.05 }
+    },
+    fusion_cosmic_transcendence: {
+        name: "⚗️ Elixir of Cosmic Truth",
+        desc: "For 5 minutes, all soul gain is raised to the power of 1.10 AND SPS is ×100.",
+        fusedOnly: true,
+        effect: { type: 'gain_exponent_flat', value: 1.10, duration: 300 },
+        effect2: { type: 'sps_multiplier_flat', value: 100, duration: 300 }
+    },
+    fusion_minion_frenzy: {
+        name: "⚗️ Demonlord's Blood Rite",
+        desc: "For 15 minutes, all minions cost 0 and produce ×10 souls. Then simulate 2000 clicks.",
+        fusedOnly: true,
+        effect: { type: 'temp_minion_cost_reducer_flat', value: 0.001, duration: 900 },
+        effect2: { type: 'sps_multiplier_flat', value: 10, duration: 900 }
+    },
+    fusion_click_explosion: {
+        name: "⚗️ Thousand-Soul Strike",
+        desc: "Instantly simulate 1000 × (Ascensions+1) clicks AND SPC ×50 for 10 minutes.",
+        fusedOnly: true,
+        effect: { type: 'instant_clicks_flat', value: 1000 },
+        effect2: { type: 'spc_multiplier_flat', value: 50, duration: 600 }
+    },
+    fusion_battle_fortune: {
+        name: "⚗️ Warlord's Grand Omen",
+        desc: "PvP loot drops ×50 for 1 hour. Also resets your raid cooldown and grants 500 Corrupted Fragments.",
+        fusedOnly: true,
+        effect: { type: 'pvp_loot_multiplier_flat', value: 50, duration: 3600 },
+        effect2: { type: 'reset_raid_cooldown_flat' }
+    },
+    fusion_void_supremacy: {
+        name: "⚗️ Void Supremacy Tincture",
+        desc: "For 10 minutes, SPS is ×2000. The passive income of a god.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'sps_multiplier_flat', value: 2000, duration: 600 }
+    },
+    fusion_click_apocalypse: {
+        name: "⚗️ Click Apocalypse",
+        desc: "For 15 minutes, every click fires 50 extra auto-clicks at ×100 your SPC.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'click_chain_flat', value: 50, duration: 900 },
+        effect2: { type: 'spc_multiplier_flat', value: 100, duration: 900 }
+    },
+    fusion_essence_nova: {
+        name: "⚗️ Essence Nova",
+        desc: "Doubles your Dark Essence AND converts 10% of your souls into Essence instantly.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'double_essence_flat' },
+        effect2: { type: 'convert_souls_to_essence_flat', value: 0.10 }
+    },
+    fusion_shadow_lord: {
+        name: "⚗️ Elixir of Shadow Lordship",
+        desc: "For 20 minutes, SPS ×500, SPC ×500, and the prestige shard bonus is cubed.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'sps_multiplier_flat', value: 500, duration: 1200 },
+        effect2: { type: 'prestige_bonus_squared_flat', duration: 1200 }
+    },
+    fusion_fragment_nova: {
+        name: "⚗️ Fragment Supernova",
+        desc: "Gain 200 Corrupted Fragments per Ascension AND 10,000 Dark Essence instantly.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'gain_fragments_per_ascension_flat', value: 200 },
+        effect2: { type: 'gain_essence_flat', value: 10000 }
+    },
+    fusion_infinite_loop: {
+        name: "⚗️ The Infinite Loop",
+        desc: "For 8 minutes, all soul spending is refunded AND SPS is ×200. Buy everything freely.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'temp_minion_cost_reducer_flat', value: 0.001, duration: 480 },
+        effect2: { type: 'sps_multiplier_flat', value: 200, duration: 480 }
     },
 };
 
@@ -8225,6 +8706,198 @@ function renderArtifacts() {
         </div>`;
     }
 }
+
+// =================================================================
+// 🔮 FUSION CAULDRON LOGIC
+// =================================================================
+
+let fusionState = { slotA: null, slotB: null, pickingSlot: null };
+
+const potionMeta = {
+    draught_of_might:             { icon:'💪', color:'#ff6644' },
+    ichor_of_wealth:              { icon:'💰', color:'#ffcc00' },
+    elixir_of_wisdom:             { icon:'📚', color:'#44aaff' },
+    brew_of_the_void:             { icon:'🌑', color:'#9944cc' },
+    tincture_of_rage:             { icon:'😡', color:'#ff4444' },
+    essence_of_avarice:           { icon:'💎', color:'#44ccff' },
+    draught_of_the_hoarder:       { icon:'🪙', color:'#ffaa00' },
+    flask_of_temporal_flux:       { icon:'⏱',  color:'#00ccaa' },
+    philter_of_forgotten_souls:   { icon:'👻', color:'#aa88ff' },
+    elixir_of_resonance:          { icon:'🔮', color:'#ff88cc' },
+    brew_of_shattered_stars:      { icon:'⭐', color:'#ffffaa' },
+};
+function getPotionMeta(id) {
+    if (potionMeta[id]) return potionMeta[id];
+    if (potions[id]?.marketOnly)  return { icon:'🟣', color:'#cc44ff' };
+    if (potions[id]?.marketFusion || potions[id]?.fusedOnly) return { icon:'✨', color:'#ffaa00' };
+    return { icon:'⚗️', color:'#9944cc' };
+}
+
+function openFusionPicker(slot) {
+    fusionState.pickingSlot = slot;
+    const grid = document.getElementById('fusion-picker-grid');
+    grid.innerHTML = '';
+
+    // Collect potions in shelf (excluding fused-only ones you can't put in slots)
+    const owned = Object.keys(gameState.potions).filter(id =>
+        gameState.potions[id] > 0 && potions[id] && !potions[id].fusedOnly
+    );
+
+    if (owned.length === 0) {
+        grid.innerHTML = '<div style="grid-column:1/-1; color:#555; text-align:center; padding:20px;">No potions in your shelf.<br>Brew or buy some first!</div>';
+    }
+
+    owned.forEach(id => {
+        const p = potions[id];
+        const meta = getPotionMeta(id);
+        const count = gameState.potions[id];
+        const isMarket = p.marketOnly;
+        const card = document.createElement('div');
+        card.style.cssText = `background:linear-gradient(135deg,#0d0a18,transparent); border:1px solid ${meta.color}44; border-top:2px solid ${meta.color}; border-radius:10px; padding:10px; cursor:pointer; transition:all 0.15s; position:relative;`;
+        card.innerHTML = `
+            <div style="font-size:1.6em; text-align:center; margin-bottom:4px;">${meta.icon}</div>
+            <div style="color:${meta.color}; font-size:0.72em; font-weight:bold; text-align:center; margin-bottom:4px; line-height:1.2;">${p.name}</div>
+            <div style="text-align:center; background:${meta.color}22; border:1px solid ${meta.color}44; border-radius:6px; padding:1px 0; font-size:0.65em; color:${meta.color};">×${count} owned${isMarket ? ' · Market' : ''}</div>`;
+        card.onmouseover = () => card.style.background = `linear-gradient(135deg,${meta.color}18,#0d0a18)`;
+        card.onmouseout  = () => card.style.background  = 'linear-gradient(135deg,#0d0a18,transparent)';
+        card.onclick = () => selectFusionPotion(id);
+        grid.appendChild(card);
+    });
+
+    document.getElementById('fusion-picker-overlay').style.display = 'flex';
+}
+
+function closeFusionPicker() {
+    document.getElementById('fusion-picker-overlay').style.display = 'none';
+    fusionState.pickingSlot = null;
+}
+
+function selectFusionPotion(id) {
+    if (fusionState.pickingSlot === 'a') fusionState.slotA = id;
+    else fusionState.slotB = id;
+    closeFusionPicker();
+    updateFusionUI();
+}
+
+function updateFusionUI() {
+    const slotAEl  = document.getElementById('fusion-slot-a');
+    const slotBEl  = document.getElementById('fusion-slot-b');
+    const previewEl = document.getElementById('fusion-result-preview');
+    const btnEl    = document.getElementById('fusion-btn');
+    if (!slotAEl) return;
+
+    function renderSlot(el, id) {
+        if (!id || !potions[id]) {
+            el.innerHTML = '<div style="font-size:2em; color:#2a1a4a;">⚗️</div><div style="color:#444; font-size:0.72em;">Click to select</div>';
+            el.style.borderColor = '#2a1a4a';
+            el.style.borderStyle = 'dashed';
+            return;
+        }
+        const p = potions[id];
+        const meta = getPotionMeta(id);
+        const count = gameState.potions[id] || 0;
+        el.innerHTML = `
+            <div style="font-size:1.8em; line-height:1;">${meta.icon}</div>
+            <div style="color:${meta.color}; font-size:0.7em; font-weight:bold; line-height:1.2; margin-top:4px;">${p.name}</div>
+            <div style="color:#555; font-size:0.6em; margin-top:2px;">×${count} in shelf</div>
+            <div style="color:#666; font-size:0.6em; margin-top:4px; cursor:pointer; text-decoration:underline;" onclick="event.stopPropagation();">click to change</div>`;
+        el.style.borderColor = meta.color + '88';
+        el.style.borderStyle = 'solid';
+    }
+
+    renderSlot(slotAEl, fusionState.slotA);
+    renderSlot(slotBEl, fusionState.slotB);
+
+    // Preview
+    if (fusionState.slotA && fusionState.slotB) {
+        const resultId = getFusionResult(fusionState.slotA, fusionState.slotB);
+        const rp = potions[resultId];
+        if (rp) {
+            const rMeta = getPotionMeta(resultId);
+            const isMarketFusion = rp.marketFusion;
+            previewEl.style.borderColor = rMeta.color + '88';
+            previewEl.style.background  = `linear-gradient(135deg,${rMeta.color}11,#0a0614)`;
+            previewEl.innerHTML = `
+                <div style="font-size:1.8em; line-height:1; filter:drop-shadow(0 0 6px ${rMeta.color}88);">${rMeta.icon}</div>
+                <div style="color:${rMeta.color}; font-size:0.75em; font-weight:bold; line-height:1.2; margin-top:4px;">${rp.name}</div>
+                <div style="color:#aaa; font-size:0.65em; margin-top:4px; line-height:1.4;">${rp.desc}</div>
+                ${isMarketFusion ? '<div style="color:#ffaa00; font-size:0.6em; margin-top:6px; letter-spacing:1px;">✦ MARKET FUSION ✦</div>' : ''}`;
+
+            // Check if player has both potions
+            const countA = gameState.potions[fusionState.slotA] || 0;
+            const countB = gameState.potions[fusionState.slotB] || 0;
+            const canFuse = countA > 0 && countB > 0;
+            btnEl.disabled = !canFuse;
+            btnEl.style.cursor  = canFuse ? 'pointer' : 'not-allowed';
+            btnEl.style.color   = canFuse ? rMeta.color : '#444';
+            btnEl.style.borderColor = canFuse ? rMeta.color + '66' : '#aa44ff22';
+            btnEl.style.background  = canFuse ? `linear-gradient(135deg,${rMeta.color}22,#1a0a2a)` : 'linear-gradient(135deg,#1a0a2a,#2a0a4a)';
+        }
+    } else {
+        previewEl.style.borderColor = '#1a0a30';
+        previewEl.style.background  = '#0a0614';
+        previewEl.innerHTML = '<div style="font-size:1.6em; color:#2a1a4a;">?</div><div style="color:#333; font-size:0.72em;">Select both potions to preview</div>';
+        btnEl.disabled = true;
+        btnEl.style.color = '#444';
+        btnEl.style.background = 'linear-gradient(135deg,#1a0a2a,#2a0a4a)';
+        btnEl.style.borderColor = '#aa44ff22';
+    }
+}
+
+function executeFusion() {
+    const a = fusionState.slotA, b = fusionState.slotB;
+    if (!a || !b) return;
+
+    const countA = gameState.potions[a] || 0;
+    const countB = gameState.potions[b] || 0;
+    if (countA < 1 || countB < 1) {
+        Toastify({ text: "You need at least one of each potion in your shelf.", duration:3000, gravity:'top', position:'center', style:{background:'#550000'} }).showToast();
+        return;
+    }
+
+    const resultId = getFusionResult(a, b);
+    const rp = potions[resultId];
+    if (!rp) return;
+
+    const pA = potions[a], pB = potions[b];
+    const isMarketFusion = pA?.marketOnly && pB?.marketOnly;
+
+    // Confirm — emphasise the cost
+    const confirmMsg = `Fuse:
+  ${pA.name} ×1
+  ${pB.name} ×1
+
+Into:
+  ${rp.name}
+
+Both potions will be consumed. Proceed?`;
+    if (!confirm(confirmMsg)) return;
+
+    // Consume both
+    gameState.potions[a]--;
+    gameState.potions[b]--;
+
+    // Grant result
+    if (!gameState.potions[resultId]) gameState.potions[resultId] = 0;
+    gameState.potions[resultId]++;
+
+    const rMeta = getPotionMeta(resultId);
+    Toastify({
+        text: `${rMeta.icon} ${rp.name} created!${isMarketFusion ? ' ✦ MARKET FUSION ✦' : ''}`,
+        duration: 6000, gravity:'top', position:'center',
+        style: { background: `linear-gradient(135deg,#0a0614,${rMeta.color})` }
+    }).showToast();
+
+    playSound('ascend');
+
+    // Reset slots
+    fusionState.slotA = null;
+    fusionState.slotB = null;
+
+    saveGame();
+    renderBrewery();
+}
+
 function renderBrewery() {
     const recipeGrid = document.getElementById('potion-recipe-grid');
     const inventoryGrid = document.getElementById('potion-inventory');
@@ -8252,6 +8925,7 @@ function renderBrewery() {
     for (const id in potions) {
         const p = potions[id];
         if (p.marketOnly) continue; // only available in the Hourly Shop
+        if (p.fusedOnly) continue; // only created via Fusion Cauldron
         const meta = potionMeta[id] || { icon:'⚗️', color:'#9944cc' };
         const canAffordSouls = D(gameState.souls).gte(D(p.cost))
         const canAffordShards = !p.shardsCost || gameState.abyssalShards >= p.shardsCost;
@@ -8328,6 +9002,9 @@ function renderBrewery() {
     if (!hasPotions) {
         inventoryGrid.innerHTML = `<div style="color:var(--dim-color); padding:20px; grid-column:1/-1;"><div style="font-size:2em; margin-bottom:8px;">🧪</div>No potions brewed yet. Check the recipes below!</div>`;
     }
+
+    // Refresh fusion cauldron UI whenever shelf changes
+    updateFusionUI();
 }
 
 
@@ -8492,6 +9169,32 @@ function usePotion(id) {
             const frags = Math.floor(effect.value * (gameState.ascensions || 1));
             gameState.corruptedFragments += frags;
             Toastify({ text: `🔮 Gained ${formatNumber(frags)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
+        }
+
+        // --- FUSED POTION: SECOND INSTANT EFFECT ---
+        const effect2 = potions[id]?.effect2;
+        if (effect2) {
+            if (effect2.type === 'gain_shards_bonus_flat') {
+                gameState.abyssalShards += effect2.value;
+                Toastify({ text: `💎 Gained ${formatNumber(effect2.value)} Abyssal Shards!`, duration:2500, gravity:'top', position:'center' }).showToast();
+            }
+            if (effect2.type === 'global_multiplier_flat' && effect2.duration) {
+                gameState.activePotions[id + '_e2'] = Date.now() + (effect2.duration * 1000);
+            }
+            if (effect2.type === 'spc_multiplier_flat' && effect2.duration) {
+                gameState.activePotions[id + '_spc'] = Date.now() + (effect2.duration * 1000);
+            }
+            if (effect2.type === 'temp_minion_cost_reducer_flat' && effect2.duration) {
+                gameState.activePotions[id + '_cost'] = Date.now() + (effect2.duration * 1000);
+            }
+            if (effect2.type === 'prestige_bonus_squared_flat' && effect2.duration) {
+                gameState.activePotions[id + '_pres'] = Date.now() + (effect2.duration * 1000);
+            }
+            if (effect2.type === 'gain_shards_no_reset_flat') {
+                const gained = Math.floor(calculateShardsOnAscend() * effect2.value);
+                gameState.abyssalShards += isFinite(gained) ? gained : 0;
+                Toastify({ text: `💎 Also gained ${formatNumber(gained)} Abyssal Shards!`, duration:3000, gravity:'top', position:'center' }).showToast();
+            }
         }
 
         // --- DURATION-BASED EFFECTS ---

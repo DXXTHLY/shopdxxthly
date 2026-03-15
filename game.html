@@ -3886,6 +3886,12 @@ text-decoration: underline; /* Adds an underline on hover */
             if (this.e >= 17) return this.toString();
             return this.toNumber().toFixed(dp);
         }
+        // ── Instance checks ────────────────────────────────────────
+        isFinite()  { return this.e < EXP_LIMIT; }
+        isNaN()     { return false; } // our Decimal never produces NaN — constructor normalises to 0
+        isZero()    { return this.m === 0; }
+        isPositive(){ return this.m > 0; }
+        isNegative(){ return this.m < 0; }
         // Static helpers
         static pow(base, exp) { return D(base).pow(exp); }
         static log10(x) { return D(x).log10().toNumber(); }
@@ -7363,9 +7369,15 @@ async function createProfile() {
 }
 // Decimal currency accumulation — unbounded, same as souls
 function _safeAddCur(key, amount) {
-    const a = D(amount);
-    if (!a.isFinite() || a.lte(0)) return;
-    gameState[key] = D(gameState[key] || 0).add(a);
+    // Defensive wrapper — amount may be plain number, Decimal, or edge-case value
+    let n;
+    try {
+        n = (amount instanceof Decimal) ? amount : D(amount);
+    } catch(e) { return; }
+    // Use plain number check for the guard (avoids relying on instance method)
+    const asNum = n.toNumber();
+    if (!isFinite(asNum) || isNaN(asNum) || asNum <= 0) return;
+    gameState[key] = D(gameState[key] || 0).add(n);
 }
 
 async function saveGame() {

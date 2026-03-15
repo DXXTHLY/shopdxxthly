@@ -7743,14 +7743,8 @@ function tickItemDurability() {
         }
     }
 
-    // Passive repair: +0.5 durability per hour to ALL items in inventory (not equipped)
-    for (const id of gameState.inventory) {
-        if (!id || !items[id]) continue;
-        const max = getMaxDurability(id);
-        if ((gameState.itemDurability[id] || max) < max) {
-            gameState.itemDurability[id] = Math.min(max, (gameState.itemDurability[id] || max) + max / (48 * 60));
-        }
-    }
+    // Inventory items: durability is frozen — no drain, no passive repair.
+    // Durability only changes while the item is equipped and being used.
 
     if (anyBroken) { calculateStats(); renderAll(); saveGame(); }
 }

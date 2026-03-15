@@ -4024,11 +4024,11 @@ window.onload = function() {
 		// Cap stats — clamp all currencies to 0 minimum (prevents Charon's Oar or other bugs from going negative)
 		gameState.souls          = Dmax0(gameState.souls);
 		// Cap instead of zero — Infinity/NaN wraps to max safe float, never to 0
-		const _capCur = (v) => { const n = Number(v); return isNaN(n) || n < 0 ? 0 : isFinite(n) ? n : Number.MAX_SAFE_INTEGER; };
-		gameState.darkEssence        = _capCur(gameState.darkEssence);
-		gameState.abyssalShards      = _capCur(gameState.abyssalShards);
-		gameState.aether             = _capCur(gameState.aether);
-		gameState.corruptedFragments = _capCur(gameState.corruptedFragments);
+		// Re-wrap as Decimal (handles corrupt saves)
+		gameState.darkEssence        = D(gameState.darkEssence        || 0);
+		gameState.abyssalShards      = D(gameState.abyssalShards      || 0);
+		gameState.aether             = D(gameState.aether             || 0);
+		gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
 		// lifetimeSouls must always be >= souls + soulsSpent (self-healing)
 		const trueMinLifetime = D(gameState.souls).add(D(gameState.soulsSpent || 0));
 		gameState.lifetimeSouls = D(gameState.lifetimeSouls).lt(trueMinLifetime) ? trueMinLifetime : D(gameState.lifetimeSouls);
@@ -7348,12 +7348,23 @@ async function createProfile() {
         createButton.innerText = "Begin the Harvest";
     }
 }
+// Decimal currency accumulation — unbounded, same as souls
+function _safeAddCur(key, amount) {
+    const a = D(amount);
+    if (!a.isFinite() || a.lte(0)) return;
+    gameState[key] = D(gameState[key] || 0).add(a);
+}
+
 async function saveGame() {
     gameState._savedAt = Date.now(); // timestamp for cloud vs local comparison
     // Serialize Decimal fields to strings before saving
     const stateToSave = { ...gameState,
         souls:         D(gameState.souls).toString(),
         lifetimeSouls: D(gameState.lifetimeSouls).toString(),
+        darkEssence:   D(gameState.darkEssence).toString(),
+        abyssalShards: D(gameState.abyssalShards).toString(),
+        aether:        D(gameState.aether).toString(),
+        corruptedFragments: D(gameState.corruptedFragments).toString(),
         'stats.sps':   undefined, // recomputed on load
     };
     // stats.sps is recomputed on load — no need to serialize it
@@ -7387,13 +7398,13 @@ async function saveGame() {
         lifetimeSouls:     safe(D(gameState.lifetimeSouls).toNumber()),
         soulsLog:          safe(D(gameState.lifetimeSouls).gt(0) ? D(gameState.lifetimeSouls).log10().toNumber() : 0, 0),
         ascensions:        safe(gameState.ascensions),
-        aether:            safe(gameState.aether),
+        aether:            safe(D(gameState.aether).toNumber()),
         totalAetherEarned: safe(gameState.totalAetherEarned),
         pvpWins:           safe(gameState.pvpWins),
         pvpLosses:         safe(gameState.pvpLosses),
-        dark_essence:      safe(gameState.darkEssence),
-        corrupted_fragments: safe(gameState.corruptedFragments),
-        abyssalShards:     safe(gameState.abyssalShards),
+        dark_essence:      safe(D(gameState.darkEssence).toNumber()),
+        corrupted_fragments: safe(D(gameState.corruptedFragments).toNumber()),
+        abyssalShards:     safe(D(gameState.abyssalShards).toNumber()),
         bin_id:            gameState.playerName,
         totalCollapses:    safe(gameState.totalCollapses)
     };
@@ -7423,6 +7434,10 @@ function loadGame() {
             // Restore Decimal fields from serialized strings
             gameState.souls = D(gameState.souls || 0);
             gameState.lifetimeSouls = D(gameState.lifetimeSouls || 0);
+            gameState.darkEssence        = D(gameState.darkEssence        || 0);
+            gameState.abyssalShards      = D(gameState.abyssalShards      || 0);
+            gameState.aether             = D(gameState.aether             || 0);
+            gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
             // stats.sps is always recomputed by calculateStats() — no restore needed
             // Existing player — go straight into the game
             document.getElementById('game-container').style.display = 'block';
@@ -7443,6 +7458,10 @@ function loadGame() {
         // Ensure Decimal types on fresh start
         gameState.souls = D(gameState.souls || 0);
         gameState.lifetimeSouls = D(gameState.lifetimeSouls || 0);
+        gameState.darkEssence        = D(0);
+        gameState.abyssalShards      = D(0);
+        gameState.aether             = D(0);
+        gameState.corruptedFragments = D(0);
         // stats.sps recomputed by calculateStats()
         showAuthScreen();
     }
@@ -7554,8 +7573,8 @@ function buyUpgrade(type) {
     } 
     // This part handles upgrades that cost Dark Essence
     else if (type === 'resonance') {
-        if (gameState.darkEssence < upgrade.cost) return; // Stop if the player can't afford it
-        gameState.darkEssence -= upgrade.cost;
+        if (D(gameState.darkEssence).lt(upgrade.cost)) return; // Stop if the player can't afford it
+        gameState.darkEssence = D(gameState.darkEssence).sub(upgrade.cost);
         upgrade.level++;
     }
     
@@ -7619,13 +7638,13 @@ function promoteMinion(id) {
 
     // Check if the player meets all requirements, using the newly calculated cost.
     const canAffordSouls = D(gameState.souls).gte(D(nextPromotion.soulCost))
-    const canAffordEssence = gameState.darkEssence >= effectiveEssenceCost; // Use the calculated cost for the check
+    const canAffordEssence = D(gameState.darkEssence).gte(effectiveEssenceCost); // Use the calculated cost for the check
     const hasRequiredLevel = playerMinion.level >= nextPromotion.level;
 
     if (canAffordSouls && canAffordEssence && hasRequiredLevel) {
         // Subtract the cost from the player's resources.
         gameState.souls = D(gameState.souls).sub(D(nextPromotion.soulCost));
-        gameState.darkEssence -= effectiveEssenceCost; // Subtract the calculated cost
+        gameState.darkEssence = D(gameState.darkEssence).sub(effectiveEssenceCost); // Subtract the calculated cost
 
         // Increase the minion's promotion tier.
         playerMinion.promotionTier++;
@@ -7686,9 +7705,9 @@ function buyArtifact(id) {
 // =================================================================
 function buyAetherUpgrade(type) {
     const upgrade = gameState.aetherUpgrades[type];
-    if (!upgrade || gameState.aether < upgrade.cost) return;
+    if (!upgrade || D(gameState.aether).lt(upgrade.cost)) return;
 
-    gameState.aether -= upgrade.cost;
+    gameState.aether = D(gameState.aether).sub(upgrade.cost);
     upgrade.level++;
     // Increase cost for the next level (e.g., exponential)
     upgrade.cost = Math.ceil(upgrade.cost * (type === 'startMinions' ? 3 : 2)); 
@@ -7713,7 +7732,7 @@ function renderCollapseScreen() {
     grid.innerHTML = '';
     upgrades.forEach(u => {
         const data = gameState.aetherUpgrades[u.id];
-        const canAfford = gameState.aether >= data.cost;
+        const canAfford = D(gameState.aether).gte(data.cost);
         const c = u.color;
         grid.innerHTML += `
         <div style="background:linear-gradient(135deg,#06100e,#0a1418); border:1px solid ${c}22; border-left:3px solid ${canAfford ? c : '#1a2030'}; border-radius:10px; padding:14px 16px; display:flex; align-items:center; gap:14px; transition:all 0.2s;">
@@ -7869,11 +7888,11 @@ function executeAscension() {
   const oldBankedSouls = gameState.bankedSouls;
   const oldBankedFragments = gameState.bankedFragments || 0;
   const oldAscensions = gameState.ascensions;
-  const oldAbyssalShards = gameState.abyssalShards;
+  const oldAbyssalShards = D(gameState.abyssalShards);
   const oldResonance = gameState.upgrades.resonance;
   const oldPvpWins = gameState.pvpWins;
   const oldPvpLosses = gameState.pvpLosses;
-  const oldAether = gameState.aether;
+  const oldAether = D(gameState.aether);
   const oldAetherUpgrades = gameState.aetherUpgrades;
   var inventory = gameState.inventory;
   var equipped = gameState.equipped;
@@ -7899,13 +7918,13 @@ function executeAscension() {
   gameState.hasWithdrawn = false;
   gameState.hasWithdrawnFragments = false;
   gameState.ascensions = oldAscensions + 1;
-  gameState.abyssalShards = oldAbyssalShards + shardsGained;
+  gameState.abyssalShards = D(oldAbyssalShards).add(D(shardsGained));
   gameState.totalShardsEarned = oldTotalShardsEarned + shardsGained;
-  gameState.darkEssence = essenceToRetain;
+  gameState.darkEssence = D(essenceToRetain || 0);
   gameState.upgrades.resonance = oldResonance;
   gameState.pvpWins = oldPvpWins;
   gameState.pvpLosses = oldPvpLosses;
-  gameState.aether = oldAether;
+  gameState.aether = D(oldAether || 0);
   gameState.aetherUpgrades = oldAetherUpgrades;
   gameState.inventory = inventory;
   gameState.equipped = equipped;
@@ -7935,7 +7954,7 @@ function executeAscension() {
 // =================================================================
 function calculateAetherOnCollapse() {
     if (!gameState.unlockedWorlds.includes('nexus_of_all_realities')) return 0;
-    const base = Math.floor(5 * Math.pow(Math.log10(gameState.abyssalShards + 1) / 10, 2));
+    const base = Math.floor(5 * Math.pow(Math.log10(D(gameState.abyssalShards).toNumber() + 1) / 10, 2));
     const multiplier = gameState._aetherGainMultiplier || 1;
     const aether = Math.floor(base * multiplier);
     return isNaN(aether) ? 0 : aether;
@@ -7976,7 +7995,7 @@ function executeCollapse() {
     const aetherGained = calculateAetherOnCollapse();
     
     const oldPlayerName = gameState.playerName;
-    const oldAether = gameState.aether;
+    const oldAether = D(gameState.aether);
     const oldAetherUpgrades = gameState.aetherUpgrades;
     // Preserve lifetime stats
     const oldLifetimeSouls = gameState.lifetimeSouls;
@@ -7999,7 +8018,7 @@ function executeCollapse() {
 
     // Restore permanent + lifetime data
     gameState.playerName        = oldPlayerName;
-    gameState.aether            = oldAether + aetherGained;
+    gameState.aether            = D(oldAether || 0).add(D(aetherGained || 0));
     gameState.totalAetherEarned = oldTotalAetherEarned + aetherGained;
     gameState.totalCollapses    = (oldTotalShardsEarned >= 0 ? 0 : 0); // placeholder — set properly below
     gameState.aetherUpgrades    = oldAetherUpgrades;
@@ -8235,7 +8254,7 @@ function calculateStats() {
         }
         // The God Paradox: multiplier by log10(shards)
         if (bonus.type === 'multiplier_by_log10_shards') {
-            const logShards = Math.max(1, Math.log10(Math.max(1, gameState.abyssalShards || 0)));
+            const logShards = Math.max(1, Math.log10(Math.max(1, D(gameState.abyssalShards).toNumber())));
             global_multiplier *= Math.pow(logShards, level);
         }
         // Möbius Script: essence gain +1% per ascension
@@ -8527,7 +8546,7 @@ function checkButtons() {
     // Standard upgrade checks
     document.getElementById('clickUpgradeBtn').disabled = D(gameState.souls).lt(D(gameState.upgrades.click.cost))
     document.getElementById('sacrificeBtn').disabled = D(gameState.souls).lt(D(gameState.upgrades.sacrifice.cost))
-    document.getElementById('resonanceUpgradeBtn').disabled = gameState.darkEssence < gameState.upgrades.resonance.cost;
+    document.getElementById('resonanceUpgradeBtn').disabled = D(gameState.darkEssence).lt(gameState.upgrades.resonance.cost);
 
     // Minion checks — update both disabled state AND visual styles
     for (const id in minions) {
@@ -8694,7 +8713,7 @@ function renderMinions() {
 
         const nextPromotion = m.promotions ? m.promotions[p.promotionTier] : null;
         const canPromote = nextPromotion && p.level >= nextPromotion.level;
-        const canAffordPromote = canPromote && D(gameState.souls).gte(D(nextPromotion.soulCost)) && gameState.darkEssence >= nextPromotion.essenceCost;
+        const canAffordPromote = canPromote && D(gameState.souls).gte(D(nextPromotion.soulCost)) && D(gameState.darkEssence).gte(nextPromotion.essenceCost);
         const canAffordBuy = D(gameState.souls).gte(D(p.cost))
 
         // Promotion tier stars
@@ -9590,7 +9609,7 @@ function renderBrewery() {
         if (p.fusedOnly) continue; // only created via Fusion Cauldron
         const meta = getPotionMeta(id);
         const canAffordSouls = D(gameState.souls).gte(D(p.cost))
-        const canAffordShards = !p.shardsCost || gameState.abyssalShards >= p.shardsCost;
+        const canAffordShards = !p.shardsCost || D(gameState.abyssalShards).gte(p.shardsCost);
         const canAfford = canAffordSouls && canAffordShards;
 
         const cooldownEndTime = gameState.potionCooldowns[id];
@@ -9760,13 +9779,13 @@ function brewPotion(id) {
 
     let canAfford = D(gameState.souls).gte(D(p.cost))
     if (p.costType === 'souls_and_shards') {
-        canAfford = D(gameState.souls).gte(D(p.cost)) && gameState.abyssalShards >= p.shardsCost;
+        canAfford = D(gameState.souls).gte(D(p.cost)) && D(gameState.abyssalShards).gte(p.shardsCost);
     }
     
     if (canAfford) {
         gameState.souls = D(gameState.souls).sub(D(p.cost));
         gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(p.cost));
-        if (p.shardsCost) gameState.abyssalShards -= p.shardsCost;
+        if (p.shardsCost) gameState.abyssalShards = D(gameState.abyssalShards).sub(p.shardsCost);
         gameState.potions[id] = (gameState.potions[id] || 0) + 1;
         gameState.potionsBrewed++;
 
@@ -9824,7 +9843,7 @@ function usePotion(id) {
         }
         if (effect.type === 'gain_aether_no_reset_flat') {
             const gained = Math.floor(calculateAetherOnCollapse() * effect.value);
-            gameState.aether += gained;
+            _safeAddCur("aether", gained);
             Toastify({ text: `⚡ Gained ${formatNumber(gained)} Aether!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#001a2a,#00e5ff)'} }).showToast();
         }
         if (effect.type === 'reset_cache_timer_flat') {
@@ -9875,7 +9894,7 @@ function usePotion(id) {
         const effect2 = potions[id]?.effect2;
         if (effect2) {
             if (effect2.type === 'gain_shards_bonus_flat') {
-                gameState.abyssalShards += effect2.value;
+                _safeAddCur("abyssalShards", effect2.value);
                 Toastify({ text: `💎 Gained ${formatNumber(effect2.value)} Abyssal Shards!`, duration:2500, gravity:'top', position:'center' }).showToast();
             }
             if (effect2.type === 'global_multiplier_flat' && effect2.duration) {
@@ -11111,7 +11130,7 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
             lifetimeSouls:     D(gameState.lifetimeSouls).toNumber(),
             soulsLog:          D(gameState.lifetimeSouls).gt(0) ? parseFloat(D(gameState.lifetimeSouls).log10().toNumber().toFixed(6)) : 0,
             ascensions:        gameState.ascensions,
-            aether:            gameState.aether,
+            aether:            D(gameState.aether).toFixed(),
             totalAetherEarned: gameState.totalAetherEarned,
             pvpWins:           gameState.pvpWins,
             pvpLosses:         gameState.pvpLosses,
@@ -11832,7 +11851,7 @@ function generateHourlyShopItems() {
             const alreadyOwns = (gameState.minions[id]?.level || 0) > 0;
             // Permanently blocked if already owned — hourly soldOut is secondary
             const blocked     = alreadyOwns || soldOut;
-            const canBuy      = !blocked && gameState.darkEssence >= smPrice;
+            const canBuy      = !blocked && D(gameState.darkEssence).gte(smPrice);
 
             let badgeText, buttonHtml, opacity, borderAlpha;
             if (alreadyOwns) {
@@ -11892,7 +11911,7 @@ function generateHourlyShopItems() {
         }
 
         const finalPrice = shopItem.id === 'mark_of_the_first' ? 150 : shopItem.type === 'market_potion' ? (potions[shopItem.id]?.shopPrice || 50) : ((seed + index * 13) % 20) + 1;
-        const canAfford  = !soldOut && gameState.darkEssence >= finalPrice;
+        const canAfford  = !soldOut && D(gameState.darkEssence).gte(finalPrice);
         const theme      = typeTheme[shopItem.type] || typeTheme.item;
         const rc         = rarityColor[itemData?.rarity] || theme.color;
 
@@ -11937,7 +11956,7 @@ function generateHourlyShopItems() {
 // buyHourlyShopItem — enforces per-hour purchase limits
 // =================================================================
 function buyHourlyShopItem(itemId, itemType, price, hourKey) {
-    if (gameState.darkEssence < price) {
+    if (D(gameState.darkEssence).lt(price)) {
         Toastify({ text: 'Not enough Dark Essence.', duration: 2500, gravity:'top', position:'center', style:{ background:'#aa2222' } }).showToast();
         return;
     }
@@ -11964,7 +11983,7 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     if (!confirm(`Buy ${itemName} for ${formatNumber(price)} Dark Essence?${limitMsg}`)) return;
 
     // Charge
-    gameState.darkEssence -= price;
+    gameState.darkEssence = D(gameState.darkEssence).sub(price);
 
     // Record purchase
     gameState.shopPurchases[purchaseKey] = bought + 1;
@@ -12038,12 +12057,12 @@ function depositSouls() {
         Toastify({ text: `Need ${formatNumber(depositAmt)} souls to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    if (gameState.darkEssence < essenceCost) {
+    if (D(gameState.darkEssence).lt(essenceCost)) {
         Toastify({ text: `Need ${essenceCost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
     gameState.souls = D(gameState.souls).sub(D(depositAmt));
-    gameState.darkEssence -= essenceCost;
+    gameState.darkEssence = D(gameState.darkEssence).sub(essenceCost);
     gameState.bankedSouls += depositAmt;
     playSound('upgrade');
     Toastify({ text: `🏦 ${formatNumber(depositAmt)} souls secured in the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a1800,#c8a800)'} }).showToast();
@@ -12054,17 +12073,17 @@ function depositSouls() {
 
 function depositFragments() {
     const essenceCost = 50;
-    const depositAmt = gameState.corruptedFragments;
+    const depositAmt = D(gameState.corruptedFragments);
     if (depositAmt <= 0) {
         Toastify({ text: `You have no fragments to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    if (gameState.darkEssence < essenceCost) {
+    if (D(gameState.darkEssence).lt(essenceCost)) {
         Toastify({ text: `Need ${essenceCost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    gameState.darkEssence -= essenceCost;
-    gameState.corruptedFragments = 0;
+    gameState.darkEssence = D(gameState.darkEssence).sub(essenceCost);
+    gameState.corruptedFragments = D(0);
     gameState.bankedFragments = (gameState.bankedFragments || 0) + depositAmt;
     playSound('upgrade');
     Toastify({ text: `🔮 ${formatNumber(depositAmt)} fragments secured in the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
@@ -12083,13 +12102,13 @@ function withdrawFragments() {
         Toastify({ text: `Fragment vault is empty.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    if (gameState.darkEssence < withdrawCost) {
+    if (D(gameState.darkEssence).lt(withdrawCost)) {
         Toastify({ text: `Need ${withdrawCost} Dark Essence to withdraw.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
     if (!confirm(`Withdraw ${formatNumber(gameState.bankedFragments)} fragments for ${withdrawCost} DE?`)) return;
-    gameState.darkEssence -= withdrawCost;
-    gameState.corruptedFragments += gameState.bankedFragments;
+    gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost);
+    _safeAddCur("corruptedFragments", gameState.bankedFragments);
     gameState.hasWithdrawnFragments = true;
     playSound('ascend');
     Toastify({ text: `🔮 Fragments retrieved from the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
@@ -12113,13 +12132,13 @@ function withdrawSouls() {
         alert("Your vault is empty.");
         return;
     }
-    if (gameState.darkEssence < withdrawCost) {
+    if (D(gameState.darkEssence).lt(withdrawCost)) {
         alert(`You need ${withdrawCost} Dark Essence to unlock the vault.`);
         return;
     }
 
     if (confirm(`This will cost ${withdrawCost} Dark Essence. Are you sure you want to withdraw ${formatNumber(gameState.bankedSouls)} souls?`)) {
-        gameState.darkEssence -= withdrawCost;
+        gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost);
         gameState.souls = D(gameState.souls).add(D(gameState.bankedSouls));
         gameState.hasWithdrawn = true;
 
@@ -12162,34 +12181,34 @@ function convertCurrency(from, to, amountIn, amountOut) {
     let canAfford = false;
 
     if (from === 'shards' && to === 'de') {
-        if (gameState.abyssalShards >= amountIn) {
-            gameState.abyssalShards -= amountIn;
+        if (D(gameState.abyssalShards).gte(amountIn)) {
+            gameState.abyssalShards = D(gameState.abyssalShards).sub(amountIn);
             _safeAddCur("darkEssence", amountOut);
             canAfford = true;
         }
     } else if (from === 'aether' && to === 'de') {
-        if (gameState.aether >= amountIn) {
-            gameState.aether -= amountIn;
+        if (D(gameState.aether).gte(amountIn)) {
+            gameState.aether = D(gameState.aether).sub(amountIn);
             _safeAddCur("darkEssence", amountOut);
             if (amountIn === 1) gameState.aetherToDeConversions++;
             canAfford = true;
         }
     } else if (from === 'de' && to === 'souls') {
-        if (gameState.darkEssence >= amountIn) {
-            gameState.darkEssence -= amountIn;
+        if (D(gameState.darkEssence).gte(amountIn)) {
+            gameState.darkEssence = D(gameState.darkEssence).sub(amountIn);
             gameState.souls = D(gameState.souls).add(D(amountOut));
             gameState.lifetimeSouls = (D(gameState.lifetimeSouls).lt(D(gameState.lifetimeSouls + amountOut)) ? D(gameState.lifetimeSouls + amountOut) : D(gameState.lifetimeSouls));
             canAfford = true;
         }
     } else if (from === 'de' && to === 'shards') {
-        if (gameState.darkEssence >= amountIn) {
-            gameState.darkEssence -= amountIn;
+        if (D(gameState.darkEssence).gte(amountIn)) {
+            gameState.darkEssence = D(gameState.darkEssence).sub(amountIn);
             gameState.abyssalShards += amountOut;
             canAfford = true;
         }
     } else if (from === 'shards' && to === 'fragments') {
-        if (gameState.abyssalShards >= amountIn) {
-            gameState.abyssalShards -= amountIn;
+        if (D(gameState.abyssalShards).gte(amountIn)) {
+            gameState.abyssalShards = D(gameState.abyssalShards).sub(amountIn);
             gameState.corruptedFragments += amountOut;
             canAfford = true;
         }
@@ -12219,14 +12238,14 @@ function renderBank() {
         const wc = document.getElementById('withdrawCost');
         if (wc) wc.textContent = formatNumber(withdrawCost);
         const wb = document.getElementById('withdrawBtn');
-        if (wb) wb.disabled = gameState.hasWithdrawn || gameState.darkEssence < withdrawCost || (gameState.bankedSouls || 0) <= 0;
+        if (wb) wb.disabled = gameState.hasWithdrawn || D(gameState.darkEssence).lt(withdrawCost) || (gameState.bankedSouls || 0) <= 0;
     }
 
     const bankedFragDisplay = document.getElementById('banked-fragments-display');
     if (bankedFragDisplay) {
         bankedFragDisplay.textContent = formatNumber(gameState.bankedFragments || 0);
         const wfb = document.getElementById('withdrawFragmentsBtn');
-        if (wfb) wfb.disabled = gameState.hasWithdrawnFragments || gameState.darkEssence < 25 || (gameState.bankedFragments || 0) <= 0;
+        if (wfb) wfb.disabled = gameState.hasWithdrawnFragments || D(gameState.darkEssence).lt(25) || (gameState.bankedFragments || 0) <= 0;
     }
 
     const exchangeSouls = document.getElementById('exchange-souls-balance');
@@ -12242,27 +12261,27 @@ function renderBank() {
     document.getElementById('shards-tier-text').innerHTML = `<span class="cost-shards">${formatNumber(shardsTier.fromAmount)} Shards</span> → <span class="cost-essence">${formatNumber(shardsTier.toAmount)} DE</span>`;
     const csb = document.getElementById('convert-shards-btn');
     csb.onclick = () => convertCurrency('shards', 'de', shardsTier.fromAmount, shardsTier.toAmount);
-    csb.disabled = gameState.abyssalShards < shardsTier.fromAmount;
+    csb.disabled = D(gameState.abyssalShards).lt(shardsTier.fromAmount);
 
     const aetherTier = conversionTiers.aetherToDe[currentConversionIndexes.aetherToDe];
     const aetherOut = (currentConversionIndexes.aetherToDe === 0) ? Math.max(5, 50 - (gameState.aetherToDeConversions * 5)) : aetherTier.toAmount;
     document.getElementById('aether-tier-text').innerHTML = `<span style="color:#00e5ff;">${formatNumber(aetherTier.fromAmount)} Aether</span> → <span class="cost-essence">${formatNumber(aetherOut)} DE</span>`;
     const cab = document.getElementById('convert-aether-btn');
     cab.onclick = () => convertCurrency('aether', 'de', aetherTier.fromAmount, aetherOut);
-    cab.disabled = gameState.aether < aetherTier.fromAmount;
+    cab.disabled = D(gameState.aether).lt(aetherTier.fromAmount);
 
     const deTier = conversionTiers.deToSouls[currentConversionIndexes.deToSouls];
     document.getElementById('de-tier-text').innerHTML = `<span class="cost-essence">${formatNumber(deTier.fromAmount)} DE</span> → <span class="cost-souls">${formatNumber(deTier.toAmount)} Souls</span>`;
     const ceb = document.getElementById('convert-essence-btn');
     ceb.onclick = () => convertCurrency('de', 'souls', deTier.fromAmount, deTier.toAmount);
-    ceb.disabled = gameState.darkEssence < deTier.fromAmount;
+    ceb.disabled = D(gameState.darkEssence).lt(deTier.fromAmount);
 
     const deShardsTier = conversionTiers.deToShards[currentConversionIndexes.deToShards];
     const dsEl = document.getElementById('de-shards-tier-text');
     if (dsEl) {
         dsEl.innerHTML = `<span class="cost-essence">${formatNumber(deShardsTier.fromAmount)} DE</span> → <span class="cost-shards">${formatNumber(deShardsTier.toAmount)} Shards</span>`;
         const cdsb = document.getElementById('convert-de-shards-btn');
-        if (cdsb) { cdsb.onclick = () => convertCurrency('de', 'shards', deShardsTier.fromAmount, deShardsTier.toAmount); cdsb.disabled = gameState.darkEssence < deShardsTier.fromAmount; }
+        if (cdsb) { cdsb.onclick = () => convertCurrency('de', 'shards', deShardsTier.fromAmount, deShardsTier.toAmount); cdsb.disabled = D(gameState.darkEssence).lt(deShardsTier.fromAmount); }
     }
 
     // Shards → Fragments (dynamic escalating cost)
@@ -12277,7 +12296,7 @@ function renderBank() {
         const logBase = 12 + ascensions * 1 + collapses * 2;
         const logCost = logBase + forgeCount * Math.log10(2.5);
         const dynamicCostDisplay = Math.pow(10, logCost);
-        const logShards = Math.log10(Math.max(1, gameState.abyssalShards || 0));
+        const logShards = Math.log10(Math.max(1, D(gameState.abyssalShards).toNumber()));
         const canForge = logShards >= logCost;
 
         if (sfEl) sfEl.innerHTML = `<span class="cost-shards">${formatNumber(dynamicCostDisplay)} Shards</span> → <span style="color:#44cc88;">1 Fragment</span><div style="color:#555;font-size:0.68em;margin-top:2px;">Purchase #${forgeCount+1} · next: ${formatNumber(dynamicCostDisplay * 2.5)}</div>`;
@@ -12292,14 +12311,14 @@ function renderBank() {
             const col2 = gameState.totalCollapses || 0;
             const lc2 = 12 + asc2 * 1 + col2 * 2 + fc2 * Math.log10(2.5);
             const cost2 = Math.pow(10, lc2);
-            const ls2 = Math.log10(Math.max(1, gameState.abyssalShards || 0));
+            const ls2 = Math.log10(Math.max(1, D(gameState.abyssalShards).toNumber()));
             if (ls2 < lc2) {
                 Toastify({ text:`Need ${formatNumber(cost2)} Shards to forge a Fragment!`, duration:3000, gravity:'top', position:'center' }).showToast();
                 return;
             }
             if (!confirm(`Forge 1 Fragment for ${formatNumber(cost2)} Shards?`)) return;
             gameState.abyssalShards = Math.max(0, gameState.abyssalShards - cost2);
-            gameState.corruptedFragments = (gameState.corruptedFragments || 0) + 1;
+            _safeAddCur("corruptedFragments", 1);
             gameState.fragmentForgeCount = fc2 + 1;
             Toastify({ text:`🔮 Fragment forged! Next costs ${formatNumber(cost2 * 2.5)} Shards.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
             saveGame();
@@ -12342,7 +12361,7 @@ async function fetchMarketListings() {
         list.innerHTML = '';
         data.forEach((listing) => {
             const item = items[listing.item_id];
-            const canAfford = gameState.darkEssence >= listing.price;
+            const canAfford = D(gameState.darkEssence).gte(listing.price);
             const isMyItem  = gameState.playerName === listing.seller_name;
             const rarityColor = item ? ({ legendary:'#ff9900', epic:'#a855f7', rare:'#3b82f6', uncommon:'#22c55e', common:'#aaa' }[item.rarity] || '#aaa') : '#888';
             const itemName  = item ? item.name  : (listing.item_id || 'Unknown Item');
@@ -12579,7 +12598,7 @@ function confirmSellItem() {
 // FINAL, SIMPLIFIED promptBuyItem FUNCTION
 async function promptBuyItem(listingId, price) {
     console.log("Attempting to purchase " + listingId)
-    if (gameState.darkEssence < price) {
+    if (D(gameState.darkEssence).lt(price)) {
         alert("You cannot afford this item.");
         return;
     }
@@ -13283,9 +13302,9 @@ async function syncCurrency() {
         if (error) throw error;
 
         // If the server has more essence than the game, update the game.
-        if (data && data.dark_essence != gameState.darkEssence) {
-            console.log(`Synced Dark Essence. Old: ${gameState.darkEssence}, New: ${data.dark_essence}`);
-            gameState.darkEssence = data.dark_essence;
+        if (data && data.dark_essence != null) {
+            console.log(`Synced Dark Essence.`);
+            gameState.darkEssence = D(data.dark_essence || 0);
             updateDynamicDisplays();
         }
     } catch (e) {
@@ -13322,10 +13341,10 @@ function confirmExpedition() {
     if (totalPower < data.powerReq) { alert("Not enough power to start this expedition."); return; }
     const costType = data.costType || 'souls';
     if (costType === 'souls' && D(gameState.souls).lt(D(data.cost))) { alert("Not enough souls."); return; }
-    if (costType === 'essence' && gameState.darkEssence < data.cost) { alert("Not enough Dark Essence."); return; }
+    if (costType === 'essence' && D(gameState.darkEssence).lt(data.cost)) { alert("Not enough Dark Essence."); return; }
 
     if (costType === 'souls') gameState.souls = D(gameState.souls).sub(D(data.cost));
-    else gameState.darkEssence -= data.cost;
+    else gameState.darkEssence = D(gameState.darkEssence).sub(data.cost);
     
     for (const minionId in sentMinions) {
         gameState.minions[minionId].level -= sentMinions[minionId];
@@ -13461,7 +13480,7 @@ function renderExpeditions() {
         const data = expeditions[id];
         const theme = expColors[id] || { color:'#888', icon:'🗺️' };
         const costType = data.costType || 'souls';
-        const canAfford = costType === 'souls' ? D(gameState.souls).gte(D(data.cost)) : gameState.darkEssence >= data.cost;
+        const canAfford = costType === 'souls' ? D(gameState.souls).gte(D(data.cost)) : D(gameState.darkEssence).gte(data.cost);
         const costLabel = costType === 'souls' ? `${formatNumber(data.cost)} Souls` : `${formatNumber(data.cost)} Dark Essence`;
         const costColor = canAfford ? (costType === 'souls' ? '#f0d8d8' : '#c8a800') : '#cc4444';
 
@@ -13717,7 +13736,7 @@ function renderSoulForge() {
         };
         const itemsOfRarity = gameState.inventory.filter(id => items[id]?.rarity === rarity);
         const count = itemsOfRarity.length;
-        const canInfuse = count >= 3 && D(gameState.souls).gte(D(currentCost.souls)) && gameState.corruptedFragments >= currentCost.fragments;
+        const canInfuse = count >= 3 && D(gameState.souls).gte(D(currentCost.souls)) && D(gameState.corruptedFragments).gte(currentCost.fragments);
         const rc  = rarityColor[rarity]  || '#aaa';
         const nrc = rarityColor[nextRarity[rarity]] || '#fff';
         const pct = Math.min(100, (count / 3) * 100);
@@ -13761,7 +13780,7 @@ function renderSoulForge() {
             <div style="border-top:1px solid #ffffff0a; padding-top:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
                 <div style="font-size:0.78em; color:#666; line-height:1.6;">
                     <div>💀 <span style="color:${D(gameState.souls).gte(D(currentCost.souls)) ? '#aaa' : '#ff4444'}">${formatNumber(currentCost.souls)} Souls</span></div>
-                    <div>🔮 <span style="color:${gameState.corruptedFragments >= currentCost.fragments ? '#aaa' : '#ff4444'}">${currentCost.fragments} Fragments</span></div>
+                    <div>🔮 <span style="color:${D(gameState.corruptedFragments).gte(currentCost.fragments) ? '#aaa' : '#ff4444'}">${currentCost.fragments} Fragments</span></div>
                 </div>
                 <button onclick="performInfusion('${rarity}')" ${!canInfuse ? 'disabled' : ''}
                     style="background:${canInfuse ? `linear-gradient(135deg,${rc}33,${rc}11)` : 'transparent'}; border:1px solid ${canInfuse ? rc : '#333'}; border-radius:8px; padding:8px 20px; color:${canInfuse ? rc : '#444'}; cursor:${canInfuse ? 'pointer' : 'not-allowed'}; font-family:inherit; font-weight:bold; font-size:0.85em; transition:all 0.2s; white-space:nowrap;">
@@ -13801,10 +13820,10 @@ function performInfusion(rarity) {
 
     if (itemsToInfuse.length < 3) { alert("Not enough items to infuse."); return; }
     if (D(gameState.souls).lt(D(currentCost.souls))) { alert("Not enough Souls."); return; }
-    if (gameState.corruptedFragments < currentCost.fragments) { alert("Not enough Corrupted Fragments."); return; }
+    if (D(gameState.corruptedFragments).lt(currentCost.fragments)) { alert("Not enough Corrupted Fragments."); return; }
 
     gameState.souls = D(gameState.souls).sub(D(currentCost.souls));
-    gameState.corruptedFragments -= currentCost.fragments;
+    gameState.corruptedFragments = D(gameState.corruptedFragments).sub(currentCost.fragments);
 
     for (let i = 0; i < 3; i++) {
         const itemIndex = gameState.inventory.findIndex(itemId => items[itemId].rarity === rarity);
@@ -14135,7 +14154,7 @@ function resolveTileEvent(tile) {
     switch (event.type) {
         case 'treasure': {
             const fragments = Math.floor(Math.random() * 3) + 1;
-            gameState.corruptedFragments += fragments;
+            _safeAddCur("corruptedFragments", fragments);
             let msg = `💰 Treasure! +${fragments} Corrupted Fragments.`;
             if (Math.random() < 0.25) {
                 const possibleItems = Object.keys(items).filter(itemId => items[itemId].rarity === 'common');
@@ -14835,15 +14854,15 @@ async function tryAbsorbGhost(msgKey) {
                     gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(D(amt));
                     break;
                 case 'darkEssence':
-                    amt = Math.max(10, Math.floor((gameState.darkEssence || 0) * 0.15));
+                    amt = Math.max(10, Math.floor(D(gameState.darkEssence).toNumber() * 0.15));
                     _safeAddCur("darkEssence", amt);
                     break;
                 case 'abyssalShards':
-                    amt = Math.max(3, Math.floor((gameState.abyssalShards || 0) * 0.20));
-                    gameState.abyssalShards += amt;
+                    amt = Math.max(3, Math.floor(D(gameState.abyssalShards).toNumber() * 0.20));
+                    _safeAddCur("abyssalShards", amt);
                     break;
                 case 'corruptedFragments':
-                    amt = Math.max(2, Math.floor((gameState.corruptedFragments || 0) * 0.15));
+                    amt = Math.max(2, Math.floor(D(gameState.corruptedFragments).toNumber() * 0.15));
                     gameState.corruptedFragments += amt;
                     break;
             }
@@ -15685,9 +15704,9 @@ async function fetchBarterListings(page) {
 function hasEnough(type, amt) {
     switch(type) {
         case 'souls':              return D(gameState.souls).gte(D(amt))
-        case 'darkEssence':        return gameState.darkEssence >= amt;
-        case 'abyssalShards':      return gameState.abyssalShards >= amt;
-        case 'corruptedFragments': return gameState.corruptedFragments >= amt;
+        case 'darkEssence':        return D(gameState.darkEssence).gte(amt);
+        case 'abyssalShards':      return D(gameState.abyssalShards).gte(amt);
+        case 'corruptedFragments': return D(gameState.corruptedFragments).gte(amt);
         case 'key': {
             // Can sell if holding a key that hasn't expired
             if (!gameState.heldKey) return false;
@@ -15700,9 +15719,9 @@ function hasEnough(type, amt) {
 function deductCurrency(type, amt) {
     switch(type) {
         case 'souls':              gameState.souls = D(gameState.souls).sub(D(amt)); break;
-        case 'darkEssence':        gameState.darkEssence -= amt; break;
-        case 'abyssalShards':      gameState.abyssalShards -= amt; break;
-        case 'corruptedFragments': gameState.corruptedFragments -= amt; break;
+        case 'darkEssence':        gameState.darkEssence = D(gameState.darkEssence).sub(amt); break;
+        case 'abyssalShards':      gameState.abyssalShards = D(gameState.abyssalShards).sub(amt); break;
+        case 'corruptedFragments': gameState.corruptedFragments = D(gameState.corruptedFragments).sub(amt); break;
         case 'key':
             // Selling the key — remove it from inventory, transfer to pending
             gameState._barterHeldKeyId = gameState.heldKey?.id || null;
@@ -15716,8 +15735,8 @@ function addCurrency(type, amt) {
     switch(type) {
         case 'souls':              gameState.souls = D(gameState.souls).add(D(amt)); gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(D(amt)); break;
         case 'darkEssence':        _safeAddCur("darkEssence", amt); break;
-        case 'abyssalShards':      gameState.abyssalShards += amt; break;
-        case 'corruptedFragments': gameState.corruptedFragments += amt; break;
+        case 'abyssalShards':      _safeAddCur("abyssalShards", amt); break;
+        case 'corruptedFragments': _safeAddCur('corruptedFragments', amt); break;
         case 'key': {
             // Buyer receives key — grant it to them
             // The barter listing stores which key it was in offer_note or defaults to a random one
@@ -16796,7 +16815,7 @@ function gntWaveLost(){
 }
 function gntCashOut(){
     const wd=gntGetWaveData(gntState.wave),win=Math.floor(gntState.betAmount*wd.mult);
-    gameState[gntState.betCurrency]+=win;updateDynamicDisplays();saveGame();playSound('upgrade');
+    _safeAddCur(gntState.betCurrency, win);updateDynamicDisplays();saveGame();playSound('upgrade');
     gntLog(`💰 Cashed out at ${wd.label} — +${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}!`,'#c8a800');
     const box=document.getElementById('gnt-result-box');if(box){box.style.borderTopColor='#44cc88';box.innerHTML=`<div style="font-size:2em;margin-bottom:8px;">💰</div><div style="color:#44cc88;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:8px;">CASHED OUT</div><div style="color:#aaa;font-size:0.82em;line-height:1.6;">Survived ${gntState.wave} wave${gntState.wave>1?'s':''}.<br>Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>Winnings: <strong style="color:#44cc88;">+${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}</strong></div>`;}
     const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`💰 Cashed out — ${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)} collected!`;sb.style.borderLeftColor='#44cc88';sb.style.color='#44cc88';}
@@ -17438,7 +17457,7 @@ const CODEX_CHAPTERS = [
     {
         id: 'ascension',
         title: '⬆ Ascension & Shards',
-        unlockCondition: () => (gameState.ascensions || 0) > 0 || (gameState.abyssalShards || 0) > 0,
+        unlockCondition: () => (gameState.ascensions || 0) > 0 || D(gameState.abyssalShards).gt(0),
         content: () => `
             <div style="color:#4488ff; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">THE FIRST SACRIFICE</div>
             <p style="color:#aaa; margin-bottom:14px;">At some point the souls stop being enough. The power plateau looms. And so you make the unthinkable choice — you sacrifice everything you have built and begin again, but forever changed.</p>
@@ -17548,7 +17567,7 @@ const CODEX_CHAPTERS = [
     {
         id: 'collapse',
         title: '💥 Collapse & Aether',
-        unlockCondition: () => (gameState.totalCollapses || 0) > 0 || (gameState.aether || 0) > 0,
+        unlockCondition: () => (gameState.totalCollapses || 0) > 0 || D(gameState.aether).gt(0),
         content: () => `
             <div style="color:#00e5ff; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">TEARING REALITY ITSELF</div>
             <p style="color:#aaa; margin-bottom:14px;">You thought Ascension was the limit. You were wrong. There is a deeper reset — one that does not just reset your run, but <em>rewrites the rules of the game itself.</em></p>
@@ -17624,7 +17643,7 @@ const CODEX_CHAPTERS = [
     {
         id: 'economy',
         title: '💰 Currencies & Economy',
-        unlockCondition: () => (gameState.darkEssence||0) > 0 || (gameState.abyssalShards||0) > 0,
+        unlockCondition: () => D(gameState.darkEssence).gt(0) || D(gameState.abyssalShards).gt(0),
         content: () => `
             <div style="color:#c8a800; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">THE CURRENCIES OF POWER</div>
             <p style="color:#aaa; margin-bottom:18px;">Six currencies flow through the abyss. Each has its purpose, its source, and its limits.</p>
@@ -17897,7 +17916,7 @@ const KEYS = {
         lore: "Reality cracked open and something poured out. You caught it.",
         effect: () => {
             const gained = Math.floor(calculateAetherOnCollapse() * 3);
-            gameState.aether = (gameState.aether || 0) + (isFinite(gained) ? gained : 3);
+            _safeAddCur("aether", isFinite(gained) ? gained : 3);
             return `Gained ${formatNumber(gained)} Aether.`;
         }
     },

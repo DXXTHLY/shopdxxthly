@@ -5634,7 +5634,319 @@ const potions = {
         cost: 1e28,
         cooldown: 3600,
         effect: { type: 'pvp_power_boost_flat', value: 2.0, duration: 300 }
-    }
+    },
+
+    // ================================================================
+    // MARKET-EXCLUSIVE POTIONS — only appear in the Hourly Shop
+    // Never craftable in the Brewery. marketOnly: true flag.
+    // ================================================================
+
+    vial_of_the_abyss: {
+        name: "Vial of the Abyss",
+        desc: "For 3 minutes, your SPS is raised to the power of 1.05 — exponential growth.",
+        cost: 1e30,
+        marketOnly: true,
+        shopPrice: 80,
+        effect: { type: 'gain_exponent_flat', value: 1.05, duration: 180 }
+    },
+    soul_torrent: {
+        name: "Soul Torrent",
+        desc: "Instantly gain souls equal to 2 full hours of your current SPS.",
+        cost: 1e25,
+        marketOnly: true,
+        shopPrice: 60,
+        effect: { type: 'gain_sps_seconds_flat', value: 7200 }
+    },
+    elixir_of_dominion: {
+        name: "Elixir of Dominion",
+        desc: "For 5 minutes, all soul gains are multiplied by 10.",
+        cost: 1e27,
+        marketOnly: true,
+        shopPrice: 75,
+        effect: { type: 'global_multiplier_flat', value: 10, duration: 300 }
+    },
+    dark_convergence: {
+        name: "Dark Convergence",
+        desc: "For 2 minutes, your SPS and SPC each contribute to the other — both double.",
+        cost: 1e26,
+        marketOnly: true,
+        shopPrice: 65,
+        effect: { type: 'spc_multiplier_flat', value: 4, duration: 120 }
+    },
+    void_essence_flask: {
+        name: "Void Essence Flask",
+        desc: "Instantly gain 500 Dark Essence.",
+        cost: 1e20,
+        marketOnly: true,
+        shopPrice: 40,
+        effect: { type: 'gain_essence_flat', value: 500 }
+    },
+    ichor_of_eternity: {
+        name: "Ichor of Eternity",
+        desc: "For 10 minutes, all minion costs are reduced by 75%.",
+        cost: 1e24,
+        marketOnly: true,
+        shopPrice: 55,
+        effect: { type: 'temp_minion_cost_reducer_flat', value: 0.25, duration: 600 }
+    },
+    abyssal_surge: {
+        name: "Abyssal Surge",
+        desc: "For 4 minutes, every click also triggers 10 automatic soul harvests at your full SPC.",
+        cost: 1e23,
+        marketOnly: true,
+        shopPrice: 50,
+        effect: { type: 'click_chain_flat', value: 10, duration: 240 }
+    },
+    essence_cascade: {
+        name: "Essence Cascade",
+        desc: "Instantly gain Dark Essence equal to 5% of your current Abyssal Shards.",
+        cost: 1e22,
+        marketOnly: true,
+        shopPrice: 45,
+        effect: { type: 'gain_essence_from_shards_flat', value: 0.05 }
+    },
+    flask_of_the_void_king: {
+        name: "Flask of the Void King",
+        desc: "For 5 minutes, your SPS multiplier is squared.",
+        cost: 1e29,
+        marketOnly: true,
+        shopPrice: 90,
+        effect: { type: 'sps_multiplier_flat', value: 8, duration: 300 }
+    },
+    reagent_of_resonance: {
+        name: "Reagent of Resonance",
+        desc: "For 3 minutes, every Abyssal Shard you own adds +0.1% to your global multiplier.",
+        cost: 1e26,
+        marketOnly: true,
+        shopPrice: 70,
+        effect: { type: 'prestige_bonus_squared_flat', duration: 180 }
+    },
+    soul_compressor: {
+        name: "Soul Compressor",
+        desc: "Instantly converts 1% of your current souls into Dark Essence at the current exchange rate.",
+        cost: 1e21,
+        marketOnly: true,
+        shopPrice: 45,
+        effect: { type: 'convert_souls_to_essence_flat', value: 0.01 }
+    },
+    temporal_overdrive: {
+        name: "Temporal Overdrive",
+        desc: "For 30 seconds, all time-based effects run at 60x speed — ritual cooldowns tick down faster.",
+        cost: 1e28,
+        marketOnly: true,
+        shopPrice: 80,
+        effect: { type: 'cooldown_haste', value: 60, duration: 30 }
+    },
+    draught_of_the_overlord: {
+        name: "Draught of the Overlord",
+        desc: "For 2 minutes, gain 1 Dark Essence per soul click regardless of SPC.",
+        cost: 1e24,
+        marketOnly: true,
+        shopPrice: 55,
+        effect: { type: 'essence_per_click_flat', value: 1, duration: 120 }
+    },
+    rift_serum: {
+        name: "Rift Serum",
+        desc: "Instantly gain Corrupted Fragments equal to 10x your current Ascension count.",
+        cost: 1e25,
+        marketOnly: true,
+        shopPrice: 60,
+        effect: { type: 'gain_fragments_per_ascension_flat', value: 10 }
+    },
+    essence_of_collapse: {
+        name: "Essence of Collapse",
+        desc: "For 5 minutes, every soul gained also generates 0.001% of its value as Aether.",
+        cost: 1e30,
+        marketOnly: true,
+        shopPrice: 95,
+        effect: { type: 'soul_to_aether_flat', value: 0.00001, duration: 300 }
+    },
+    venom_of_the_primordial: {
+        name: "Venom of the Primordial",
+        desc: "For 3 minutes, your click power equals your SPS — merging passive and active gain.",
+        cost: 1e27,
+        marketOnly: true,
+        shopPrice: 75,
+        effect: { type: 'add_sps_to_spc_flat', value: 1.0, duration: 180 }
+    },
+    void_amplifier: {
+        name: "Void Amplifier",
+        desc: "For 10 minutes, the bonus from all owned artifacts is doubled.",
+        cost: 1e31,
+        marketOnly: true,
+        shopPrice: 100,
+        effect: { type: 'artifact_amplifier_flat', value: 2, duration: 600 }
+    },
+    shardbreaker_tonic: {
+        name: "Shardbreaker Tonic",
+        desc: "Instantly shatter 100 Abyssal Shards into 10,000 Dark Essence each.",
+        cost: 1e20,
+        marketOnly: true,
+        shopPrice: 40,
+        effect: { type: 'shards_to_essence_flat', value: 100, rate: 10000 }
+    },
+    extract_of_the_fallen: {
+        name: "Extract of the Fallen",
+        desc: "For 5 minutes, defeated enemies in PvP drop 5x more resources.",
+        cost: 1e26,
+        marketOnly: true,
+        shopPrice: 65,
+        effect: { type: 'pvp_loot_multiplier_flat', value: 5, duration: 300 }
+    },
+    singularity_draught: {
+        name: "Singularity Draught",
+        desc: "For 60 seconds, ALL soul gain is squared. The rarest brew in existence.",
+        cost: 1e34,
+        marketOnly: true,
+        shopPrice: 150,
+        effect: { type: 'square_all_gain', duration: 60 }
+    },
+
+    // ================================================================
+    // MARKET-EXCLUSIVE POTIONS — EXPANSION PACK (20 new)
+    // shopPrice is in Dark Essence — these never appear in the Brewery
+    // ================================================================
+
+    draught_of_the_void_herald: {
+        name: "Draught of the Void Herald",
+        desc: "For 8 minutes, your SPS is multiplied by 50.",
+        marketOnly: true,
+        shopPrice: 120,
+        effect: { type: 'sps_multiplier_flat', value: 50, duration: 480 }
+    },
+    elixir_of_infinite_hunger: {
+        name: "Elixir of Infinite Hunger",
+        desc: "For 5 minutes, every soul you spend on upgrades is instantly refunded — buy freely.",
+        marketOnly: true,
+        shopPrice: 140,
+        effect: { type: 'soul_spend_refund_flat', value: 1.0, duration: 300 }
+    },
+    ichor_of_the_cosmos: {
+        name: "Ichor of the Cosmos",
+        desc: "Instantly gain souls equal to 24 full hours of your current SPS.",
+        marketOnly: true,
+        shopPrice: 200,
+        effect: { type: 'gain_sps_seconds_flat', value: 86400 }
+    },
+    vial_of_soul_fission: {
+        name: "Vial of Soul Fission",
+        desc: "For 2 minutes, every soul gained generates a second copy of itself.",
+        marketOnly: true,
+        shopPrice: 160,
+        effect: { type: 'global_multiplier_flat', value: 2, duration: 120 }
+    },
+    abyssal_catalyst: {
+        name: "Abyssal Catalyst",
+        desc: "Instantly gain Dark Essence equal to 50% of your current Abyssal Shards.",
+        marketOnly: true,
+        shopPrice: 110,
+        effect: { type: 'gain_essence_from_shards_flat', value: 0.5 }
+    },
+    serum_of_the_first_god: {
+        name: "Serum of the First God",
+        desc: "For 10 minutes, your SPC multiplier is raised to the power of 2.",
+        marketOnly: true,
+        shopPrice: 130,
+        effect: { type: 'spc_multiplier_flat', value: 16, duration: 600 }
+    },
+    distillate_of_oblivion: {
+        name: "Distillate of Oblivion",
+        desc: "Instantly reset all ritual AND item cooldowns simultaneously.",
+        marketOnly: true,
+        shopPrice: 175,
+        effect: { type: 'reset_all_cooldowns_flat' }
+    },
+    tincture_of_the_deep_abyss: {
+        name: "Tincture of the Deep Abyss",
+        desc: "For 15 minutes, your prestige shard bonus is cubed instead of doubled.",
+        marketOnly: true,
+        shopPrice: 145,
+        effect: { type: 'prestige_bonus_squared_flat', duration: 900 }
+    },
+    venom_of_collapsed_stars: {
+        name: "Venom of Collapsed Stars",
+        desc: "Instantly gain Abyssal Shards equal to 10% of your next Ascension gain.",
+        marketOnly: true,
+        shopPrice: 180,
+        effect: { type: 'gain_shards_no_reset_flat', value: 0.10 }
+    },
+    draught_of_dimensional_rift: {
+        name: "Draught of Dimensional Rift",
+        desc: "For 3 minutes, every passive soul tick fires 10 times per second instead of 10 times per second — SPS × 10.",
+        marketOnly: true,
+        shopPrice: 135,
+        effect: { type: 'global_multiplier_flat', value: 10, duration: 180 }
+    },
+    flask_of_the_abyss_warden: {
+        name: "Flask of the Abyss Warden",
+        desc: "For 20 minutes, all minion costs are reduced by 90%.",
+        marketOnly: true,
+        shopPrice: 150,
+        effect: { type: 'temp_minion_cost_reducer_flat', value: 0.10, duration: 1200 }
+    },
+    phial_of_world_shattering: {
+        name: "Phial of World Shattering",
+        desc: "Instantly gain 2,500 Dark Essence and 500 Corrupted Fragments.",
+        marketOnly: true,
+        shopPrice: 160,
+        effect: { type: 'gain_essence_flat', value: 2500 }
+    },
+    brew_of_echoing_void: {
+        name: "Brew of Echoing Void",
+        desc: "For 5 minutes, clicking the altar fires 25 additional auto-clicks at full SPC.",
+        marketOnly: true,
+        shopPrice: 125,
+        effect: { type: 'click_chain_flat', value: 25, duration: 300 }
+    },
+    elixir_of_the_unbound: {
+        name: "Elixir of the Unbound",
+        desc: "For 60 seconds, soul gain is raised to the power of 1.10 — extreme exponential burst.",
+        marketOnly: true,
+        shopPrice: 190,
+        effect: { type: 'gain_exponent_flat', value: 1.10, duration: 60 }
+    },
+    ichor_of_shadow_dominion: {
+        name: "Ichor of Shadow Dominion",
+        desc: "For 5 minutes, your SPS and SPC both scale with the number of minions you own — +2% per unique minion.",
+        marketOnly: true,
+        shopPrice: 140,
+        effect: { type: 'sps_multiplier_flat', value: 3, duration: 300 }
+    },
+    vial_of_the_eternal_harvest: {
+        name: "Vial of the Eternal Harvest",
+        desc: "For 2 minutes, soul gains are squared. Stack with other multipliers for catastrophic results.",
+        marketOnly: true,
+        shopPrice: 200,
+        effect: { type: 'square_all_gain', duration: 120 }
+    },
+    essence_of_primordial_fire: {
+        name: "Essence of Primordial Fire",
+        desc: "Instantly doubles your current Dark Essence stockpile.",
+        marketOnly: true,
+        shopPrice: 170,
+        effect: { type: 'double_essence_flat' }
+    },
+    tincture_of_the_dead_sun: {
+        name: "Tincture of the Dead Sun",
+        desc: "For 10 minutes, defeated PvP opponents drop 20x resources and your arena win chance increases by 25%.",
+        marketOnly: true,
+        shopPrice: 130,
+        effect: { type: 'pvp_loot_multiplier_flat', value: 20, duration: 600 }
+    },
+    draught_of_soul_overflow: {
+        name: "Draught of Soul Overflow",
+        desc: "For 4 minutes, your SPS multiplier is raised to the power of 3.",
+        marketOnly: true,
+        shopPrice: 175,
+        effect: { type: 'sps_multiplier_flat', value: 64, duration: 240 }
+    },
+    singularity_core: {
+        name: "Singularity Core",
+        desc: "For 90 seconds, ALL soul, essence, shard and aether gains are multiplied by 100.",
+        marketOnly: true,
+        shopPrice: 250,
+        effect: { type: 'global_multiplier_flat', value: 100, duration: 90 }
+    },
 };
 
 // =================================================================
@@ -7936,9 +8248,10 @@ function renderBrewery() {
         brew_of_shattered_stars:    { icon:'⭐', color:'#ffffaa' },
     };
 
-    // Render recipes
+    // Render recipes — skip market-only potions (those are shop-exclusive)
     for (const id in potions) {
         const p = potions[id];
+        if (p.marketOnly) continue; // only available in the Hourly Shop
         const meta = potionMeta[id] || { icon:'⚗️', color:'#9944cc' };
         const canAffordSouls = D(gameState.souls).gte(D(p.cost))
         const canAffordShards = !p.shardsCost || gameState.abyssalShards >= p.shardsCost;
@@ -8153,6 +8466,32 @@ function usePotion(id) {
         }
         if (effect.type === 'reset_raid_cooldown_flat') {
             gameState.raidCooldownEnd = 0;
+        }
+        // ── New market-potion instant effects ─────────────────────────────
+        if (effect.type === 'reset_all_cooldowns_flat') {
+            // Reset all ritual cooldowns
+            for (const rid in gameState.activeRituals) {
+                if (gameState.activeRituals[rid].cooldownEndTime) gameState.activeRituals[rid].cooldownEndTime = 0;
+            }
+            // Reset all item cooldowns
+            for (const iid in gameState.itemCooldowns) gameState.itemCooldowns[iid] = 0;
+            // Reset cache
+            gameState.nextCacheTime = 0;
+            Toastify({ text: `⏳ ALL cooldowns reset — everything is ready!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0a2a,#aa44ff)'} }).showToast();
+        }
+        if (effect.type === 'double_essence_flat') {
+            const bonus = Math.floor(gameState.darkEssence);
+            gameState.darkEssence += bonus;
+            Toastify({ text: `🌑 Dark Essence doubled! +${formatNumber(bonus)} DE!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#6600cc)'} }).showToast();
+        }
+        if (effect.type === 'soul_spend_refund_flat') {
+            // Duration-based: handled via activePotions — flag it so the buy handler can check
+            // (falls through to duration block below)
+        }
+        if (effect.type === 'gain_fragments_per_ascension_flat') {
+            const frags = Math.floor(effect.value * (gameState.ascensions || 1));
+            gameState.corruptedFragments += frags;
+            Toastify({ text: `🔮 Gained ${formatNumber(frags)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
         }
 
         // --- DURATION-BASED EFFECTS ---
@@ -9972,12 +10311,14 @@ function generateHourlyShopItems() {
     }
 
     // Per-type purchase limits
-    const LIMITS = { item: 1, artifact: 1, potion: 3, secret_minion: 1 };
+    const LIMITS = { item: 1, artifact: 1, potion: 3, market_potion: 1, secret_minion: 1 };
 
     // Build item pool
     const allItemKeys     = Object.keys(items).map(id => ({ id, type: 'item' }));
     const allArtifactKeys = Object.keys(artifacts).map(id => ({ id, type: 'artifact' }));
-    const allPotionKeys   = Object.keys(potions).map(id => ({ id, type: 'potion' }));
+    // Market potions are shop-exclusive — exclude from normal pool, pool them separately
+    const allPotionKeys      = Object.keys(potions).filter(id => !potions[id].marketOnly).map(id => ({ id, type: 'potion' }));
+    const marketPotionKeys   = Object.keys(potions).filter(id =>  potions[id].marketOnly).map(id => ({ id, type: 'market_potion' }));
     let availableItems = [...allItemKeys, ...allArtifactKeys, ...allPotionKeys];
 
     let shopItems = [];
@@ -9985,6 +10326,10 @@ function generateHourlyShopItems() {
         const idx = (seed + i * 31) % availableItems.length;
         shopItems.push(availableItems.splice(idx, 1)[0]);
     }
+
+    // Slot 3 (index 2) is always a market-exclusive potion
+    const mpIdx = (seed * 17 + 5) % marketPotionKeys.length;
+    shopItems[2] = marketPotionKeys[mpIdx];
 
     // Rare secret minion slot (0.5% chance, deterministic from seed)
     const secretChanceSeed = ((seed * 7 + 13) % 100) / 100;
@@ -10000,9 +10345,10 @@ function generateHourlyShopItems() {
     grid.innerHTML = '';
 
     const typeTheme  = {
-        item:     { icon:'⚔️',  color:'#4488ff', label:'Item'     },
-        artifact: { icon:'💠',  color:'#aa44ff', label:'Artifact' },
-        potion:   { icon:'⚗️',  color:'#44cc88', label:'Potion'   },
+        item:          { icon:'⚔️',  color:'#4488ff', label:'Item'          },
+        artifact:      { icon:'💠',  color:'#aa44ff', label:'Artifact'      },
+        potion:        { icon:'⚗️',  color:'#44cc88', label:'Potion'        },
+        market_potion: { icon:'🔥',  color:'#ff6644', label:'Rare Potion'   },
     };
     const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
 
@@ -10070,6 +10416,7 @@ function generateHourlyShopItems() {
         if (type === 'item') itemData = items[id];
         if (type === 'artifact') itemData = artifacts[id];
         if (type === 'potion') itemData = potions[id];
+        if (type === 'market_potion') itemData = potions[id];
 
         if (type === 'artifact' && gameState.ownedArtifacts[id] && availableItems.length) {
             const ri = (seed + 40 + index) % availableItems.length;
@@ -10080,7 +10427,7 @@ function generateHourlyShopItems() {
             if (replacement.type === 'potion') itemData = potions[replacement.id];
         }
 
-        const finalPrice = shopItem.id === 'mark_of_the_first' ? 150 : ((seed + index * 13) % 20) + 1;
+        const finalPrice = shopItem.id === 'mark_of_the_first' ? 150 : shopItem.type === 'market_potion' ? (potions[shopItem.id]?.shopPrice || 50) : ((seed + index * 13) % 20) + 1;
         const canAfford  = !soldOut && gameState.darkEssence >= finalPrice;
         const theme      = typeTheme[shopItem.type] || typeTheme.item;
         const rc         = rarityColor[itemData?.rarity] || theme.color;
@@ -10145,7 +10492,7 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     let itemName = '';
     if (itemType === 'item') itemName = items[itemId]?.name || itemId;
     if (itemType === 'artifact') itemName = artifacts[itemId]?.name || itemId;
-    if (itemType === 'potion') itemName = potions[itemId]?.name || itemId;
+    if (itemType === 'potion' || itemType === 'market_potion') itemName = potions[itemId]?.name || itemId;
     if (itemType === 'secret_minion') itemName = minions[itemId]?.name || itemId;
 
     const limitMsg = limit > 1 ? ` (${bought + 1}/${limit} this hour)` : '';
@@ -10181,6 +10528,9 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     } else if (itemType === 'potion') {
         gameState.potions[itemId] = (gameState.potions[itemId] || 0) + 1;
         Toastify({ text: `✔ ${itemName} added to your brewery.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a14,#44cc88)' } }).showToast();
+    } else if (itemType === 'market_potion') {
+        gameState.potions[itemId] = (gameState.potions[itemId] || 0) + 1;
+        Toastify({ text: `🔥 ${itemName} secured! Check your Brewery.`, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0a00,#ff6644)' } }).showToast();
     }
 
     playSound('upgrade');

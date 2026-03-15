@@ -4131,8 +4131,8 @@ window.onload = function() {
             gameState.playTime++;
             let statsChanged = updateEffectTimers(now);
 
-            // Durability tick — runs every 60s
-            if (typeof tickItemDurability === 'function') tickItemDurability();
+            // Durability tick — runs once per minute (every 600 ticks at 10 ticks/sec)
+            if (typeof tickItemDurability === 'function' && gameState.playTime % 600 === 0) tickItemDurability();
 
             // Bank Interest: 0.5%/hr always, sigil boosts to its value
             if (gameState.bankedSouls > 0) {

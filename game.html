@@ -2771,13 +2771,31 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- ================================================================= -->
             <div id="crashgame-screen" class="screen">
                 <h2 style="letter-spacing:3px; color:#ff6644;">⚔️ THE ABYSSAL GAUNTLET ⚔️</h2>
-                <p style="color:var(--dim-color); max-width:580px; margin:0 auto 20px; font-size:0.85em;">Bet your resources, deploy your minions, and survive wave after wave. Cash out between waves — or push deeper for greater rewards. Once a wave begins, <strong style="color:#ff4444;">you cannot flee</strong> until it ends.</p>
+                <p style="color:var(--dim-color); max-width:580px; margin:0 auto 20px; font-size:0.85em;">Choose your battlefield. Each location has unique buffs and debuffs that shift every day. Wave difficulty and enemy rosters rotate daily — what worked yesterday may not work today.</p>
 
-                <div id="gnt-container" style="max-width:860px; margin:0 auto;">
+                <!-- Location picker — shown before lobby -->
+                <div id="gnt-location-picker" style="max-width:860px; margin:0 auto 20px;">
+                    <div style="color:#ff6644; font-family:var(--font-title); font-size:0.95em; letter-spacing:3px; text-align:center; margin-bottom:6px;">🗺️ CHOOSE YOUR BATTLEFIELD</div>
+                    <div style="color:#555; font-size:0.75em; text-align:center; margin-bottom:16px; font-style:italic;">Unlock worlds in the Worlds tab to unlock their Gauntlet. Wave difficulty rotates daily.</div>
+                    <div id="gnt-location-cards"></div>
+                </div>
+
+                <div id="gnt-container" style="max-width:860px; margin:0 auto; display:none;">
 
                     <!-- Top status strip -->
-                    <div id="gnt-status-bar" style="background:linear-gradient(135deg,#0a0812,#150a0a); border:1px solid #ff444433; border-left:4px solid #ff6644; border-radius:10px; padding:12px 18px; margin-bottom:14px; font-family:var(--font-title); font-size:0.88em; color:#ff8866; letter-spacing:1px;">
-                        ⚔ Deploy your minions and place your bet to begin.
+                    <div style="display:flex; gap:10px; align-items:stretch; margin-bottom:14px;">
+                        <button onclick="gntBackToMap()" id="gnt-back-btn"
+                            style="background:#0a0812; border:1px solid #2a1a3a; border-radius:10px;
+                                   padding:10px 16px; color:#555; cursor:pointer; font-family:var(--font-title);
+                                   font-size:0.75em; letter-spacing:1px; white-space:nowrap; flex-shrink:0;
+                                   transition:all 0.2s;"
+                            onmouseover="this.style.borderColor='#aa44ff66';this.style.color='#aa44ff';"
+                            onmouseout="this.style.borderColor='#2a1a3a';this.style.color='#555';">
+                            ← MAP
+                        </button>
+                        <div id="gnt-status-bar" style="flex:1; background:linear-gradient(135deg,#0a0812,#150a0a); border:1px solid #ff444433; border-left:4px solid #ff6644; border-radius:10px; padding:12px 18px; font-family:var(--font-title); font-size:0.88em; color:#ff8866; letter-spacing:1px;">
+                            ⚔ Deploy your minions and place your bet to begin.
+                        </div>
                     </div>
 
                     <!-- Bet + wave info bar -->
@@ -4005,10 +4023,12 @@ window.onload = function() {
 		
 		// Cap stats — clamp all currencies to 0 minimum (prevents Charon's Oar or other bugs from going negative)
 		gameState.souls          = Dmax0(gameState.souls);
-		gameState.darkEssence    = Math.max(0, isFinite(gameState.darkEssence)    ? gameState.darkEssence    : 0);
-		gameState.abyssalShards  = Math.max(0, isFinite(gameState.abyssalShards)  ? gameState.abyssalShards  : 0);
-		gameState.aether         = Math.max(0, isFinite(gameState.aether)         ? gameState.aether         : 0);
-		gameState.corruptedFragments = Math.max(0, isFinite(gameState.corruptedFragments) ? gameState.corruptedFragments : 0);
+		// Cap instead of zero — Infinity/NaN wraps to max safe float, never to 0
+		const _capCur = (v) => { const n = Number(v); return isNaN(n) || n < 0 ? 0 : isFinite(n) ? n : Number.MAX_SAFE_INTEGER; };
+		gameState.darkEssence        = _capCur(gameState.darkEssence);
+		gameState.abyssalShards      = _capCur(gameState.abyssalShards);
+		gameState.aether             = _capCur(gameState.aether);
+		gameState.corruptedFragments = _capCur(gameState.corruptedFragments);
 		// lifetimeSouls must always be >= souls + soulsSpent (self-healing)
 		const trueMinLifetime = D(gameState.souls).add(D(gameState.soulsSpent || 0));
 		gameState.lifetimeSouls = D(gameState.lifetimeSouls).lt(trueMinLifetime) ? trueMinLifetime : D(gameState.lifetimeSouls);
@@ -7468,12 +7488,12 @@ function harvestSoul() {
         setTimeout(() => particle.remove(), 800);
     }
     const worldBonus = worlds[gameState.currentWorld].bonus;
-    if (worldBonus.type === 'essence_bonus_chance' && Math.random() < worldBonus.value) gameState.darkEssence += 1;
+    if (worldBonus.type === 'essence_bonus_chance' && Math.random() < worldBonus.value) _safeAddCur("darkEssence", 1);
     const weaponId = gameState.equipped.weapon;
     if (weaponId && items[weaponId]) {
         let bonus = items[weaponId].bonus;
         do {
-            if (bonus.type === 'spc_essence_chance' && Math.random() < bonus.value) gameState.darkEssence += 1;
+            if (bonus.type === 'spc_essence_chance' && Math.random() < bonus.value) _safeAddCur("darkEssence", 1);
             bonus = bonus.and ? bonus.and : null;
         } while (bonus);
     }
@@ -7527,7 +7547,7 @@ function buyUpgrade(type) {
             }
 
             // 5. Add the final calculated amount to the player's total.
-            gameState.darkEssence += Math.floor(essenceGain);
+            _safeAddCur("darkEssence", Math.floor(essenceGain));
             gameState.essenceGainedThisRun += Math.floor(essenceGain); // <<< ADD THIS LINE
             upgrade.cost = D(upgrade.cost).mul(1.15).floor();
         }
@@ -7750,7 +7770,7 @@ function activateRitual(id) {
     // Apply instant effects
     if (effect.type === 'gain_essence') {
         const scaled = Math.max(effect.value, Math.floor((gameState.ascensions + 1) * 10 * (1 + (gameState.totalCollapses || 0) * 0.5)));
-        gameState.darkEssence += scaled;
+        _safeAddCur("darkEssence", scaled);
         Toastify({ text: `🌑 Gained ${formatNumber(scaled)} Dark Essence!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#6600cc)'} }).showToast();
     }
     if (effect.type === 'gain_sps_seconds') {
@@ -7771,7 +7791,7 @@ function activateRitual(id) {
     }
     if (effect.type === 'gain_shards_no_reset') {
         const gained = Math.floor(calculateShardsOnAscend() * effect.value);
-        gameState.abyssalShards += isFinite(gained) ? gained : 0;
+        _safeAddCur("abyssalShards", isFinite(gained) ? gained : 0);
         Toastify({ text: `💎 Gained ${formatNumber(gained)} Abyssal Shards!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a1a30,#4488ff)'} }).showToast();
     }
     // ── New ritual effect types ──────────────────────────────────────
@@ -9779,7 +9799,7 @@ function usePotion(id) {
         if (effect.type === 'gain_essence_flat') {
             // Scales with ascensions and collapses so it stays relevant late game
             const scaled = Math.max(effect.value, Math.floor((gameState.ascensions + 1) * 10 * (1 + (gameState.totalCollapses || 0) * 0.5)));
-            gameState.darkEssence += scaled;
+            _safeAddCur("darkEssence", scaled);
             Toastify({ text: `🌑 Gained ${formatNumber(scaled)} Dark Essence!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#6600cc)'} }).showToast();
         }
         if (effect.type === 'ritual_cooldown_reduction_flat') {
@@ -9799,7 +9819,7 @@ function usePotion(id) {
         }
         if (effect.type === 'gain_shards_no_reset_flat') {
             const gained = Math.floor(calculateShardsOnAscend() * effect.value);
-            gameState.abyssalShards += isFinite(gained) ? gained : 0;
+            _safeAddCur("abyssalShards", isFinite(gained) ? gained : 0);
             Toastify({ text: `💎 Gained ${formatNumber(gained)} Abyssal Shards!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a1a30,#4488ff)'} }).showToast();
         }
         if (effect.type === 'gain_aether_no_reset_flat') {
@@ -9838,7 +9858,7 @@ function usePotion(id) {
         }
         if (effect.type === 'double_essence_flat') {
             const bonus = Math.floor(gameState.darkEssence);
-            gameState.darkEssence += bonus;
+            _safeAddCur("darkEssence", bonus);
             Toastify({ text: `🌑 Dark Essence doubled! +${formatNumber(bonus)} DE!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#6600cc)'} }).showToast();
         }
         if (effect.type === 'soul_spend_refund_flat') {
@@ -9847,7 +9867,7 @@ function usePotion(id) {
         }
         if (effect.type === 'gain_fragments_per_ascension_flat') {
             const frags = Math.floor(effect.value * (gameState.ascensions || 1));
-            gameState.corruptedFragments += frags;
+            _safeAddCur("corruptedFragments", frags);
             Toastify({ text: `🔮 Gained ${formatNumber(frags)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
         }
 
@@ -9872,7 +9892,7 @@ function usePotion(id) {
             }
             if (effect2.type === 'gain_shards_no_reset_flat') {
                 const gained = Math.floor(calculateShardsOnAscend() * effect2.value);
-                gameState.abyssalShards += isFinite(gained) ? gained : 0;
+                _safeAddCur("abyssalShards", isFinite(gained) ? gained : 0);
                 Toastify({ text: `💎 Also gained ${formatNumber(gained)} Abyssal Shards!`, duration:3000, gravity:'top', position:'center' }).showToast();
             }
         }
@@ -11956,7 +11976,7 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
         if ((gameState.minions[itemId]?.level || 0) > 0) {
             Toastify({ text: `You already possess ${sm.name}.`, duration: 3000, gravity:'top', position:'center', style:{ background:'#441144' } }).showToast();
             // Refund the essence since we charged before this check
-            gameState.darkEssence += price;
+            _safeAddCur("darkEssence", price);
             saveGame();
             return;
         }
@@ -12144,13 +12164,13 @@ function convertCurrency(from, to, amountIn, amountOut) {
     if (from === 'shards' && to === 'de') {
         if (gameState.abyssalShards >= amountIn) {
             gameState.abyssalShards -= amountIn;
-            gameState.darkEssence += amountOut;
+            _safeAddCur("darkEssence", amountOut);
             canAfford = true;
         }
     } else if (from === 'aether' && to === 'de') {
         if (gameState.aether >= amountIn) {
             gameState.aether -= amountIn;
-            gameState.darkEssence += amountOut;
+            _safeAddCur("darkEssence", amountOut);
             if (amountIn === 1) gameState.aetherToDeConversions++;
             canAfford = true;
         }
@@ -13504,7 +13524,7 @@ function updateExpeditions() {
 function endBreach(isVictory) {
     if (isVictory) {
         const bonusFrags = 10;
-        gameState.corruptedFragments += bonusFrags;
+        _safeAddCur("corruptedFragments", bonusFrags);
         Toastify({ text: `Breach Cleared! You gained a bonus of ${bonusFrags} Corrupted Fragments!`, duration: 5000, style: { background: "linear-gradient(to right, #1eff00, #16a085)" } }).showToast();
         // 0.5% chance a Key of the Abyss was hidden in the breach
         if (typeof rollForKey === 'function' && Math.random() < 0.005) {
@@ -13544,7 +13564,7 @@ function completeExpedition(id) {
         fragmentsGained = Math.floor(fragmentsGained * items[tomeId].bonus.value);
     }
 
-    gameState.corruptedFragments += fragmentsGained;
+    _safeAddCur("corruptedFragments", fragmentsGained);
     rewardText += `Found ${fragmentsGained} Corrupted Fragments!`;
     
     data.rewards.forEach(reward => {
@@ -14816,7 +14836,7 @@ async function tryAbsorbGhost(msgKey) {
                     break;
                 case 'darkEssence':
                     amt = Math.max(10, Math.floor((gameState.darkEssence || 0) * 0.15));
-                    gameState.darkEssence += amt;
+                    _safeAddCur("darkEssence", amt);
                     break;
                 case 'abyssalShards':
                     amt = Math.max(3, Math.floor((gameState.abyssalShards || 0) * 0.20));
@@ -15148,7 +15168,7 @@ function claimPvpReward() {
     const reward = PVP_RANK_REWARDS.find(r => r.rank === rank);
     if (!reward) return;
 
-    gameState.darkEssence += reward.essence;
+    _safeAddCur("darkEssence", reward.essence);
     if (reward.potion) {
         if (!gameState.potions) gameState.potions = {};
         gameState.potions[reward.potion] = (gameState.potions[reward.potion] || 0) + 1;
@@ -15178,7 +15198,7 @@ function checkAutoPactBuff() {
     gameState.lastAutoPactBuff = now;
 
     if (buff.effect.type === 'instant_essence') {
-        gameState.darkEssence += buff.effect.value;
+        _safeAddCur("darkEssence", buff.effect.value);
     } else {
         if (!gameState.activeItemBuffs) gameState.activeItemBuffs = {};
         gameState.activeItemBuffs['pact_buff'] = {
@@ -15277,7 +15297,7 @@ function rollPactBuff() {
 
             // Apply instant essence locally right away
             if (pick.effect.type === 'instant_essence') {
-                gameState.darkEssence += pick.effect.value;
+                _safeAddCur("darkEssence", pick.effect.value);
                 saveGame();
             }
         });
@@ -15298,7 +15318,7 @@ function rollPactBuff() {
 function applyPactBuff(pick, rolledAt, rolledBy) {
     const now = Date.now();
     if (pick.effect.type === 'instant_essence') {
-        gameState.darkEssence += pick.effect.value;
+        _safeAddCur("darkEssence", pick.effect.value);
         Toastify({ text:`${pick.icon} ${rolledBy} rolled ${pick.name}: ${pick.desc}`, duration:5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a1050,#c8a800)'} }).showToast();
     } else {
         if (!gameState.activeItemBuffs) gameState.activeItemBuffs = {};
@@ -15344,7 +15364,7 @@ function listenPactBuff() {
                 }).showToast();
             }
             if (shared.instantEssence && rolledByOther) {
-                gameState.darkEssence += shared.instantEssence;
+                _safeAddCur("darkEssence", shared.instantEssence);
                 saveGame();
             }
         }
@@ -15695,7 +15715,7 @@ function deductCurrency(type, amt) {
 function addCurrency(type, amt) {
     switch(type) {
         case 'souls':              gameState.souls = D(gameState.souls).add(D(amt)); gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(D(amt)); break;
-        case 'darkEssence':        gameState.darkEssence += amt; break;
+        case 'darkEssence':        _safeAddCur("darkEssence", amt); break;
         case 'abyssalShards':      gameState.abyssalShards += amt; break;
         case 'corruptedFragments': gameState.corruptedFragments += amt; break;
         case 'key': {
@@ -16522,562 +16542,636 @@ const GNT_WAVES = [
 ];
 // Waves beyond 10: multiplier = previous * 1.5
 function gntGetWaveData(waveNum) {
-    if (waveNum <= GNT_WAVES.length) return GNT_WAVES[waveNum - 1];
-    let mult = GNT_WAVES[GNT_WAVES.length - 1].mult;
-    for (let i = GNT_WAVES.length; i < waveNum; i++) mult = Math.round(mult * 1.5 * 10) / 10;
-    return { wave: waveNum, mult, label: mult + 'x', color: '#ff00ff' };
+    let base;
+    if (waveNum <= GNT_WAVES.length) {
+        base = GNT_WAVES[waveNum - 1];
+    } else {
+        let mult = GNT_WAVES[GNT_WAVES.length - 1].mult;
+        for (let i = GNT_WAVES.length; i < waveNum; i++) mult = Math.round(mult * 1.5 * 10) / 10;
+        base = { wave: waveNum, mult, label: mult + 'x', color: '#ff00ff' };
+    }
+    if (typeof gntGetDailyWaveMult === 'function') base = gntGetDailyWaveMult(base);
+    const locMod = (typeof gntGetMultModifier === 'function') ? gntGetMultModifier() : 1;
+    if (locMod !== 1) {
+        const m = Math.round(base.mult * locMod * 100) / 100;
+        base = { ...base, mult: m, label: m.toFixed(2) + 'x' };
+    }
+    return base;
 }
 
-// Enemy pool per wave tier
 const GNT_ENEMY_TIERS = [
-    // Wave 1-2: basic
     ['imp','ghoul','demon','ash_golem','cinder_wraith'],
-    // Wave 3-4
     ['abyssal_stalker','frost_lich','hellhound','balrog','corrupted_cherub'],
-    // Wave 5-6
     ['shoggoth','river_hydra','fallen_angel','pit_lord','glacial_titan'],
-    // Wave 7-8
     ['spacetime_ghast','reality_warper','void_spawn','alpha_omega','god_eater'],
-    // Wave 9-10
     ['the_final_observer','concept_of_death','the_last_question','eon_devourer','time_leech'],
-    // Wave 11+
     ['manifold_horror','silence_incarnate','blank_slate','entropy_wraith','universe_shard'],
 ];
 function gntEnemyTier(waveNum) {
-    const idx = Math.min(Math.floor((waveNum - 1) / 2), GNT_ENEMY_TIERS.length - 1);
-    return GNT_ENEMY_TIERS[idx];
+    return GNT_ENEMY_TIERS[Math.min(Math.floor((waveNum-1)/2), GNT_ENEMY_TIERS.length-1)];
 }
-
-// Generate enemy formation for a wave
 function gntGenerateEnemies(waveNum) {
-    const pool    = gntEnemyTier(waveNum);
-    const count   = Math.min(2 + Math.floor(waveNum * 0.8), 8);
-    const scaleMult = 1 + (waveNum - 1) * 0.35; // enemies get 35% stronger per wave
-    const enemies = [];
-    const positions = [];
-    // Fill top 2 rows (y=0,y=1) of the 3x4 grid
-    for (let y = 0; y < 2; y++) for (let x = 0; x < 3; x++) positions.push({x,y});
-    // Shuffle positions
-    for (let i = positions.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [positions[i], positions[j]] = [positions[j], positions[i]];
-    }
-    for (let i = 0; i < Math.min(count, positions.length); i++) {
-        const id  = pool[Math.floor(Math.random() * pool.length)];
-        const bm  = battleMinions[id];
-        if (!bm) continue;
-        const hp  = Math.ceil(bm.hp  * scaleMult);
-        const atk = Math.ceil(bm.atk * scaleMult);
-        enemies.push({ ...bm, id: `gnt_enemy_${i}`, x: positions[i].x, y: positions[i].y,
-                       hp, atk, currentHp: hp, isPlayer: false, _sourceId: id });
+    const pool = (typeof gntGetDailyEnemyPool==='function') ? gntGetDailyEnemyPool(waveNum) : gntEnemyTier(waveNum);
+    const extraEnemies = (typeof gntGetEnemyCountBonus==='function') ? gntGetEnemyCountBonus() : 0;
+    const count = Math.min(2 + Math.floor(waveNum*0.8) + extraEnemies, 8);
+    const scaleMult = 1 + (waveNum-1)*0.35;
+    const enemies = [], positions = [];
+    for (let y=0;y<2;y++) for (let x=0;x<3;x++) positions.push({x,y});
+    for (let i=positions.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [positions[i],positions[j]]=[positions[j],positions[i]]; }
+    for (let i=0;i<Math.min(count,positions.length);i++) {
+        const id = pool[Math.floor(Math.random()*pool.length)];
+        const bm = battleMinions[id]; if (!bm) continue;
+        let hp  = (typeof gntApplyLocationEffects==='function') ? gntApplyLocationEffects('enemy','hp',Math.ceil(bm.hp*scaleMult))  : Math.ceil(bm.hp*scaleMult);
+        let atk = (typeof gntApplyLocationEffects==='function') ? gntApplyLocationEffects('enemy','atk',Math.ceil(bm.atk*scaleMult)) : Math.ceil(bm.atk*scaleMult);
+        // Apply repeat-loadout penalty (enemy remembers your tactics)
+        if (gntState.repeatPenalty > 0) {
+            const penaltyMult = 1 + gntState.repeatPenalty * 0.2;
+            hp  = Math.ceil(hp  * penaltyMult);
+            atk = Math.ceil(atk * penaltyMult);
+        }
+        // Apply run seed variation so enemies differ every attempt (±20%)
+        if (gntState.runSeed) {
+            const s = (gntState.runSeed + waveNum * 137 + i * 31) & 0x7fffffff;
+            const variation = 0.9 + (s % 200) / 1000; // 0.90–1.10
+            hp  = Math.ceil(hp  * variation);
+            atk = Math.ceil(atk * variation);
+        }
+        enemies.push({...bm, id:`gnt_enemy_${i}`, x:positions[i].x, y:positions[i].y, hp, atk, currentHp:hp, isPlayer:false, _sourceId:id});
     }
     return enemies;
 }
 
-// ── Gauntlet state ────────────────────────────────────────────────
-let gntState = {
-    phase: 'LOBBY',   // LOBBY | COMBAT | BETWEEN | RESULT
-    wave: 1,
-    betAmount: 0,
-    betCurrency: 'souls',
-    playerUnits: [],
-    enemyUnits: [],
-    pointsSpent: 0,
-    pointBudget: 0,
-    combatInterval: null,
-    selectedTile: null,
+let gntState = { phase:'LOBBY', wave:1, betAmount:0, betCurrency:'souls', playerUnits:[], enemyUnits:[], pointsSpent:0, pointBudget:0, combatInterval:null, selectedTile:null, location:null, locationChosen:false,
+    runSeed: null,       // unique per run — guarantees different enemies every attempt
+    runCount: 0,         // how many times this location has been run this session
+    lastLoadout: null,   // fingerprint of player's last deployed team
+    repeatPenalty: 0,    // 0-3: enemy HP bonus if same loadout detected
 };
 
-// ── Helpers ───────────────────────────────────────────────────────
-function gntLog(msg, color) {
-    const log = document.getElementById('gnt-log');
-    if (!log) return;
-    const el = document.createElement('div');
-    el.style.color = color || '#888';
-    el.textContent = msg;
-    log.prepend(el);
-    while (log.children.length > 30) log.removeChild(log.lastChild);
+function gntLog(msg,color){const log=document.getElementById('gnt-log');if(!log)return;const el=document.createElement('div');el.style.color=color||'#888';el.textContent=msg;log.prepend(el);while(log.children.length>30)log.removeChild(log.lastChild);}
+function gntSetBet(v){const el=document.getElementById('gnt-bet-input');if(el)el.value=v;}
+function gntSetBetMax(){const cur=document.getElementById('gnt-currency')?.value||'souls';gntSetBet(Math.floor(gameState[cur]||0));}
+function gntCurrencyLabel(key){return{souls:'👻 Souls',darkEssence:'🌑 Dark Essence',abyssalShards:'💎 Shards',aether:'✨ Aether',corruptedFragments:'🔮 Fragments'}[key]||key;}
+function gntCalcBudget(){return 10+(gameState.ascensions||0)*3+(gntState.wave-1)*2;}
+function gntUpdateBudgetBar(){
+    const fill=document.getElementById('gnt-budget-fill'),txt=document.getElementById('gnt-budget-text');
+    const pct=gntState.pointBudget>0?Math.min(100,(gntState.pointsSpent/gntState.pointBudget)*100):0;
+    if(fill){fill.style.width=pct+'%';fill.style.background=pct>=100?'linear-gradient(90deg,#cc3333,#ff4444)':pct>60?'linear-gradient(90deg,#c8a800,#ffaa00)':'linear-gradient(90deg,#44cc88,#c8a800)';}
+    if(txt)txt.textContent=`${gntState.pointsSpent} / ${gntState.pointBudget}`;
 }
-function gntSetBet(v) { const el = document.getElementById('gnt-bet-input'); if (el) el.value = v; }
-function gntSetBetMax() {
-    const cur = document.getElementById('gnt-currency')?.value || 'souls';
-    gntSetBet(Math.floor(gameState[cur] || 0));
+function gntUpdateInfoBar(){
+    const wd=gntGetWaveData(gntState.wave),win=Math.floor(gntState.betAmount*wd.mult);
+    document.getElementById('gnt-wave-display').textContent=gntState.wave;
+    document.getElementById('gnt-bet-display').textContent=`${formatNumber(gntState.betAmount)} ${gntCurrencyLabel(gntState.betCurrency)}`;
+    document.getElementById('gnt-mult-display').textContent=wd.label;
+    document.getElementById('gnt-mult-display').style.color=wd.color;
+    document.getElementById('gnt-win-display').textContent=formatNumber(win);
+    document.getElementById('gnt-info-bar').style.display='flex';
 }
-function gntCurrencyLabel(key) {
-    return {souls:'👻 Souls', darkEssence:'🌑 Dark Essence', abyssalShards:'💎 Shards',
-            aether:'✨ Aether', corruptedFragments:'🔮 Fragments'}[key] || key;
+function gntSetPhase(phase){
+    gntState.phase=phase;
+    document.getElementById('gnt-phase-lobby').style.display=phase==='LOBBY'?'block':'none';
+    document.getElementById('gnt-phase-between').style.display=phase==='BETWEEN'?'block':'none';
+    document.getElementById('gnt-phase-result').style.display=phase==='RESULT'?'block':'none';
+    const lock=document.getElementById('gnt-combat-lock');
+    if(lock)lock.style.display=phase==='COMBAT'?'flex':'none';
 }
-function gntCalcBudget() {
-    const base = 10 + (gameState.ascensions || 0) * 3;
-    const waveBonus = (gntState.wave - 1) * 2;
-    return base + waveBonus;
-}
-function gntUpdateBudgetBar() {
-    const fill = document.getElementById('gnt-budget-fill');
-    const txt  = document.getElementById('gnt-budget-text');
-    const pct  = gntState.pointBudget > 0 ? Math.min(100, (gntState.pointsSpent / gntState.pointBudget) * 100) : 0;
-    if (fill) {
-        fill.style.width = pct + '%';
-        fill.style.background = pct >= 100 ? 'linear-gradient(90deg,#cc3333,#ff4444)'
-                               : pct > 60  ? 'linear-gradient(90deg,#c8a800,#ffaa00)'
-                               :              'linear-gradient(90deg,#44cc88,#c8a800)';
-    }
-    if (txt) txt.textContent = `${gntState.pointsSpent} / ${gntState.pointBudget}`;
-}
-function gntUpdateInfoBar() {
-    const wd  = gntGetWaveData(gntState.wave);
-    const win = Math.floor(gntState.betAmount * wd.mult);
-    document.getElementById('gnt-wave-display').textContent = gntState.wave;
-    document.getElementById('gnt-bet-display').textContent  = `${formatNumber(gntState.betAmount)} ${gntCurrencyLabel(gntState.betCurrency)}`;
-    document.getElementById('gnt-mult-display').textContent = wd.label;
-    document.getElementById('gnt-mult-display').style.color = wd.color;
-    document.getElementById('gnt-win-display').textContent  = formatNumber(win);
-    document.getElementById('gnt-info-bar').style.display   = 'flex';
-}
-function gntSetPhase(phase) {
-    gntState.phase = phase;
-    document.getElementById('gnt-phase-lobby').style.display   = phase === 'LOBBY'   ? 'block' : 'none';
-    document.getElementById('gnt-phase-between').style.display = phase === 'BETWEEN' ? 'block' : 'none';
-    document.getElementById('gnt-phase-result').style.display  = phase === 'RESULT'  ? 'block' : 'none';
-    // Combat lock overlay
-    const lock = document.getElementById('gnt-combat-lock');
-    if (lock) lock.style.display = phase === 'COMBAT' ? 'flex' : 'none';
-}
-function gntRenderWaveTable() {
-    const el = document.getElementById('gnt-wave-table');
-    if (!el) return;
-    el.innerHTML = '';
-    for (let i = 1; i <= 10; i++) {
-        const w   = gntGetWaveData(i);
-        const cur = i === gntState.wave;
-        const done = i < gntState.wave;
-        const row = document.createElement('div');
-        row.style.cssText = `display:flex; justify-content:space-between; align-items:center; padding:2px 4px; border-radius:4px; background:${cur ? '#1a1030' : 'transparent'};`;
-        row.innerHTML = `
-            <span style="color:${done ? '#2a4a2a' : cur ? '#ddd' : '#555'};">Wave ${i}</span>
-            <span style="color:${done ? '#2a4a2a' : w.color}; font-weight:${cur ? 'bold' : 'normal'};">${done ? '✔' : w.label}</span>`;
+function gntRenderWaveTable(){
+    const el=document.getElementById('gnt-wave-table');if(!el)return;el.innerHTML='';
+    for(let i=1;i<=10;i++){
+        const w=gntGetWaveData(i),cur=i===gntState.wave,done=i<gntState.wave;
+        const row=document.createElement('div');
+        row.style.cssText=`display:flex;justify-content:space-between;align-items:center;padding:2px 4px;border-radius:4px;background:${cur?'#1a1030':'transparent'};`;
+        row.innerHTML=`<span style="color:${done?'#2a4a2a':cur?'#ddd':'#555'};">Wave ${i}</span><span style="color:${done?'#2a4a2a':w.color};font-weight:${cur?'bold':'normal'};">${done?'✔':w.label}</span>`;
         el.appendChild(row);
     }
-    const more = document.createElement('div');
-    more.style.cssText = 'color:#444; font-style:italic; padding:2px 4px; font-size:0.9em;';
-    more.textContent = '10+ → keeps climbing…';
-    el.appendChild(more);
+    const more=document.createElement('div');more.style.cssText='color:#444;font-style:italic;padding:2px 4px;font-size:0.9em;';more.textContent='10+ → keeps climbing…';el.appendChild(more);
 }
-
-// ── Grid rendering ────────────────────────────────────────────────
-function gntRenderGrid() {
-    const grid = document.getElementById('gnt-combat-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    const isLobby   = gntState.phase === 'LOBBY';
-    const isBetween = gntState.phase === 'BETWEEN';
-
-    for (let y = 0; y < 4; y++) {
-        for (let x = 0; x < 3; x++) {
-            const tile = document.createElement('div');
-            tile.style.cssText = `
-                height:70px; border-radius:6px; position:relative; overflow:hidden;
-                background:${y < 2 ? '#0a0310' : '#030a06'};
-                border:1px solid ${y < 2 ? '#2a0a2a' : '#0a2a0a'};
-                cursor:${(isLobby || isBetween) && y >= 2 ? 'pointer' : 'default'};
-                transition:background 0.15s;
-            `;
-            if ((isLobby || isBetween) && y >= 2) {
-                tile.onmouseover = () => tile.style.background = '#0a1a0a';
-                tile.onmouseout  = () => tile.style.background = '#030a06';
-                tile.onclick     = () => gntHandleTileClick(x, y);
-            }
-
-            // Enemy unit on tile
-            const enemy = gntState.enemyUnits.find(u => u.x === x && u.y === y && u.currentHp > 0);
-            if (enemy) {
-                const bm = battleMinions[enemy._sourceId] || enemy;
-                const hpPct = Math.max(0, (enemy.currentHp / enemy.hp) * 100);
-                const token = document.createElement('div');
-                token.id = enemy.id;
-                token.style.cssText = 'position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;';
-                token.innerHTML = `
-                    <div style="font-size:1.5em; line-height:1;">${bm.icon || '👾'}</div>
-                    <div style="width:80%; height:4px; background:#1a0808; border-radius:2px; overflow:hidden;">
-                        <div style="height:100%; width:${hpPct}%; background:#cc3333; border-radius:2px; transition:width 0.3s;"></div>
-                    </div>`;
-                tile.appendChild(token);
-            }
-
-            // Player unit on tile
-            const player = gntState.playerUnits.find(u => u.x === x && u.y === y && u.currentHp > 0);
-            if (player) {
-                const hpPct = Math.max(0, (player.currentHp / player.hp) * 100);
-                const token = document.createElement('div');
-                token.id = player.id;
-                token.style.cssText = 'position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;';
-                token.innerHTML = `
-                    <div style="font-size:1.5em; line-height:1;">${player.icon || '⚔'}</div>
-                    <div style="width:80%; height:4px; background:#081a08; border-radius:2px; overflow:hidden;">
-                        <div style="height:100%; width:${hpPct}%; background:#44cc44; border-radius:2px; transition:width 0.3s;"></div>
-                    </div>`;
-                tile.appendChild(token);
-            }
-
-            // Empty player-side hint in lobby
-            if (!player && !enemy && y >= 2 && (isLobby || isBetween)) {
-                tile.innerHTML += `<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#1a3a1a; font-size:1.4em; pointer-events:none;">+</div>`;
-            }
-
-            grid.appendChild(tile);
-        }
+function gntRenderGrid(){
+    const grid=document.getElementById('gnt-combat-grid');if(!grid)return;grid.innerHTML='';
+    const isLobby=gntState.phase==='LOBBY',isBetween=gntState.phase==='BETWEEN';
+    for(let y=0;y<4;y++)for(let x=0;x<3;x++){
+        const tile=document.createElement('div');
+        tile.style.cssText=`height:70px;border-radius:6px;position:relative;overflow:hidden;background:${y<2?'#0a0310':'#030a06'};border:1px solid ${y<2?'#2a0a2a':'#0a2a0a'};cursor:${(isLobby||isBetween)&&y>=2?'pointer':'default'};transition:background 0.15s;`;
+        if((isLobby||isBetween)&&y>=2){tile.onmouseover=()=>tile.style.background='#0a1a0a';tile.onmouseout=()=>tile.style.background='#030a06';tile.onclick=()=>gntHandleTileClick(x,y);}
+        const enemy=gntState.enemyUnits.find(u=>u.x===x&&u.y===y&&u.currentHp>0);
+        if(enemy){const bm=battleMinions[enemy._sourceId]||enemy;const hpPct=Math.max(0,(enemy.currentHp/enemy.hp)*100);const tok=document.createElement('div');tok.id=enemy.id;tok.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;';tok.innerHTML=`<div style="font-size:1.5em;line-height:1;">${bm.icon||'👾'}</div><div style="width:80%;height:4px;background:#1a0808;border-radius:2px;overflow:hidden;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:2px;transition:width 0.3s;"></div></div>`;tile.appendChild(tok);}
+        const player=gntState.playerUnits.find(u=>u.x===x&&u.y===y&&u.currentHp>0);
+        if(player){const hpPct=Math.max(0,(player.currentHp/player.hp)*100);const tok=document.createElement('div');tok.id=player.id;tok.style.cssText='position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;';tok.innerHTML=`<div style="font-size:1.5em;line-height:1;">${player.icon||'⚔'}</div><div style="width:80%;height:4px;background:#081a08;border-radius:2px;overflow:hidden;"><div style="height:100%;width:${hpPct}%;background:#44cc44;border-radius:2px;transition:width 0.3s;"></div></div>`;tile.appendChild(tok);}
+        if(!player&&!enemy&&y>=2&&(isLobby||isBetween))tile.innerHTML+=`<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#1a3a1a;font-size:1.4em;pointer-events:none;">+</div>`;
+        grid.appendChild(tile);
     }
 }
-
-// ── Tile click → open minion picker ──────────────────────────────
-function gntHandleTileClick(x, y) {
-    if (y < 2) return; // enemy side
-    const existing = gntState.playerUnits.find(u => u.x === x && u.y === y);
-    if (existing) {
-        // Remove unit
-        gntState.pointsSpent -= existing.cost;
-        gntState.playerUnits = gntState.playerUnits.filter(u => u.id !== existing.id);
-        gntUpdateBudgetBar();
-        gntRenderGrid();
-        return;
-    }
-    gntState.selectedTile = { x, y };
-    gntOpenMinionPicker();
+function gntHandleTileClick(x,y){
+    if(y<2)return;
+    const existing=gntState.playerUnits.find(u=>u.x===x&&u.y===y);
+    if(existing){gntState.pointsSpent-=existing.cost;gntState.playerUnits=gntState.playerUnits.filter(u=>u.id!==existing.id);gntUpdateBudgetBar();gntRenderGrid();return;}
+    gntState.selectedTile={x,y};gntOpenMinionPicker();
 }
-
-function gntOpenMinionPicker() {
-    const modal  = document.getElementById('minion-select-modal-overlay');
-    const grid   = document.getElementById('minion-button-grid');
-    const ptDisp = document.getElementById('minion-select-points-display');
-    const budFill = document.getElementById('summon-budget-fill');
-    if (!modal || !grid) return;
-
-    const remaining = gntState.pointBudget - gntState.pointsSpent;
-    const pct = Math.max(0, (remaining / gntState.pointBudget) * 100);
-    if (ptDisp) ptDisp.textContent = `${remaining} / ${gntState.pointBudget}`;
-    if (budFill) {
-        budFill.style.width = pct + '%';
-        budFill.style.background = pct < 25 ? 'linear-gradient(90deg,#cc3333,#ff4444)'
-                                 : pct < 60 ? 'linear-gradient(90deg,#c8a800,#ffaa00)'
-                                 :             'linear-gradient(90deg,#44cc88,#c8a800)';
-    }
-
-    grid.innerHTML = '';
-    for (const id in battleMinions) {
-        if (!(gameState.minions[id] && gameState.minions[id].level > 0)) continue;
-        const bm      = battleMinions[id];
-        const gm      = gameState.minions[id];
-        const lvl     = gm?.level || 0;
-        const promo   = gm?.promotionTier || 0;
-        const lvlB    = 1 + (Math.floor(lvl / 25) * 0.05);
-        const promoB  = 1 + (promo * 0.20);
-        const tot     = lvlB * promoB;
-        const sHp     = Math.ceil(bm.hp  * tot);
-        const sAtk    = Math.ceil(bm.atk * tot);
-        const canBuy  = gntState.pointsSpent + bm.cost <= gntState.pointBudget;
-        const tc      = bm.cost <= 3 ? '#44cc88' : bm.cost <= 8 ? '#c8a800' : bm.cost <= 14 ? '#ff9944' : '#aa44ff';
-
-        const card = document.createElement('div');
-        card.style.cssText = `background:linear-gradient(135deg,${canBuy?'#0d0a18':'#080611'},transparent); border:1px solid ${canBuy?tc+'44':'#1a1030'}; border-top:2px solid ${canBuy?tc:'#2a1a3a'}; border-radius:10px; padding:12px; text-align:center; cursor:${canBuy?'pointer':'default'}; opacity:${canBuy?'1':'0.4'}; transition:all 0.15s;`;
-        card.innerHTML = `
-            <div style="font-size:2em; margin-bottom:4px; filter:drop-shadow(0 0 4px ${tc}66);">${bm.icon}</div>
-            <div style="color:${canBuy?'#ddd':'#555'}; font-size:0.78em; font-weight:bold; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${bm.name}</div>
-            ${tot > 1.001 ? `<div style="color:#44cc88; font-size:0.6em; margin-bottom:4px;">Lv${lvl} +${Math.round((tot-1)*100)}%</div>` : ''}
-            <div style="display:flex; justify-content:center; gap:3px; margin-bottom:6px; flex-wrap:wrap;">
-                <span style="background:#44cc8818; border:1px solid #44cc8833; border-radius:4px; padding:1px 4px; font-size:0.6em; color:#44cc88;">❤ ${sHp}</span>
-                <span style="background:#ff444418; border:1px solid #ff444433; border-radius:4px; padding:1px 4px; font-size:0.6em; color:#ff9944;">⚔ ${sAtk}</span>
-                <span style="background:#4488ff18; border:1px solid #4488ff33; border-radius:4px; padding:1px 4px; font-size:0.6em; color:#88aaff;">↔ ${bm.range}</span>
-            </div>
-            <div style="background:${tc}22; border:1px solid ${tc}44; border-radius:6px; padding:3px 0; color:${tc}; font-size:0.75em; font-weight:bold;">⚡ ${bm.cost} pts</div>`;
-        if (canBuy) {
-            card.onmouseover = () => { card.style.background = `linear-gradient(135deg,${tc}18,#0d0a18)`; };
-            card.onmouseout  = () => { card.style.background = `linear-gradient(135deg,#0d0a18,transparent)`; };
-            card.onclick     = () => gntPlaceMinion(id);
-        }
+function gntOpenMinionPicker(){
+    const modal=document.getElementById('minion-select-modal-overlay'),grid=document.getElementById('minion-button-grid');
+    const ptDisp=document.getElementById('minion-select-points-display'),budFill=document.getElementById('summon-budget-fill');
+    if(!modal||!grid)return;
+    const remaining=gntState.pointBudget-gntState.pointsSpent,pct=Math.max(0,(remaining/gntState.pointBudget)*100);
+    if(ptDisp)ptDisp.textContent=`${remaining} / ${gntState.pointBudget}`;
+    if(budFill){budFill.style.width=pct+'%';budFill.style.background=pct<25?'linear-gradient(90deg,#cc3333,#ff4444)':pct<60?'linear-gradient(90deg,#c8a800,#ffaa00)':'linear-gradient(90deg,#44cc88,#c8a800)';}
+    grid.innerHTML='';
+    for(const id in battleMinions){
+        if(!(gameState.minions[id]&&gameState.minions[id].level>0))continue;
+        const bm=battleMinions[id],gm=gameState.minions[id],lvl=gm?.level||0,promo=gm?.promotionTier||0;
+        const tot=(1+(Math.floor(lvl/25)*0.05))*(1+(promo*0.20));
+        const sHp=Math.ceil(bm.hp*tot),sAtk=Math.ceil(bm.atk*tot),canBuy=gntState.pointsSpent+bm.cost<=gntState.pointBudget;
+        const tc=bm.cost<=3?'#44cc88':bm.cost<=8?'#c8a800':bm.cost<=14?'#ff9944':'#aa44ff';
+        const card=document.createElement('div');
+        card.style.cssText=`background:linear-gradient(135deg,${canBuy?'#0d0a18':'#080611'},transparent);border:1px solid ${canBuy?tc+'44':'#1a1030'};border-top:2px solid ${canBuy?tc:'#2a1a3a'};border-radius:10px;padding:12px;text-align:center;cursor:${canBuy?'pointer':'default'};opacity:${canBuy?1:0.4};transition:all 0.15s;`;
+        card.innerHTML=`<div style="font-size:2em;margin-bottom:4px;filter:drop-shadow(0 0 4px ${tc}66);">${bm.icon}</div><div style="color:${canBuy?'#ddd':'#555'};font-size:0.78em;font-weight:bold;margin-bottom:3px;">${bm.name}</div>${tot>1.001?`<div style="color:#44cc88;font-size:0.6em;margin-bottom:4px;">Lv${lvl} +${Math.round((tot-1)*100)}%</div>`:''}<div style="display:flex;justify-content:center;gap:3px;margin-bottom:6px;"><span style="background:#44cc8818;border:1px solid #44cc8833;border-radius:4px;padding:1px 4px;font-size:0.6em;color:#44cc88;">❤ ${sHp}</span><span style="background:#ff444418;border:1px solid #ff444433;border-radius:4px;padding:1px 4px;font-size:0.6em;color:#ff9944;">⚔ ${sAtk}</span></div><div style="background:${tc}22;border:1px solid ${tc}44;border-radius:6px;padding:3px 0;color:${tc};font-size:0.75em;font-weight:bold;">⚡ ${bm.cost} pts</div>`;
+        if(canBuy){card.onmouseover=()=>{card.style.background=`linear-gradient(135deg,${tc}18,#0d0a18)`;};card.onmouseout=()=>{card.style.background=`linear-gradient(135deg,#0d0a18,transparent)`;};card.onclick=()=>gntPlaceMinion(id);}
         grid.appendChild(card);
     }
-    modal.style.display = 'flex';
+    modal.style.display='flex';
+}
+function gntPlaceMinion(id){
+    if(!gntState.selectedTile)return;
+    const bm=battleMinions[id],gm=gameState.minions[id],lvl=gm?.level||0,promo=gm?.promotionTier||0;
+    const tot=(1+(Math.floor(lvl/25)*0.05))*(1+(promo*0.20));
+    const sHp=Math.ceil(bm.hp*tot),sAtk=Math.ceil(bm.atk*tot);
+    gntState.playerUnits.push({...bm,id:`gnt_player_${Date.now()}`,x:gntState.selectedTile.x,y:gntState.selectedTile.y,hp:sHp,atk:sAtk,currentHp:sHp,isPlayer:true});
+    gntState.pointsSpent+=bm.cost;gntState.selectedTile=null;
+    document.getElementById('minion-select-modal-overlay').style.display='none';
+    gntUpdateBudgetBar();gntRenderGrid();playSound('upgrade');
+}
+function gntBackToMap() {
+    // Block if combat is active
+    if (gntState.phase === 'COMBAT') {
+        Toastify({text:'Cannot retreat during combat!', duration:2500, gravity:'top', position:'center', style:{background:'#aa2222'}}).showToast();
+        return;
+    }
+    // If mid-run (already bet), warn
+    if (gntState.betAmount > 0 && gntState.phase !== 'RESULT') {
+        if (!confirm('Return to map? Your current run will be abandoned and your bet is lost.')) return;
+        // Lose the bet
+        gntState.betAmount = 0;
+    }
+    if (gntState.combatInterval) { clearInterval(gntState.combatInterval); gntState.combatInterval = null; }
+    gntState.locationChosen = false;
+    gntState.location = null;
+    gntState.wave = 1;
+    gntState.playerUnits = [];
+    gntState.enemyUnits = [];
+    gntState.pointsSpent = 0;
+    gntState.runSeed = null;
+
+    document.getElementById('gnt-location-picker').style.display = 'block';
+    document.getElementById('gnt-container').style.display = 'none';
+    gntRenderLocationPicker();
 }
 
-function gntPlaceMinion(id) {
-    if (!gntState.selectedTile) return;
-    const bm    = battleMinions[id];
-    const gm    = gameState.minions[id];
-    const lvl   = gm?.level || 0;
-    const promo = gm?.promotionTier || 0;
-    const lvlB  = 1 + (Math.floor(lvl / 25) * 0.05);
-    const promoB = 1 + (promo * 0.20);
-    const tot   = lvlB * promoB;
-    const sHp   = Math.ceil(bm.hp  * tot);
-    const sAtk  = Math.ceil(bm.atk * tot);
-
-    gntState.playerUnits.push({
-        ...bm, id: `gnt_player_${Date.now()}`, x: gntState.selectedTile.x, y: gntState.selectedTile.y,
-        hp: sHp, atk: sAtk, currentHp: sHp, isPlayer: true, _scaledLabel: lvl > 0 ? `Lv${lvl}` : null,
-    });
-    gntState.pointsSpent += bm.cost;
-    gntState.selectedTile = null;
-    document.getElementById('minion-select-modal-overlay').style.display = 'none';
-    gntUpdateBudgetBar();
-    gntRenderGrid();
-    playSound('upgrade');
-}
-
-// ── Begin wave ────────────────────────────────────────────────────
-function gntBeginWave() {
-    const betInput = parseInt(document.getElementById('gnt-bet-input')?.value || '0', 10);
-    const currency = document.getElementById('gnt-currency')?.value || 'souls';
-
-    // Validate on wave 1 only (subsequent waves keep the original bet)
-    if (gntState.wave === 1) {
-        if (isNaN(betInput) || betInput <= 0) {
-            Toastify({text:'Enter a valid bet amount.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
-            return;
-        }
-        if (gameState[currency] < betInput) {
-            Toastify({text:'Not enough resources for that bet.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
-            return;
-        }
-        if (gntState.playerUnits.length === 0) {
-            Toastify({text:'Deploy at least one minion before beginning.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
-            return;
-        }
-        // Lock in the bet
-        gntState.betAmount   = betInput;
-        gntState.betCurrency = currency;
-        gameState[currency] -= betInput;
-        // Disable bet controls — bet is locked for this run
-        const bInput2 = document.getElementById('gnt-bet-input');
-        const cSel2   = document.getElementById('gnt-currency');
-        if (bInput2) bInput2.disabled = true;
-        if (cSel2)   cSel2.disabled   = true;
-        updateDynamicDisplays();
-        saveGame();
+function gntBeginWave(){
+    const betInput=parseInt(document.getElementById('gnt-bet-input')?.value||'0',10);
+    const currency=document.getElementById('gnt-currency')?.value||'souls';
+    if(gntState.wave===1){
+        if(isNaN(betInput)||betInput<=0){Toastify({text:'Enter a valid bet amount.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
+        if(gameState[currency]<betInput){Toastify({text:'Not enough resources.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
+        if(gntState.playerUnits.length===0){Toastify({text:'Deploy at least one minion.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
+        gntState.betAmount=betInput;gntState.betCurrency=currency;gameState[currency]-=betInput;updateDynamicDisplays();saveGame();
     } else {
-        // Subsequent waves: must have deployed minions (re-deployed between waves)
-        if (gntState.playerUnits.length === 0) {
-            Toastify({text:'Deploy at least one minion before the next wave.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();
-            return;
-        }
+        if(gntState.playerUnits.length===0){Toastify({text:'Deploy at least one minion.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
     }
+    // Generate unique seed for this run if not set
+    if (!gntState.runSeed) {
+        gntState.runSeed = Date.now() + Math.floor(Math.random() * 999999);
+        gntState.runCount++;
 
-    // Confirm before locking in (wave 1 only — subsequent waves already confirmed)
-    if (gntState.wave === 1) {
-        const wd = gntGetWaveData(1);
-        const confirmMsg = `You are betting ${formatNumber(gntState.betAmount)} ${gntCurrencyLabel(gntState.betCurrency)}.\n\nOnce a wave begins you CANNOT flee — your minions must fight to the end.\n\nCash-out multiplier if you survive Wave 1: ${wd.label}\n\nProceed?`;
-        if (!confirm(confirmMsg)) {
-            // Refund the bet
-            gameState[gntState.betCurrency] += gntState.betAmount;
-            gntState.betAmount = 0;
-            updateDynamicDisplays();
-            saveGame();
-            return;
-        }
-    }
-
-    // Generate enemies
-    gntState.enemyUnits = gntGenerateEnemies(gntState.wave);
-    gntSetPhase('COMBAT');
-    gntUpdateInfoBar();
-    gntLog(`⚔ Wave ${gntState.wave} begins!`, '#ff8866');
-    gntRenderGrid();
-
-    // Status bar
-    document.getElementById('gnt-status-bar').textContent = `⚔ Wave ${gntState.wave} — Combat locked until wave resolves.`;
-    document.getElementById('gnt-status-bar').style.borderLeftColor = '#ff4444';
-    document.getElementById('gnt-status-bar').style.color = '#ff6666';
-
-    // Start combat interval
-    gntState.combatInterval = setInterval(gntRunTurn, 1000);
-}
-
-// ── Combat turn (same logic as Proving Grounds) ───────────────────
-function gntRunTurn() {
-    const turnOrder = [...gntState.playerUnits, ...gntState.enemyUnits];
-    for (const unit of turnOrder) {
-        if (unit.currentHp <= 0) continue;
-        const targets = (unit.isPlayer ? gntState.enemyUnits : gntState.playerUnits).filter(t => t.currentHp > 0);
-        if (!targets.length) continue;
-
-        let closest = null, minDist = Infinity;
-        for (const t of targets) {
-            const d = Math.abs(unit.x - t.x) + Math.abs(unit.y - t.y);
-            if (d < minDist) { minDist = d; closest = t; }
-        }
-        if (minDist <= unit.range) {
-            closest.currentHp -= unit.atk;
-            // Visual hit flash
-            const targetEl = document.getElementById(closest.id);
-            if (targetEl) { targetEl.classList.remove('gnt-token-hit'); void targetEl.offsetWidth; targetEl.classList.add('gnt-token-hit'); }
-            if (closest.currentHp <= 0) {
-                gntLog(`💀 ${closest.name} slain!`, closest.isPlayer ? '#cc3333' : '#44cc88');
+        // Detect repeated loadout
+        const loadoutPrint = gntState.playerUnits.map(u => u._sourceId || u.name).sort().join(',');
+        if (gntState.lastLoadout === loadoutPrint && loadoutPrint) {
+            gntState.repeatPenalty = Math.min(3, gntState.repeatPenalty + 1);
+            if (gntState.repeatPenalty > 0) {
+                const pctStr = ['+20%','+40%','+60%'][gntState.repeatPenalty - 1];
+                gntLog(`⚠ The enemy remembers your tactics. Enemy HP ${pctStr}!`, '#ff8866');
             }
         } else {
-            // Move toward closest
-            const dx = closest.x - unit.x, dy = closest.y - unit.y;
-            let nx = unit.x, ny = unit.y;
-            if (Math.abs(dx) > Math.abs(dy)) nx += Math.sign(dx);
-            else ny += Math.sign(dy);
-            const occupied = [...gntState.playerUnits, ...gntState.enemyUnits].some(u => u.x === nx && u.y === ny && u.id !== unit.id);
-            if (!occupied) { unit.x = nx; unit.y = ny; }
+            gntState.repeatPenalty = 0;
         }
+        gntState.lastLoadout = loadoutPrint;
     }
 
-    // Clean dead
-    setTimeout(() => {
-        gntState.playerUnits = gntState.playerUnits.filter(u => u.currentHp > 0);
-        gntState.enemyUnits  = gntState.enemyUnits.filter(u => u.currentHp > 0);
+    gntState.enemyUnits=gntGenerateEnemies(gntState.wave);
+    gntSetPhase('COMBAT');gntUpdateInfoBar();gntLog(`⚔ Wave ${gntState.wave} begins!`,'#ff8866');gntRenderGrid();
+    const sb=document.getElementById('gnt-status-bar');
+    if(sb){sb.textContent=`⚔ Wave ${gntState.wave} — Combat locked.`;sb.style.borderLeftColor='#ff4444';sb.style.color='#ff6666';}
+    gntState.combatInterval=setInterval(gntRunTurn,1000);
+}
+function gntRunTurn(){
+    for(const unit of [...gntState.playerUnits,...gntState.enemyUnits]){
+        if(unit.currentHp<=0)continue;
+        const targets=(unit.isPlayer?gntState.enemyUnits:gntState.playerUnits).filter(t=>t.currentHp>0);
+        if(!targets.length)continue;
+        let closest=null,minDist=Infinity;
+        for(const t of targets){const d=Math.abs(unit.x-t.x)+Math.abs(unit.y-t.y);if(d<minDist){minDist=d;closest=t;}}
+        if(minDist<=unit.range){closest.currentHp-=unit.atk;if(closest.currentHp<=0)gntLog(`💀 ${closest.name} slain!`,closest.isPlayer?'#cc3333':'#44cc88');}
+        else{const dx=closest.x-unit.x,dy=closest.y-unit.y;let nx=unit.x,ny=unit.y;if(Math.abs(dx)>Math.abs(dy))nx+=Math.sign(dx);else ny+=Math.sign(dy);const occ=[...gntState.playerUnits,...gntState.enemyUnits].some(u=>u.x===nx&&u.y===ny&&u.id!==unit.id);if(!occ){unit.x=nx;unit.y=ny;}}
+    }
+    setTimeout(()=>{
+        gntState.playerUnits=gntState.playerUnits.filter(u=>u.currentHp>0);
+        gntState.enemyUnits=gntState.enemyUnits.filter(u=>u.currentHp>0);
         gntRenderGrid();
-
-        if (gntState.enemyUnits.length === 0) {
-            clearInterval(gntState.combatInterval);
-            gntState.combatInterval = null;
-            setTimeout(gntWaveWon, 600);
-        } else if (gntState.playerUnits.length === 0) {
-            clearInterval(gntState.combatInterval);
-            gntState.combatInterval = null;
-            setTimeout(gntWaveLost, 600);
-        }
-    }, 400);
+        if(gntState.enemyUnits.length===0){clearInterval(gntState.combatInterval);gntState.combatInterval=null;setTimeout(gntWaveWon,600);}
+        else if(gntState.playerUnits.length===0){clearInterval(gntState.combatInterval);gntState.combatInterval=null;setTimeout(gntWaveLost,600);}
+    },400);
 }
-
-// ── Wave outcomes ─────────────────────────────────────────────────
-function gntWaveWon() {
-    const wd  = gntGetWaveData(gntState.wave);
-    const win = Math.floor(gntState.betAmount * wd.mult);
-    const next = gntGetWaveData(gntState.wave + 1);
-    gntLog(`✦ Wave ${gntState.wave} cleared at ${wd.label}!`, '#44cc88');
-    playSound('ascend');
-
-    document.getElementById('gnt-status-bar').textContent = `✦ Wave ${gntState.wave} cleared! Cash out or push deeper.`;
-    document.getElementById('gnt-status-bar').style.borderLeftColor = '#44cc88';
-    document.getElementById('gnt-status-bar').style.color = '#44cc88';
-
-    document.getElementById('gnt-between-text').innerHTML =
-        `Current multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>
-         If you cash out now: <strong style="color:#44cc88;">${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}</strong><br><br>
-         Next wave multiplier: <strong style="color:${next.color};">${next.label}</strong> — but if you lose, you lose everything.`;
-
-    document.getElementById('gnt-next-btn').textContent = `⚔ Wave ${gntState.wave + 1} (${next.label})`;
-
-    // Reset player units for re-deployment between waves
-    // (budget scales slightly with wave depth)
-    gntState.playerUnits = [];
-    gntState.pointsSpent = 0;
-    gntState.pointBudget = gntCalcBudget();
-    gntUpdateBudgetBar();
-
-    // Bet inputs stay locked — same bet for the whole run
-    const bInputW = document.getElementById('gnt-bet-input');
-    const cSelW   = document.getElementById('gnt-currency');
-    if (bInputW) bInputW.disabled = true;
-    if (cSelW)   cSelW.disabled   = true;
-
-    gntSetPhase('BETWEEN');
-    gntRenderGrid();
-    gntRenderWaveTable();
+function gntWaveWon(){
+    const wd=gntGetWaveData(gntState.wave),win=Math.floor(gntState.betAmount*wd.mult),next=gntGetWaveData(gntState.wave+1);
+    gntLog(`✦ Wave ${gntState.wave} cleared at ${wd.label}!`,'#44cc88');playSound('ascend');
+    const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`✦ Wave ${gntState.wave} cleared! Cash out or push deeper.`;sb.style.borderLeftColor='#44cc88';sb.style.color='#44cc88';}
+    const bt=document.getElementById('gnt-between-text');if(bt)bt.innerHTML=`Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>Cash out: <strong style="color:#44cc88;">${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}</strong><br><br>Next: <strong style="color:${next.color};">${next.label}</strong> — lose everything if you fall.`;
+    const nb=document.getElementById('gnt-next-btn');if(nb)nb.textContent=`⚔ Wave ${gntState.wave+1} (${next.label})`;
+    gntState.playerUnits=[];gntState.pointsSpent=0;gntState.pointBudget=gntCalcBudget();gntUpdateBudgetBar();gntSetPhase('BETWEEN');gntRenderGrid();gntRenderWaveTable();
 }
-
-function gntWaveLost() {
-    gntLog(`💀 Wave ${gntState.wave} — your forces were annihilated.`, '#cc3333');
-    playSound('harvest');
-
-    const box = document.getElementById('gnt-result-box');
-    box.style.borderTopColor = '#cc3333';
-    box.style.borderColor    = '#cc333333';
-    box.innerHTML = `
-        <div style="font-size:2em; margin-bottom:8px;">💀</div>
-        <div style="color:#ff4444; font-family:var(--font-title); font-size:1em; letter-spacing:2px; margin-bottom:8px;">DEFEATED</div>
-        <div style="color:#888; font-size:0.82em; line-height:1.6;">
-            Fell on Wave ${gntState.wave}.<br>
-            You lost <strong style="color:#cc3333;">${formatNumber(gntState.betAmount)} ${gntCurrencyLabel(gntState.betCurrency)}</strong>.
-        </div>`;
-
-    document.getElementById('gnt-status-bar').textContent = `💀 Defeated on Wave ${gntState.wave}. Your bet is lost.`;
-    document.getElementById('gnt-status-bar').style.borderLeftColor = '#cc3333';
-    document.getElementById('gnt-status-bar').style.color = '#ff6666';
-
-    gntSetPhase('RESULT');
-    gntRenderGrid();
+function gntWaveLost(){
+    gntLog(`💀 Wave ${gntState.wave} — annihilated.`,'#cc3333');playSound('harvest');
+    const box=document.getElementById('gnt-result-box');if(box){box.style.borderTopColor='#cc3333';box.innerHTML=`<div style="font-size:2em;margin-bottom:8px;">💀</div><div style="color:#ff4444;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:8px;">DEFEATED</div><div style="color:#888;font-size:0.82em;line-height:1.6;">Fell on Wave ${gntState.wave}.<br>Lost <strong style="color:#cc3333;">${formatNumber(gntState.betAmount)} ${gntCurrencyLabel(gntState.betCurrency)}</strong>.</div>`;}
+    const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`💀 Defeated on Wave ${gntState.wave}.`;sb.style.borderLeftColor='#cc3333';sb.style.color='#ff6666';}
+    gntSetPhase('RESULT');gntRenderGrid();
 }
-
-function gntCashOut() {
-    const wd  = gntGetWaveData(gntState.wave);
-    const win = Math.floor(gntState.betAmount * wd.mult);
-    gameState[gntState.betCurrency] += win;
-    updateDynamicDisplays();
-    saveGame();
-    playSound('upgrade');
-    gntLog(`💰 Cashed out at ${wd.label} — +${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}!`, '#c8a800');
-
-    const box = document.getElementById('gnt-result-box');
-    box.style.borderTopColor = '#44cc88';
-    box.style.borderColor    = '#44cc8833';
-    box.innerHTML = `
-        <div style="font-size:2em; margin-bottom:8px;">💰</div>
-        <div style="color:#44cc88; font-family:var(--font-title); font-size:1em; letter-spacing:2px; margin-bottom:8px;">CASHED OUT</div>
-        <div style="color:#aaa; font-size:0.82em; line-height:1.6;">
-            Survived ${gntState.wave} wave${gntState.wave > 1 ? 's' : ''}.<br>
-            Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>
-            Winnings: <strong style="color:#44cc88;">+${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}</strong>
-        </div>`;
-
-    document.getElementById('gnt-status-bar').textContent = `💰 Cashed out at ${wd.label} — ${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)} collected!`;
-    document.getElementById('gnt-status-bar').style.borderLeftColor = '#44cc88';
-    document.getElementById('gnt-status-bar').style.color = '#44cc88';
-
+function gntCashOut(){
+    const wd=gntGetWaveData(gntState.wave),win=Math.floor(gntState.betAmount*wd.mult);
+    gameState[gntState.betCurrency]+=win;updateDynamicDisplays();saveGame();playSound('upgrade');
+    gntLog(`💰 Cashed out at ${wd.label} — +${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}!`,'#c8a800');
+    const box=document.getElementById('gnt-result-box');if(box){box.style.borderTopColor='#44cc88';box.innerHTML=`<div style="font-size:2em;margin-bottom:8px;">💰</div><div style="color:#44cc88;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:8px;">CASHED OUT</div><div style="color:#aaa;font-size:0.82em;line-height:1.6;">Survived ${gntState.wave} wave${gntState.wave>1?'s':''}.<br>Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>Winnings: <strong style="color:#44cc88;">+${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)}</strong></div>`;}
+    const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`💰 Cashed out — ${formatNumber(win)} ${gntCurrencyLabel(gntState.betCurrency)} collected!`;sb.style.borderLeftColor='#44cc88';sb.style.color='#44cc88';}
     gntSetPhase('RESULT');
 }
-
-function gntNextWave() {
-    gntState.wave++;
-    gntState.pointBudget = gntCalcBudget();
-    gntUpdateInfoBar();
-    gntSetPhase('LOBBY');
-    // Re-use LOBBY phase but change the begin button label
-    document.getElementById('gnt-begin-btn').textContent = `⚔ Begin Wave ${gntState.wave}`;
-    document.getElementById('gnt-status-bar').textContent = `⚔ Wave ${gntState.wave} — Deploy your minions.`;
-    document.getElementById('gnt-status-bar').style.borderLeftColor = '#ff6644';
-    document.getElementById('gnt-status-bar').style.color = '#ff8866';
-    gntRenderGrid();
-    gntRenderWaveTable();
-    gntUpdateBudgetBar();
+function gntNextWave(){
+    gntState.wave++;gntState.pointBudget=gntCalcBudget();gntUpdateInfoBar();gntSetPhase('LOBBY');
+    const bb=document.getElementById('gnt-begin-btn');if(bb)bb.textContent=`⚔ Begin Wave ${gntState.wave}`;
+    const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`⚔ Wave ${gntState.wave} — Deploy your minions.`;sb.style.borderLeftColor='#ff6644';sb.style.color='#ff8866';}
+    gntRenderGrid();gntRenderWaveTable();gntUpdateBudgetBar();
 }
 
+// =================================================================
+// 🗺️ GAUNTLET LOCATIONS — daily rotating map with buffs/debuffs
+// Seed = Math.floor(Date.now() / 86400000) → changes every day
+// Wave difficulty also seeds off this so it can't be memorized
+// =================================================================
+
+// =================================================================
+// 🗺️ GAUNTLET WORLD MAP — locations = game worlds, locked/unlocked
+// Effects are themed to each world. Wave seeds rotate daily.
+// =================================================================
+
+// Per-world gauntlet effects — themed to each world's lore
+const GNT_WORLD_EFFECTS = {
+    nether_plains:     { buffs: [],                                                           debuffs: [] },
+    ashen_wastes:      { buffs:  [{ label:'🔥 Ember Boost: your atk +20%',   type:'player_atk_mult', value:1.2  }],
+                         debuffs:[{ label:'🔥 Ash Blindness: enemy atk +10%', type:'enemy_atk_mult',  value:1.1  }] },
+    stygian_depths:    { buffs:  [{ label:'🌊 Depths Slow: enemy atk −25%',   type:'enemy_atk_mult',  value:0.75 }],
+                         debuffs:[{ label:'🌊 Crushing Pressure: your HP −20%',type:'player_hp_mult', value:0.8  }] },
+    burning_hells:     { buffs:  [{ label:'🔴 Hellfire: your atk +40%',        type:'player_atk_mult', value:1.4  }],
+                         debuffs:[{ label:'🔴 Inferno: enemy atk +30%',        type:'enemy_atk_mult',  value:1.3  }] },
+    frozen_abyss:      { buffs:  [{ label:'❄️ Ice Slow: enemy atk −30%',        type:'enemy_atk_mult',  value:0.7  }],
+                         debuffs:[{ label:'❄️ Frostbite: your atk −15%',        type:'player_atk_mult', value:0.85 }] },
+    celestial_ruins:   { buffs:  [{ label:'✨ Divine Aura: your atk +50%',      type:'player_atk_mult', value:1.5  }],
+                         debuffs:[{ label:'✨ Ancient Guardians: enemy HP +30%', type:'enemy_hp_mult',   value:1.3  }] },
+    void_threshold:    { buffs:  [{ label:'🌀 Void Surge: multipliers +25%',    type:'mult_modifier',   value:1.25 }],
+                         debuffs:[{ label:'🌀 Void Erosion: enemy atk +20%',    type:'enemy_atk_mult',  value:1.2  }] },
+    singularity:       { buffs:  [{ label:'💜 Singularity: multipliers ×1.5',   type:'mult_modifier',   value:1.5  }],
+                         debuffs:[{ label:'💜 Compression: enemy HP +50%',      type:'enemy_hp_mult',   value:1.5  }] },
+    event_horizon:     { buffs:  [{ label:'🕳️ No Escape: your atk +60%',        type:'player_atk_mult', value:1.6  }],
+                         debuffs:[{ label:'🕳️ Horizon Pull: +2 enemy units',    type:'enemy_count_add', value:2    }] },
+    genesis:           { buffs:  [{ label:'🌅 Creation: your atk +40%',         type:'player_atk_mult', value:1.4  }],
+                         debuffs:[{ label:'🌅 Primordial: enemy atk +40%',      type:'enemy_atk_mult',  value:1.4  }] },
+    pantheon_of_ashes: { buffs:  [{ label:'⚡ God-Power: your atk ×2',          type:'player_atk_mult', value:2.0  }],
+                         debuffs:[{ label:'⚡ Divine Enemies: HP ×2',           type:'enemy_hp_mult',   value:2.0  }] },
+    chronos_fault:     { buffs:  [{ label:'⏳ Time Rift: wave order scrambled', type:'wave_shuffle',    value:1    }],
+                         debuffs:[{ label:'⏳ Temporal Chaos: random enemies',   type:'enemy_tier_rand', value:1    }] },
+    omega_point:       { buffs:  [{ label:'♾️ Omega: multipliers ×2',            type:'mult_modifier',   value:2.0  }],
+                         debuffs:[{ label:'♾️ Convergence: enemy HP ×1.75',     type:'enemy_hp_mult',   value:1.75 }] },
+    true_infinity:     { buffs:  [{ label:'∞ Infinity: ALL stats ×2',           type:'player_atk_mult', value:2.0  }],
+                         debuffs:[{ label:'∞ True Enemies: ALL enemy stats ×2', type:'enemy_hp_mult',   value:2.0  }] },
+};
+
+// World visual config for the map
+const GNT_WORLD_MAP_CONFIG = {
+    nether_plains:     { icon:'🌋', color:'#ff6644', x:10,  y:85, label:'Nether Plains'     },
+    ashen_wastes:      { icon:'🌑', color:'#ff9944', x:22,  y:72, label:'Ashen Wastes'      },
+    stygian_depths:    { icon:'🌊', color:'#4488ff', x:18,  y:55, label:'Stygian Depths'    },
+    burning_hells:     { icon:'🔥', color:'#ff3300', x:35,  y:65, label:'The Burning Hells' },
+    frozen_abyss:      { icon:'❄️', color:'#44ccff', x:30,  y:45, label:'The Frozen Abyss'  },
+    celestial_ruins:   { icon:'✨', color:'#ffcc44', x:48,  y:55, label:'Celestial Ruins'   },
+    void_threshold:    { icon:'🌀', color:'#aa44ff', x:55,  y:40, label:'Void Threshold'    },
+    singularity:       { icon:'💜', color:'#cc44ff', x:65,  y:55, label:'The Singularity'   },
+    event_horizon:     { icon:'🕳️', color:'#4444aa', x:72,  y:38, label:'Event Horizon'     },
+    genesis:           { icon:'🌿', color:'#44cc88', x:80,  y:55, label:'Genesis'           },
+    pantheon_of_ashes: { icon:'⚡', color:'#ffd700', x:78,  y:35, label:'Pantheon of Ashes' },
+    chronos_fault:     { icon:'⏳', color:'#00ffcc', x:85,  y:20, label:"Chronos' Fault"    },
+    omega_point:       { icon:'♾️', color:'#ffffff', x:90,  y:38, label:'Omega Point'       },
+    true_infinity:     { icon:'∞',  color:'#ff44ff', x:95,  y:20, label:'True Infinity'     },
+};
+
+// Map connections (path lines between nodes)
+const GNT_MAP_CONNECTIONS = [
+    ['nether_plains','ashen_wastes'],['ashen_wastes','stygian_depths'],
+    ['ashen_wastes','burning_hells'],['stygian_depths','frozen_abyss'],
+    ['burning_hells','frozen_abyss'],['frozen_abyss','celestial_ruins'],
+    ['burning_hells','celestial_ruins'],['celestial_ruins','void_threshold'],
+    ['void_threshold','singularity'],['void_threshold','event_horizon'],
+    ['singularity','genesis'],['event_horizon','genesis'],
+    ['genesis','pantheon_of_ashes'],['pantheon_of_ashes','chronos_fault'],
+    ['chronos_fault','omega_point'],['omega_point','true_infinity'],
+    ['pantheon_of_ashes','omega_point'],
+];
+
+// Daily buff selection — 2 of each world's effects active each day
+function gntGetActiveDailyEffects(worldId) {
+    const seed = Math.floor(Date.now() / 86400000) + worldId.length * 7;
+    const config = GNT_WORLD_EFFECTS[worldId] || { buffs:[], debuffs:[] };
+    // All effects are always active — no randomisation, location themes are constant
+    return [...config.buffs, ...config.debuffs];
+}
+
+// Daily wave mult variation (±15%, same for all players today)
+function gntGetDailyWaveMult(baseWaveData) {
+    const seed = Math.floor(Date.now() / 86400000);
+    const ws = (seed * 1664525 + baseWaveData.wave * 31337) & 0xffffffff;
+    const variation = 0.85 + (Math.abs(ws) % 30) / 100;
+    const m = Math.round(baseWaveData.mult * variation * 100) / 100;
+    return { ...baseWaveData, mult: m, label: m.toFixed(2) + 'x' };
+}
+
+// Daily enemy pool with shuffle
+function gntGetDailyEnemyPool(waveNum) {
+    if (gntState.location === 'chronos_fault') {
+        const seed = Math.floor(Date.now() / 86400000) + waveNum * 7;
+        const tierIdx = Math.abs(seed * 1664525) % GNT_ENEMY_TIERS.length;
+        return GNT_ENEMY_TIERS[tierIdx];
+    }
+    const baseTier = gntEnemyTier(waveNum);
+    const seed = Math.floor(Date.now() / 86400000) + waveNum;
+    const shuffled = [...baseTier];
+    let s = seed;
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        s = (s * 1664525 + 1013904223) & 0xffffffff;
+        [shuffled[i], shuffled[Math.abs(s) % (i + 1)]] = [shuffled[Math.abs(s) % (i + 1)], shuffled[i]];
+    }
+    return shuffled;
+}
+
+// Apply effects to combat stats
+function gntApplyLocationEffects(entityType, stat, baseValue) {
+    const effects = gntGetActiveDailyEffects(gntState.location || 'nether_plains');
+    let v = baseValue;
+    for (const e of effects) {
+        if (stat === 'atk' && entityType === 'player' && e.type === 'player_atk_mult') v *= e.value;
+        if (stat === 'atk' && entityType === 'enemy'  && e.type === 'enemy_atk_mult')  v *= e.value;
+        if (stat === 'hp'  && entityType === 'enemy'  && e.type === 'enemy_hp_mult')   v *= e.value;
+        if (stat === 'hp'  && entityType === 'player' && e.type === 'player_hp_mult')  v *= e.value;
+    }
+    return Math.ceil(v);
+}
+function gntGetMultModifier() {
+    const effects = gntGetActiveDailyEffects(gntState.location || 'nether_plains');
+    const m = effects.find(e => e.type === 'mult_modifier');
+    return m ? m.value : 1.0;
+}
+function gntGetEnemyCountBonus() {
+    const effects = gntGetActiveDailyEffects(gntState.location || 'nether_plains');
+    const m = effects.find(e => e.type === 'enemy_count_add');
+    return m ? m.value : 0;
+}
+
+// ── MAP RENDERER ──────────────────────────────────────────────────────────
+
+// ── Init/Reset ────────────────────────────────────────────────────────────
 function gntReset() {
     if (gntState.combatInterval) { clearInterval(gntState.combatInterval); gntState.combatInterval = null; }
     gntState = {
         phase: 'LOBBY', wave: 1, betAmount: 0, betCurrency: 'souls',
         playerUnits: [], enemyUnits: [], pointsSpent: 0, pointBudget: 0,
-        combatInterval: null, selectedTile: null,
+        combatInterval: null, selectedTile: null, location: null, locationChosen: false,
     };
     gntState.pointBudget = gntCalcBudget();
-    document.getElementById('gnt-begin-btn').textContent = '⚔ Begin Wave 1';
-    // Re-enable bet inputs
     const bInput = document.getElementById('gnt-bet-input');
     const cSel   = document.getElementById('gnt-currency');
     if (bInput) bInput.disabled = false;
     if (cSel)   cSel.disabled   = false;
-    document.getElementById('gnt-info-bar').style.display = 'none';
-    document.getElementById('gnt-status-bar').textContent = '⚔ Deploy your minions and place your bet to begin.';
-    document.getElementById('gnt-status-bar').style.borderLeftColor = '#ff6644';
-    document.getElementById('gnt-status-bar').style.color = '#ff8866';
+    const infoBar = document.getElementById('gnt-info-bar');
+    if (infoBar) infoBar.style.display = 'none';
+    const sb = document.getElementById('gnt-status-bar');
+    if (sb) { sb.textContent = '⚔ Choose a battlefield on the map above.'; sb.style.borderLeftColor = '#ff6644'; sb.style.color = '#ff8866'; }
     const logEl = document.getElementById('gnt-log');
     if (logEl) logEl.innerHTML = '<div style="color:#444; font-style:italic;">Awaiting deployment...</div>';
+    const beginBtn = document.getElementById('gnt-begin-btn');
+    if (beginBtn) beginBtn.textContent = '⚔ Begin Wave 1';
+
+    // Show map, hide combat container
+    const picker = document.getElementById('gnt-location-picker');
+    const container = document.getElementById('gnt-container');
+    if (picker) picker.style.display = 'block';
+    if (container) container.style.display = 'none';
+
+    gntRenderLocationPicker();
     gntSetPhase('LOBBY');
     gntUpdateBudgetBar();
     gntRenderGrid();
     gntRenderWaveTable();
 }
 
-// ── Init when screen opens ────────────────────────────────────────
 function gntInit() {
-    gntState.pointBudget = gntCalcBudget(); // always recalc — ascension may have changed
-    gntSetPhase(gntState.phase);
+    gntState.pointBudget = gntCalcBudget();
+    if (!gntState.locationChosen) {
+        // Show world map
+        const picker = document.getElementById('gnt-location-picker');
+        const container = document.getElementById('gnt-container');
+        if (picker) picker.style.display = 'block';
+        if (container) container.style.display = 'none';
+        gntRenderLocationPicker();
+    } else {
+        gntSetPhase(gntState.phase);
+        gntUpdateBudgetBar();
+        gntRenderGrid();
+        gntRenderWaveTable();
+        if (gntState.betAmount > 0) gntUpdateInfoBar();
+    }
+}
+
+function gntRenderLocationPicker() {
+    const cardsEl = document.getElementById('gnt-location-cards');
+    if (!cardsEl) return;
+
+    const unlocked = (gameState && gameState.unlockedWorlds) ? gameState.unlockedWorlds : ['nether_plains'];
+    const worldIds = Object.keys(GNT_WORLD_MAP_CONFIG);
+
+    // Build SVG lines (no text/emoji, just lines — fully reliable)
+    let svgLines = '';
+    GNT_MAP_CONNECTIONS.forEach(([a, b]) => {
+        const ca = GNT_WORLD_MAP_CONFIG[a], cb = GNT_WORLD_MAP_CONFIG[b];
+        if (!ca || !cb) return;
+        const both = unlocked.includes(a) && unlocked.includes(b);
+        svgLines += `<line x1="${ca.x}%" y1="${ca.y}%" x2="${cb.x}%" y2="${cb.y}%"
+            stroke="${both ? '#4a3a7a' : '#160e2a'}"
+            stroke-width="${both ? 2 : 1}"
+            ${!both ? 'stroke-dasharray="5 4"' : ''}
+            opacity="${both ? 0.9 : 0.4}"/>`;
+    });
+
+    // Build HTML nodes — absolutely positioned, emoji via HTML (works perfectly)
+    let nodes = '';
+    worldIds.forEach(id => {
+        const cfg = GNT_WORLD_MAP_CONFIG[id];
+        const w = worlds ? worlds[id] : null;
+        if (!cfg) return;
+        const isUnlocked = unlocked.includes(id);
+        const name = (w && w.name) ? w.name : cfg.label;
+
+        nodes += `
+        <div style="position:absolute; left:${cfg.x}%; top:${cfg.y}%;
+                    transform:translate(-50%,-50%); text-align:center;
+                    width:70px; z-index:2; cursor:${isUnlocked ? 'pointer' : 'default'};"
+             ${isUnlocked ? `onclick="gntSelectLocation('${id}')"
+                            onmouseover="gntMapHover('${id}',this)"
+                            onmouseout="gntMapUnhover('${id}',this)"` : ''}>
+            <!-- Circle node -->
+            <div id="gnt-node-${id}"
+                 style="width:44px; height:44px; border-radius:50%; margin:0 auto 4px;
+                        background:${isUnlocked ? cfg.color + '25' : '#0c0818'};
+                        border:${isUnlocked ? '2px' : '1px'} solid ${isUnlocked ? cfg.color : '#241436'};
+                        display:flex; align-items:center; justify-content:center;
+                        font-size:1.3em; line-height:1;
+                        opacity:${isUnlocked ? 1 : 0.4};
+                        box-shadow:${isUnlocked ? '0 0 12px ' + cfg.color + '44' : 'none'};
+                        transition:all 0.2s;">
+                ${isUnlocked ? cfg.icon : '🔒'}
+            </div>
+            <!-- Label -->
+            <div style="font-size:7.5px; line-height:1.2; color:${isUnlocked ? cfg.color : '#2a1a3a'};
+                        opacity:${isUnlocked ? 1 : 0.5}; white-space:nowrap;
+                        text-shadow:${isUnlocked ? '0 0 6px ' + cfg.color + '66' : 'none'};">
+                ${name}
+            </div>
+        </div>`;
+    });
+
+    cardsEl.innerHTML = `
+        <div style="background:linear-gradient(160deg,#04020e,#09051a);
+                    border:1px solid #1e1236; border-radius:14px; overflow:hidden; margin-bottom:10px;">
+            <!-- Map container: SVG lines behind, HTML nodes on top -->
+            <div style="position:relative; width:100%; padding-bottom:48%; min-height:240px;">
+                <!-- SVG lines only (no emoji) -->
+                <svg style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none;"
+                     viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <rect width="100" height="100" fill="#04020e"/>
+                    <!-- subtle dot grid -->
+                    <pattern id="dotgrid" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                        <circle cx="5" cy="5" r="0.4" fill="#1a0a2a"/>
+                    </pattern>
+                    <rect width="100" height="100" fill="url(#dotgrid)"/>
+                    ${svgLines}
+                </svg>
+                <!-- HTML nodes absolutely positioned -->
+                <div style="position:absolute; inset:0;">
+                    ${nodes}
+                </div>
+            </div>
+            <!-- Footer -->
+            <div style="padding:8px 16px; border-top:1px solid #140824; display:flex; gap:16px;
+                        flex-wrap:wrap; justify-content:center; background:#04020e;">
+                <span style="color:#2a1a4a; font-size:0.68em;">🔒 Locked — unlock worlds to access</span>
+                <span style="color:#555; font-size:0.68em;">Hover to preview · Click to enter</span>
+                <span style="color:#2a1a4a; font-size:0.68em;">Wave difficulty rotates daily</span>
+            </div>
+        </div>
+        <!-- Hover info panel -->
+        <div id="gnt-location-info" style="display:none; background:#0a0812;
+             border:1px solid #2a1a3a; border-radius:10px; padding:14px 16px; margin-bottom:10px;"></div>`;
+}
+
+function gntMapHover(id, el) {
+    const cfg = GNT_WORLD_MAP_CONFIG[id];
+    if (!cfg) return;
+    const node = document.getElementById('gnt-node-' + id);
+    if (node) {
+        node.style.background = cfg.color + '50';
+        node.style.boxShadow = '0 0 22px ' + cfg.color + '77';
+        node.style.transform = 'scale(1.15)';
+    }
+    gntShowMapInfo(id);
+}
+function gntMapUnhover(id, el) {
+    const cfg = GNT_WORLD_MAP_CONFIG[id];
+    if (!cfg) return;
+    const node = document.getElementById('gnt-node-' + id);
+    if (node) {
+        node.style.background = cfg.color + '25';
+        node.style.boxShadow = '0 0 12px ' + cfg.color + '44';
+        node.style.transform = 'scale(1)';
+    }
+}
+
+function gntShowMapInfo(worldId) {
+    const info = document.getElementById('gnt-location-info');
+    if (!info) return;
+    const cfg = GNT_WORLD_MAP_CONFIG[worldId];
+    const w = worlds[worldId];
+    if (!cfg || !w) return;
+    const effects = gntGetActiveDailyEffects(worldId);
+    const efHtml = effects.length
+        ? effects.map(e => {
+            const isGood = (e.type.includes('player') && e.value > 1) || (e.type === 'mult_modifier' && e.value > 1) || (e.type.includes('enemy') && e.value < 1);
+            const isBad  = (e.type.includes('enemy') && e.value > 1) || (e.type.includes('player') && e.value < 1);
+            const col    = isGood ? '#44cc88' : isBad ? '#ff6644' : '#aaa';
+            const arrow  = isGood ? '▲' : isBad ? '▼' : '◆';
+            return `<span style="color:${col}">${arrow} ${e.label}</span>`;
+          }).join('&nbsp;&nbsp;·&nbsp;&nbsp;')
+        : '<span style="color:#555">Balanced Field — no special modifiers</span>';
+    info.style.display = 'block';
+    info.innerHTML = `
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+            <span style="font-size:2em; filter:drop-shadow(0 0 8px ${cfg.color}88);">${cfg.icon}</span>
+            <div>
+                <div style="color:${cfg.color}; font-weight:bold; font-size:1em; text-shadow:0 0 8px ${cfg.color}44;">${w.name}</div>
+                <div style="color:#555; font-size:0.72em; font-style:italic; margin-top:2px; line-height:1.4;">${w.lore || ''}</div>
+            </div>
+        </div>
+        <div style="font-size:0.78em; line-height:1.8; background:#060412; border-radius:8px; padding:8px 12px;">${efHtml}</div>
+        <div style="margin-top:10px; text-align:center;">
+            <button onclick="gntSelectLocation('${worldId}')"
+                style="background:linear-gradient(135deg,${cfg.color}22,transparent); border:1px solid ${cfg.color}66;
+                       border-radius:8px; padding:10px 28px; color:${cfg.color}; font-family:var(--font-title);
+                       font-size:0.85em; letter-spacing:2px; cursor:pointer;">
+                ⚔ ENTER ${w.name.toUpperCase()}
+            </button>
+        </div>`;
+}
+
+
+function gntSelectLocation(locationId) {
+    gntState.location = locationId;
+    gntState.locationChosen = true;
+    const cfg = GNT_WORLD_MAP_CONFIG[locationId];
+    const w = worlds[locationId];
+
+    const effects = gntGetActiveDailyEffects(locationId);
+    const effectHtml = effects.map(e =>
+        `<span style="color:${e.type.startsWith('player') && e.value > 1 ? '#44cc88' : e.type.startsWith('enemy') && e.value > 1 ? '#ff6644' : e.type === 'mult_modifier' && e.value > 1 ? '#44cc88' : '#aaa'};">${e.label}</span>`
+    ).join('  ·  ');
+
+    document.getElementById('gnt-location-picker').style.display = 'none';
+    document.getElementById('gnt-container').style.display = 'block';
+
+    const sb = document.getElementById('gnt-status-bar');
+    if (sb && cfg) {
+        sb.innerHTML = `${cfg.icon} <strong style="color:${cfg.color}">${w?.name || locationId}</strong>
+            &nbsp;<span style="color:#444; font-size:0.8em;">|</span>&nbsp;
+            ${effectHtml || '<span style="color:#555">Balanced Field</span>'}`;
+        sb.style.borderLeftColor = cfg.color;
+        sb.style.color = '#aaa';
+    }
+
+    gntSetPhase('LOBBY');
     gntUpdateBudgetBar();
     gntRenderGrid();
     gntRenderWaveTable();
-    if (gntState.betAmount > 0) gntUpdateInfoBar();
 }
 </script>
 <!-- ================================================================= -->
@@ -17763,7 +17857,7 @@ const KEYS = {
         lore: "The void doesn't ask what you'll give up. It already knows.",
         effect: () => {
             const gained = calculateShardsOnAscend();
-            gameState.abyssalShards += isFinite(gained) ? gained : 0;
+            _safeAddCur("abyssalShards", isFinite(gained) ? gained : 0);
             return `Gained ${formatNumber(gained)} Abyssal Shards without ascending.`;
         }
     },
@@ -17865,7 +17959,7 @@ const KEYS = {
             const soulsToConvert = D(gameState.souls).mul(0.5);
             const essenceGained = Math.floor(soulsToConvert.toNumber() / 1e6 * 10);
             gameState.souls = D(gameState.souls).sub(soulsToConvert);
-            gameState.darkEssence += isFinite(essenceGained) ? essenceGained : 1000;
+            _safeAddCur("darkEssence", isFinite(essenceGained) ? essenceGained : 1000);
             return `Converted ${formatNumber(soulsToConvert)} souls into ${formatNumber(essenceGained)} Dark Essence.`;
         }
     },
@@ -17954,8 +18048,8 @@ function showKeyChoiceModal(newKeyId, source) {
     if (!overlay || !content) return;
 
     content.innerHTML = `
-        <div style="color:#c8a800; font-family:var(--font-title); font-size:0.95em; letter-spacing:2px; text-align:center; margin-bottom:18px;">A NEW KEY APPEARS</div>
-        <p style="color:#666; font-size:0.8em; text-align:center; margin-bottom:20px;">You can only hold one. Choose wisely — the unchosen key is gone forever.</p>
+        <div style="color:#c8a800; font-family:var(--font-title); font-size:0.95em; letter-spacing:2px; text-align:center; margin-bottom:18px;">${newKeyId === gameState.heldKey.id ? 'THE SAME KEY APPEARS AGAIN' : 'A NEW KEY APPEARS'}</div>
+        <p style="color:#666; font-size:0.8em; text-align:center; margin-bottom:20px;">${newKeyId === gameState.heldKey.id ? 'You already hold this key. Keep it — or let it reset your timer.' : 'You can only hold one. The unchosen key is gone forever.'}</p>
 
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
             <div style="background:#0a0812; border:2px solid ${oldKey.color}66; border-radius:10px; padding:14px; text-align:center; cursor:pointer; transition:all 0.2s;"
@@ -17983,7 +18077,7 @@ function showKeyChoiceModal(newKeyId, source) {
     overlay.style.display = 'flex';
 }
 
-function keepOldKey(rejectedKeyId) { closeKeyModal(); Toastify({text:'You kept your current key. The other key faded.', duration:4000, gravity:'top', position:'center', style:{background:'#1a0820'}}).showToast(); }
+function keepOldKey(rejectedKeyId) { closeKeyModal(); /* Unchosen key vanishes silently — no hint */ }
 function takeNewKey(newKeyId) { grantKey(newKeyId); }
 function closeKeyModal() { document.getElementById('key-modal-overlay').style.display = 'none'; }
 

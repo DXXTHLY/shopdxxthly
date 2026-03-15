@@ -5870,7 +5870,7 @@ function getDefaultGameState() {
     for (const id in minions) {
         // --- REPLACE IT WITH THIS ---
 
-        newMinionsState[id] = { level: 0, cost: minions[id].cost, promotionTier: 0 };
+        newMinionsState[id] = { level: 0, cost: D(minions[id].cost), promotionTier: 0 };
 
         // ----------------------------
     }
@@ -7119,10 +7119,10 @@ function calculateStats() {
     gameState.upgrades.click.cost = Math.floor(10 * Math.pow(gameState.upgrades.click.multiplier, gameState.upgrades.click.level - 1) * clickUpgradeCostFactor);
     for (const minionId in minions) {
         const playerMinion = gameState.minions[minionId];
-        let cost = minions[minionId].cost * Math.pow(minions[minionId].multiplier, playerMinion.level);
-        cost *= minionCostFactor;
-        cost *= tempMinionCostFactor;
-        playerMinion.cost = Math.floor(cost);
+        // Use Decimal.pow so cost stays accurate past 10^308
+        let cost = D(minions[minionId].cost).mul(D(minions[minionId].multiplier).pow(playerMinion.level));
+        cost = cost.mul(minionCostFactor).mul(tempMinionCostFactor);
+        playerMinion.cost = cost.floor(); // store as Decimal
     }
 }
 
@@ -7320,7 +7320,7 @@ function renderMinions() {
     for (const id in minions) {
         const m = minions[id];
         // Safety: initialize missing minion state (for new minions added after player's save)
-        if (!gameState.minions[id]) gameState.minions[id] = { level: 0, cost: m.cost, promotionTier: 0 };
+        if (!gameState.minions[id]) gameState.minions[id] = { level: 0, cost: D(m.cost), promotionTier: 0 };
         const p = gameState.minions[id];
         const isPurchased = p.level > 0;
         const worldUnlocked = gameState.unlockedWorlds.includes(m.requiredWorld);

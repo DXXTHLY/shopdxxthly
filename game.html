@@ -1973,6 +1973,10 @@
             0%   { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
+        @keyframes fusedBorderPulse {
+            0%,100% { box-shadow: 0 0 10px var(--fc,#ff884466); }
+            50%      { box-shadow: 0 0 24px var(--fc,#ff884499), 0 0 40px var(--fc,#ff884422); }
+        }
         #intro-credits .credits-dev {
             font-family: 'Metamorphous', serif;
             font-size: 1.1rem;
@@ -9533,26 +9537,14 @@ function renderBrewery() {
     inventoryGrid.innerHTML = '';
 
     // Potion visual config
-    const potionMeta = {
-        draught_of_might:           { icon:'💪', color:'#ff6644' },
-        ichor_of_wealth:            { icon:'💰', color:'#ffcc00' },
-        elixir_of_wisdom:           { icon:'📚', color:'#44aaff' },
-        brew_of_the_void:           { icon:'🌑', color:'#9944cc' },
-        tincture_of_rage:           { icon:'😡', color:'#ff4444' },
-        essence_of_avarice:         { icon:'💎', color:'#44ccff' },
-        draught_of_the_hoarder:     { icon:'🪙', color:'#ffaa00' },
-        flask_of_temporal_flux:     { icon:'⏱', color:'#00ccaa' },
-        philter_of_forgotten_souls: { icon:'👻', color:'#aa88ff' },
-        elixir_of_resonance:        { icon:'🔮', color:'#ff88cc' },
-        brew_of_shattered_stars:    { icon:'⭐', color:'#ffffaa' },
-    };
+    // Uses global getPotionMeta() defined above renderBrewery
 
     // Render recipes — skip market-only potions (those are shop-exclusive)
     for (const id in potions) {
         const p = potions[id];
         if (p.marketOnly) continue; // only available in the Hourly Shop
         if (p.fusedOnly) continue; // only created via Fusion Cauldron
-        const meta = potionMeta[id] || { icon:'⚗️', color:'#9944cc' };
+        const meta = getPotionMeta(id);
         const canAffordSouls = D(gameState.souls).gte(D(p.cost))
         const canAffordShards = !p.shardsCost || gameState.abyssalShards >= p.shardsCost;
         const canAfford = canAffordSouls && canAffordShards;
@@ -9602,7 +9594,7 @@ function renderBrewery() {
         hasPotions = true;
         const count = gameState.potions[id] || 0;
         const isActive = gameState.activePotions[id] && Date.now() < gameState.activePotions[id];
-        const meta = potionMeta[id] || { icon:'⚗️', color:'#9944cc' };
+        const meta = getPotionMeta(id);
         const timeLeftActive = isActive ? Math.ceil((gameState.activePotions[id] - Date.now()) / 1000) : 0;
         const statusText = isActive
             ? `<span style="color:${meta.color}; font-style:italic;">✦ Active — ${Math.floor(timeLeftActive/60)}:${(timeLeftActive%60).toString().padStart(2,'0')} left</span>`
@@ -9611,31 +9603,47 @@ function renderBrewery() {
             const p = potions[id];
             const rarity  = meta.rarity || 'common';
             const rs      = RARITY_STYLE[rarity] || RARITY_STYLE.common;
+            const isFused = rarity.startsWith('fused');
+            const isMarketRarity = rarity.startsWith('market');
             const glowVal = meta.glow || (isActive ? `0 0 24px ${meta.color}55` : rs.glow);
             const topBorder = meta.color;
             const sideBorder = isActive ? meta.color + 'cc' : rs.border;
             const cooldownText = p.cooldown ? `🕐 ${p.cooldown >= 3600 ? (p.cooldown/3600)+'h cooldown' : (p.cooldown/60)+'m cooldown'}` : '';
-            // Shimmer animation for legendary
-            const shimmerStyle = rs.shimmer ? `background:linear-gradient(135deg,#0e0a1a,${meta.color}18,#0e0a1a,${meta.color}11);background-size:200% 100%;animation:shimmerPot 3s ease-in-out infinite;` : `background:linear-gradient(135deg,#0e0a1a,#1a1020);`;
+
+            // Fused potions get a special diagonal stripe pattern bg + animated border
+            const fusedBg = isFused
+                ? `background:linear-gradient(135deg,#120a1e,${meta.color}22,#0e0a1a,${meta.color}11,#160a28);`
+                : rs.shimmer
+                    ? `background:linear-gradient(135deg,#0e0a1a,${meta.color}18,#0e0a1a,${meta.color}11);background-size:200% 100%;animation:shimmerPot 3s ease-in-out infinite;`
+                    : `background:linear-gradient(135deg,#0e0a1a,#1a1020);`;
+
+            const fusedBorderAnim = isFused ? `animation:fusedBorderPulse 2s ease-in-out infinite;` : '';
+
+            // Badge
+            const badgeHtml = rs.badge
+                ? `<span style="background:${meta.color}22; border:1px solid ${meta.color}66; border-radius:8px; padding:1px 8px; font-size:0.65em; color:${meta.color}; font-weight:bold; letter-spacing:1px;">${rs.badge}</span>`
+                : '';
+
             inventoryGrid.innerHTML += `
-            <div style="${shimmerStyle} border:1px solid ${sideBorder}; border-top:3px solid ${topBorder}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:${glowVal}; position:relative; overflow:hidden;">
-                ${rs.shimmer ? `<div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,${meta.color}08,transparent);pointer-events:none;"></div>` : ''}
+            <div style="${fusedBg} border:${isFused?'2px':'1px'} solid ${sideBorder}; border-top:${isFused?'4px':'3px'} solid ${topBorder}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:${glowVal}; position:relative; overflow:hidden; ${fusedBorderAnim}">
+                ${isFused ? `<div style="position:absolute;top:0;right:0;background:${meta.color};color:#000;font-size:0.55em;font-weight:900;padding:3px 10px 3px 14px;border-radius:0 0 0 12px;letter-spacing:2px;clip-path:polygon(10% 0,100% 0,100% 100%,0 100%);">FUSED</div>` : ''}
+                ${rs.shimmer && !isFused ? `<div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,${meta.color}08,transparent);pointer-events:none;"></div>` : ''}
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:1.8em; flex-shrink:0; filter:drop-shadow(0 0 6px ${meta.color}88);">${meta.icon}</span>
+                    <span style="font-size:${isFused?'2':'1.8'}em; flex-shrink:0; filter:drop-shadow(0 0 ${isFused?'10':'6'}px ${meta.color}${isFused?'bb':'88'});">${meta.icon}</span>
                     <div style="min-width:0; flex:1;">
-                        <div style="color:${meta.color}; font-weight:bold; font-size:0.95em; text-shadow:0 0 8px ${meta.color}44;">${p.name}</div>
+                        <div style="color:${meta.color}; font-weight:bold; font-size:${isFused?'1.0':'0.95'}em; text-shadow:0 0 ${isFused?'12':'8'}px ${meta.color}${isFused?'66':'44'};">${p.name}</div>
                         <div style="display:flex; gap:4px; margin-top:3px; flex-wrap:wrap;">
                             <span style="background:${meta.color}22; border:1px solid ${meta.color}44; border-radius:8px; padding:1px 8px; font-size:0.65em; color:${meta.color};">${count > 0 ? `×${count} owned` : isActive ? '✦ Active' : ''}</span>
-                            ${rs.badge ? `<span style="background:${meta.color}18; border:1px solid ${meta.color}55; border-radius:8px; padding:1px 8px; font-size:0.65em; color:${meta.color}; font-weight:bold;">${rs.badge}</span>` : ''}
+                            ${badgeHtml}
                         </div>
                     </div>
                 </div>
-                <p style="color:#999; font-size:0.78em; margin:0; line-height:1.45; border-left:2px solid ${meta.color}66; padding-left:8px;">${p.desc}</p>
+                <p style="color:${isFused?'#bbb':'#999'}; font-size:0.78em; margin:0; line-height:1.5; border-left:${isFused?'3':'2'}px solid ${meta.color}${isFused?'88':'66'}; padding-left:8px;">${p.desc}</p>
                 ${cooldownText ? `<div style="color:#555; font-size:0.7em;">${cooldownText}</div>` : ''}
                 <div style="font-size:0.82em;">${statusText}</div>
                 <button class="upgrade-btn" onclick="usePotion('${id}')" ${isActive || count === 0 ? 'disabled' : ''}
-                    style="width:100%; border-color:${meta.color}88; ${(!isActive && count > 0) ? `background:linear-gradient(135deg,${meta.color}22,transparent);box-shadow:0 0 8px ${meta.color}22;` : 'opacity:0.4;'}">
-                    ${isActive ? `<span style="color:#666;">Active</span>` : count === 0 ? `<span style="color:#444;">None in stock</span>` : `<span style="color:${meta.color}; text-shadow:0 0 6px ${meta.color}88;">⚡ Use Potion</span>`}
+                    style="width:100%; border-color:${meta.color}88; ${(!isActive && count > 0) ? `background:linear-gradient(135deg,${meta.color}${isFused?'33':'22'},transparent);box-shadow:0 0 ${isFused?'12':'8'}px ${meta.color}${isFused?'33':'22'};` : 'opacity:0.4;'}">
+                    ${isActive ? `<span style="color:#666;">Active</span>` : count === 0 ? `<span style="color:#444;">None in stock</span>` : `<span style="color:${meta.color}; text-shadow:0 0 6px ${meta.color}88;">${isFused?'⚗️':'⚡'} ${isFused?'Consume Fusion':'Use Potion'}</span>`}
                 </button>
             </div>`;
         }

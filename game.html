@@ -4131,6 +4131,9 @@ window.onload = function() {
             gameState.playTime++;
             let statsChanged = updateEffectTimers(now);
 
+            // Durability tick — runs every 60s
+            if (typeof tickItemDurability === 'function') tickItemDurability();
+
             // Bank Interest: 0.5%/hr always, sigil boosts to its value
             if (gameState.bankedSouls > 0) {
                 const sigilId = gameState.equipped.sigil;
@@ -6192,6 +6195,59 @@ const items = {
         bonus: { type: 'ascension_shard_bonus', value: 1.0 } // Additive 100% bonus, effectively a doubler
     },
 
+    // ═══════════════════════════════════════════════════
+    // END-GAME ITEMS (with durability system)
+    // ═══════════════════════════════════════════════════
+
+    // EPIC weapons
+    void_fang:            { name:"Void Fang",            type:"weapon", rarity:"epic",      desc:"SPC ×2. Each click has a 2% chance to grant 1 Dark Essence.", bonus:{type:'spc_multiplier',value:2.0,and:{type:'spc_essence_chance',value:0.02}} },
+    soul_ripper:          { name:"Soul Ripper",           type:"weapon", rarity:"epic",      desc:"SPC ×2.5. Kills in Gauntlet grant +5% more souls for 30s.", bonus:{type:'spc_multiplier',value:2.5} },
+    hunger_of_the_deep:   { name:"Hunger of the Deep",   type:"weapon", rarity:"epic",      desc:"SPS ×1.5 + SPC ×1.5 simultaneously.", bonus:{type:'sps_multiplier',value:1.5,and:{type:'spc_multiplier',value:1.5}} },
+
+    // LEGENDARY weapons
+    reaper_of_infinities: { name:"Reaper of Infinities", type:"weapon", rarity:"legendary", desc:"SPC ×5. Every 10th click is an auto-crit dealing 10× the normal SPC.", bonus:{type:'spc_multiplier',value:5.0} },
+    blade_of_the_cosmos:  { name:"Blade of the Cosmos",  type:"weapon", rarity:"legendary", desc:"SPC ×3. SPC also counts toward SPS at 0.1% rate. Scales forever.", bonus:{type:'spc_multiplier',value:3.0,and:{type:'spc_to_sps',value:0.001}} },
+    shatterpoint_lance:   { name:"Shatterpoint Lance",   type:"weapon", rarity:"legendary", desc:"SPC ×4. World unlock costs reduced 20%.", bonus:{type:'spc_multiplier',value:4.0,and:{type:'world_cost_reducer',value:0.80}} },
+
+    // EPIC idols
+    echo_of_the_abyss:    { name:"Echo of the Abyss",    type:"idol",   rarity:"epic",      desc:"SPS ×2.5. Minion promotions 10% cheaper.", bonus:{type:'sps_multiplier',value:2.5} },
+    soulstorm_relic:      { name:"Soulstorm Relic",       type:"idol",   rarity:"epic",      desc:"SPS ×2. Each second has a 0.5% chance to triple SPS for 5s.", bonus:{type:'sps_multiplier',value:2.0} },
+    eye_of_annihilation:  { name:"Eye of Annihilation",  type:"idol",   rarity:"epic",      desc:"Global multiplier ×1.5. Ascension shards +20%.", bonus:{type:'global_multiplier_per_world',value:0.05,and:{type:'ascension_shard_bonus',value:0.20}} },
+
+    // LEGENDARY idols
+    idol_of_the_void_lord:{ name:"Idol of the Void Lord", type:"idol",  rarity:"legendary", desc:"SPS ×5. For every ascension, SPS gains an additional +5%.", bonus:{type:'sps_multiplier',value:5.0,and:{type:'sps_per_10_ascensions',value:0.05}} },
+    core_of_creation:     { name:"Core of Creation",      type:"idol",  rarity:"legendary", desc:"SPS ×4. Unlocked worlds give +2% global multiplier each.", bonus:{type:'sps_multiplier',value:4.0,and:{type:'global_multiplier_per_world',value:0.02}} },
+    the_devouring_eye:    { name:"The Devouring Eye",     type:"idol",  rarity:"legendary", desc:"SPS ×3 + SPC ×2. Potions 20% more effective.", bonus:{type:'sps_multiplier',value:3.0,and:{type:'spc_multiplier',value:2.0}} },
+
+    // EPIC sigils
+    glyph_of_fracture:    { name:"Glyph of Fracture",    type:"sigil",  rarity:"epic",      desc:"+30% Abyssal Shards on Ascension. Essence gain ×1.5.", bonus:{type:'ascension_shard_bonus',value:0.30,and:{type:'essence_multiplier',value:1.5}} },
+    mark_of_the_abyss:    { name:"Mark of the Abyss",    type:"sigil",  rarity:"epic",      desc:"Sacrifices grant 50% more essence. Rituals 15% faster.", bonus:{type:'essence_multiplier',value:1.50} },
+    seal_of_convergence:  { name:"Seal of Convergence",  type:"sigil",  rarity:"epic",      desc:"Every prestige gives +1% permanent SPS bonus (stacks).", bonus:{type:'resonance_bonus_enhancer',value:0.30} },
+
+    // LEGENDARY sigils
+    sigil_of_the_end:     { name:"Sigil of the End",     type:"sigil",  rarity:"legendary", desc:"+75% Shards on Ascension. Essence generation doubled.", bonus:{type:'ascension_shard_bonus',value:0.75,and:{type:'essence_multiplier',value:2.0}} },
+    brand_of_eternity:    { name:"Brand of Eternity",    type:"sigil",  rarity:"legendary", desc:"Soul Resonance 50% more effective. First 5 sacrifices per life free.", bonus:{type:'resonance_bonus_enhancer',value:0.50,and:{type:'free_sacrifices',value:5}} },
+    void_inscription:     { name:"Void Inscription",     type:"sigil",  rarity:"legendary", desc:"Minions cost 25% less. Ritual effects 30% stronger.", bonus:{type:'minion_cost_reducer',value:0.75,and:{type:'buff_duration_multiplier',value:1.30}} },
+
+    // EPIC tomes
+    codex_of_hunger:      { name:"Codex of Hunger",      type:"tome",   rarity:"epic",      desc:"Expedition fragment rewards +50%. Anomaly breach chance +10%.", bonus:{type:'expedition_fragment_multiplier',value:1.5} },
+    tome_of_the_collapse: { name:"Tome of the Collapse", type:"tome",   rarity:"epic",      desc:"Retain 5% of Dark Essence on Ascension. Aether upgrades 10% cheaper.", bonus:{type:'essence_retention_on_ascend',value:0.05} },
+    grimoire_of_ruin:     { name:"Grimoire of Ruin",     type:"tome",   rarity:"epic",      desc:"World unlock costs -15%. Worlds already unlocked grant +3% global multiplier.", bonus:{type:'world_cost_reducer',value:0.85,and:{type:'global_multiplier_per_world',value:0.03}} },
+
+    // LEGENDARY tomes
+    the_last_scripture:   { name:"The Last Scripture",   type:"tome",   rarity:"legendary", desc:"Retain 20% Essence on Ascension. Expedition loot quality doubled.", bonus:{type:'essence_retention_on_ascend',value:0.20,and:{type:'expedition_fragment_multiplier',value:2.0}} },
+    necronomicon_of_souls:{ name:"Necronomicon of Souls", type:"tome",  rarity:"legendary", desc:"World costs -30%. Gain +2% global multiplier per ascension (permanent, stacks).", bonus:{type:'world_cost_reducer',value:0.70,and:{type:'global_multiplier_per_ascension',value:0.02}} },
+    tome_of_the_infinite: { name:"Tome of the Infinite", type:"tome",   rarity:"legendary", desc:"Retain 15% Essence AND 10% Shards on Ascension.", bonus:{type:'essence_retention_on_ascend',value:0.15,and:{type:'ascension_shard_bonus',value:0.50}} },
+
+    // EPIC helms
+    crown_of_fractures:   { name:"Crown of Fractures",   type:"helm",   rarity:"epic",      desc:"Minion costs -20%. PvP offense +30%.", bonus:{type:'minion_cost_reducer',value:0.80,and:{type:'pvp_offense',value:1.30}} },
+    visor_of_the_damned:  { name:"Visor of the Damned",  type:"helm",   rarity:"epic",      desc:"PvP defense +40%. Gauntlet enemy HP -15%.", bonus:{type:'pvp_defense',value:0.60} },
+    obsidian_crown:       { name:"Obsidian Crown",        type:"helm",   rarity:"epic",      desc:"All other equipped items 25% more effective. Minions cost 10% less.", bonus:{type:'meta_item_enhancer',value:1.25,and:{type:'minion_cost_reducer',value:0.90}} },
+
+    // LEGENDARY helms
+    crown_of_the_void:    { name:"Crown of the Void",    type:"helm",   rarity:"legendary", desc:"All equipped items 75% more effective. Start with 10B souls after Ascension.", bonus:{type:'meta_item_enhancer',value:1.75,and:{type:'ascension_start_souls',value:1e10}} },
+    diadem_of_omniscience:{ name:"Diadem of Omniscience", type:"helm",  rarity:"legendary", desc:"SPS ×2, SPC ×2, minion costs -20%, and potions last 25% longer.", bonus:{type:'sps_multiplier',value:2.0,and:{type:'buff_duration_multiplier',value:1.25}} },
+    skull_of_the_abyss:   { name:"Skull of the Abyss",   type:"helm",   rarity:"legendary", desc:"For every unique minion you own, all minions gain +15% SPS. PvP offense doubled.", bonus:{type:'sps_multiplier_per_unique_minion',value:1.15,and:{type:'pvp_offense',value:2.0}} },
 
 };
 
@@ -7506,6 +7562,7 @@ function getDefaultGameState() {
         attackLog: [],
         raidCooldownEnd: 0,
         heldKey: null, // { id, obtainedAt } — one key at a time, expires 24h
+        itemDurability: {}, // { itemId: currentDurability } — tracked per item instance
         completedPuzzles: [],
         activeExpeditions: {}, 
         anomalyTimers: {},
@@ -7615,6 +7672,115 @@ async function createProfile() {
         createButton.innerText = "Begin the Harvest";
     }
 }
+
+// =================================================================
+// 🔧 ITEM DURABILITY SYSTEM
+// Items degrade with use. When durability hits 0, the item breaks
+// and is removed from equipment. Durability restores 1 per hour passively,
+// or can be repaired at the Altar using Dark Essence.
+// Max durability by rarity:
+//   common=50, uncommon=75, rare=100, epic=150, legendary=200, forged=300
+// =================================================================
+
+function getMaxDurability(itemId) {
+    const item = items[itemId];
+    if (!item) return 100;
+    const table = { common:50, uncommon:75, rare:100, epic:150, legendary:200, forged:300 };
+    return table[item.rarity] || 100;
+}
+
+function getItemDurability(itemId) {
+    if (gameState.itemDurability[itemId] === undefined) {
+        gameState.itemDurability[itemId] = getMaxDurability(itemId);
+    }
+    return gameState.itemDurability[itemId];
+}
+
+function getDurabilityColor(pct) {
+    if (pct > 0.6) return '#44cc88';
+    if (pct > 0.3) return '#ffcc00';
+    return '#ff4444';
+}
+
+function getDurabilityLabel(pct) {
+    if (pct > 0.75) return 'Good';
+    if (pct > 0.5)  return 'Worn';
+    if (pct > 0.25) return 'Damaged';
+    if (pct > 0)    return 'Breaking';
+    return 'Broken';
+}
+
+// Called each game tick — drains equipped items
+function tickItemDurability() {
+    let anyBroken = false;
+    for (const slot in gameState.equipped) {
+        const id = gameState.equipped[slot];
+        if (!id) continue;
+        const max = getMaxDurability(id);
+        if (gameState.itemDurability[id] === undefined) {
+            gameState.itemDurability[id] = max;
+        }
+        // Drain 1 durability per hour of game time (per 3600 ticks at 1/s)
+        // We run this every 60s, so drain = max / (hours_to_full_break * 60)
+        // Common breaks in ~8h, legendary in ~24h, forged in ~48h
+        const hoursToBreak = { common:8, uncommon:12, rare:18, epic:24, legendary:36, forged:48 };
+        const item = items[id];
+        const h = hoursToBreak[item?.rarity] || 18;
+        const drainPerMinute = max / (h * 60);
+        gameState.itemDurability[id] = Math.max(0, (gameState.itemDurability[id] || max) - drainPerMinute);
+
+        if (gameState.itemDurability[id] <= 0) {
+            // Item broke — unequip it silently (add back to inventory as broken)
+            gameState.equipped[slot] = null;
+            // DON'T put it back in inventory — it's destroyed
+            delete gameState.itemDurability[id];
+            anyBroken = true;
+            Toastify({
+                text: `🔧 ${items[id]?.name || 'Item'} has broken and crumbled! Equip a replacement.`,
+                duration: 8000, gravity:'top', position:'center',
+                style: { background: 'linear-gradient(135deg,#1a0000,#660000)', border:'1px solid #ff444466' }
+            }).showToast();
+        }
+    }
+
+    // Passive repair: +0.5 durability per hour to ALL items in inventory (not equipped)
+    for (const id of gameState.inventory) {
+        if (!id || !items[id]) continue;
+        const max = getMaxDurability(id);
+        if ((gameState.itemDurability[id] || max) < max) {
+            gameState.itemDurability[id] = Math.min(max, (gameState.itemDurability[id] || max) + max / (48 * 60));
+        }
+    }
+
+    if (anyBroken) { calculateStats(); renderAll(); saveGame(); }
+}
+
+// Repair an item using Dark Essence (cost scales with rarity)
+function repairItem(itemId) {
+    const max = getMaxDurability(itemId);
+    const current = getItemDurability(itemId);
+    if (current >= max) {
+        Toastify({ text: "Item is already at full durability.", duration:2000, gravity:'top', position:'center' }).showToast();
+        return;
+    }
+    const item = items[itemId];
+    const costTable = { common:5, uncommon:10, rare:20, epic:40, legendary:80, forged:150 };
+    const cost = costTable[item?.rarity] || 20;
+    if (D(gameState.darkEssence).lt(cost)) {
+        Toastify({ text:`Need ${cost} DE to repair ${item?.name}.`, duration:2500, gravity:'top', position:'center' }).showToast();
+        return;
+    }
+    gameState.darkEssence = D(gameState.darkEssence).sub(cost);
+    gameState.itemDurability[itemId] = max;
+    Toastify({
+        text: `🔧 ${item?.name} repaired to full! Cost: ${cost} DE`,
+        duration: 3000, gravity:'top', position:'center',
+        style: { background: 'linear-gradient(135deg,#0a1a0a,#44cc88)' }
+    }).showToast();
+    calculateStats(); renderAll(); saveGame();
+}
+
+// Hook durability tick into the game's 60s interval
 // Decimal currency accumulation — unbounded, same as souls
 function _safeAddCur(key, amount) {
     // Defensive wrapper — amount may be plain number, Decimal, or edge-case value
@@ -9459,9 +9625,31 @@ function renderInventory() {
 
         const onclick = isEquipped ? '' : `onclick="openItemModal('${itemId}')"`;
         const badge = isEquipped ? `<span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa;">✦ Equipped</span>` : `<span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa; text-transform:capitalize;">${item.type}</span>`;
+
+        // Durability bar
+        const maxDur = typeof getMaxDurability === 'function' ? getMaxDurability(itemId) : 100;
+        const curDur = typeof getItemDurability === 'function' ? getItemDurability(itemId) : maxDur;
+        const durPct = Math.max(0, curDur / maxDur);
+        const durColor = typeof getDurabilityColor === 'function' ? getDurabilityColor(durPct) : '#44cc88';
+        const durLabel = typeof getDurabilityLabel === 'function' ? getDurabilityLabel(durPct) : 'Good';
+        const repairCost = { common:5, uncommon:10, rare:20, epic:40, legendary:80, forged:150 }[item.rarity] || 20;
+        const durBar = `
+            <div style="margin-top:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                    <span style="color:#444; font-size:0.65em; letter-spacing:1px; text-transform:uppercase;">🔧 Durability</span>
+                    <span style="color:${durColor}; font-size:0.7em; font-weight:bold;">${durLabel} (${Math.floor(curDur)}/${maxDur})</span>
+                </div>
+                <div style="background:#1a1030; border-radius:4px; height:5px; overflow:hidden;">
+                    <div style="height:100%; width:${Math.round(durPct*100)}%; background:${durColor}; border-radius:4px; transition:width 0.5s;"></div>
+                </div>
+                ${curDur < maxDur ? `<button class="upgrade-btn" style="margin-top:5px; width:100%; border-color:${durColor}44; padding:4px;" onclick="repairItem('${itemId}'); renderInventory();">
+                    <span style="color:${durColor}; font-size:0.75em;">🔧 Repair (${repairCost} DE)</span>
+                </button>` : ''}
+            </div>`;
+
         const btn = isEquipped
-            ? `<button class="upgrade-btn" style="margin-top:8px; width:100%; border-color:#cc333344; background:#1a0808;" onclick="unequipItem('${itemId}'); renderInventory();"><span style="color:#cc4444;">📤 Unequip</span></button>`
-            : `<button class="upgrade-btn" style="margin-top:8px; width:100%; border-color:${rc}66;" onclick="openItemModal('${itemId}')"><span style="color:${rc};">Manage →</span></button>`;
+            ? `<button class="upgrade-btn" style="margin-top:6px; width:100%; border-color:#cc333344; background:#1a0808;" onclick="unequipItem('${itemId}'); renderInventory();"><span style="color:#cc4444;">📤 Unequip</span></button>`
+            : `<button class="upgrade-btn" style="margin-top:6px; width:100%; border-color:${rc}66;" onclick="openItemModal('${itemId}')"><span style="color:${rc};">Manage →</span></button>`;
         return `<div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${rc}55; border-top:3px solid ${rc}; border-radius:12px; padding:16px; box-shadow:0 0 16px ${rg}; display:flex; flex-direction:column; gap:6px;">
             <div style="display:flex; align-items:center; gap:10px;">
                 <span style="font-size:1.6em;">${icon}</span>
@@ -9474,6 +9662,7 @@ function renderInventory() {
                 </div>
             </div>
             <p style="color:#aaa; font-size:0.82em; margin:2px 0; line-height:1.4;">${item.desc}</p>
+            ${durBar}
             ${btn}
         </div>`;
     }

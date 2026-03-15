@@ -4563,6 +4563,31 @@ function getFusionResult(idA, idB) {
     const aIsMarket = potions[idA]?.marketOnly;
     const bIsMarket = potions[idB]?.marketOnly;
 
+    const aIsFused = potions[idA]?.fusedOnly;
+    const bIsFused = potions[idB]?.fusedOnly;
+
+    // Fused + Fused = ULTRA potion (rarest tier)
+    if (aIsFused && bIsFused) {
+        const ultraPool = [
+            'fusion_ultra_omega',
+            'fusion_ultra_singularity',
+            'fusion_ultra_void_ascendant',
+            'fusion_ultra_god_mode',
+            'fusion_ultra_reality_end',
+        ];
+        return ultraPool[hash % ultraPool.length];
+    }
+
+    // Fused + Market = Legendary hybrid
+    if ((aIsFused && bIsMarket) || (aIsMarket && bIsFused)) {
+        const legendPool = [
+            'fusion_legend_obliterator',
+            'fusion_legend_convergence',
+            'fusion_legend_infinity',
+        ];
+        return legendPool[hash % legendPool.length];
+    }
+
     if (aIsMarket && bIsMarket) {
         // Market + Market fallback pool — 5 options
         const mktPool = [
@@ -7026,6 +7051,64 @@ const potions = {
         effect2: { type: 'cache_speed_flat', value: 0.5, duration: 3600 }
     },
 
+    // ── ULTRA TIER: Fused + Fused ────────────────────────────────────────
+    fusion_ultra_omega: {
+        name: "⚗️ ULTRA — Omega Convergence",
+        desc: "For 10 minutes: SPS ×1000, SPC ×1000, all costs zero, and all cooldowns frozen.",
+        fusedOnly: true,
+        effect:  { type: 'sps_multiplier_flat', value: 1000, duration: 600 },
+        effect2: { type: 'zero_all_costs_flat', duration: 600 }
+    },
+    fusion_ultra_singularity: {
+        name: "⚗️ ULTRA — Soul Singularity",
+        desc: "Instantly gain 30 days of SPS AND the next Ascension yields 10× shards.",
+        fusedOnly: true,
+        effect:  { type: 'gain_sps_seconds_flat', value: 2592000 },
+        effect2: { type: 'next_ascension_shard_mult_flat', value: 10 }
+    },
+    fusion_ultra_void_ascendant: {
+        name: "⚗️ ULTRA — Void Ascendant",
+        desc: "All currencies gain 500% for 30 minutes. Souls, Essence, Shards, Fragments — all of it.",
+        fusedOnly: true,
+        effect:  { type: 'sps_multiplier_flat', value: 6, duration: 1800 },
+        effect2: { type: 'essence_multiplier_flat', value: 6, duration: 1800 }
+    },
+    fusion_ultra_god_mode: {
+        name: "⚗️ ULTRA — God Mode",
+        desc: "For 15 minutes, gain is raised to the power of 1.1. Every click, every second.",
+        fusedOnly: true,
+        effect:  { type: 'gain_exponent_flat', value: 1.1, duration: 900 }
+    },
+    fusion_ultra_reality_end: {
+        name: "⚗️ ULTRA — Reality's End",
+        desc: "Instantly: 50 Aether, 50% of next ascension shards, 1000 fragments, and SPS ×500 for 5min.",
+        fusedOnly: true,
+        effect:  { type: 'gain_aether_no_reset_flat', value: 50 },
+        effect2: { type: 'sps_multiplier_flat', value: 500, duration: 300 }
+    },
+
+    // ── LEGEND TIER: Fused + Market ───────────────────────────────────────
+    fusion_legend_obliterator: {
+        name: "⚗️ LEGEND — Abyssal Obliterator",
+        desc: "For 20 minutes: SPS ×200, ALL cooldowns reset instantly, and Essence gain ×50.",
+        fusedOnly: true, marketFusion: true,
+        effect:  { type: 'sps_multiplier_flat', value: 200, duration: 1200 },
+        effect2: { type: 'reset_all_cooldowns_flat' }
+    },
+    fusion_legend_convergence: {
+        name: "⚗️ LEGEND — Grand Convergence",
+        desc: "Every prestige resource triples instantly. Souls, Shards, Aether, Essence — all ×3 now.",
+        fusedOnly: true, marketFusion: true,
+        effect:  { type: 'multiply_all_currencies_flat', value: 3 }
+    },
+    fusion_legend_infinity: {
+        name: "⚗️ LEGEND — Infinity Flask",
+        desc: "For 1 hour: SPS ×50, clicking grants 10× SPS worth of souls each click, no cooldowns.",
+        fusedOnly: true, marketFusion: true,
+        effect:  { type: 'sps_multiplier_flat', value: 50, duration: 3600 },
+        effect2: { type: 'click_grants_sps_mult_flat', value: 10, duration: 3600 }
+    },
+
     // Market + Market extras
     fusion_market_annihilator: {
         name: "⚗️ Void Annihilator",
@@ -8125,6 +8208,7 @@ function executeAscension() {
   gameState.inventory = inventory;
   gameState.equipped = equipped;
   gameState.totalCollapses = collappses;
+  gameState.fragmentForgeCount = 0; // always reset on ascension — forge price drops back to base
   // Restore lifetime stats
   gameState.lifetimeSouls = oldLifetimeSouls;
   gameState.totalAetherEarned = oldTotalAetherEarned;
@@ -8210,6 +8294,7 @@ function executeCollapse() {
 
     // Get a completely fresh start
     gameState = getDefaultGameState();
+    gameState.fragmentForgeCount = 0; // forge price resets on collapse
     gameState.essenceGainedThisRun = 0;
 
     // Restore permanent + lifetime data
@@ -9589,6 +9674,16 @@ const potionMeta = {
     fusion_ascension_surge:        { icon:'⚗️', color:'#ffcc44', rarity:'fused-legendary',glow:'#ffcc4466' },
     fusion_abyssal_detonator:      { icon:'⚗️', color:'#ff3300', rarity:'fused-legendary',glow:'#ff330066' },
     fusion_fortune_storm:          { icon:'⚗️', color:'#44cc88', rarity:'fused-epic',     glow:'#44cc8866' },
+    // Ultra tier
+    fusion_ultra_omega:            { icon:'✨', color:'#ff44ff', rarity:'fused-legendary', glow:'#ff44ff88' },
+    fusion_ultra_singularity:      { icon:'✨', color:'#ffffff', rarity:'fused-legendary', glow:'#ffffff88' },
+    fusion_ultra_void_ascendant:   { icon:'✨', color:'#aa44ff', rarity:'fused-legendary', glow:'#aa44ff88' },
+    fusion_ultra_god_mode:         { icon:'✨', color:'#ffcc00', rarity:'fused-legendary', glow:'#ffcc0088' },
+    fusion_ultra_reality_end:      { icon:'✨', color:'#ff3300', rarity:'fused-legendary', glow:'#ff330088' },
+    // Legend tier
+    fusion_legend_obliterator:     { icon:'🌟', color:'#ff6600', rarity:'fused-legendary', glow:'#ff660088' },
+    fusion_legend_convergence:     { icon:'🌟', color:'#00ffcc', rarity:'fused-legendary', glow:'#00ffcc88' },
+    fusion_legend_infinity:        { icon:'🌟', color:'#4488ff', rarity:'fused-legendary', glow:'#4488ff88' },
     // Market fusions — legendary tier
     fusion_market_obliterator:     { icon:'☄️', color:'#ff4400', rarity:'fused-legendary', glow:'#ff440088' },
     fusion_market_singularity:     { icon:'🌌', color:'#ffffff', rarity:'fused-legendary', glow:'#ffffff55' },
@@ -9636,9 +9731,9 @@ function openFusionPicker(slot) {
     const grid = document.getElementById('fusion-picker-grid');
     grid.innerHTML = '';
 
-    // Collect potions in shelf (excluding fused-only ones you can't put in slots)
+    // All potions on shelf can be fused — market, fused, and standard
     const owned = Object.keys(gameState.potions).filter(id =>
-        gameState.potions[id] > 0 && potions[id] && !potions[id].fusedOnly
+        gameState.potions[id] > 0 && potions[id]
     );
 
     if (owned.length === 0) {
@@ -12656,7 +12751,7 @@ function renderBank() {
                 return;
             }
             if (!confirm(`Forge 1 Fragment for ${formatNumber(cost2)} Shards?`)) return;
-            gameState.abyssalShards = Math.max(0, gameState.abyssalShards - cost2);
+            gameState.abyssalShards = D(gameState.abyssalShards).sub(D(cost2));
             _safeAddCur("corruptedFragments", 1);
             gameState.fragmentForgeCount = fc2 + 1;
             Toastify({ text:`🔮 Fragment forged! Next costs ${formatNumber(cost2 * 2.5)} Shards.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();

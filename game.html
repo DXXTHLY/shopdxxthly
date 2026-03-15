@@ -9116,7 +9116,7 @@ function brewPotion(id) {
 
     // Prevent brewing if on cooldown
     if (cooldownEndTime && Date.now() < cooldownEndTime) {
-        return; 
+        return;
     }
 
     let canAfford = D(gameState.souls).gte(D(p.cost))
@@ -9129,16 +9129,19 @@ function brewPotion(id) {
         gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(p.cost));
         if (p.shardsCost) gameState.abyssalShards -= p.shardsCost;
         gameState.potions[id] = (gameState.potions[id] || 0) + 1;
-        gameState.potionsBrewed++; 
+        gameState.potionsBrewed++;
 
-        // If the potion has a cooldown, set it now
-        if (p.cooldown) {
-            gameState.potionCooldowns[id] = Date.now() + (p.cooldown * 1000);
-        }
+        // Cooldown is NOT set at brew time — only starts when you actually USE the potion.
+        // Re-brewing is blocked by the alreadyOwned check above (you can't brew a second
+        // copy while you already have one sitting on your shelf).
+
+        Toastify({ text: `🧪 ${p.name} added to your shelf!`, duration:3000, gravity:'top', position:'center',
+            style:{background:'linear-gradient(135deg,#1a0830,#9944cc)'} }).showToast();
 
         playSound('upgrade');
         renderBrewery();
         checkButtons();
+        saveGame();
     }
 }
 // NEW, UPGRADED usePotion FUNCTION
@@ -9258,9 +9261,16 @@ function usePotion(id) {
             Toastify({ text: `⚗️ ${p.name} activated!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#9944cc)'} }).showToast();
         }
 
+        // Reset cooldown to start from use time (not brew time)
+        // This means the timer starts when you actually use it, not when you brewed it
+        if (potions[id]?.cooldown) {
+            gameState.potionCooldowns[id] = Date.now() + (potions[id].cooldown * 1000);
+        }
+
         playSound('upgrade');
         calculateStats();
         renderAll();
+        saveGame();
     }
 }
 

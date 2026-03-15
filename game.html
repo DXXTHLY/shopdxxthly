@@ -1968,6 +1968,11 @@
             flex-wrap: wrap;
             justify-content: center;
         }
+        
+        @keyframes shimmerPot {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
         #intro-credits .credits-dev {
             font-family: 'Metamorphous', serif;
             font-size: 1.1rem;
@@ -4341,6 +4346,43 @@ const fusionRecipes = [
     { a: 'vial_of_the_abyss',         b: 'flask_of_the_void_king',      result: 'fusion_all_in_one' },
     { a: 'void_amplifier',            b: 'tincture_of_the_deep_abyss',  result: 'fusion_shard_explosion' },
 
+    // ── New brewable potion fusions ────────────────────────────────────────
+    { a: 'essence_of_the_damned',    b: 'vial_of_dark_echoes',       result: 'fusion_sps_spc' },
+    { a: 'tincture_of_soul_binding', b: 'flask_of_endless_night',    result: 'fusion_passive_god' },
+    { a: 'ichor_of_the_abyss_lord',  b: 'draught_of_might',          result: 'fusion_click_god' },
+    { a: 'ichor_of_the_abyss_lord',  b: 'tincture_of_expediency',    result: 'fusion_click_god' },
+    { a: 'vial_of_stolen_time',      b: 'flask_of_temporal_flux',    result: 'fusion_time_warp' },
+    { a: 'vial_of_stolen_time',      b: 'temporal_overdrive',        result: 'fusion_infinite_loop' },
+    { a: 'brew_of_the_corrupted',    b: 'shardbreaker_tonic',        result: 'fusion_essence_bomb' },
+    { a: 'brew_of_the_first_sin',    b: 'elixir_of_the_final_word',  result: 'fusion_dark_trinity' },
+    { a: 'brew_of_the_first_sin',    b: 'ichor_of_deep_hunger',      result: 'fusion_reality_break' },
+    { a: 'ichor_of_deep_hunger',     b: 'elixir_of_the_final_word',  result: 'fusion_reality_break' },
+    { a: 'ichor_of_deep_hunger',     b: 'singularity_core',          result: 'fusion_abyssal_crown' },
+    { a: 'ichor_of_deep_hunger',     b: 'singularity_draught',       result: 'fusion_abyssal_crown' },
+    { a: 'essence_of_the_void_walker', b: 'flask_of_endless_night',  result: 'fusion_world_rush' },
+    { a: 'essence_of_the_void_walker', b: 'phial_of_brilliance',     result: 'fusion_lucky_hoarder' },
+    { a: 'brew_of_final_harvest',    b: 'draught_of_world_drinker',  result: 'fusion_world_rush' },
+    { a: 'brew_of_final_harvest',    b: 'genesis_surge',             result: 'fusion_dark_trinity' },
+    { a: 'flask_of_soul_overload',   b: 'ichor_of_wealth',           result: 'fusion_instant_wealth' },
+    { a: 'flask_of_soul_overload',   b: 'ichor_of_the_cosmos',       result: 'fusion_time_thief' },
+    { a: 'tincture_of_dark_resonance', b: 'elixir_of_resonance',     result: 'fusion_prestige_power' },
+    { a: 'tincture_of_dark_resonance', b: 'reagent_of_resonance',    result: 'fusion_prestige_power' },
+    { a: 'elixir_of_convergence',    b: 'distillate_of_oblivion',    result: 'fusion_time_warp' },
+    { a: 'elixir_of_convergence',    b: 'flask_of_temporal_flux',    result: 'fusion_infinite_loop' },
+    { a: 'draught_of_world_drinker', b: 'philter_of_forgotten_souls',result: 'fusion_world_rush' },
+    { a: 'vial_of_dark_echoes',      b: 'flask_of_the_void_king',    result: 'fusion_passive_god' },
+    { a: 'essence_of_the_damned',    b: 'draught_of_the_void_herald',result: 'fusion_dark_trinity' },
+    // New fused result — specific triggers
+    { a: 'void_amplifier',           b: 'elixir_of_dominion',        result: 'fusion_void_tyrant' },
+    { a: 'singularity_core',         b: 'elixir_of_infinite_hunger', result: 'fusion_void_tyrant' },
+    { a: 'draught_of_soul_overflow', b: 'singularity_draught',       result: 'fusion_soul_devourer' },
+    { a: 'ichor_of_the_cosmos',      b: 'vial_of_the_eternal_harvest',result:'fusion_soul_devourer' },
+    { a: 'distillate_of_oblivion',   b: 'temporal_overdrive',        result: 'fusion_infinite_loop' },
+    { a: 'essence_of_the_void_walker', b: 'phial_of_brilliance',     result: 'fusion_lucky_hoarder' },
+    { a: 'brew_of_luck',             b: 'phial_of_brilliance',       result: 'fusion_lucky_hoarder' },
+    { a: 'flask_of_soul_overload',   b: 'soul_torrent',              result: 'fusion_time_thief' },
+    { a: 'vial_of_stolen_time',      b: 'ichor_of_the_cosmos',       result: 'fusion_time_thief' },
+
 ];
 
 // Look up recipe — order-independent
@@ -6112,6 +6154,118 @@ const potions = {
         effect: { type: 'pvp_power_boost_flat', value: 2.0, duration: 300 }
     },
 
+
+    // ── NEW BREWED POTIONS ───────────────────────────────────────────────
+    essence_of_the_damned: {
+        name: "Essence of the Damned",
+        desc: "For 3 minutes, all soul clicks also drain 1 Dark Essence from nearby enemies — each one multiplying your SPC by 1.5%.",
+        cost: 1e14,
+        effect: { type: 'spc_multiplier_flat', value: 1.5, duration: 180 }
+    },
+    vial_of_dark_echoes: {
+        name: "Vial of Dark Echoes",
+        desc: "Every soul you gain echoes once — doubling all passive gain for 2 minutes.",
+        cost: 1e12,
+        effect: { type: 'sps_multiplier_flat', value: 2, duration: 120 }
+    },
+    brew_of_the_corrupted: {
+        name: "Brew of the Corrupted",
+        desc: "Instantly converts 5% of your Abyssal Shards to Dark Essence at triple the normal rate.",
+        cost: 1e18,
+        costType: 'souls_and_shards',
+        shardsCost: 500,
+        effect: { type: 'shards_to_essence_flat', value: 0.05, rate: 3 }
+    },
+    tincture_of_soul_binding: {
+        name: "Tincture of Soul Binding",
+        desc: "For 5 minutes, your top 3 highest-level minions produce 5× more souls.",
+        cost: 1e17,
+        effect: { type: 'sps_multiplier_flat', value: 5, duration: 300 }
+    },
+    flask_of_endless_night: {
+        name: "Flask of Endless Night",
+        desc: "For 10 minutes, SPS is multiplied by your total number of owned minion levels.",
+        cost: 1e22,
+        costType: 'souls_and_shards',
+        shardsCost: 200,
+        effect: { type: 'sps_multiplier_flat', value: 20, duration: 600 }
+    },
+    ichor_of_the_abyss_lord: {
+        name: "Ichor of the Abyss Lord",
+        desc: "For 2 minutes, every click spawns a phantom imp — adding 10% of your SPS to your SPC.",
+        cost: 1e24,
+        effect: { type: 'add_sps_to_spc_flat', value: 0.10, duration: 120 }
+    },
+    elixir_of_convergence: {
+        name: "Elixir of Convergence",
+        desc: "All active ritual effects are extended by 50% of their remaining duration.",
+        cost: 1e26,
+        costType: 'souls_and_shards',
+        shardsCost: 1000,
+        effect: { type: 'ritual_cooldown_reduction_flat', value: -1 }
+    },
+    draught_of_world_drinker: {
+        name: "Draught of the World Drinker",
+        desc: "Instantly gain 10% of the souls needed to unlock ALL remaining worlds simultaneously.",
+        cost: 1e30,
+        cooldown: 86400,
+        effect: { type: 'gain_souls_for_next_world_flat', value: 0.10 }
+    },
+    brew_of_the_first_sin: {
+        name: "Brew of the First Sin",
+        desc: "For 60 seconds, all soul gain is raised to the power of 1.08. The oldest power, barely contained.",
+        cost: 1e35,
+        costType: 'souls_and_shards',
+        shardsCost: 5000,
+        cooldown: 172800,
+        effect: { type: 'gain_exponent_flat', value: 1.08, duration: 60 }
+    },
+    vial_of_stolen_time: {
+        name: "Vial of Stolen Time",
+        desc: "Instantly reduce all active ritual cooldowns by 6 hours.",
+        cost: 1e19,
+        cooldown: 43200,
+        effect: { type: 'ritual_cooldown_reduction_flat', value: 21600 }
+    },
+    flask_of_soul_overload: {
+        name: "Flask of Soul Overload",
+        desc: "Instantly gain souls equal to 6 hours of SPS AND 250 Dark Essence.",
+        cost: 1e21,
+        cooldown: 28800,
+        effect: { type: 'gain_sps_seconds_flat', value: 21600 }
+    },
+    tincture_of_dark_resonance: {
+        name: "Tincture of Dark Resonance",
+        desc: "For 4 minutes, your Dark Essence count multiplies your global soul gain by 0.1% per DE.",
+        cost: 1e20,
+        effect: { type: 'multiplier_by_essence', duration: 240 }
+    },
+    essence_of_the_void_walker: {
+        name: "Essence of the Void Walker",
+        desc: "Teleport forward — instantly gain 15 minutes of SPS and reset your Abyssal Cache timer.",
+        cost: 1e23,
+        costType: 'souls_and_shards',
+        shardsCost: 750,
+        cooldown: 86400,
+        effect: { type: 'gain_sps_seconds_flat', value: 900 }
+    },
+    brew_of_final_harvest: {
+        name: "Brew of the Final Harvest",
+        desc: "For 5 minutes, every world you have unlocked adds +15% to global soul gain.",
+        cost: 1e28,
+        costType: 'souls_and_shards',
+        shardsCost: 2000,
+        effect: { type: 'global_multiplier_flat', value: 8, duration: 300 }
+    },
+    ichor_of_deep_hunger: {
+        name: "Ichor of Deep Hunger",
+        desc: "For 90 seconds, ALL soul gain is squared. The price is the equivalent of devouring a star.",
+        cost: 1e40,
+        costType: 'souls_and_shards',
+        shardsCost: 10000,
+        cooldown: 604800,
+        effect: { type: 'square_all_gain', duration: 90 }
+    },
     // ================================================================
     // MARKET-EXCLUSIVE POTIONS — only appear in the Hourly Shop
     // Never craftable in the Brewery. marketOnly: true flag.
@@ -6507,6 +6661,62 @@ const potions = {
         effect: { type: 'gain_exponent_flat', value: 1.5, duration: 120 }
     },
 
+
+    fusion_dark_trinity: {
+        name: "⚗️ Dark Trinity",
+        desc: "For 5 minutes: SPS ×30, SPC ×30, AND all costs reduced 80%. Three evils, one flask.",
+        fusedOnly: true,
+        effect: { type: 'sps_multiplier_flat', value: 30, duration: 300 },
+        effect2: { type: 'temp_minion_cost_reducer_flat', value: 0.20, duration: 300 }
+    },
+    fusion_abyssal_crown: {
+        name: "⚗️ The Abyssal Crown",
+        desc: "For 3 minutes, gain^1.20 — the most powerful exponent possible in a flask. The crown of all fused brews.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'gain_exponent_flat', value: 1.20, duration: 180 }
+    },
+    fusion_soul_devourer: {
+        name: "⚗️ Soul Devourer",
+        desc: "Instantly gain 100% of next Ascension Shards AND 72 hours of SPS. Consume everything.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'gain_shards_no_reset_flat', value: 1.0 },
+        effect2: { type: 'gain_sps_seconds_flat', value: 259200 }
+    },
+    fusion_infinite_loop: {
+        name: "⚗️ Infinite Loop",
+        desc: "Resets ALL cooldowns AND for 10 minutes cooldowns tick 25× faster. Time obeys you now.",
+        fusedOnly: true,
+        effect: { type: 'reset_all_cooldowns_flat' },
+        effect2: { type: 'cooldown_haste', value: 25, duration: 600 }
+    },
+    fusion_reality_break: {
+        name: "⚗️ Reality Break",
+        desc: "For 2 minutes, everything is squared — soul gain, SPS, SPC, all active multipliers.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'square_all_gain', duration: 120 },
+        effect2: { type: 'sps_multiplier_flat', value: 100, duration: 120 }
+    },
+    fusion_lucky_hoarder: {
+        name: "⚗️ Fortune's Cache",
+        desc: "Opens your Abyssal Cache instantly AND for 2 hours, rare item luck is tripled.",
+        fusedOnly: true,
+        effect: { type: 'reset_cache_timer_flat' },
+        effect2: { type: 'rare_item_luck_flat', value: 3, duration: 7200 }
+    },
+    fusion_void_tyrant: {
+        name: "⚗️ Draught of the Void Tyrant",
+        desc: "For 5 minutes: ALL gains ×200, costs -99%, clicks fire 50 auto-harvests. Total domination.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'global_multiplier_flat', value: 200, duration: 300 },
+        effect2: { type: 'temp_minion_cost_reducer_flat', value: 0.01, duration: 300 }
+    },
+    fusion_time_thief: {
+        name: "⚗️ Elixir of the Time Thief",
+        desc: "Steal time itself — gain 7 days of SPS instantly AND reduce ALL cooldowns by 24 hours.",
+        fusedOnly: true,
+        effect: { type: 'gain_sps_seconds_flat', value: 604800 },
+        effect2: { type: 'reset_all_cooldowns_flat' }
+    },
     // ── Additional fused results ──────────────────────────────────────
     fusion_click_god: {
         name: "⚗️ Draught of the Click God",
@@ -9011,23 +9221,142 @@ function renderArtifacts() {
 let fusionState = { slotA: null, slotB: null, pickingSlot: null };
 
 const potionMeta = {
-    draught_of_might:             { icon:'💪', color:'#ff6644' },
-    ichor_of_wealth:              { icon:'💰', color:'#ffcc00' },
-    elixir_of_wisdom:             { icon:'📚', color:'#44aaff' },
-    brew_of_the_void:             { icon:'🌑', color:'#9944cc' },
-    tincture_of_rage:             { icon:'😡', color:'#ff4444' },
-    essence_of_avarice:           { icon:'💎', color:'#44ccff' },
-    draught_of_the_hoarder:       { icon:'🪙', color:'#ffaa00' },
-    flask_of_temporal_flux:       { icon:'⏱',  color:'#00ccaa' },
-    philter_of_forgotten_souls:   { icon:'👻', color:'#aa88ff' },
-    elixir_of_resonance:          { icon:'🔮', color:'#ff88cc' },
-    brew_of_shattered_stars:      { icon:'⭐', color:'#ffffaa' },
+    // Standard brewed
+    draught_of_might:              { icon:'💪', color:'#ff6644', rarity:'common' },
+    ichor_of_wealth:               { icon:'💰', color:'#ffcc00', rarity:'common' },
+    elixir_of_wisdom:              { icon:'📚', color:'#44aaff', rarity:'common' },
+    brew_of_the_void:              { icon:'🌑', color:'#9944cc', rarity:'common' },
+    tincture_of_rage:              { icon:'😡', color:'#ff4444', rarity:'common' },
+    essence_of_avarice:            { icon:'💎', color:'#44ccff', rarity:'common' },
+    draught_of_the_hoarder:        { icon:'🪙', color:'#ffaa00', rarity:'uncommon' },
+    flask_of_temporal_flux:        { icon:'⏱',  color:'#00ccaa', rarity:'uncommon' },
+    philter_of_forgotten_souls:    { icon:'👻', color:'#aa88ff', rarity:'uncommon' },
+    elixir_of_resonance:           { icon:'🔮', color:'#ff88cc', rarity:'rare' },
+    brew_of_shattered_stars:       { icon:'⭐', color:'#ffffaa', rarity:'rare' },
+    potion_of_the_abyss:           { icon:'🌀', color:'#6600ff', rarity:'rare' },
+    draught_of_cosmic_insight:     { icon:'🌌', color:'#00aaff', rarity:'epic' },
+    vial_of_singularity:           { icon:'💫', color:'#00ffcc', rarity:'epic' },
+    ichor_of_the_first_minion:     { icon:'👿', color:'#ff6600', rarity:'uncommon' },
+    elixir_of_the_final_word:      { icon:'📖', color:'#ff44aa', rarity:'legendary' },
+    phial_of_brilliance:           { icon:'✨', color:'#ffffcc', rarity:'uncommon' },
+    tincture_of_expediency:        { icon:'⚡', color:'#ffdd00', rarity:'uncommon' },
+    brew_of_luck:                  { icon:'🍀', color:'#44ff88', rarity:'rare' },
+    draught_of_the_raider:         { icon:'⚔️', color:'#ff2244', rarity:'rare' },
+    // New standard brewed
+    essence_of_the_damned:         { icon:'💀', color:'#880000', rarity:'uncommon' },
+    vial_of_dark_echoes:           { icon:'🔔', color:'#4422aa', rarity:'uncommon' },
+    brew_of_the_corrupted:         { icon:'☣️', color:'#44ff00', rarity:'rare' },
+    tincture_of_soul_binding:      { icon:'🕸️', color:'#cc88ff', rarity:'rare' },
+    flask_of_endless_night:        { icon:'🌙', color:'#222266', rarity:'epic' },
+    ichor_of_the_abyss_lord:       { icon:'👁️', color:'#ff0044', rarity:'epic' },
+    elixir_of_convergence:         { icon:'🔱', color:'#88ffff', rarity:'epic' },
+    draught_of_world_drinker:      { icon:'🌍', color:'#00ff88', rarity:'legendary' },
+    brew_of_the_first_sin:         { icon:'🍎', color:'#ff4400', rarity:'legendary' },
+    vial_of_stolen_time:           { icon:'⏳', color:'#ffaa88', rarity:'rare' },
+    flask_of_soul_overload:        { icon:'💥', color:'#ff8800', rarity:'rare' },
+    tincture_of_dark_resonance:    { icon:'🎵', color:'#aa44cc', rarity:'uncommon' },
+    essence_of_the_void_walker:    { icon:'🚶', color:'#4400aa', rarity:'rare' },
+    brew_of_final_harvest:         { icon:'🌾', color:'#ccaa00', rarity:'epic' },
+    ichor_of_deep_hunger:          { icon:'🦷', color:'#ff2200', rarity:'legendary' },
+    // Market
+    vial_of_the_abyss:             { icon:'🌊', color:'#0044ff', rarity:'market' },
+    soul_torrent:                  { icon:'🌊', color:'#4488ff', rarity:'market' },
+    elixir_of_dominion:            { icon:'👑', color:'#ffaa00', rarity:'market' },
+    dark_convergence:              { icon:'☯️', color:'#cc44ff', rarity:'market' },
+    void_essence_flask:            { icon:'💜', color:'#8800cc', rarity:'market' },
+    ichor_of_eternity:             { icon:'♾️', color:'#00ccff', rarity:'market' },
+    abyssal_surge:                 { icon:'⚡', color:'#ffcc00', rarity:'market' },
+    essence_cascade:               { icon:'💧', color:'#44aaff', rarity:'market' },
+    flask_of_the_void_king:        { icon:'🤴', color:'#cc88ff', rarity:'market' },
+    reagent_of_resonance:          { icon:'〰️', color:'#ff88aa', rarity:'market' },
+    soul_compressor:               { icon:'🗜️', color:'#888800', rarity:'market' },
+    temporal_overdrive:            { icon:'⏩', color:'#00ffaa', rarity:'market' },
+    draught_of_the_overlord:       { icon:'😤', color:'#ff6600', rarity:'market' },
+    rift_serum:                    { icon:'🌀', color:'#aa44ff', rarity:'market' },
+    essence_of_collapse:           { icon:'💥', color:'#ff4400', rarity:'market' },
+    venom_of_the_primordial:       { icon:'🐍', color:'#00ff44', rarity:'market' },
+    void_amplifier:                { icon:'📡', color:'#4400ff', rarity:'market' },
+    shardbreaker_tonic:            { icon:'💎', color:'#4488ff', rarity:'market' },
+    extract_of_the_fallen:         { icon:'🪦', color:'#886600', rarity:'market' },
+    singularity_draught:           { icon:'🌌', color:'#ffffff', rarity:'market-legendary' },
+    draught_of_the_void_herald:    { icon:'📯', color:'#cc44ff', rarity:'market' },
+    elixir_of_infinite_hunger:     { icon:'🍽️', color:'#ff4422', rarity:'market' },
+    ichor_of_the_cosmos:           { icon:'🌠', color:'#aaccff', rarity:'market' },
+    vial_of_soul_fission:          { icon:'⚛️', color:'#44ffcc', rarity:'market' },
+    abyssal_catalyst:              { icon:'🧫', color:'#ccff44', rarity:'market' },
+    serum_of_the_first_god:        { icon:'🏺', color:'#ffcc44', rarity:'market' },
+    distillate_of_oblivion:        { icon:'🫙', color:'#cccccc', rarity:'market-legendary' },
+    tincture_of_the_deep_abyss:    { icon:'🧊', color:'#44aaff', rarity:'market' },
+    venom_of_collapsed_stars:      { icon:'💫', color:'#ffaaff', rarity:'market' },
+    draught_of_dimensional_rift:   { icon:'🚪', color:'#ff88ff', rarity:'market' },
+    flask_of_the_abyss_warden:     { icon:'🛡️', color:'#884400', rarity:'market' },
+    phial_of_world_shattering:     { icon:'🌍', color:'#ff4400', rarity:'market' },
+    brew_of_echoing_void:          { icon:'🔊', color:'#4400cc', rarity:'market' },
+    elixir_of_the_unbound:         { icon:'🔓', color:'#ffff00', rarity:'market-legendary' },
+    ichor_of_shadow_dominion:      { icon:'🌑', color:'#440044', rarity:'market' },
+    vial_of_the_eternal_harvest:   { icon:'⚰️', color:'#cc0000', rarity:'market-legendary' },
+    essence_of_primordial_fire:    { icon:'🔥', color:'#ff6600', rarity:'market' },
+    tincture_of_the_dead_sun:      { icon:'☀️', color:'#ff4400', rarity:'market' },
+    draught_of_soul_overflow:      { icon:'🌊', color:'#8800ff', rarity:'market' },
+    singularity_core:              { icon:'💠', color:'#00ffff', rarity:'market-legendary' },
+    // Fused — each with unique rarity color
+    fusion_sps_spc:                { icon:'⚗️', color:'#ff8844', rarity:'fused', glow:'#ff884466' },
+    fusion_essence_shards:         { icon:'💠', color:'#44aaff', rarity:'fused', glow:'#44aaff66' },
+    fusion_souls_burst:            { icon:'💥', color:'#ffcc00', rarity:'fused', glow:'#ffcc0066' },
+    fusion_cost_reduction:         { icon:'💸', color:'#44ff88', rarity:'fused', glow:'#44ff8866' },
+    fusion_cooldown_master:        { icon:'⏰', color:'#00ffcc', rarity:'fused', glow:'#00ffcc66' },
+    fusion_prestige_power:         { icon:'🔷', color:'#4488ff', rarity:'fused', glow:'#4488ff66' },
+    fusion_click_god:              { icon:'👆', color:'#ff4444', rarity:'fused', glow:'#ff444466' },
+    fusion_world_rush:             { icon:'🌍', color:'#44cc88', rarity:'fused', glow:'#44cc8866' },
+    fusion_essence_bomb:           { icon:'💣', color:'#aa00ff', rarity:'fused', glow:'#aa00ff66' },
+    fusion_time_warp:              { icon:'🌀', color:'#00ccff', rarity:'fused', glow:'#00ccff66' },
+    fusion_aether_surge:           { icon:'⚡', color:'#00e5ff', rarity:'fused', glow:'#00e5ff66' },
+    fusion_pvp_destroyer:          { icon:'⚔️', color:'#ff2244', rarity:'fused', glow:'#ff224466' },
+    fusion_shard_explosion:        { icon:'💎', color:'#88ccff', rarity:'fused', glow:'#88ccff66' },
+    fusion_passive_god:            { icon:'👹', color:'#ff6600', rarity:'fused', glow:'#ff660066' },
+    fusion_cache_rush:             { icon:'📦', color:'#ffaa44', rarity:'fused', glow:'#ffaa4466' },
+    fusion_instant_wealth:         { icon:'💰', color:'#ffdd00', rarity:'fused', glow:'#ffdd0066' },
+    fusion_all_in_one:             { icon:'🌟', color:'#ffffff', rarity:'fused-epic', glow:'#ffffff44' },
+    // Market fusions — legendary tier
+    fusion_market_obliterator:     { icon:'☄️', color:'#ff4400', rarity:'fused-legendary', glow:'#ff440088' },
+    fusion_market_singularity:     { icon:'🌌', color:'#ffffff', rarity:'fused-legendary', glow:'#ffffff55' },
+    fusion_market_collapse:        { icon:'💫', color:'#00e5ff', rarity:'fused-legendary', glow:'#00e5ff66' },
+    fusion_market_eternity:        { icon:'♾️', color:'#ffcc88', rarity:'fused-legendary', glow:'#ffcc8866' },
+    fusion_market_godhood:         { icon:'👑', color:'#ffd700', rarity:'fused-legendary', glow:'#ffd70088' },
+    fusion_market_annihilator:     { icon:'💀', color:'#ff0000', rarity:'fused-legendary', glow:'#ff000099' },
+    fusion_market_ascendant:       { icon:'🌠', color:'#aaffff', rarity:'fused-legendary', glow:'#aaffff66' },
+    fusion_market_omega:           { icon:'🔱', color:'#ff88ff', rarity:'fused-legendary', glow:'#ff88ff88' },
+    // New epic fused
+    fusion_dark_trinity:           { icon:'🔺', color:'#cc0066', rarity:'fused-epic', glow:'#cc006688' },
+    fusion_abyssal_crown:          { icon:'👁️', color:'#8800ff', rarity:'fused-legendary', glow:'#8800ff99' },
+    fusion_soul_devourer:          { icon:'🌑', color:'#440000', rarity:'fused-legendary', glow:'#ff002299' },
+    fusion_infinite_loop:          { icon:'∞', color:'#00ffcc', rarity:'fused-epic', glow:'#00ffcc77' },
+    fusion_reality_break:          { icon:'💔', color:'#ff44ff', rarity:'fused-legendary', glow:'#ff44ff88' },
+    fusion_lucky_hoarder:          { icon:'🍀', color:'#44ff44', rarity:'fused', glow:'#44ff4466' },
+    fusion_void_tyrant:            { icon:'👺', color:'#880000', rarity:'fused-legendary', glow:'#ff000077' },
+    fusion_time_thief:             { icon:'🕰️', color:'#ffaa00', rarity:'fused-epic', glow:'#ffaa0077' },
 };
+
+// Rarity config — controls card visual treatment
+const RARITY_STYLE = {
+    common:           { border:'#3a2a4a', glow:'none', badge:'', shimmer:false },
+    uncommon:         { border:'#44884488', glow:'none', badge:'', shimmer:false },
+    rare:             { border:'#4488ffaa', glow:'0 0 12px #4488ff22', badge:'🔵 Rare', shimmer:false },
+    epic:             { border:'#aa44ffcc', glow:'0 0 18px #aa44ff33', badge:'🟣 Epic', shimmer:false },
+    legendary:        { border:'#ffd700cc', glow:'0 0 24px #ffd70044', badge:'🟡 Legendary', shimmer:true },
+    market:           { border:'#cc44ffaa', glow:'0 0 14px #cc44ff22', badge:'🟣 Market', shimmer:false },
+    'market-legendary':{ border:'#ff88ffcc', glow:'0 0 22px #ff88ff44', badge:'💜 Market Legendary', shimmer:true },
+    fused:            { border:'#ff8844cc', glow:'0 0 16px #ff884433', badge:'⚗️ Fused', shimmer:false },
+    'fused-epic':     { border:'#ffffff99', glow:'0 0 22px #ffffff33', badge:'✨ Epic Fusion', shimmer:true },
+    'fused-legendary':{ border:'#ffd700', glow:'0 0 30px #ffd70055', badge:'👑 Legendary Fusion', shimmer:true },
+};
+
 function getPotionMeta(id) {
     if (potionMeta[id]) return potionMeta[id];
-    if (potions[id]?.marketOnly)  return { icon:'🟣', color:'#cc44ff' };
-    if (potions[id]?.marketFusion || potions[id]?.fusedOnly) return { icon:'✨', color:'#ffaa00' };
-    return { icon:'⚗️', color:'#9944cc' };
+    if (potions[id]?.marketOnly)   return { icon:'🟣', color:'#cc44ff', rarity:'market' };
+    if (potions[id]?.marketFusion) return { icon:'👑', color:'#ffd700', rarity:'fused-legendary', glow:'#ffd70088' };
+    if (potions[id]?.fusedOnly)    return { icon:'⚗️', color:'#ff8844', rarity:'fused', glow:'#ff884466' };
+    return { icon:'⚗️', color:'#9944cc', rarity:'common' };
 }
 
 function openFusionPicker(slot) {
@@ -9280,29 +9609,33 @@ function renderBrewery() {
             : `<span style="color:#aaa;">Click to use</span>`;
         if (potions[id]) {
             const p = potions[id];
-            const isFused  = p.fusedOnly;
-            const isMarket = p.marketOnly;
-            const tagLabel = isFused ? '⚗️ Fused' : isMarket ? '🟣 Market' : '🧪 Brewed';
-            const tagColor = isFused ? '#ffaa00' : isMarket ? '#cc44ff' : meta.color;
+            const rarity  = meta.rarity || 'common';
+            const rs      = RARITY_STYLE[rarity] || RARITY_STYLE.common;
+            const glowVal = meta.glow || (isActive ? `0 0 24px ${meta.color}55` : rs.glow);
+            const topBorder = meta.color;
+            const sideBorder = isActive ? meta.color + 'cc' : rs.border;
             const cooldownText = p.cooldown ? `🕐 ${p.cooldown >= 3600 ? (p.cooldown/3600)+'h cooldown' : (p.cooldown/60)+'m cooldown'}` : '';
+            // Shimmer animation for legendary
+            const shimmerStyle = rs.shimmer ? `background:linear-gradient(135deg,#0e0a1a,${meta.color}18,#0e0a1a,${meta.color}11);background-size:200% 100%;animation:shimmerPot 3s ease-in-out infinite;` : `background:linear-gradient(135deg,#0e0a1a,#1a1020);`;
             inventoryGrid.innerHTML += `
-            <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${meta.color}${isActive?'99':'44'}; border-top:3px solid ${meta.color}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:${isActive?`0 0 20px ${meta.color}44`:'none'};">
+            <div style="${shimmerStyle} border:1px solid ${sideBorder}; border-top:3px solid ${topBorder}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:${glowVal}; position:relative; overflow:hidden;">
+                ${rs.shimmer ? `<div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,${meta.color}08,transparent);pointer-events:none;"></div>` : ''}
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:1.8em; flex-shrink:0;">${meta.icon}</span>
-                    <div style="min-width:0;">
-                        <div style="color:${meta.color}; font-weight:bold; font-size:0.95em;">${p.name}</div>
+                    <span style="font-size:1.8em; flex-shrink:0; filter:drop-shadow(0 0 6px ${meta.color}88);">${meta.icon}</span>
+                    <div style="min-width:0; flex:1;">
+                        <div style="color:${meta.color}; font-weight:bold; font-size:0.95em; text-shadow:0 0 8px ${meta.color}44;">${p.name}</div>
                         <div style="display:flex; gap:4px; margin-top:3px; flex-wrap:wrap;">
                             <span style="background:${meta.color}22; border:1px solid ${meta.color}44; border-radius:8px; padding:1px 8px; font-size:0.65em; color:${meta.color};">${count > 0 ? `×${count} owned` : isActive ? '✦ Active' : ''}</span>
-                            <span style="background:${tagColor}18; border:1px solid ${tagColor}44; border-radius:8px; padding:1px 8px; font-size:0.65em; color:${tagColor};">${tagLabel}</span>
+                            ${rs.badge ? `<span style="background:${meta.color}18; border:1px solid ${meta.color}55; border-radius:8px; padding:1px 8px; font-size:0.65em; color:${meta.color}; font-weight:bold;">${rs.badge}</span>` : ''}
                         </div>
                     </div>
                 </div>
-                <p style="color:#888; font-size:0.78em; margin:0; line-height:1.45; border-left:2px solid ${meta.color}44; padding-left:8px;">${p.desc}</p>
+                <p style="color:#999; font-size:0.78em; margin:0; line-height:1.45; border-left:2px solid ${meta.color}66; padding-left:8px;">${p.desc}</p>
                 ${cooldownText ? `<div style="color:#555; font-size:0.7em;">${cooldownText}</div>` : ''}
                 <div style="font-size:0.82em;">${statusText}</div>
                 <button class="upgrade-btn" onclick="usePotion('${id}')" ${isActive || count === 0 ? 'disabled' : ''}
-                    style="width:100%; border-color:${meta.color}66; ${(!isActive && count > 0) ? `background:linear-gradient(135deg,${meta.color}18,transparent);` : 'opacity:0.4;'}">
-                    ${isActive ? `<span style="color:#666;">Active</span>` : count === 0 ? `<span style="color:#444;">None in stock</span>` : `<span style="color:${meta.color};">⚡ Use Potion</span>`}
+                    style="width:100%; border-color:${meta.color}88; ${(!isActive && count > 0) ? `background:linear-gradient(135deg,${meta.color}22,transparent);box-shadow:0 0 8px ${meta.color}22;` : 'opacity:0.4;'}">
+                    ${isActive ? `<span style="color:#666;">Active</span>` : count === 0 ? `<span style="color:#444;">None in stock</span>` : `<span style="color:${meta.color}; text-shadow:0 0 6px ${meta.color}88;">⚡ Use Potion</span>`}
                 </button>
             </div>`;
         }

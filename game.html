@@ -3200,13 +3200,11 @@ text-decoration: underline; /* Adds an underline on hover */
                         </div>
                         <div id="pw-emblem-picker" style="display:none;">
                             <div style="color:#666; font-size:0.72em; margin-bottom:6px;">Choose Emblem:</div>
-                            <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:300px;">
-                            </div>
+                            <div class="pw-emblem-grid" style="display:flex; flex-wrap:wrap; gap:6px; max-width:300px;"></div>
                         </div>
                         <div id="pw-color-picker" style="display:none;">
                             <div style="color:#666; font-size:0.72em; margin-bottom:6px;">Pact Color:</div>
-                            <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                            </div>
+                            <div class="pw-color-grid" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
                         </div>
                     </div>
                 </div>
@@ -19800,12 +19798,32 @@ let pwCycleEnd = null;
 
 // ── Load / Refresh ──────────────────────────────────────────────
 async function pwRefresh() {
-    if (!supabaseClient) return;
-    await pwLoadNodes();
+    // Always render map immediately with whatever we have (no DB required for initial render)
+    pwInitNodes();
     pwRenderMap();
-    pwRenderEmblemPanel();
-    pwRenderBattleLog();
     pwUpdateBanner();
+    pwRenderEmblemPanel();
+
+    // Then load live data from DB and re-render
+    if (supabaseClient) {
+        await pwLoadNodes();
+        pwRenderMap();
+        pwUpdateBanner();
+        pwRenderBattleLog();
+    } else {
+        const logEl = document.getElementById('pw-battle-log');
+        if (logEl) logEl.innerHTML = '<div style="color:#555; font-size:0.8em; text-align:center; padding:12px;">Connect to Supabase to see live battles.</div>';
+    }
+}
+
+function pwInitNodes() {
+    // Ensure 25 nodes exist locally (all unclaimed by default)
+    if (pwNodes.length < 25) {
+        pwNodes = [];
+        for (let i = 0; i < 25; i++) {
+            pwNodes.push({ node_id: i, owner_pact: null, owner_emblem: null, owner_color: null, strength: 0 });
+        }
+    }
 }
 
 async function pwLoadNodes() {
@@ -19815,16 +19833,17 @@ async function pwLoadNodes() {
             .select('*')
             .order('node_id', { ascending: true });
         if (error) throw error;
-        pwNodes = data || [];
-        // Fill in any missing nodes
+        // Merge DB data into local 25-node array
+        const dbMap = {};
+        (data || []).forEach(n => dbMap[n.node_id] = n);
+        pwNodes = [];
         for (let i = 0; i < 25; i++) {
-            if (!pwNodes.find(n => n.node_id === i)) {
-                pwNodes.push({ node_id: i, owner_pact: null, owner_emblem: null, owner_color: null, strength: 0 });
-            }
+            pwNodes.push(dbMap[i] || { node_id: i, owner_pact: null, owner_emblem: null, owner_color: null, strength: 0 });
         }
-        pwNodes.sort((a,b) => a.node_id - b.node_id);
     } catch(e) {
-        console.warn('pwLoadNodes error:', e);
+        console.warn('[PactWars] loadNodes error:', e.message);
+        // Keep whatever we had — map still renders
+        pwInitNodes();
     }
 }
 
@@ -19845,6 +19864,7 @@ function pwUpdateBanner() {
     if (!timerEl) return;
 
     const end = pwGetCycleEnd();
+    if (isNaN(end.getTime())) { timerEl.textContent = 'Resets weekly (Monday 00:00 UTC)'; return; }
     const left = end - Date.now();
     const days  = Math.floor(left / 86400000);
     const hours = Math.floor((left % 86400000) / 3600000);
@@ -20106,8 +20126,7 @@ function pwRenderEmblemPanel() {
         cpick.style.display = 'block';
 
         // Emblem picker
-        epick.querySelector('div') && (epick.querySelector('div:last-child').innerHTML = '');
-        const epGrid = epick.querySelector('div:last-child');
+        const epGrid = epick.querySelector('.pw-emblem-grid');
         if (epGrid) {
             epGrid.innerHTML = PW_EMBLEMS.map(e =>
                 `<button onclick="pwSetEmblem('${e}')" style="font-size:1.5em; width:38px; height:38px; background:${e===emblem?color+'33':'#1a1030'}; border:2px solid ${e===emblem?color:'#2a1a3a'}; border-radius:8px; cursor:pointer;" title="${e}">${e}</button>`
@@ -20115,9 +20134,9 @@ function pwRenderEmblemPanel() {
         }
 
         // Color picker
-        const cpGrid = cpick.querySelector('div:last-child') || cpick;
-        if (cpick.children[1]) {
-            cpick.children[1].innerHTML = PW_COLORS.map(c =>
+        const cpGrid = cpick.querySelector('.pw-color-grid');
+        if (cpGrid) {
+            cpGrid.innerHTML = PW_COLORS.map(c =>
                 `<button onclick="pwSetColor('${c}')" style="width:28px; height:28px; background:${c}; border:3px solid ${c===color?'#fff':'transparent'}; border-radius:50%; cursor:pointer;" title="${c}"></button>`
             ).join('');
         }

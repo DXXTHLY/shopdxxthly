@@ -9223,7 +9223,7 @@ function calculateStats() {
             if (effect.type === 'temp_minion_cost_reducer')        tempMinionCostFactor *= effect.value;
             if (effect.type === 'temp_minion_cost_reducer_flat')   tempMinionCostFactor *= effect.value;
             if (effect.type === 'resonance_bonus_enhancer_flat')   prestigeBonusEnhancer *= (1 + effect.value);
-            if (effect.type === 'prestige_bonus_squared_flat')     { const _pb2 = D(1).add(D(gameState.abyssalShards||0).mul(0.1 * prestigeBonusEnhancer)); global_multiplier = _gm_mul(_pb2); }
+            if (effect.type === 'prestige_bonus_squared_flat')     { const _pb2 = D(1).add(D(gameState.abyssalShards||0).add(1).log10().mul(0.5 * prestigeBonusEnhancer)); global_multiplier = _gm_mul(_pb2); }
             if (effect.type === 'gain_exponent_flat')              global_multiplier = global_multiplier.pow(effect.value || 1.05);
             if (effect.type === 'add_sps_to_spc_flat')            { /* handled post-SPS calc */ }
         }
@@ -9249,9 +9249,15 @@ function calculateStats() {
     global_multiplier = _gm_mul(D(worldBonus.value));
 
     {
+        // Shard bonus — logarithmic scaling so it doesn not explode after many ascensions
+        // Formula: 1 + log10(shards + 1) * 0.5 * prestigeBonusEnhancer
+        // 100 shards = +1x,  1000 = +1.5x,  1M = +3x,  1T = +6x,  1Qa = +8x
         const _shardsD = D(gameState.abyssalShards || 0);
-        const _pb = D(1).add(_shardsD.mul(0.1 * prestigeBonusEnhancer));
-        global_multiplier = _gm_mul(_pb);
+        if (_shardsD.gt(0)) {
+            const _logBonus = _shardsD.add(1).log10().mul(0.5 * prestigeBonusEnhancer);
+            const _pb = D(1).add(_logBonus);
+            global_multiplier = _gm_mul(_pb);
+        }
     }
 
     const aetherGlobalBonusLvl = gameState.aetherUpgrades?.globalBonus?.level || 0;

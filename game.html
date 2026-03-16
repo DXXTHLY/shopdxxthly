@@ -19386,5 +19386,71 @@ showScreen = function(screenId) {
     </div>
 </div>
 
+<script>
+
+// =================================================================
+// 🔧 DEV TOOL: Repair corrupted Firebase save
+// Run in console: repairPlayerSave('UID_HERE')
+// =================================================================
+async function repairPlayerSave(uid) {
+    if (!isDev(window._scChatUid) && !isDev(window._scFirebase?.auth?.currentUser?.uid)) {
+        console.error('Dev only!'); return;
+    }
+    const db = window._scFirebase?.db;
+    if (!db) { console.error('Firebase not ready'); return; }
+    
+    const snap = await db.ref('gameSaves/' + uid).once('value');
+    if (!snap.exists()) { console.error('No save found for UID:', uid); return; }
+    
+    const data = snap.val();
+    const state = JSON.parse(data.state);
+    
+    console.log('📋 Current save for', data.playerName, '— repairing...');
+    
+    // Fix all {m,e} Decimal objects to strings
+    const decimalFields = ['darkEssence','abyssalShards','aether','corruptedFragments','souls','lifetimeSouls','soulsSpent','bankedShards'];
+    decimalFields.forEach(key => {
+        const v = state[key];
+        if (v && typeof v === 'object' && typeof v.m === 'number' && typeof v.e === 'number') {
+            const fixed = v.m + 'e' + v.e;
+            console.log(`  Fixing ${key}: {m:${v.m},e:${v.e}} → "${fixed}"`);
+            state[key] = fixed;
+        }
+    });
+    
+    // Fix stats.sps/spc if they are {m,e} objects or MAX_VALUE
+    if (state.stats) {
+        ['sps','spc'].forEach(key => {
+            const v = state.stats[key];
+            if (v && typeof v === 'object' && typeof v.m === 'number') {
+                state.stats[key] = '0'; // will be recalculated
+            } else if (v >= 1.79e308) {
+                state.stats[key] = '0'; // was capped — recalculate
+            }
+        });
+    }
+
+    // Fix minion costs if they are {m,e} objects
+    if (state.minions) {
+        Object.keys(state.minions).forEach(id => {
+            const cost = state.minions[id].cost;
+            if (cost && typeof cost === 'object' && typeof cost.m === 'number') {
+                state.minions[id].cost = cost.m * Math.pow(10, cost.e);
+            }
+        });
+    }
+
+    // Write repaired save back
+    const repairedStr = JSON.stringify(state);
+    await db.ref('gameSaves/' + uid).update({
+        state: repairedStr,
+        playerName: state.playerName,
+        savedAt: Date.now()
+    });
+    
+    console.log('✅ Save repaired for', state.playerName, '— they should refresh now.');
+}
+
+</script>
 </body>
 </html>

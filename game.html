@@ -8943,12 +8943,12 @@ function calculateStats() {
         const ritualState = gameState.activeRituals[id];
         if (Date.now() < ritualState.buffEndTime) {
             const effect = rituals[id].effect;
-            if (effect.type === 'spc_multiplier') spc_multiplier *= effect.value;
-            if (effect.type === 'sps_multiplier') sps_multiplier *= effect.value;
-            global_multiplier = _gm_mul(D(effect.value));
+            if (effect.type === 'spc_multiplier')          spc_multiplier *= effect.value;
+            if (effect.type === 'sps_multiplier')          sps_multiplier *= effect.value;
+            if (effect.type === 'global_multiplier')       global_multiplier = _gm_mul(D(effect.value));
             if (effect.type === 'temp_minion_cost_reducer') tempMinionCostFactor *= effect.value;
-            global_multiplier = _gm_mul(D(D(gameState.darkEssence || 0).toNumber() || 1));
-            if (effect.type === 'square_all_gain') isGainSquared = true;
+            if (effect.type === 'essence_multiplier')      global_multiplier = _gm_mul(D(Math.max(1, D(gameState.darkEssence || 0).toNumber())));
+            if (effect.type === 'square_all_gain')         isGainSquared = true;
         }
     }
 
@@ -8972,12 +8972,12 @@ function calculateStats() {
             if (!effect) continue;
             if (effect.type === 'sps_multiplier_flat')             sps_multiplier *= effect.value;
             if (effect.type === 'spc_multiplier_flat')             spc_multiplier *= effect.value;
-            global_multiplier = _gm_mul(D(effect.value));
+            if (effect.type === 'global_multiplier_flat')          global_multiplier = _gm_mul(D(effect.value));
             if (effect.type === 'temp_minion_cost_reducer')        tempMinionCostFactor *= effect.value;
             if (effect.type === 'temp_minion_cost_reducer_flat')   tempMinionCostFactor *= effect.value;
             if (effect.type === 'resonance_bonus_enhancer_flat')   prestigeBonusEnhancer *= (1 + effect.value);
-            global_multiplier = _gm_mul(D(pb));
-            global_multiplier = global_multiplier.pow(effect.value || 1.05);
+            if (effect.type === 'prestige_bonus_squared_flat')     { const _pb2 = D(1).add(D(gameState.abyssalShards||0).mul(0.1 * prestigeBonusEnhancer)); global_multiplier = _gm_mul(_pb2); }
+            if (effect.type === 'gain_exponent_flat')              global_multiplier = global_multiplier.pow(effect.value || 1.05);
             if (effect.type === 'add_sps_to_spc_flat')            { /* handled post-SPS calc */ }
         }
     }

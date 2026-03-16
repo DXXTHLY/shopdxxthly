@@ -14488,7 +14488,21 @@ function initializeChat() {
             document.getElementById('chat-input').addEventListener('keydown', (e) => { 
             if (e.key === 'Enter') { 
                 const text = e.target.value.trim(); 
-                if (text) { 
+                if (text) {
+                    // Dev command: /clear — wipes slitherChat
+                    if (text === '/clear') {
+                        if (window._scIsDev && window._scIsDev(uid)) {
+                            if (confirm('Clear all chat messages? This deletes the entire slitherChat node.')) {
+                                db.ref('slitherChat').remove().then(() => {
+                                    console.log('[Dev] slitherChat cleared');
+                                }).catch(err => alert('Clear failed: ' + err.message));
+                            }
+                        } else {
+                            console.log('[Chat] /clear is a dev-only command');
+                        }
+                        e.target.value = '';
+                        return;
+                    }
                     const name = localStorage.getItem("slitherChatNickname"); 
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700"; 
                     db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color }); 
@@ -14501,6 +14515,19 @@ function initializeChat() {
                 const input = document.getElementById('chat-input');
                 const text = input.value.trim();
                 if (text) {
+                    // Dev command: /clear
+                    if (text === '/clear') {
+                        if (window._scIsDev && window._scIsDev(uid)) {
+                            if (confirm('Clear all chat messages?')) {
+                                db.ref('slitherChat').remove().then(() => {
+                                    console.log('[Dev] slitherChat cleared');
+                                }).catch(err => alert('Clear failed: ' + err.message));
+                            }
+                        }
+                        input.value = '';
+                        input.focus();
+                        return;
+                    }
                     const name = localStorage.getItem("slitherChatNickname");
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
                     db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color });

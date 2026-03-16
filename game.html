@@ -3565,6 +3565,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
 
                     <!-- CTA -->
+                    <div id="ascend-minion-hint" style="font-size:0.75em; text-align:center; margin-bottom:8px; min-height:16px;"></div>
                     <button id="ascendBtn" onclick="performAscension()" disabled style="background:linear-gradient(135deg,#1a1408,#2a2008); border:2px solid #c8a80066; border-radius:12px; padding:18px; color:#c8a800; font-family:var(--font-title); font-size:1.1em; font-weight:bold; letter-spacing:3px; cursor:pointer; transition:all 0.2s; text-transform:uppercase;"
                         onmouseover="if(!this.disabled)this.style.background='linear-gradient(135deg,#2a2010,#3a3015)'"
                         onmouseout="this.style.background='linear-gradient(135deg,#1a1408,#2a2008)'">
@@ -8570,7 +8571,23 @@ function activateRitual(id) {
 
 function performAscension() {
   if (!gameState.unlockedWorlds.includes('void_threshold')) return;
-  
+
+  // Require all non-secret minions from nether_plains through void_threshold to be owned (level >= 1)
+  const ASCEND_WORLDS = ['nether_plains','ashen_wastes','stygian_depths','burning_hells','frozen_abyss','celestial_ruins','void_threshold'];
+  const missing = [];
+  for (const id in minions) {
+      const m = minions[id];
+      if (m.secret) continue;
+      if (!ASCEND_WORLDS.includes(m.requiredWorld)) continue;
+      if (!gameState.minions[id] || (gameState.minions[id].level || 0) < 1) {
+          missing.push((m.icon || '👿') + ' ' + m.name);
+      }
+  }
+  if (missing.length > 0) {
+      alert('You must own ALL minions up to Void Threshold before ascending.\n\nMissing:\n' + missing.join('\n'));
+      return;
+  }
+
   const shardsGained = calculateShardsOnAscend();
   if (!shardsGained || D(shardsGained).lt(1)) {
     alert('You need to harvest more souls this run before ascending (need at least 1 Shard).');
@@ -12116,7 +12133,34 @@ function travelToWorld(id)
 }
 
 function showLore(worldId) { const lore = worlds[worldId].lore; if (!lore) return; document.getElementById('lore-modal-title').innerText = `Welcome to ${worlds[worldId].name}`; document.getElementById('lore-modal-text').innerText = lore; document.getElementById('lore-modal-overlay').style.display = 'flex'; }
-function renderAscensionScreen() { document.getElementById('ascendBtn').disabled = !gameState.unlockedWorlds.includes('void_threshold'); }
+function renderAscensionScreen() {
+    const hasWorld = gameState.unlockedWorlds.includes('void_threshold');
+    const ASCEND_WORLDS = ['nether_plains','ashen_wastes','stygian_depths','burning_hells','frozen_abyss','celestial_ruins','void_threshold'];
+    let missingMinions = 0;
+    for (const id in minions) {
+        const m = minions[id];
+        if (m.secret || !ASCEND_WORLDS.includes(m.requiredWorld)) continue;
+        if (!gameState.minions[id] || (gameState.minions[id].level || 0) < 1) missingMinions++;
+    }
+    const canAscend = hasWorld && missingMinions === 0;
+    const btn = document.getElementById('ascendBtn');
+    if (btn) {
+        btn.disabled = !canAscend;
+        // Show requirement hint below button
+        const hint = document.getElementById('ascend-minion-hint');
+        if (hint) {
+            if (!hasWorld) {
+                hint.textContent = '';
+            } else if (missingMinions > 0) {
+                hint.textContent = '⚠ Must own all ' + ASCEND_WORLDS.length + '-world minions to ascend. Missing: ' + missingMinions;
+                hint.style.color = '#ff6644';
+            } else {
+                hint.textContent = '✓ All minions owned — ready to ascend';
+                hint.style.color = '#44cc88';
+            }
+        }
+    }
+}
 
 // =================================================================
 // PVP & LEADERBOARD FUNCTIONS (FIXED & UPGRADED)

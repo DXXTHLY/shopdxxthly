@@ -8198,23 +8198,37 @@ function promoteMinion(id) {
 // ----------------------------------------------------
 
 // NEW, CORRECTED buyArtifact FUNCTION
+const _artifactCooldowns = {}; // id → timestamp when clickable again
+const ARTIFACT_COOLDOWN_MS = 4000; // 4 second anti-spam cooldown
+
 function buyArtifact(id) {
     const artifact = artifacts[id];
     if (!artifact) return;
 
+    // Anti-spam cooldown
+    const now = Date.now();
+    if (_artifactCooldowns[id] && now < _artifactCooldowns[id]) {
+        const secsLeft = Math.ceil((_artifactCooldowns[id] - now) / 1000);
+        const btn = document.getElementById(`artifact-btn-${id}`);
+        if (btn) { btn.disabled = true; btn.innerHTML = `<span style="color:#555;">⏳ ${secsLeft}s</span>`; }
+        return;
+    }
+
+    // Fragment check
+    if (D(gameState.corruptedFragments || 0).lt(1)) {
+        Toastify({ text: '🔮 Upgrading an Artifact requires 1 Corrupted Fragment.', duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0a0a,#330033)'} }).showToast();
+        return;
+    }
+
     // Get the current level of the artifact, defaulting to 0 if not owned yet.
     const level = gameState.ownedArtifacts[id]?.level || 0;
-    const costMultiplier = artifact.costMultiplier || 1.5; // Use a default just in case
+    const costMultiplier = artifact.costMultiplier || 1.5;
 
-    // Determine the base cost (shards or essence)
     const baseCost = artifact.shardsCost || artifact.cost;
     const costType = artifact.shardsCost ? 'shards' : 'essence';
-    
-    // Calculate the cost for the NEXT level — Decimal so it stays accurate at any scale
     const currentCost = D(baseCost).mul(D(costMultiplier).pow(level)).floor();
 
     let canAfford = false;
-    // THIS IS THE FIXED PART: We now check against the calculated 'currentCost' for BOTH types
     if (costType === 'shards' && D(gameState.abyssalShards).gte(currentCost)) {
         gameState.abyssalShards = D(gameState.abyssalShards).sub(currentCost);
         canAfford = true;
@@ -8224,16 +8238,31 @@ function buyArtifact(id) {
     }
 
     if (canAfford) {
-        // If the artifact isn't owned at all, initialize it.
-        if (!gameState.ownedArtifacts[id]) {
-            gameState.ownedArtifacts[id] = { level: 0 };
-        }
-        // Increment the level
+        // Deduct fragment
+        gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(1);
+
+        if (!gameState.ownedArtifacts[id]) gameState.ownedArtifacts[id] = { level: 0 };
         gameState.ownedArtifacts[id].level++;
-        
+
+        // Set cooldown and start visual countdown on the button
+        _artifactCooldowns[id] = now + ARTIFACT_COOLDOWN_MS;
+        const btn = document.getElementById(`artifact-btn-${id}`);
+        if (btn) {
+            btn.disabled = true;
+            let _cdTick = setInterval(() => {
+                const secsLeft = Math.ceil((_artifactCooldowns[id] - Date.now()) / 1000);
+                if (secsLeft <= 0) {
+                    clearInterval(_cdTick);
+                    renderArtifacts();
+                } else {
+                    btn.innerHTML = `<span style="color:#555;">⏳ ${secsLeft}s</span>`;
+                }
+            }, 250);
+        }
+
         playSound('upgrade');
-        calculateStats(); // Recalculate stats with the new artifact level
-        renderArtifacts(); // Re-render to show the new price
+        calculateStats();
+        renderArtifacts();
         saveGame();
     }
 }
@@ -9916,12 +9945,19 @@ function renderArtifacts() {
             </div>
             <p style="color:#aaa; font-size:0.82em; margin:0; line-height:1.4;">${a.desc}</p>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px; flex-wrap:wrap; gap:6px;">
-                <div style="font-size:0.8em; color:${canAfford ? costColor : '#555'}; font-weight:bold;">${costIcon} ${formatNumber(nextLevelCost)} ${costType === 'shards' ? 'Shards' : 'Dark Essence'}</div>
+                <div style="font-size:0.8em; color:${canAfford ? costColor : '#555'}; font-weight:bold;">${costIcon} ${formatNumber(nextLevelCost)} ${costType === 'shards' ? 'Shards' : 'Dark Essence'} &nbsp;<span style="color:${D(gameState.corruptedFragments||0).gte(1)?'#22c55e':'#ff4444'}; font-size:0.9em;">🔮 1</span></div>
                 ${level > 0 ? `<div style="font-size:0.72em; color:#555;">Next: ${formatNumber(D(nextLevelCost).mul(costMultiplier).floor())}</div>` : ''}
             </div>
-            <button id="artifact-btn-${id}" class="upgrade-btn" onclick="buyArtifact('${id}')" ${!canAfford ? 'disabled' : ''}
-                style="width:100%; border-color:${costColor}66; ${canAfford ? `background:linear-gradient(135deg,${costColor}18,transparent);` : 'opacity:0.5;'}">
-                ${canAfford ? `<span style="color:${costColor};">↑ Upgrade${level > 0 ? ' to Lv.'+(level+1) : ''}</span>` : `<span style="color:#555;">⚠️ Need more ${costType === 'shards' ? 'Shards' : 'Essence'}</span>`}
+            <button id="artifact-btn-${id}" class="upgrade-btn" onclick="buyArtifact('${id}')" ${(!canAfford || !D(gameState.corruptedFragments||0).gte(1) || (_artifactCooldowns[id] && Date.now() < _artifactCooldowns[id])) ? 'disabled' : ''}
+                style="width:100%; border-color:${costColor}66; ${(canAfford && D(gameState.corruptedFragments||0).gte(1)) ? `background:linear-gradient(135deg,${costColor}18,transparent);` : 'opacity:0.5;'}">
+                ${(() => {
+                    const hasFrags = D(gameState.corruptedFragments||0).gte(1);
+                    const onCd = _artifactCooldowns[id] && Date.now() < _artifactCooldowns[id];
+                    if (onCd) return `<span style="color:#555;">⏳ Cooldown</span>`;
+                    if (!hasFrags) return `<span style="color:#555;">🔮 Need Fragment</span>`;
+                    if (!canAfford) return `<span style="color:#555;">⚠️ Need more ${costType === 'shards' ? 'Shards' : 'Essence'}</span>`;
+                    return `<span style="color:${costColor};">↑ Upgrade${level > 0 ? ' to Lv.'+(level+1) : ''}</span>`;
+                })()}
             </button>
         </div>`;
     }

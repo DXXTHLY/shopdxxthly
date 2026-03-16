@@ -2951,7 +2951,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #aa44ff44; border-top:3px solid #aa44ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
                     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
                         <div>
-                            <h3 style="margin:0 0 3px; color:#aa44ff; letter-spacing:2px;">🔀 ABYSS BARTER</h3>
+                            <h3 style="margin:0 0 3px; color:#aa44ff; letter-spacing:2px;">🏪 ALL LISTINGS</h3>
                             <p style="margin:0; color:#555; font-size:0.8em;">Trade anything directly with other Soul Collectors.</p>
                         </div>
                         <button onclick="barterPage=0; fetchBarterListings()" style="background:#aa44ff18; border:1px solid #aa44ff44; border-radius:7px; padding:6px 16px; color:#aa44ff; cursor:pointer; font-family:inherit; font-size:0.8em; font-weight:bold; letter-spacing:1px;">🔄 REFRESH</button>
@@ -3018,17 +3018,8 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
                 </div>
 
-                <!-- CURRENT LISTINGS -->
-                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #4488ff44; border-top:3px solid #4488ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
-                    <div style="margin-bottom:16px;">
-                        <div style="background:linear-gradient(90deg,#4488ff22,#4488ff08); border:1px solid #4488ff33; border-radius:8px; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                            <span style="color:#4488ff; font-weight:bold; font-size:1em; letter-spacing:3px; text-transform:uppercase; font-family:var(--font-title);">🏪 CURRENT LISTINGS</span>
-                            <button onclick="fetchMarketListings()" style="background:#4488ff18; border:1px solid #4488ff44; border-radius:7px; padding:5px 14px; color:#4488ff; cursor:pointer; font-family:inherit; font-size:0.78em; font-weight:bold; letter-spacing:1px;">🔄 REFRESH</button>
-                        </div>
-                        <p style="margin:8px 0 0; color:#555; font-size:0.78em;">Items listed by other Soul Collectors for Dark Essence.</p>
-                    </div>
-                    <ul id="market-listing-list" class="leaderboard-list" style="margin:0;"></ul>
-                </div>
+                <!-- market-listing-list kept as hidden bridge for fetchMarketListings compat -->
+                <ul id="market-listing-list" style="display:none;"></ul>
             <!-- SELL PRICE MODAL -->
             <div id="sell-price-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); justify-content:center; align-items:center; z-index:400; backdrop-filter:blur(6px);">
                 <div style="background:linear-gradient(135deg,#0e0a1a,#0e1a12); border:2px solid #44cc8844; border-radius:16px; padding:28px; max-width:380px; width:90%; text-align:center;">
@@ -8691,6 +8682,29 @@ function executeAscension() {
   }
 
   playSound('ascend');
+
+  // Cancel any active barter listings for minions — they reset on ascension
+  // so returning them would be an exploit. Listings are forfeit on ascend.
+  if (supabaseClient && oldPlayerName !== 'Unnamed') {
+      supabaseClient.from('barter_listings')
+          .select('id, offer_type')
+          .eq('poster_name', oldPlayerName)
+          .eq('is_complete', false)
+          .then(({ data: listings }) => {
+              if (!listings || listings.length === 0) return;
+              const minionListings = listings.filter(l => l.offer_type && l.offer_type.startsWith('minion:'));
+              if (minionListings.length === 0) return;
+              const ids = minionListings.map(l => l.id);
+              // Delete minion listings — no refund since minions reset on ascension
+              supabaseClient.from('barter_listings')
+                  .delete()
+                  .in('id', ids)
+                  .then(() => {
+                      console.log('[Ascend] Cancelled', ids.length, 'minion barter listing(s) — forfeit on ascension');
+                  });
+          });
+  }
+
   calculateStats();
   renderAll();
   showScreen('altar');
@@ -17019,6 +17033,12 @@ async function fetchBarterListings(page) {
             list.appendChild(li);
         });
 
+        // Count header
+        const countEl = document.createElement('div');
+        countEl.style.cssText = 'color:#555; font-size:0.72em; margin-bottom:10px;';
+        countEl.textContent = totalItems + ' listing' + (totalItems !== 1 ? 's' : '') + ' total';
+        list.insertBefore(countEl, list.firstChild);
+
         // Pagination controls
         const totalPages = Math.ceil(totalItems / BARTER_PAGE_SIZE);
         if (totalPages > 1) {
@@ -17026,18 +17046,21 @@ async function fetchBarterListings(page) {
             pager.style.cssText = 'display:flex; justify-content:center; align-items:center; gap:10px; margin-top:14px; flex-wrap:wrap;';
             const prevDis = barterPage === 0;
             const nextDis = barterPage >= totalPages - 1;
-            pager.innerHTML = `
-                <button onclick="fetchBarterListings(${barterPage - 1})" ${prevDis ? 'disabled' : ''}
-                    style="background:#0d0a18; border:1px solid ${prevDis ? '#1a1a1a' : '#3d2a4a'}; border-radius:8px; padding:7px 16px; color:${prevDis ? '#333' : '#aa88ff'}; cursor:${prevDis ? 'default' : 'pointer'}; font-family:inherit; font-size:0.82em;">◀ Prev</button>
-                <span style="color:#555; font-size:0.8em; min-width:80px; text-align:center;">Page ${barterPage + 1} of ${totalPages}</span>
-                <button onclick="fetchBarterListings(${barterPage + 1})" ${nextDis ? 'disabled' : ''}
-                    style="background:#0d0a18; border:1px solid ${nextDis ? '#1a1a1a' : '#3d2a4a'}; border-radius:8px; padding:7px 16px; color:${nextDis ? '#333' : '#aa88ff'}; cursor:${nextDis ? 'default' : 'pointer'}; font-family:inherit; font-size:0.82em;">Next ▶</button>`;
+            pager.innerHTML =
+                '<button onclick="fetchBarterListings(' + (barterPage-1) + ')" ' + (prevDis?'disabled':'') +
+                ' style="background:#0d0a18; border:1px solid ' + (prevDis?'#1a1a1a':'#3d2a4a') + '; border-radius:8px; padding:7px 16px; color:' + (prevDis?'#333':'#aa88ff') + '; cursor:' + (prevDis?'default':'pointer') + '; font-family:inherit; font-size:0.82em;">◀ Prev</button>' +
+                '<span style="color:#555; font-size:0.8em; min-width:100px; text-align:center;">Page ' + (barterPage+1) + ' of ' + totalPages + '</span>' +
+                '<button onclick="fetchBarterListings(' + (barterPage+1) + ')" ' + (nextDis?'disabled':'') +
+                ' style="background:#0d0a18; border:1px solid ' + (nextDis?'#1a1a1a':'#3d2a4a') + '; border-radius:8px; padding:7px 16px; color:' + (nextDis?'#333':'#aa88ff') + '; cursor:' + (nextDis?'default':'pointer') + '; font-family:inherit; font-size:0.82em;">Next ▶</button>';
             list.appendChild(pager);
         }
     } catch(e) {
-        list.innerHTML = `<div style="color:#ff9944;text-align:center;padding:16px;font-size:0.85em;">⚠️ Barter table not set up yet. Run the SQL in Supabase to enable this feature.</div>`;
+        list.innerHTML = '<div style="color:#ff9944;text-align:center;padding:16px;font-size:0.85em;">⚠️ Could not load listings.</div>';
     }
 }
+
+// fetchMarketListings now just calls fetchBarterListings (unified)
+async function fetchMarketListings() { await fetchBarterListings(); }
 
 function hasEnough(type, amt) {
     switch(type) {
@@ -17282,18 +17305,55 @@ async function acceptBarterListing(listingId) {
 
 async function cancelBarterListing(listingId) {
     if (!supabaseClient) return;
-    if (!confirm('Cancel this trade offer? Your offered resources will be returned.')) return;
     try {
-        const { data: listing } = await supabaseClient.from('barter_listings').select('*').eq('id', listingId).single();
+        const { data: listing } = await supabaseClient.from('barter_listings').select('*').eq('id', listingId).maybeSingle();
         if (!listing) return;
 
+        const offerInfo = getBarterTypeInfo(listing.offer_type, listing.offer_amt, listing);
+        const wantInfo  = getBarterTypeInfo(listing.want_type,  listing.want_amt,  null);
+
+        // To cancel, you must BUY BACK your listing at the want price
+        // This prevents the exploit of listing → ascend → cancel for free refund
+        const canAffordBuyback = hasEnough(listing.want_type, listing.want_amt);
+        const buybackMsg = canAffordBuyback
+            ? `Buy back your listing?
+
+You will PAY: ${formatNumber(listing.want_amt)} ${wantInfo.name}
+You will GET BACK: ${formatNumber(listing.offer_amt)} ${offerInfo.name}`
+            : `You cannot cancel this listing for free.
+
+To cancel you must buy it back:
+Cost: ${formatNumber(listing.want_amt)} ${wantInfo.name}
+
+You do not have enough ${wantInfo.name}.
+
+Your listing will remain until someone accepts it or it expires.`;
+
+        if (!canAffordBuyback) {
+            Toastify({
+                text: 'Cannot cancel — you need ' + formatNumber(listing.want_amt) + ' ' + wantInfo.name + ' to buy it back.',
+                duration: 5000, gravity: 'top', position: 'center',
+                style: { background: 'linear-gradient(135deg,#2a0808,#1a0000)' }
+            }).showToast();
+            return;
+        }
+
+        if (!confirm(buybackMsg)) return;
+
+        // Deduct the want amount (buy-back cost)
+        deductCurrency(listing.want_type, listing.want_amt);
+
+        // Delete the listing
         await supabaseClient.from('barter_listings').delete().eq('id', listingId).eq('poster_name', gameState.playerName);
 
         // Refund the offered amount
         addCurrency(listing.offer_type, listing.offer_amt);
         calculateStats(); renderAll(); saveGame();
 
-        Toastify({ text: `Trade cancelled. Resources returned.`, duration: 3000, gravity:'top', position:'center' }).showToast();
+        Toastify({
+            text: 'Listing cancelled. Paid ' + formatNumber(listing.want_amt) + ' ' + wantInfo.name + ' to reclaim your ' + offerInfo.name + '.',
+            duration: 4000, gravity: 'top', position: 'center'
+        }).showToast();
         fetchBarterListings();
     } catch(e) {
         alert('Error cancelling: ' + e.message);

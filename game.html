@@ -7961,6 +7961,7 @@ function loadGame() {
             const _saveIsCorrupted = _soulsVal && typeof _soulsVal === 'object' && !(_soulsVal instanceof Decimal) && typeof _soulsVal.m === 'number';
             if (_saveIsCorrupted) {
                 console.warn('⚠ Corrupted localStorage save detected — Decimals were stored as objects. Recovering...');
+                window._saveWasCorrupted = true; // flag for onAuthStateChanged to force cloud reload
             }
             gameState = deepMerge(defaultState, loadedState);
             // Restore Decimal fields from serialized strings
@@ -7981,12 +7982,7 @@ function loadGame() {
             gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
             // stats.sps is always recomputed by calculateStats() — no restore needed
             // Existing player — go straight into the game
-            // If save was corrupted AND user is logged in, force a fresh cloud load
-            if (_saveIsCorrupted && window._scFirebase?.auth?.currentUser) {
-                console.warn('Forcing cloud reload to recover from corrupted localStorage...');
-                loadGameFromCloud(window._scFirebase.auth.currentUser.uid, window._scFirebase.db);
-                return; // cloud load will call enterGame() itself
-            }
+            // If save was corrupted, onAuthStateChanged will force cloud reload once Firebase loads
             document.getElementById('game-container').style.display = 'block';
             audio.bgm.muted = localStorage.getItem('musicMuted') === 'true';
             audio.sfxMuted  = localStorage.getItem('sfxMuted')   === 'true';
@@ -11029,10 +11025,18 @@ function loadAuthFirebase() {
 
                 // If user is already signed in (persistent session), load their save
                 saveAuth.onAuthStateChanged(user => {
-                    if (user && document.getElementById('auth-screen') && 
-                        document.getElementById('auth-screen').style.display !== 'none') {
-                        // Already signed in — load save and enter game
-                        loadGameFromCloud(user.uid, saveDb);
+                    if (user) {
+                        const authScreenVisible = document.getElementById('auth-screen') &&
+                            document.getElementById('auth-screen').style.display !== 'none';
+                        if (authScreenVisible) {
+                            // Normal login flow — load cloud save
+                            loadGameFromCloud(user.uid, saveDb);
+                        } else if (window._saveWasCorrupted) {
+                            // Save was corrupted — force fresh cloud load even though game is showing
+                            console.warn('🔄 Forcing cloud reload to fix corrupted save...');
+                            window._saveWasCorrupted = false;
+                            loadGameFromCloud(user.uid, saveDb);
+                        }
                     }
                     updateAccountBtn();
                 });

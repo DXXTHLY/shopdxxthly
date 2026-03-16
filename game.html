@@ -8672,26 +8672,30 @@ function executeAscension() {
 
   playSound('ascend');
 
-  // Cancel any active barter listings for minions — they reset on ascension
-  // so returning them would be an exploit. Listings are forfeit on ascend.
+  // On ascension — wipe stale data that no longer reflects the player's new state
   if (supabaseClient && oldPlayerName !== 'Unnamed') {
+
+      // 1. Cancel minion barter listings — minions reset so listings are forfeit
       supabaseClient.from('barter_listings')
           .select('id, offer_type')
           .eq('poster_name', oldPlayerName)
           .eq('is_complete', false)
           .then(({ data: listings }) => {
-              if (!listings || listings.length === 0) return;
+              if (!listings || !listings.length) return;
               const minionListings = listings.filter(l => l.offer_type && l.offer_type.startsWith('minion:'));
-              if (minionListings.length === 0) return;
-              const ids = minionListings.map(l => l.id);
-              // Delete minion listings — no refund since minions reset on ascension
+              if (!minionListings.length) return;
               supabaseClient.from('barter_listings')
                   .delete()
-                  .in('id', ids)
-                  .then(() => {
-                      console.log('[Ascend] Cancelled', ids.length, 'minion barter listing(s) — forfeit on ascension');
-                  });
+                  .in('id', minionListings.map(l => l.id))
+                  .then(() => console.log('[Ascend] Forfeited', minionListings.length, 'minion listing(s)'));
           });
+
+      // 2. Delete PvP/Raid defense — minion levels reset so saved stats are invalid
+      // Player must rebuild their defense with their new minions after ascending
+      supabaseClient.from('arena_defenses')
+          .delete()
+          .eq('player_name', oldPlayerName)
+          .then(() => console.log('[Ascend] Arena defense cleared — must be rebuilt with new minions'));
   }
 
   calculateStats();
@@ -8786,7 +8790,24 @@ function executeCollapse() {
     gameState.completedPuzzles  = oldCompletedPuzzles;
     
     // Post-collapse actions
-    playSound('ascend'); // We can reuse the ascend sound
+    playSound('ascend');
+
+    // Wipe PvP defense and minion barter listings — everything resets on collapse
+    const _collapseName = gameState.playerName;
+    if (supabaseClient && _collapseName && _collapseName !== 'Unnamed') {
+        supabaseClient.from('arena_defenses').delete().eq('player_name', _collapseName)
+            .then(() => console.log('[Collapse] Arena defense cleared'));
+        supabaseClient.from('barter_listings')
+            .select('id, offer_type').eq('poster_name', _collapseName).eq('is_complete', false)
+            .then(({ data: ls }) => {
+                if (!ls || !ls.length) return;
+                const ml = ls.filter(l => l.offer_type && l.offer_type.startsWith('minion:'));
+                if (!ml.length) return;
+                supabaseClient.from('barter_listings').delete().in('id', ml.map(l => l.id))
+                    .then(() => console.log('[Collapse] Forfeited', ml.length, 'minion listing(s)'));
+            });
+    }
+
     calculateStats();
     renderAll();
     showScreen('altar');

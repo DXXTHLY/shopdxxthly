@@ -3210,15 +3210,26 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
 
                 <!-- Territory Map -->
-                <div style="background:#0a0812; border:1px solid #2a1a3a; border-radius:14px; padding:20px; max-width:900px; margin:0 auto 20px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                <div style="background:radial-gradient(ellipse at center, #120818 0%, #070510 100%); border:1px solid #3a1a4a; border-radius:14px; padding:0; max-width:900px; margin:0 auto 20px; overflow:hidden; position:relative;">
+                    <!-- Map header -->
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px 12px; background:linear-gradient(180deg,#1a0a2a,transparent); flex-wrap:wrap; gap:10px; position:relative; z-index:2;">
                         <div>
-                            <div style="color:#ff6644; font-weight:bold; letter-spacing:2px; font-size:0.9em;">🗺 ABYSSAL TERRITORY MAP</div>
-                            <div style="color:#444; font-size:0.72em; margin-top:2px;">Click a node to attack or reinforce. Nodes reset weekly.</div>
+                            <div style="color:#ff6644; font-weight:bold; letter-spacing:3px; font-size:0.95em; text-shadow:0 0 20px #ff664466;">⚔ ABYSSAL TERRITORY MAP</div>
+                            <div style="color:#554466; font-size:0.7em; margin-top:2px;">Click a node to attack or reinforce · Resets every Monday</div>
                         </div>
-                        <button onclick="pwRefresh()" style="background:#ff664415; border:1px solid #ff664444; border-radius:7px; padding:5px 14px; color:#ff8866; cursor:pointer; font-family:inherit; font-size:0.78em;">🔄 Refresh Map</button>
+                        <button onclick="pwRefresh()" style="background:linear-gradient(135deg,#ff664422,#ff664408); border:1px solid #ff664444; border-radius:7px; padding:6px 16px; color:#ff8866; cursor:pointer; font-family:inherit; font-size:0.78em; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,#ff664444,#ff664418)'" onmouseout="this.style.background='linear-gradient(135deg,#ff664422,#ff664408)'">🔄 Refresh</button>
                     </div>
-                    <div id="pw-map" style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px; max-width:700px; margin:0 auto;"></div>
+                    <!-- Legend -->
+                    <div style="display:flex; gap:14px; flex-wrap:wrap; padding:0 20px 12px; font-size:0.68em; position:relative; z-index:2;">
+                        <span style="color:#555;">Tier: </span>
+                        <span style="color:#44cc88;">★ Common</span>
+                        <span style="color:#4488ff;">★★ Rare</span>
+                        <span style="color:#c8a800;">★★★ Epic</span>
+                        <span style="color:#aa44ff;">★★★★ Legendary</span>
+                        <span style="color:#ff6644;">★★★★★ Omega</span>
+                    </div>
+                    <!-- The actual map SVG+nodes container -->
+                    <div id="pw-map" style="position:relative; padding:10px 20px 20px; min-height:400px;"></div>
                 </div>
 
                 <!-- Attack / Defend modal (hidden) -->
@@ -19783,11 +19794,11 @@ const PW_COLORS  = ['#ff4444','#ff8844','#ffcc00','#44ff88','#44aaff','#aa44ff',
 
 // 25 nodes on the map — 5×5 grid
 const PW_NODE_NAMES = [
-    'The Shattered Gate',    'Ashen Crossing',       'Voidmere Pass',        'The Bleeding Spire',   'Soulforge Peak',
-    'Crimson Hollows',       'The Black Mire',        'Dreadstone Keep',      'Nether Flats',         'The Pale Throne',
-    'Infernal Basin',        'Obsidian Reach',        'The Hungering Deep',   'Ruinwatch Tower',      'Sorrow's End',
-    'The Fracture Point',    'Despair's Edge',       'The Gnashing Dark',    'Void Crucible',        'Abyssal Cradle',
-    'The Last Bastion',      'Ember Wastes',          'The Dread Nexus',      'Soul's Ruin',         'The Omega Node',
+    'The Shattered Gate',   'Ashen Crossing',      'Voidmere Pass',       'The Bleeding Spire',  'Soulforge Peak',
+    'Crimson Hollows',      'The Black Mire',       'Dreadstone Keep',     'Nether Flats',        'The Pale Throne',
+    'Infernal Basin',       'Obsidian Reach',       'The Hungering Deep',  'Ruinwatch Tower',     'Sorrows End',
+    'The Fracture Point',   'Despairs Edge',        'The Gnashing Dark',   'Void Crucible',       'Abyssal Cradle',
+    'The Last Bastion',     'Ember Wastes',         'The Dread Nexus',     'Souls Ruin',          'The Omega Node',
 ];
 
 const PW_NODE_BONUS = [1,1,1,1,1, 2,2,2,2,2, 3,3,3,3,3, 4,4,4,4,4, 5,5,5,5,5]; // center = more valuable
@@ -19888,49 +19899,151 @@ function pwUpdateBanner() {
     }
 }
 
-// ── Map render ──────────────────────────────────────────────────
+// ── Map render — cinematic SVG hex-style map ────────────────────
 function pwRenderMap() {
     const map = document.getElementById('pw-map');
     if (!map) return;
-    map.innerHTML = '';
 
     const myPact = window.playerPact?.pact_name;
+    const TIER_COLORS = ['#333','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
 
+    // Node positions — irregular layout like a real territory map (not a grid)
+    // [col%, row%] as percentage of container
+    const PW_NODE_POS = [
+        [10, 8],  [28, 5],  [50, 3],  [70, 6],  [88, 9],   // row 1 — border outposts
+        [5,  28], [22, 24], [42, 20], [62, 22], [82, 26],   // row 2 — frontier
+        [15, 46], [35, 42], [50, 38], [65, 43], [85, 47],   // row 3 — midlands
+        [8,  65], [28, 62], [50, 58], [72, 60], [92, 64],   // row 4 — heartlands
+        [18, 82], [38, 78], [50, 86], [62, 78], [82, 82],   // row 5 — omega ring
+    ];
+
+    // Road connections between nodes (pairs of node indices)
+    const ROADS = [
+        [0,1],[1,2],[2,3],[3,4],           // top row
+        [0,5],[1,6],[2,7],[3,8],[4,9],     // top→row2
+        [5,6],[6,7],[7,8],[8,9],           // row2
+        [5,10],[6,11],[7,12],[8,13],[9,14],// row2→row3
+        [10,11],[11,12],[12,13],[13,14],   // row3
+        [10,15],[11,16],[12,17],[13,18],[14,19], // row3→row4
+        [15,16],[16,17],[17,18],[18,19],   // row4
+        [15,20],[16,21],[17,22],[18,23],[19,24], // row4→row5
+        [20,21],[21,22],[22,23],[23,24],   // row5
+        // diagonal shortcuts
+        [1,7],[3,7],[7,11],[7,13],[12,16],[12,18],[17,21],[17,23],
+    ];
+
+    const W = map.offsetWidth || 860;
+    const H = 480;
+
+    // Build SVG
+    let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;pointer-events:none;">
+    <defs>
+        <filter id="glow-gold"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-soft"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <radialGradient id="map-bg" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stop-color="#1a0830" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#000" stop-opacity="0.95"/>
+        </radialGradient>
+        ${TIER_COLORS.map((c,i) => `<radialGradient id="tier-glow-${i}" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="${c}" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="${c}" stop-opacity="0"/>
+        </radialGradient>`).join('')}
+    </defs>
+    <!-- Background atmosphere -->
+    <rect width="${W}" height="${H}" fill="url(#map-bg)" rx="8"/>
+    <!-- Terrain texture dots -->
+    ${Array.from({length:120},(_,i)=>{
+        const x=Math.sin(i*137.5)*W/2+W/2, y=Math.cos(i*97.3)*H/2+H/2;
+        const r=Math.random()*1.5+0.3;
+        return `<circle cx="${(x%W).toFixed(1)}" cy="${(y%H).toFixed(1)}" r="${r.toFixed(1)}" fill="#ffffff" opacity="${(Math.random()*0.06+0.01).toFixed(3)}"/>`;
+    }).join('')}`;
+
+    // Draw roads first (behind nodes)
+    const nodePixels = PW_NODE_POS.map(([px,py]) => [px/100*W, py/100*H]);
+
+    ROADS.forEach(([a,b]) => {
+        const [x1,y1] = nodePixels[a];
+        const [x2,y2] = nodePixels[b];
+        const nA = pwNodes[a], nB = pwNodes[b];
+        const bothOwned = nA.owner_pact && nB.owner_pact && nA.owner_pact === nB.owner_pact;
+        const roadColor = bothOwned ? (nA.owner_color||'#888') : '#2a1a3a';
+        const roadOpacity = bothOwned ? 0.6 : 0.3;
+        const roadWidth = bothOwned ? 2.5 : 1;
+        svg += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" 
+            stroke="${roadColor}" stroke-width="${roadWidth}" stroke-opacity="${roadOpacity}" 
+            stroke-dasharray="${bothOwned ? 'none' : '4,4'}"/>`;
+    });
+
+    svg += `</svg>`;
+
+    map.innerHTML = svg;
+    map.style.position = 'relative';
+    map.style.height = H + 'px';
+
+    // Now place node elements on top
     pwNodes.forEach((node, i) => {
-        const isOwned  = !!node.owner_pact;
-        const isMine   = node.owner_pact === myPact;
-        const tier     = PW_NODE_BONUS[i] || 1;
-        const tierColor= ['#555','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'][tier] || '#555';
-        const name     = PW_NODE_NAMES[i] || `Node ${i}`;
+        const [px, py] = PW_NODE_POS[i];
+        const x = px / 100 * W;
+        const y = py / 100 * H;
+        const isOwned = !!node.owner_pact;
+        const isMine  = node.owner_pact === myPact;
+        const tier    = PW_NODE_BONUS[i] || 1;
+        const tc      = TIER_COLORS[tier] || '#555';
+        const color   = isOwned ? (node.owner_color || '#ff4444') : tc;
+        const emblem  = isOwned ? (node.owner_emblem || '⚔') : ['⬡','◈','◇','◆','✦'][tier-1] || '◈';
+        const nodeSize = 54 + tier * 4; // bigger = higher tier
 
-        const div = document.createElement('div');
-        div.style.cssText = `
-            background:${isMine ? 'linear-gradient(135deg,#0a2a0a,#1a4a1a)' : isOwned ? 'linear-gradient(135deg,#2a0a0a,#3a1010)' : 'linear-gradient(135deg,#0e0a1a,#1a1020)'};
-            border:2px solid ${isMine ? '#44cc8888' : isOwned ? (node.owner_color||'#ff444488') : '#2a1a3a'};
-            border-top:3px solid ${isMine ? '#44cc88' : isOwned ? (node.owner_color||'#ff4444') : tierColor};
-            border-radius:10px; padding:10px 8px; text-align:center; cursor:pointer;
-            transition:all 0.15s; position:relative;
-            box-shadow:${isMine ? '0 0 12px #44cc8822' : isOwned ? `0 0 12px ${node.owner_color||'#ff4444'}22` : 'none'};
+        const el = document.createElement('div');
+        el.style.cssText = `
+            position:absolute;
+            left:${(x - nodeSize/2).toFixed(1)}px;
+            top:${(y - nodeSize/2).toFixed(1)}px;
+            width:${nodeSize}px;
+            height:${nodeSize}px;
+            background:${isMine
+                ? `radial-gradient(circle at 40% 35%, ${color}44, #0a1a0a)`
+                : isOwned
+                    ? `radial-gradient(circle at 40% 35%, ${color}33, #0a0005)`
+                    : `radial-gradient(circle at 40% 35%, ${tc}18, #07050f)`};
+            border:2px solid ${color}${isMine ? 'cc' : isOwned ? '88' : '44'};
+            border-radius:${tier >= 5 ? '50%' : tier >= 4 ? '40%' : tier >= 3 ? '30%' : '12px'};
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            cursor:pointer; z-index:10; text-align:center;
+            box-shadow:0 0 ${tier*4 + (isOwned?8:2)}px ${color}${isOwned ? '66' : '22'},
+                       0 2px 8px rgba(0,0,0,0.8);
+            transition:all 0.18s ease; overflow:hidden;
+            padding:2px;
         `;
 
-        const tierStars = '★'.repeat(tier) + '☆'.repeat(5-tier);
-        const emblem = isOwned ? (node.owner_emblem || '⚔') : '❓';
-        const ownerLabel = isOwned ? `<div style="color:${node.owner_color||'#ff8888'}; font-size:0.65em; margin-top:2px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">${node.owner_pact}</div>` : `<div style="color:#333; font-size:0.65em; margin-top:2px;">Unclaimed</div>`;
-        const strBar = isOwned ? `<div style="background:#ffffff10; border-radius:3px; height:3px; margin-top:5px; overflow:hidden;"><div style="height:100%; width:${Math.min(100,node.strength||0)}%; background:${isMine?'#44cc88':(node.owner_color||'#ff4444')};"></div></div>` : '';
-
-        div.innerHTML = `
-            <div style="font-size:1.6em; line-height:1;">${emblem}</div>
-            <div style="color:${tierColor}; font-size:0.55em; letter-spacing:1px; margin:3px 0;">${tierStars}</div>
-            <div style="color:#aaa; font-size:0.6em; line-height:1.2; min-height:24px;">${name}</div>
-            ${ownerLabel}
-            ${strBar}
+        const strPct = Math.min(100, node.strength || 0);
+        el.innerHTML = `
+            <div style="font-size:${0.9+tier*0.12}em;line-height:1;filter:drop-shadow(0 0 4px ${color});">${emblem}</div>
+            ${isOwned ? `<div style="color:${color};font-size:0.38em;font-weight:bold;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:${nodeSize-4}px;padding:0 2px;">${node.owner_pact}</div>` : `<div style="color:${tc}88;font-size:0.35em;letter-spacing:1px;">${'★'.repeat(tier)}</div>`}
+            ${isOwned ? `<div style="width:${nodeSize-12}px;height:2px;background:#ffffff10;border-radius:1px;margin-top:2px;overflow:hidden;"><div style="height:100%;width:${strPct}%;background:${color};border-radius:1px;transition:width 0.5s;"></div></div>` : ''}
         `;
 
-        div.onmouseover = () => div.style.transform = 'scale(1.03)';
-        div.onmouseout  = () => div.style.transform = 'scale(1)';
-        div.onclick = () => pwOpenNodeAction(i);
+        el.addEventListener('mouseenter', () => {
+            el.style.transform = 'scale(1.15)';
+            el.style.zIndex = '20';
+            el.style.boxShadow = `0 0 ${tier*8+12}px ${color}99, 0 4px 16px rgba(0,0,0,0.9)`;
+            // Show tooltip
+            const tt = document.createElement('div');
+            tt.id = 'pw-tooltip';
+            tt.style.cssText = `position:absolute;left:${(x+nodeSize/2+8).toFixed(0)}px;top:${(y-30).toFixed(0)}px;background:linear-gradient(135deg,#1a0a2a,#0a0812);border:1px solid ${color}66;border-radius:8px;padding:8px 12px;font-size:0.72em;color:#ddd;z-index:100;pointer-events:none;white-space:nowrap;min-width:140px;box-shadow:0 4px 20px rgba(0,0,0,0.8);`;
+            tt.innerHTML = `<div style="color:${color};font-weight:bold;margin-bottom:4px;">${PW_NODE_NAMES[i]}</div>
+                <div style="color:#888;font-size:0.9em;">Tier ${tier} · +${tier*5}% war bonus</div>
+                ${isOwned ? `<div style="color:${color};margin-top:3px;">${node.owner_emblem||'⚔'} ${node.owner_pact}</div><div style="color:#555;font-size:0.85em;">Strength: ${strPct}%</div>` : `<div style="color:#555;margin-top:3px;">Unclaimed territory</div>`}`;
+            map.appendChild(tt);
+        });
+        el.addEventListener('mouseleave', () => {
+            el.style.transform = 'scale(1)';
+            el.style.zIndex = '10';
+            el.style.boxShadow = `0 0 ${tier*4+(isOwned?8:2)}px ${color}${isOwned?'66':'22'},0 2px 8px rgba(0,0,0,0.8)`;
+            document.getElementById('pw-tooltip')?.remove();
+        });
+        el.addEventListener('click', () => { document.getElementById('pw-tooltip')?.remove(); pwOpenNodeAction(i); });
 
-        map.appendChild(div);
+        map.appendChild(el);
     });
 }
 

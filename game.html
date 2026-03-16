@@ -20730,21 +20730,22 @@ async function pwLaunchSiege(battleId, nodeIdx, memberCount, action) {
 
     // Threshold: if node is owned, they must BEAT the previous pact siege_score
     // If unclaimed, use a base threshold scaled by tier
-    let threshold;
-    if (node.owner_pact && node.siege_score && node.siege_score > 0) {
-        // Must beat their score — plus a 10% buffer so ties always fail
-        threshold = Math.round(node.siege_score * 1.1);
+    // All thresholds stored as Decimal to support players with SPC > Number.MAX_SAFE_INTEGER
+    var threshold;
+    if (node.owner_pact && node.siege_score) {
+        // Must beat stored siege_score + 10% buffer
+        threshold = D(node.siege_score).mul(1.1).floor();
     } else {
-        // Unclaimed base threshold scales by tier × memberCount
-        const defenseStr = node.owner_pact ? (node.strength || 50) : 10;
-        threshold = Math.round(tier * 80 * (1 + defenseStr/100) * memberCount);
+        // Unclaimed: base threshold = tier * 80 * defMult * memberCount
+        const defMult = 1 + ((node.owner_pact ? (node.strength || 50) : 10) / 100);
+        threshold = D(tier).mul(80).mul(defMult).mul(memberCount).floor();
     }
 
     _siegeState = {
         battleId, nodeIdx, action,
-        threshold,
-        myContribution: 0,
-        totalContribution: 0,
+        threshold,                    // Decimal
+        myContribution: D(0),         // Decimal
+        totalContribution: D(0),      // Decimal
         memberCount,
         startedAt: Date.now(),
         ended: false,
@@ -20855,35 +20856,31 @@ async function pwSiegeClick() {
         btn.style.boxShadow = '0 0 40px #ff664433, 0 0 80px #ff664411';
     }, 80);
 
-    // Calculate damage — use SPC from gameState, clamp to a real number
-    const spcRaw = gameState.stats && gameState.stats.spc ? gameState.stats.spc : D(1);
-    const spcNum = parseFloat(D(spcRaw).toString()) || 1;
-    const clickDamage = Math.max(1, Math.floor(spcNum * 0.1));
+    // Click damage = 10% of SPC, kept as Decimal the entire time
+    const clickDamage = D(gameState.stats && gameState.stats.spc ? gameState.stats.spc : 1).mul(0.1).floor().max(1);
 
-    // Add to local totals immediately
-    _siegeState.myContribution = (_siegeState.myContribution || 0) + clickDamage;
-    _siegeState.totalContribution = (_siegeState.totalContribution || 0) + clickDamage;
+    // Add to local Decimal totals
+    _siegeState.myContribution = D(_siegeState.myContribution || 0).add(clickDamage);
+    _siegeState.totalContribution = D(_siegeState.totalContribution || 0).add(clickDamage);
 
     // Update contribution label
     const contribEl = document.getElementById('siege-my-contribution');
     if (contribEl) contribEl.innerHTML = 'Your contribution: <span style="color:#ff8866;">'
         + formatNumber(clickDamage) + ' per click &middot; Total: ' + formatNumber(_siegeState.myContribution) + '</span>';
 
-    // Update progress bar — fortify mode shows running total
-    const threshold = _siegeState.threshold || 1;
-    const total = _siegeState.totalContribution;
+    // Update progress bar — Decimal-safe
+    const _thresh = D(_siegeState.threshold || 1);
+    const _total  = D(_siegeState.totalContribution || 0);
     if (_siegeState.captured) {
-        // Fortify mode: show growing defense score
         const progLabel = document.getElementById('siege-progress-label');
-        if (progLabel) progLabel.textContent = 'Defense: ' + formatNumber(total) + ' (keep going!)';
+        if (progLabel) progLabel.textContent = 'Defense: ' + formatNumber(_total) + ' (keep going!)';
     } else {
-        // Capture mode: show progress toward threshold
-        const pct = Math.min(100, (total / threshold) * 100);
+        const pct = Math.min(100, _total.div(_thresh).mul(100).toNumber());
         const progBar = document.getElementById('siege-progress-bar');
         const progLabel = document.getElementById('siege-progress-label');
         const pctLabel = document.getElementById('siege-pct-label');
         if (progBar) progBar.style.width = pct.toFixed(1) + '%';
-        if (progLabel) progLabel.textContent = formatNumber(total) + ' / ' + formatNumber(threshold);
+        if (progLabel) progLabel.textContent = formatNumber(_total) + ' / ' + formatNumber(_thresh);
         if (pctLabel) pctLabel.textContent = pct.toFixed(0) + '%';
     }
 
@@ -20900,16 +20897,14 @@ async function pwSiegeClick() {
     }
 
     // Phase transition: capture threshold hit — switch to FORTIFY mode
-    if (total >= threshold && !_siegeState.captured) {
+    if (D(_siegeState.totalContribution||0).gte(D(_siegeState.threshold||1)) && !_siegeState.captured) {
         _siegeState.captured = true;
-        // Claim the node immediately
-        await pwCaptureSiegeNode(_siegeState.nodeIdx, total);
-        // Switch UI to fortify mode — keep clicking to raise the defense score
-        pwEnterFortifyMode(_siegeState.nodeIdx, total);
+        await pwCaptureSiegeNode(_siegeState.nodeIdx, _siegeState.totalContribution);
+        pwEnterFortifyMode(_siegeState.nodeIdx, _siegeState.totalContribution);
     }
 
     // Batch DB writes — flush every 3 clicks
-    _siegeState._pendingClicks = (_siegeState._pendingClicks || 0) + clickDamage;
+    _siegeState._pendingClicks = D(_siegeState._pendingClicks || 0).add(clickDamage);
     _siegeState._clickCount = (_siegeState._clickCount || 0) + 1;
     if (_siegeState._clickCount % 3 === 0) {
         pwFlushClicksToDb(_siegeState.battleId); // fire and forget
@@ -20918,15 +20913,21 @@ async function pwSiegeClick() {
 
 async function pwFlushClicksToDb(battleId) {
     if (!battleId || !_siegeState || !supabaseClient) return;
-    const pending = _siegeState._pendingClicks || 0;
-    if (pending <= 0) return;
-    _siegeState._pendingClicks = 0;
+    const pending = D(_siegeState._pendingClicks || 0);
+    if (pending.lte(0)) return;
+    _siegeState._pendingClicks = D(0);
+
+    // Store as log10 value so it fits in DB bigint (actual value = 10^stored)
+    // Use the exponent representation for storage: store floor(log10(value)) * 1000 + mantissa
+    // Actually: store as a scaled integer — divide by 1e6 to keep in bigint range
+    // Simpler: just clamp to Number for DB — DB stores relative contribution, display uses Decimal
+    const pendingNum = Math.min(Number.MAX_SAFE_INTEGER, parseFloat(pending.toFixed(0)));
 
     // Atomically increment the total
     try {
         await supabaseClient.rpc('siege_add_contribution', {
             battle_id: battleId,
-            amount: Math.round(pending),
+            amount: Math.max(1, Math.round(pendingNum)),
             player_name: gameState.playerName
         });
     } catch(e) {
@@ -21097,32 +21098,38 @@ async function pwEndSiege(battleId, nodeIdx, victory, reason) {
 
         // Final save — use total contribution as the defense score to beat
         if (action !== 'reinforce' && myPact) {
-            const finalScore = Math.round(_siegeState.totalContribution || _siegeState.threshold);
-            const str = Math.min(100, Math.round((finalScore / (_siegeState.threshold||1)) * 50 + 50));
+            const _finalD = D(_siegeState.totalContribution || _siegeState.threshold || 0);
+            const _threshD = D(_siegeState.threshold || 1);
+            // str: 50% base + up to 50% from how much above threshold you got
+            const str = Math.min(100, Math.round(_finalD.div(_threshD).mul(50).add(50).toNumber()));
+            // Store score as clamped number (DB bigint max ~9.2e18)
+            const finalScoreNum = Math.min(9e15, parseFloat(_finalD.toFixed(0)));
             try {
                 await supabaseClient.from('pact_war_nodes').upsert({
                     node_id: nodeIdx,
                     owner_pact: myPact.pact_name,
                     owner_emblem: myPact.emblem || '⚔',
                     owner_color: myPact.color || '#ff6644',
-                    siege_score: finalScore,
+                    siege_score: Math.round(finalScoreNum),
                     strength: str,
                     last_action: new Date().toISOString()
                 }, { onConflict: 'node_id' });
                 const localNode = pwNodes.find(n => n.node_id === nodeIdx);
-                if (localNode) { localNode.siege_score = finalScore; localNode.strength = str; }
-            } catch(e) {}
+                if (localNode) { localNode.siege_score = finalScoreNum; localNode.strength = str; }
+            } catch(e) { console.warn('[PW] save score error:', e); }
         } else if (action === 'reinforce' && myPact) {
-            const addedScore = Math.round(_siegeState.totalContribution || 0);
-            const newScore   = (node.siege_score || 0) + addedScore;
-            const newStr     = Math.min(100, (node.strength || 0) + 30);
+            const _addD   = D(_siegeState.totalContribution || 0);
+            const _curD   = D(node.siege_score || 0);
+            const _newD   = _curD.add(_addD);
+            const newScoreNum = Math.min(9e15, parseFloat(_newD.toFixed(0)));
+            const newStr  = Math.min(100, (node.strength || 0) + 30);
             try {
                 await supabaseClient.from('pact_war_nodes').update({
-                    siege_score: newScore, strength: newStr,
+                    siege_score: Math.round(newScoreNum), strength: newStr,
                     last_action: new Date().toISOString()
                 }).eq('node_id', nodeIdx);
                 const localNode = pwNodes.find(n => n.node_id === nodeIdx);
-                if (localNode) { localNode.siege_score = newScore; localNode.strength = newStr; }
+                if (localNode) { localNode.siege_score = newScoreNum; localNode.strength = newStr; }
             } catch(e) {}
         }
 

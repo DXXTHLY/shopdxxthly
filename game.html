@@ -16509,7 +16509,7 @@ function showBarterTab(tab) {
 
 
 // Returns {icon, name, color, subtitle, desc} for any barter type+id
-function getBarterTypeInfo(type, amt) {
+function getBarterTypeInfo(type, amt, listing) {
     // Currencies
     const currMap = {
         souls:              { icon:'👻', name:'Souls',               color:'#c8a800' },
@@ -16552,13 +16552,23 @@ function getBarterTypeInfo(type, amt) {
         const id = type.slice(7);
         const m = minions[id];
         const bm = battleMinions[id];
-        if (m) return {
+        if (m) {
+            // Try to get scaled stats from offer_note (stored at post time)
+            let hp = bm?.hp, atk = bm?.atk, range = bm?.range, cost = bm?.cost, lvlStr = '';
+            if (listing?.offer_note && !listing.offer_note.startsWith('"')) {
+                try {
+                    const sn = JSON.parse(listing.offer_note);
+                    if (sn.scaledHp) { hp = sn.scaledHp; atk = sn.scaledAtk; range = sn.range; cost = sn.cost; }
+                    if (sn.level)    lvlStr = ` (Lv${sn.level}${sn.promoTier > 0 ? ' ' + '★'.repeat(sn.promoTier) : ''})`;
+                } catch(e) {}
+            }
+            return {
             icon: bm?.icon || '👹',
-            name: m.name,
+            name: m.name + lvlStr,
             color: '#ff6644',
             subtitle: `${formatNumber(amt)} level${amt>1?'s':''}`,
-            desc: bm ? `❤ ${bm.hp}  ⚔ ${bm.atk}  ↔ ${bm.range}  ⚡ ${bm.cost}pts` : ''
-        };
+            desc: hp ? `❤ ${hp}  ⚔ ${atk}  ↔ ${range}  ⚡ ${cost}pts` : ''
+        }; }
         return { icon:'👹', name: id, color:'#ff6644', subtitle:`${formatNumber(amt)} levels`, desc:'' };
     }
 
@@ -16620,8 +16630,8 @@ async function fetchBarterListings(page) {
             const isMe = listing.poster_name === gameState.playerName;
             const canFill = !isMe && hasEnough(listing.want_type, listing.want_amt);
 
-            const offerInfo = getBarterTypeInfo(listing.offer_type, listing.offer_amt);
-            const wantInfo  = getBarterTypeInfo(listing.want_type,  listing.want_amt);
+            const offerInfo = getBarterTypeInfo(listing.offer_type, listing.offer_amt, listing);
+            const wantInfo  = getBarterTypeInfo(listing.want_type,  listing.want_amt, null);
 
             function tradeCard(info) {
                 return `<div style="background:${info.color}14; border:1px solid ${info.color}44; border-radius:10px; padding:10px 14px; text-align:center; min-width:120px; max-width:180px;">
@@ -16815,7 +16825,30 @@ async function postBarterListing() {
         if (offerType === 'key' && gameState._barterHeldKeyId) {
             gameState._barterPendingKeyId = gameState._barterHeldKeyId;
         }
-        const _offerNote = (offerType === 'key' && gameState._barterHeldKeyId) ? gameState._barterHeldKeyId : null;
+        // Build offer_note: key ID for keys, scaled stats JSON for minions
+        let _offerNote = null;
+        if (offerType === 'key' && gameState._barterHeldKeyId) {
+            _offerNote = gameState._barterHeldKeyId;
+        } else if (offerType.startsWith('minion:')) {
+            const _mid = offerType.slice(7);
+            const _gm  = gameState.minions[_mid];
+            const _bm  = battleMinions[_mid];
+            if (_gm && _bm) {
+                const _level = _gm.level || 0;
+                const _promo = _gm.promotionTier || 0;
+                const _lvlB  = 1 + (Math.floor(_level / 25) * 0.05);
+                const _proB  = 1 + (_promo * 0.20);
+                const _total = _lvlB * _proB;
+                _offerNote = JSON.stringify({
+                    scaledHp:  Math.ceil(_bm.hp  * _total),
+                    scaledAtk: Math.ceil(_bm.atk * _total),
+                    range:     _bm.range,
+                    cost:      _bm.cost,
+                    level:     _level,
+                    promoTier: _promo
+                });
+            }
+        }
         const { error } = await supabaseClient.from('barter_listings').insert({
             poster_name: gameState.playerName,
             offer_type: offerType,
@@ -19404,6 +19437,7 @@ function updateBarterDropdowns() {
 
     // Preview what you currently have
     const preview = document.getElementById('barter-offer-preview');
+    const offerAmtInput = document.getElementById('barter-offer-amt');
     if (preview) {
         const t = offerSel.value;
         let haveStr = '';
@@ -19412,9 +19446,31 @@ function updateBarterDropdowns() {
         else if (t === 'abyssalShards') haveStr = `You have: ${formatNumber(gameState.abyssalShards)}`;
         else if (t === 'corruptedFragments') haveStr = `You have: ${formatNumber(gameState.corruptedFragments)}`;
         else if (t === 'aether')        haveStr = `You have: ${formatNumber(gameState.aether || 0)}`;
-        else if (t.startsWith('potion:')) { const id = t.slice(7); haveStr = `You have: ${gameState.potions[id] || 0}x`; }
-        else if (t.startsWith('item:'))   haveStr = `Item from your inventory`;
-        else if (t.startsWith('minion:')) { const id = t.slice(7); haveStr = `You have: Lv${gameState.minions[id]?.level || 0}`; }
+        else if (t.startsWith('potion:')) {
+            const id = t.slice(7);
+            const qty = gameState.potions[id] || 0;
+            haveStr = `You have: ${qty}x`;
+            if (offerAmtInput) offerAmtInput.value = qty;
+        }
+        else if (t.startsWith('item:')) {
+            haveStr = `Item from your inventory — listing removes it until traded or cancelled`;
+            if (offerAmtInput) offerAmtInput.value = 1;
+        }
+        else if (t.startsWith('minion:')) {
+            const id = t.slice(7);
+            const lv = gameState.minions[id]?.level || 0;
+            const bm = battleMinions[id];
+            const gm = gameState.minions[id];
+            // Compute scaled stats
+            const promoTier = gm?.promotionTier || 0;
+            const lvlBonus  = 1 + (Math.floor(lv / 25) * 0.05);
+            const proBonus  = 1 + (promoTier * 0.20);
+            const total     = lvlBonus * proBonus;
+            const sHp  = bm ? Math.ceil(bm.hp  * total) : '?';
+            const sAtk = bm ? Math.ceil(bm.atk * total) : '?';
+            haveStr = `You have: Lv${lv}${promoTier > 0 ? ' ' + '★'.repeat(promoTier) : ''} — Current stats: ❤${sHp} ⚔${sAtk} ↔${bm?.range||'?'} | Listing deducts levels from your minion`;
+            if (offerAmtInput && !offerAmtInput.value) offerAmtInput.value = lv;
+        }
         preview.textContent = haveStr;
     }
 }

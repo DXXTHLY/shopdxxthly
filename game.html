@@ -14471,14 +14471,19 @@ function initializeChat() {
 
                     ${keySection}
 
-                    ${(st.minions && st.minions.length > 0) ? `
-                    <div class="profile-items-section" style="border-top:1px solid #1a0820; padding:14px 16px;">
-                        <button id="profile-minion-toggle" style="width:100%; background:linear-gradient(135deg,#ff664422,#ff664408); border:1px solid #ff664455; border-radius:9px; padding:9px 14px; color:#ff8866; font-family:var(--font-title); font-size:0.78em; letter-spacing:2px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,#ff664433,#ff664415)'" onmouseout="this.style.background='linear-gradient(135deg,#ff664422,#ff664408)'">
-                            ⚔ VIEW MINIONS (${st.minions.length})
-                        </button>
-                        <div id="profile-minion-panel" style="display:none; margin-top:12px;"></div>
-                    </div>` : ''}
                     `;
+
+                // Minion section — always show, even if data not yet synced
+                {
+                    const minionCount = (st.minions && st.minions.length) ? st.minions.length : 0;
+                    const btnLabel = minionCount > 0 ? '⚔ VIEW MINIONS (' + minionCount + ')' : '⚔ VIEW MINIONS';
+                    popupHTML += '<div class="profile-items-section" style="border-top:1px solid #1a0820; padding:14px 16px;">'
+                        + '<button id="profile-minion-toggle" style="width:100%; background:linear-gradient(135deg,#ff664422,#ff664408); border:1px solid #ff664455; border-radius:9px; padding:9px 14px; color:#ff8866; font-family:var(--font-title); font-size:0.78em; letter-spacing:2px; cursor:pointer;">'
+                        + btnLabel
+                        + '</button>'
+                        + '<div id="profile-minion-panel" style="display:none; margin-top:12px;"></div>'
+                        + '</div>';
+                }
 
                 // ── Dev moderation tools ──────────────────────────────────
                 if (isCurrentUserDev) {
@@ -14504,16 +14509,23 @@ function initializeChat() {
 
                 // Wire minion panel toggle
                 const minionToggleBtn = popup.querySelector('#profile-minion-toggle');
-                if (minionToggleBtn && st.minions && st.minions.length > 0) {
+                if (minionToggleBtn) {
                     minionToggleBtn.addEventListener('click', () => {
                         const panel = popup.querySelector('#profile-minion-panel');
                         if (!panel) return;
                         if (panel.style.display !== 'none') {
                             panel.style.display = 'none';
-                            minionToggleBtn.textContent = '⚔ VIEW MINIONS (' + st.minions.length + ')';
+                            const mc = (st.minions && st.minions.length) ? st.minions.length : 0;
+                            minionToggleBtn.textContent = '⚔ VIEW MINIONS' + (mc > 0 ? ' (' + mc + ')' : '');
                             return;
                         }
                         minionToggleBtn.textContent = '⚔ HIDE MINIONS';
+
+                        if (!st.minions || st.minions.length === 0) {
+                            panel.innerHTML = '<div style="color:#555; font-size:0.78em; text-align:center; padding:12px; font-style:italic;">No minion data yet — syncs every 3 minutes.</div>';
+                            panel.style.display = 'block';
+                            return;
+                        }
 
                         // Build minion grid
                         const TIER_COLORS = ['#555','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];

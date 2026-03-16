@@ -2438,6 +2438,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     <button onclick="showScreen('crashgame')">Gauntlet</button>
                     <button onclick="showScreen('market'); setTimeout(()=>{updateBarterDropdowns(); fetchBarterListings();}, 100)">Market</button>
                     <button onclick="showScreen('provinggrounds')">Proving Grounds</button>
+                    <button onclick="showScreen('pactwars')" style="color:#ff6644;">⚔ Pact Wars</button>
                 </div>
             </div>
             <div class="nav-group">
@@ -3163,6 +3164,85 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div id="pact-leaderboard-list" style="margin-top:16px;"></div>
                 </div>
             </div>
+
+            <!-- PACT WARS SCREEN -->
+            <div id="pactwars-screen" class="screen">
+                <h2 style="letter-spacing:3px; color:#ff6644;">⚔ PACT WARS ⚔</h2>
+                <p style="color:var(--dim-color); max-width:600px; margin:0 auto 20px;">Guilds battle for dominion over the Abyss. Claim nodes, crush rivals, and collect the spoils of war.</p>
+
+                <!-- War status banner -->
+                <div id="pw-status-banner" style="background:linear-gradient(135deg,#1a0a08,#2a1010); border:1px solid #ff664444; border-top:3px solid #ff6644; border-radius:12px; padding:14px 20px; max-width:900px; margin:0 auto 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <div style="color:#ff6644; font-weight:bold; font-size:0.9em; letter-spacing:2px;">CURRENT WAR CYCLE</div>
+                        <div id="pw-cycle-timer" style="color:#aaa; font-size:0.8em; margin-top:2px;">Loading...</div>
+                    </div>
+                    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                        <div style="text-align:center;">
+                            <div id="pw-my-nodes" style="color:#ff6644; font-weight:bold; font-size:1.3em;">0</div>
+                            <div style="color:#555; font-size:0.7em;">YOUR NODES</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div id="pw-my-bonus" style="color:#44cc88; font-weight:bold; font-size:1.3em;">+0%</div>
+                            <div style="color:#555; font-size:0.7em;">WAR BONUS</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pact emblem setup (only if in pact) -->
+                <div id="pw-emblem-panel" style="display:none; background:#0e0a1a; border:1px solid #aa44ff44; border-radius:12px; padding:16px 20px; max-width:900px; margin:0 auto 20px;">
+                    <div style="color:#aa44ff; font-weight:bold; font-size:0.88em; letter-spacing:2px; margin-bottom:12px;">⚜ PACT IDENTITY</div>
+                    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                        <div id="pw-pact-badge" style="font-size:3em; width:64px; height:64px; display:flex; align-items:center; justify-content:center; background:#1a1030; border:2px solid #aa44ff44; border-radius:12px;"></div>
+                        <div style="flex:1; min-width:200px;">
+                            <div id="pw-pact-name-display" style="color:#ddd; font-weight:bold; font-size:1.1em;"></div>
+                            <div id="pw-pact-members-count" style="color:#555; font-size:0.75em; margin-top:2px;"></div>
+                            <div id="pw-leader-badge" style="display:none; color:#c8a800; font-size:0.72em; margin-top:4px;">👑 You are the Pact Leader</div>
+                        </div>
+                        <div id="pw-emblem-picker" style="display:none;">
+                            <div style="color:#666; font-size:0.72em; margin-bottom:6px;">Choose Emblem:</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:300px;">
+                            </div>
+                        </div>
+                        <div id="pw-color-picker" style="display:none;">
+                            <div style="color:#666; font-size:0.72em; margin-bottom:6px;">Pact Color:</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Territory Map -->
+                <div style="background:#0a0812; border:1px solid #2a1a3a; border-radius:14px; padding:20px; max-width:900px; margin:0 auto 20px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                        <div>
+                            <div style="color:#ff6644; font-weight:bold; letter-spacing:2px; font-size:0.9em;">🗺 ABYSSAL TERRITORY MAP</div>
+                            <div style="color:#444; font-size:0.72em; margin-top:2px;">Click a node to attack or reinforce. Nodes reset weekly.</div>
+                        </div>
+                        <button onclick="pwRefresh()" style="background:#ff664415; border:1px solid #ff664444; border-radius:7px; padding:5px 14px; color:#ff8866; cursor:pointer; font-family:inherit; font-size:0.78em;">🔄 Refresh Map</button>
+                    </div>
+                    <div id="pw-map" style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px; max-width:700px; margin:0 auto;"></div>
+                </div>
+
+                <!-- Attack / Defend modal (hidden) -->
+                <div id="pw-action-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); justify-content:center; align-items:center; z-index:300; backdrop-filter:blur(4px);">
+                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a0a08); border:2px solid #ff664466; border-radius:16px; padding:28px; max-width:420px; width:90%;">
+                        <div id="pw-action-title" style="color:#ff6644; font-weight:bold; font-size:1.1em; letter-spacing:2px; margin-bottom:6px;"></div>
+                        <div id="pw-action-desc" style="color:#888; font-size:0.8em; margin-bottom:18px;"></div>
+                        <div id="pw-action-body"></div>
+                        <div style="display:flex; gap:10px; margin-top:18px;">
+                            <button onclick="document.getElementById('pw-action-overlay').style.display='none'" style="flex:1; background:#1a1a1a; border:1px solid #333; border-radius:9px; padding:10px; color:#666; font-family:inherit; cursor:pointer;">✗ Cancel</button>
+                            <button id="pw-action-confirm" style="flex:2; background:linear-gradient(135deg,#ff664422,#ff664408); border:1px solid #ff664466; border-radius:9px; padding:10px; color:#ff8866; font-family:inherit; font-weight:bold; cursor:pointer;">⚔ Commit</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent battles log -->
+                <div style="background:#0a0812; border:1px solid #2a1a3a; border-radius:12px; padding:18px 20px; max-width:900px; margin:0 auto;">
+                    <div style="color:#ff6644; font-weight:bold; font-size:0.85em; letter-spacing:2px; margin-bottom:12px;">📜 RECENT BATTLES</div>
+                    <div id="pw-battle-log" style="display:flex; flex-direction:column; gap:6px; max-height:300px; overflow-y:auto;"></div>
+                </div>
+            </div>
+
             <!-- ================================================================= -->
             <!-- BANK SCREEN -->
             <div id="bank-screen" class="screen">
@@ -9076,6 +9156,12 @@ function calculateStats() {
         } while (bonus);
     }
 
+    // Pact War territory bonus (+5% per owned node)
+    if (gameState._pactWarBonus && gameState._pactWarBonus > 0) {
+        const _warMult = D(1 + gameState._pactWarBonus / 100);
+        final_sps_D = final_sps_D.mul(_warMult);
+        final_spc_D = final_spc_D.mul(_warMult);
+    }
     // Store as Decimal — unbounded, same as souls/essence/shards
     gameState.stats.sps = final_sps_D.gt(0) ? final_sps_D : D(0);
     gameState.stats.spc = final_spc_D.gt(0) ? final_spc_D : D(1);
@@ -9254,6 +9340,7 @@ function showScreen(screenId) {
         renderPactScreen();
         fetchPactLeaderboard();
     }
+    if (screenId === 'pactwars') { pwRefresh(); }
     if (screenId === 'provinggrounds')
     {
         renderProvingGrounds();
@@ -19685,6 +19772,411 @@ function updateBarterDropdowns() {
 
 // Barter is tab-free — dropdowns refresh on market screen open
 
+
+
+// =================================================================
+// ⚔ PACT WARS SYSTEM
+// Territory map, guild emblems, attack/defend, weekly cycle
+// DB tables needed: pact_war_nodes, pact_war_log
+// =================================================================
+
+const PW_EMBLEMS = ['🔥','💀','🐉','👁','⚡','🌑','🩸','🗡','🛡','⚰','🦂','🐺','🦅','💎','🌊','🔮','👑','🌀','☠','🦁'];
+const PW_COLORS  = ['#ff4444','#ff8844','#ffcc00','#44ff88','#44aaff','#aa44ff','#ff44aa','#44ffcc','#ff6644','#ffffff'];
+
+// 25 nodes on the map — 5×5 grid
+const PW_NODE_NAMES = [
+    'The Shattered Gate',    'Ashen Crossing',       'Voidmere Pass',        'The Bleeding Spire',   'Soulforge Peak',
+    'Crimson Hollows',       'The Black Mire',        'Dreadstone Keep',      'Nether Flats',         'The Pale Throne',
+    'Infernal Basin',        'Obsidian Reach',        'The Hungering Deep',   'Ruinwatch Tower',      'Sorrow's End',
+    'The Fracture Point',    'Despair's Edge',       'The Gnashing Dark',    'Void Crucible',        'Abyssal Cradle',
+    'The Last Bastion',      'Ember Wastes',          'The Dread Nexus',      'Soul's Ruin',         'The Omega Node',
+];
+
+const PW_NODE_BONUS = [1,1,1,1,1, 2,2,2,2,2, 3,3,3,3,3, 4,4,4,4,4, 5,5,5,5,5]; // center = more valuable
+
+let pwNodes = []; // loaded from Supabase
+let pwSelectedNode = null;
+let pwCycleEnd = null;
+
+// ── Load / Refresh ──────────────────────────────────────────────
+async function pwRefresh() {
+    if (!supabaseClient) return;
+    await pwLoadNodes();
+    pwRenderMap();
+    pwRenderEmblemPanel();
+    pwRenderBattleLog();
+    pwUpdateBanner();
+}
+
+async function pwLoadNodes() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('pact_war_nodes')
+            .select('*')
+            .order('node_id', { ascending: true });
+        if (error) throw error;
+        pwNodes = data || [];
+        // Fill in any missing nodes
+        for (let i = 0; i < 25; i++) {
+            if (!pwNodes.find(n => n.node_id === i)) {
+                pwNodes.push({ node_id: i, owner_pact: null, owner_emblem: null, owner_color: null, strength: 0 });
+            }
+        }
+        pwNodes.sort((a,b) => a.node_id - b.node_id);
+    } catch(e) {
+        console.warn('pwLoadNodes error:', e);
+    }
+}
+
+// ── Weekly cycle timer ──────────────────────────────────────────
+function pwGetCycleEnd() {
+    // Cycle resets every Monday 00:00 UTC
+    const now = new Date();
+    const dayOfWeek = now.getUTCDay(); // 0=Sun
+    const daysUntilMonday = (8 - dayOfWeek) % 7 || 7;
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilMonday));
+    return end;
+}
+
+function pwUpdateBanner() {
+    const timerEl = document.getElementById('pw-cycle-timer');
+    const myNodesEl = document.getElementById('pw-my-nodes');
+    const myBonusEl = document.getElementById('pw-my-bonus');
+    if (!timerEl) return;
+
+    const end = pwGetCycleEnd();
+    const left = end - Date.now();
+    const days  = Math.floor(left / 86400000);
+    const hours = Math.floor((left % 86400000) / 3600000);
+    const mins  = Math.floor((left % 3600000) / 60000);
+    timerEl.textContent = `Resets in ${days}d ${hours}h ${mins}m`;
+
+    const myPact = window.playerPact?.pact_name;
+    if (myPact) {
+        const ownedCount = pwNodes.filter(n => n.owner_pact === myPact).length;
+        const bonus = ownedCount * 5; // 5% per node
+        if (myNodesEl) myNodesEl.textContent = ownedCount;
+        if (myBonusEl) myBonusEl.textContent = `+${bonus}%`;
+        // Apply bonus to gameState
+        gameState._pactWarBonus = bonus;
+    } else {
+        gameState._pactWarBonus = 0;
+    }
+}
+
+// ── Map render ──────────────────────────────────────────────────
+function pwRenderMap() {
+    const map = document.getElementById('pw-map');
+    if (!map) return;
+    map.innerHTML = '';
+
+    const myPact = window.playerPact?.pact_name;
+
+    pwNodes.forEach((node, i) => {
+        const isOwned  = !!node.owner_pact;
+        const isMine   = node.owner_pact === myPact;
+        const tier     = PW_NODE_BONUS[i] || 1;
+        const tierColor= ['#555','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'][tier] || '#555';
+        const name     = PW_NODE_NAMES[i] || `Node ${i}`;
+
+        const div = document.createElement('div');
+        div.style.cssText = `
+            background:${isMine ? 'linear-gradient(135deg,#0a2a0a,#1a4a1a)' : isOwned ? 'linear-gradient(135deg,#2a0a0a,#3a1010)' : 'linear-gradient(135deg,#0e0a1a,#1a1020)'};
+            border:2px solid ${isMine ? '#44cc8888' : isOwned ? (node.owner_color||'#ff444488') : '#2a1a3a'};
+            border-top:3px solid ${isMine ? '#44cc88' : isOwned ? (node.owner_color||'#ff4444') : tierColor};
+            border-radius:10px; padding:10px 8px; text-align:center; cursor:pointer;
+            transition:all 0.15s; position:relative;
+            box-shadow:${isMine ? '0 0 12px #44cc8822' : isOwned ? `0 0 12px ${node.owner_color||'#ff4444'}22` : 'none'};
+        `;
+
+        const tierStars = '★'.repeat(tier) + '☆'.repeat(5-tier);
+        const emblem = isOwned ? (node.owner_emblem || '⚔') : '❓';
+        const ownerLabel = isOwned ? `<div style="color:${node.owner_color||'#ff8888'}; font-size:0.65em; margin-top:2px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;">${node.owner_pact}</div>` : `<div style="color:#333; font-size:0.65em; margin-top:2px;">Unclaimed</div>`;
+        const strBar = isOwned ? `<div style="background:#ffffff10; border-radius:3px; height:3px; margin-top:5px; overflow:hidden;"><div style="height:100%; width:${Math.min(100,node.strength||0)}%; background:${isMine?'#44cc88':(node.owner_color||'#ff4444')};"></div></div>` : '';
+
+        div.innerHTML = `
+            <div style="font-size:1.6em; line-height:1;">${emblem}</div>
+            <div style="color:${tierColor}; font-size:0.55em; letter-spacing:1px; margin:3px 0;">${tierStars}</div>
+            <div style="color:#aaa; font-size:0.6em; line-height:1.2; min-height:24px;">${name}</div>
+            ${ownerLabel}
+            ${strBar}
+        `;
+
+        div.onmouseover = () => div.style.transform = 'scale(1.03)';
+        div.onmouseout  = () => div.style.transform = 'scale(1)';
+        div.onclick = () => pwOpenNodeAction(i);
+
+        map.appendChild(div);
+    });
+}
+
+// ── Node action modal ────────────────────────────────────────────
+function pwOpenNodeAction(nodeIdx) {
+    const myPact = window.playerPact;
+    if (!myPact) {
+        Toastify({ text: '⚔ You must be in a Pact to participate in Pact Wars.', duration:3000, gravity:'top', position:'center', style:{background:'#1a0808'} }).showToast();
+        return;
+    }
+
+    const node     = pwNodes[nodeIdx];
+    const isMine   = node.owner_pact === myPact.pact_name;
+    const isOwned  = !!node.owner_pact;
+    const name     = PW_NODE_NAMES[nodeIdx];
+    const tier     = PW_NODE_BONUS[nodeIdx] || 1;
+    const overlay  = document.getElementById('pw-action-overlay');
+    const title    = document.getElementById('pw-action-title');
+    const desc     = document.getElementById('pw-action-desc');
+    const body     = document.getElementById('pw-action-body');
+    const confirm  = document.getElementById('pw-action-confirm');
+    pwSelectedNode = nodeIdx;
+
+    title.textContent = name;
+
+    if (isMine) {
+        desc.innerHTML  = `<span style="color:#44cc88;">Your pact controls this node.</span> Strengthen its defenses to resist attacks.`;
+        body.innerHTML  = pwMinionSelectHTML('reinforce');
+        confirm.textContent = '🛡 Reinforce';
+        confirm.onclick = () => pwCommitAction('reinforce', nodeIdx);
+    } else if (isOwned) {
+        desc.innerHTML  = `Controlled by <span style="color:${node.owner_color||'#ff8888'}; font-weight:bold;">${node.owner_emblem||'⚔'} ${node.owner_pact}</span>. Send your minions to conquer it.`;
+        body.innerHTML  = pwMinionSelectHTML('attack');
+        confirm.textContent = '⚔ Attack';
+        confirm.style.color = '#ff8888';
+        confirm.onclick = () => pwCommitAction('attack', nodeIdx);
+    } else {
+        desc.innerHTML  = `Unclaimed territory. <span style="color:#c8a800;">Tier ${tier} — worth +${tier*5}% war bonus.</span>`;
+        body.innerHTML  = pwMinionSelectHTML('claim');
+        confirm.textContent = '🚩 Claim Node';
+        confirm.style.color = '#c8a800';
+        confirm.onclick = () => pwCommitAction('claim', nodeIdx);
+    }
+
+    overlay.style.display = 'flex';
+}
+
+function pwMinionSelectHTML(action) {
+    const bms = Object.entries(battleMinions).filter(([id]) => (gameState.minions[id]?.level||0) > 0);
+    if (!bms.length) return `<div style="color:#555; font-size:0.82em; text-align:center; padding:12px;">You need at least one levelled minion to fight.</div>`;
+
+    let html = `<div style="color:#888; font-size:0.75em; margin-bottom:8px;">Choose your champion minion:</div>`;
+    html += `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; max-height:200px; overflow-y:auto;">`;
+    bms.forEach(([id, bm]) => {
+        const gm   = gameState.minions[id];
+        const lv   = gm.level || 0;
+        const pt   = gm.promotionTier || 0;
+        const tot  = (1 + Math.floor(lv/25)*0.05) * (1 + pt*0.20);
+        const sHp  = Math.ceil(bm.hp  * tot);
+        const sAtk = Math.ceil(bm.atk * tot);
+        html += `<label style="background:#0d0a18; border:2px solid #2a1a3a; border-radius:8px; padding:8px; text-align:center; cursor:pointer; transition:border-color 0.15s;" 
+                    onmouseover="this.style.borderColor='#ff664488'" onmouseout="this.style.borderColor='#2a1a3a'">
+            <input type="radio" name="pw_minion" value="${id}" style="display:none;" onchange="this.parentElement.style.borderColor='#ff6644'">
+            <div style="font-size:1.6em;">${bm.icon}</div>
+            <div style="color:#ddd; font-size:0.7em; font-weight:bold;">${bm.name}</div>
+            <div style="color:#555; font-size:0.6em;">Lv${lv}</div>
+            <div style="color:#888; font-size:0.6em;">❤${sHp} ⚔${sAtk}</div>
+        </label>`;
+    });
+    html += `</div>`;
+    return html;
+}
+
+// ── Commit action ────────────────────────────────────────────────
+async function pwCommitAction(action, nodeIdx) {
+    const myPact = window.playerPact;
+    if (!myPact || !supabaseClient) return;
+
+    const minionRadio = document.querySelector('input[name="pw_minion"]:checked');
+    if (!minionRadio) {
+        Toastify({ text: 'Select a minion first.', duration:2500, gravity:'top', position:'center' }).showToast();
+        return;
+    }
+
+    const minionId = minionRadio.value;
+    const gm   = gameState.minions[minionId];
+    const bm   = battleMinions[minionId];
+    const lv   = gm?.level || 0;
+    const pt   = gm?.promotionTier || 0;
+    const tot  = (1 + Math.floor(lv/25)*0.05) * (1 + pt*0.20);
+    const sAtk = Math.ceil(bm.atk * tot);
+    const sHp  = Math.ceil(bm.hp  * tot);
+    const node = pwNodes[nodeIdx];
+
+    // Power score = weighted ATK + HP
+    const myPower = sAtk * 3 + sHp;
+
+    const pactEmblem = myPact.emblem || '⚔';
+    const pactColor  = myPact.color  || '#ff6644';
+
+    let success = false;
+    let logMsg  = '';
+
+    if (action === 'claim') {
+        // Unclaimed — always succeed, set strength to myPower capped at 100
+        const str = Math.min(100, Math.round(myPower / 10));
+        await supabaseClient.from('pact_war_nodes').upsert({
+            node_id: nodeIdx,
+            owner_pact: myPact.pact_name,
+            owner_emblem: pactEmblem,
+            owner_color: pactColor,
+            strength: str,
+            last_action: new Date().toISOString()
+        }, { onConflict: 'node_id' });
+        success = true;
+        logMsg = `🚩 ${myPact.pact_name} claimed ${PW_NODE_NAMES[nodeIdx]}`;
+
+    } else if (action === 'reinforce') {
+        const newStr = Math.min(100, (node.strength || 0) + Math.round(myPower / 20));
+        await supabaseClient.from('pact_war_nodes').update({ strength: newStr, last_action: new Date().toISOString() }).eq('node_id', nodeIdx);
+        success = true;
+        logMsg = `🛡 ${myPact.pact_name} reinforced ${PW_NODE_NAMES[nodeIdx]} (→${newStr}%)`;
+
+    } else if (action === 'attack') {
+        const defPower = ((node.strength || 0) / 100) * 500; // defender's effective power from strength
+        const roll = Math.random();
+        const winChance = Math.min(0.85, Math.max(0.15, myPower / (myPower + defPower)));
+        success = roll < winChance;
+        if (success) {
+            const str = Math.min(100, Math.round(myPower / 10));
+            await supabaseClient.from('pact_war_nodes').upsert({
+                node_id: nodeIdx,
+                owner_pact: myPact.pact_name,
+                owner_emblem: pactEmblem,
+                owner_color: pactColor,
+                strength: str,
+                last_action: new Date().toISOString()
+            }, { onConflict: 'node_id' });
+            logMsg = `⚔ ${myPact.pact_name} CONQUERED ${PW_NODE_NAMES[nodeIdx]} from ${node.owner_pact}!`;
+        } else {
+            logMsg = `💀 ${myPact.pact_name} FAILED to take ${PW_NODE_NAMES[nodeIdx]} from ${node.owner_pact}`;
+        }
+    }
+
+    // Log the battle
+    await supabaseClient.from('pact_war_log').insert({
+        attacker_pact: myPact.pact_name,
+        defender_pact: node.owner_pact || null,
+        node_id: nodeIdx,
+        node_name: PW_NODE_NAMES[nodeIdx],
+        action: action,
+        success: success,
+        attacker_player: gameState.playerName,
+        minion_used: bm.name,
+        message: logMsg
+    });
+
+    document.getElementById('pw-action-overlay').style.display = 'none';
+
+    Toastify({
+        text: success ? `✅ ${logMsg}` : `❌ ${logMsg}`,
+        duration: 5000, gravity:'top', position:'center',
+        style:{ background: success ? 'linear-gradient(135deg,#0a2a0a,#1a5a1a)' : 'linear-gradient(135deg,#2a0a0a,#5a1a1a)' }
+    }).showToast();
+
+    await pwRefresh();
+}
+
+// ── Emblem panel ─────────────────────────────────────────────────
+function pwRenderEmblemPanel() {
+    const panel   = document.getElementById('pw-emblem-panel');
+    const badge   = document.getElementById('pw-pact-badge');
+    const nameEl  = document.getElementById('pw-pact-name-display');
+    const countEl = document.getElementById('pw-pact-members-count');
+    const leader  = document.getElementById('pw-leader-badge');
+    const epick   = document.getElementById('pw-emblem-picker');
+    const cpick   = document.getElementById('pw-color-picker');
+    if (!panel) return;
+
+    const myPact = window.playerPact;
+    if (!myPact) { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+
+    const emblem    = myPact.emblem || '⚔';
+    const color     = myPact.color  || '#ff6644';
+    const isLeader  = (myPact.members||[])[0] === gameState.playerName;
+
+    badge.textContent  = emblem;
+    badge.style.border = `2px solid ${color}66`;
+    nameEl.textContent = myPact.pact_name;
+    nameEl.style.color = color;
+    countEl.textContent = `${(myPact.members||[]).length} members`;
+    leader.style.display = isLeader ? 'block' : 'none';
+
+    if (isLeader) {
+        epick.style.display = 'block';
+        cpick.style.display = 'block';
+
+        // Emblem picker
+        epick.querySelector('div') && (epick.querySelector('div:last-child').innerHTML = '');
+        const epGrid = epick.querySelector('div:last-child');
+        if (epGrid) {
+            epGrid.innerHTML = PW_EMBLEMS.map(e =>
+                `<button onclick="pwSetEmblem('${e}')" style="font-size:1.5em; width:38px; height:38px; background:${e===emblem?color+'33':'#1a1030'}; border:2px solid ${e===emblem?color:'#2a1a3a'}; border-radius:8px; cursor:pointer;" title="${e}">${e}</button>`
+            ).join('');
+        }
+
+        // Color picker
+        const cpGrid = cpick.querySelector('div:last-child') || cpick;
+        if (cpick.children[1]) {
+            cpick.children[1].innerHTML = PW_COLORS.map(c =>
+                `<button onclick="pwSetColor('${c}')" style="width:28px; height:28px; background:${c}; border:3px solid ${c===color?'#fff':'transparent'}; border-radius:50%; cursor:pointer;" title="${c}"></button>`
+            ).join('');
+        }
+    } else {
+        epick.style.display = 'none';
+        cpick.style.display = 'none';
+    }
+}
+
+async function pwSetEmblem(emblem) {
+    const pact = window.playerPact;
+    if (!pact || !supabaseClient) return;
+    if ((pact.members||[])[0] !== gameState.playerName) return;
+    await supabaseClient.from('pacts').update({ emblem }).eq('pact_name', pact.pact_name);
+    pact.emblem = emblem;
+    pwRenderEmblemPanel();
+    pwRenderMap();
+}
+
+async function pwSetColor(color) {
+    const pact = window.playerPact;
+    if (!pact || !supabaseClient) return;
+    if ((pact.members||[])[0] !== gameState.playerName) return;
+    await supabaseClient.from('pacts').update({ color }).eq('pact_name', pact.pact_name);
+    pact.color = color;
+    pwRenderEmblemPanel();
+    pwRenderMap();
+}
+
+// ── Battle log ────────────────────────────────────────────────────
+async function pwRenderBattleLog() {
+    const el = document.getElementById('pw-battle-log');
+    if (!el || !supabaseClient) return;
+    try {
+        const { data } = await supabaseClient.from('pact_war_log')
+            .select('*').order('created_at', { ascending: false }).limit(20);
+        if (!data || !data.length) {
+            el.innerHTML = '<div style="color:#333; font-size:0.8em; text-align:center; padding:12px;">No battles yet this cycle.</div>';
+            return;
+        }
+        el.innerHTML = data.map(log => `
+            <div style="display:flex; align-items:center; gap:10px; padding:6px 10px; background:#0d0a18; border-radius:7px; font-size:0.78em;">
+                <span style="font-size:1.1em;">${log.success ? '⚔' : '💀'}</span>
+                <span style="color:${log.success ? '#44cc88' : '#ff6666'}; flex:1;">${log.message}</span>
+                <span style="color:#333; font-size:0.7em;">${new Date(log.created_at).toLocaleTimeString()}</span>
+            </div>`).join('');
+    } catch(e) {}
+}
+
+// ── Apply war bonus in calculateStats ────────────────────────────
+// Called after calculateStats — bonus applied separately
+// gameState._pactWarBonus is set in pwUpdateBanner()
+
+// ── Auto-refresh and init ─────────────────────────────────────────
+setInterval(() => {
+    if (document.getElementById('pactwars-screen')?.classList.contains('active')) {
+        pwUpdateBanner();
+    }
+}, 30000);
 
 // =================================================================
 // ✎ PLAYER RENAME SYSTEM

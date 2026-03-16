@@ -17419,7 +17419,11 @@ async function arenaSaveDefense() {
     }
 }
 
-async function arenaFetchOpponents() {
+let _arenaRivalsPage = 0;
+const RIVALS_PER_PAGE = 9;
+
+async function arenaFetchOpponents(page) {
+    if (page !== undefined) _arenaRivalsPage = page;
     const list = document.getElementById('arena-opponent-list');
     if (!list) return;
     list.innerHTML = '<li style="color:#555; font-size:0.85em; text-align:center; padding:8px;"><em>⚔ Scouring the abyss for rivals...</em></li>';
@@ -17471,18 +17475,26 @@ async function arenaFetchOpponents() {
             return 0;
         });
 
+        // Filter if hiding beaten
+        const visible = window._hideBeaten
+            ? sorted.filter(o => gameState.pvpBeatenToday?.[o.player_name] !== today)
+            : sorted;
+
         const unbeatenCount = sorted.filter(o => gameState.pvpBeatenToday?.[o.player_name] !== today).length;
         const beatenCount   = sorted.length - unbeatenCount;
+        const totalPages    = Math.ceil(visible.length / RIVALS_PER_PAGE);
+        if (_arenaRivalsPage >= totalPages) _arenaRivalsPage = Math.max(0, totalPages - 1);
+        const pageSlice = visible.slice(_arenaRivalsPage * RIVALS_PER_PAGE, (_arenaRivalsPage + 1) * RIVALS_PER_PAGE);
 
-        // Count header
+        // Count + hide toggle header
         const countDiv = document.createElement('div');
         countDiv.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:0.75em; color:#555;';
         countDiv.innerHTML = `
             <span>⚔ <span style="color:#ff8888;">${unbeatenCount}</span> available · <span style="color:#444;">${beatenCount}</span> beaten today</span>
-            ${beatenCount > 0 ? `<button onclick="this.closest('#arena-opponent-list') ? null : null; window._hideBeaten = !window._hideBeaten; arenaFetchOpponents()" style="background:#ff444412; border:1px solid #ff444433; border-radius:5px; padding:2px 8px; color:#ff6666; cursor:pointer; font-family:inherit; font-size:0.9em;">${window._hideBeaten ? '👁 Show All' : '🙈 Hide Beaten'}</button>` : ''}`;
+            ${beatenCount > 0 ? `<button onclick="window._hideBeaten = !window._hideBeaten; arenaFetchOpponents(0)" style="background:#ff444412; border:1px solid #ff444433; border-radius:5px; padding:2px 8px; color:#ff6666; cursor:pointer; font-family:inherit; font-size:0.9em;">${window._hideBeaten ? '👁 Show All' : '🙈 Hide Beaten'}</button>` : ''}`;
         list.appendChild(countDiv);
 
-        sorted.forEach((opponent) => {
+        pageSlice.forEach((opponent) => {
             const beatenDate = gameState.pvpBeatenToday?.[opponent.player_name];
             const alreadyBeaten = beatenDate === today;
 
@@ -17513,6 +17525,22 @@ async function arenaFetchOpponents() {
                 </button>`;
             list.appendChild(li);
         });
+
+        // Pagination controls
+        if (totalPages > 1) {
+            const pager = document.createElement('div');
+            pager.style.cssText = 'display:flex; justify-content:center; align-items:center; gap:8px; margin-top:14px; flex-wrap:wrap;';
+            const prevDis = _arenaRivalsPage === 0;
+            const nextDis = _arenaRivalsPage >= totalPages - 1;
+            const btnBase = 'background:#0d0a18; border-radius:8px; padding:6px 14px; cursor:pointer; font-family:inherit; font-size:0.8em;';
+            pager.innerHTML = `
+                <button onclick="arenaFetchOpponents(${_arenaRivalsPage - 1})" ${prevDis ? 'disabled' : ''}
+                    style="${btnBase} border:1px solid ${prevDis ? '#1a1a1a' : '#ff444455'}; color:${prevDis ? '#333' : '#ff8888'};">◀ Prev</button>
+                <span style="color:#555; font-size:0.8em; min-width:90px; text-align:center;">Page ${_arenaRivalsPage + 1} of ${totalPages}</span>
+                <button onclick="arenaFetchOpponents(${_arenaRivalsPage + 1})" ${nextDis ? 'disabled' : ''}
+                    style="${btnBase} border:1px solid ${nextDis ? '#1a1a1a' : '#ff444455'}; color:${nextDis ? '#333' : '#ff8888'};">Next ▶</button>`;
+            list.appendChild(pager);
+        }
     } catch (e) {
         list.innerHTML = '<li style="color:#555; font-size:0.82em; text-align:center; padding:8px;"><em>Error finding opponents.</em></li>';
     }

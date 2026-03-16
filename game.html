@@ -16549,11 +16549,12 @@ function getBarterTypeInfo(type, amt, listing) {
                 } catch(e) {}
             }
 
-            // Priority 2: compute from local gameState if we own this minion (viewer is poster)
-            if (hp === bm?.hp && gameState.minions?.[id]) {
-                const gm = gameState.minions[id];
-                const level = gm.level || 0;
-                const promoTier = gm.promotionTier || 0;
+            // Priority 2: compute using amt (levels sold) + promoTier from gameState
+            // Use amt as the level — it equals the level at time of posting.
+            // promoTier is never deducted so it stays correct in gameState.
+            if (hp === bm?.hp) {
+                const level = amt;  // amt = levels sold = level at posting
+                const promoTier = gameState.minions?.[id]?.promotionTier || 0;
                 const total = (1 + Math.floor(level/25)*0.05) * (1 + promoTier*0.20);
                 hp  = Math.ceil((bm?.hp  || 0) * total);
                 atk = Math.ceil((bm?.atk || 0) * total);
@@ -16839,14 +16840,7 @@ async function postBarterListing() {
     }
 
     try {
-        // Deduct the offered amount upfront (held in escrow concept)
-        deductCurrency(offerType, offerAmtFinal);
-        calculateStats(); renderAll();
-
-        if (offerType === 'key' && gameState._barterHeldKeyId) {
-            gameState._barterPendingKeyId = gameState._barterHeldKeyId;
-        }
-        // Build offer_note: key ID for keys, scaled stats JSON for minions
+        // Build offer_note BEFORE deducting (so we capture real level/stats)
         let _offerNote = null;
         if (offerType === 'key' && gameState._barterHeldKeyId) {
             _offerNote = gameState._barterHeldKeyId;
@@ -16855,7 +16849,7 @@ async function postBarterListing() {
             const _gm  = gameState.minions[_mid];
             const _bm  = battleMinions[_mid];
             if (_gm && _bm) {
-                const _level = _gm.level || 0;
+                const _level = _gm.level || 0;       // real level BEFORE deduction
                 const _promo = _gm.promotionTier || 0;
                 const _lvlB  = 1 + (Math.floor(_level / 25) * 0.05);
                 const _proB  = 1 + (_promo * 0.20);
@@ -16869,6 +16863,14 @@ async function postBarterListing() {
                     promoTier: _promo
                 });
             }
+        }
+
+        // Deduct the offered amount upfront (held in escrow concept)
+        deductCurrency(offerType, offerAmtFinal);
+        calculateStats(); renderAll();
+
+        if (offerType === 'key' && gameState._barterHeldKeyId) {
+            gameState._barterPendingKeyId = gameState._barterHeldKeyId;
         }
         const { error } = await supabaseClient.from('barter_listings').insert({
             poster_name: gameState.playerName,

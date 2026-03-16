@@ -19662,28 +19662,30 @@ function useKey() {
         return;
     }
 
-    // Once-per-24h cooldown — lastUsed tracks when it was last activated
-    if (gameState.heldKey.lastUsed) {
-        const cooldownLeft = KEY_EXPIRY_MS - (now - gameState.heldKey.lastUsed);
-        if (cooldownLeft > 0) {
-            const h = Math.floor(cooldownLeft / 3600000);
-            const m = Math.floor((cooldownLeft % 3600000) / 60000);
-            const key = KEYS[keyId];
-            Toastify({
-                text: `🗝️ Already used today — available again in ${h}h ${m}m`,
-                duration: 4000, gravity: 'top', position: 'center',
-                style: { background: `linear-gradient(135deg,#1a0a0a,#2a0808)`, border: `1px solid #ff444466` }
-            }).showToast();
-            return;
-        }
+    // Once-per-calendar-day cooldown (UTC date)
+    const _todayUTC = new Date(now).toISOString().slice(0, 10); // "2026-03-17"
+    if (gameState.heldKey.lastUsedDate === _todayUTC) {
+        const key = KEYS[keyId];
+        // Calculate time until midnight UTC
+        const _midnight = new Date(_todayUTC);
+        _midnight.setUTCDate(_midnight.getUTCDate() + 1);
+        const _tillMidnight = _midnight.getTime() - now;
+        const _h = Math.floor(_tillMidnight / 3600000);
+        const _m = Math.floor((_tillMidnight % 3600000) / 60000);
+        Toastify({
+            text: `🗝️ Already used today — resets at midnight UTC (${_h}h ${_m}m)`,
+            duration: 4000, gravity: 'top', position: 'center',
+            style: { background: `linear-gradient(135deg,#1a0a0a,#2a0808)`, border: `1px solid #ff444466` }
+        }).showToast();
+        return;
     }
 
     const key = KEYS[keyId];
     const result = key.effect();
 
-    // Record use — also resets the 24h expiry clock so you keep it another 24h
-    gameState.heldKey.lastUsed  = now;
-    gameState.heldKey.obtainedAt = now; // reset expiry: use it = keep it 24h more
+    // Record use — store the UTC date so we block reuse until midnight
+    gameState.heldKey.lastUsedDate = _todayUTC;
+    gameState.heldKey.obtainedAt   = now; // reset expiry: use it = keep it 24h more
 
     saveGame();
     calculateStats();
@@ -19764,19 +19766,24 @@ function renderKeyInSettings() {
                 const _urgent = _expiresLeft < 3600000;
 
                 // Check use cooldown
-                const _lastUsed = gameState.heldKey.lastUsed || 0;
-                const _cdLeft = _lastUsed ? Math.max(0, KEY_EXPIRY_MS - (_now - _lastUsed)) : 0;
-                const _onCooldown = _cdLeft > 0;
-                const _cdH = Math.floor(_cdLeft / 3600000);
-                const _cdM = Math.floor((_cdLeft % 3600000) / 60000);
+                const _todayStr = new Date(_now).toISOString().slice(0, 10);
+                const _usedToday = gameState.heldKey.lastUsedDate === _todayStr;
+                let _cdH = 0, _cdM = 0;
+                if (_usedToday) {
+                    const _midnight = new Date(_todayStr);
+                    _midnight.setUTCDate(_midnight.getUTCDate() + 1);
+                    const _cdLeft = _midnight.getTime() - _now;
+                    _cdH = Math.floor(_cdLeft / 3600000);
+                    _cdM = Math.floor((_cdLeft % 3600000) / 60000);
+                }
 
-                if (_onCooldown) {
+                if (_usedToday) {
                     return `
                     <div style="text-align:center; margin-bottom:8px; font-size:0.75em; color:${_urgent ? '#ff6644' : '#666'};">
-                        ⏳ Expires in ${_expH}h ${_expM}m
+                        ⏳ Expires in ${_expH}h ${_expM}m — use tomorrow to keep it
                     </div>
                     <button disabled style="width:100%; background:#111; border:1px solid #333; border-radius:10px; padding:13px; color:#555; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:not-allowed;">
-                        🗝️ USED — Ready in ${_cdH}h ${_cdM}m
+                        🗝️ USED TODAY — Resets in ${_cdH}h ${_cdM}m
                     </button>`;
                 }
                 return `

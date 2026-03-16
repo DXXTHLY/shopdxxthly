@@ -4084,8 +4084,15 @@ window.onload = function() {
         
         const now = Date.now();
         const passiveGain = D(gameState.stats.sps).div(TICKS_PER_SECOND);
+        const _soulsBefore = D(gameState.souls);
         gameState.souls = D(gameState.souls).add(passiveGain);
         gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(passiveGain);
+        // DEBUG — remove after confirming souls tick
+        if (tickCounter % 20 === 0) {
+            const _soulsAfter = D(gameState.souls);
+            const _moved = _soulsAfter.gt(_soulsBefore);
+            console.log(`[TICK] sps=${formatNumber(D(gameState.stats.sps))} | gain=${formatNumber(passiveGain)} | before=${formatNumber(_soulsBefore)} | after=${formatNumber(_soulsAfter)} | moved=${_moved}`);
+        }
 		
 		// Cap stats — clamp all currencies to 0 minimum (prevents Charon's Oar or other bugs from going negative)
 		gameState.souls          = Dmax0(gameState.souls);

@@ -19652,21 +19652,38 @@ function useKey() {
     const keyId = gameState.heldKey.id;
     const now = Date.now();
 
-    // Expire check — key is lost if NOT used within 24h of last use (or obtaining)
+    // Expiry check — if 24h passed since obtainedAt without use, key is lost
     const expired = now - gameState.heldKey.obtainedAt > KEY_EXPIRY_MS;
     if (expired) {
+        returnKeyToPool();
         gameState.heldKey = null;
         saveGame();
         renderKeyInSettings();
         return;
     }
 
+    // Once-per-24h cooldown — lastUsed tracks when it was last activated
+    if (gameState.heldKey.lastUsed) {
+        const cooldownLeft = KEY_EXPIRY_MS - (now - gameState.heldKey.lastUsed);
+        if (cooldownLeft > 0) {
+            const h = Math.floor(cooldownLeft / 3600000);
+            const m = Math.floor((cooldownLeft % 3600000) / 60000);
+            const key = KEYS[keyId];
+            Toastify({
+                text: `🗝️ Already used today — available again in ${h}h ${m}m`,
+                duration: 4000, gravity: 'top', position: 'center',
+                style: { background: `linear-gradient(135deg,#1a0a0a,#2a0808)`, border: `1px solid #ff444466` }
+            }).showToast();
+            return;
+        }
+    }
+
     const key = KEYS[keyId];
     const result = key.effect();
 
-    // Using the key resets the 24h expiry clock — keeps it alive for another 24h
-    gameState.heldKey.obtainedAt = now;
-    delete gameState.heldKey.lastUsed; // remove old cooldown data if present
+    // Record use — also resets the 24h expiry clock so you keep it another 24h
+    gameState.heldKey.lastUsed  = now;
+    gameState.heldKey.obtainedAt = now; // reset expiry: use it = keep it 24h more
 
     saveGame();
     calculateStats();
@@ -19741,13 +19758,30 @@ function renderKeyInSettings() {
             <p style="color:#aaa; font-size:0.8em; margin:0 0 18px; border-left:2px solid ${key.color}66; padding-left:8px;">${key.desc}</p>
             ${(() => {
                 const _now = Date.now();
-                const _left = KEY_EXPIRY_MS - (_now - gameState.heldKey.obtainedAt);
-                const _h = Math.floor(_left / 3600000);
-                const _m = Math.floor((_left % 3600000) / 60000);
-                const _urgent = _left < 3600000; // < 1h
+                const _expiresLeft = KEY_EXPIRY_MS - (_now - gameState.heldKey.obtainedAt);
+                const _expH = Math.floor(_expiresLeft / 3600000);
+                const _expM = Math.floor((_expiresLeft % 3600000) / 60000);
+                const _urgent = _expiresLeft < 3600000;
+
+                // Check use cooldown
+                const _lastUsed = gameState.heldKey.lastUsed || 0;
+                const _cdLeft = _lastUsed ? Math.max(0, KEY_EXPIRY_MS - (_now - _lastUsed)) : 0;
+                const _onCooldown = _cdLeft > 0;
+                const _cdH = Math.floor(_cdLeft / 3600000);
+                const _cdM = Math.floor((_cdLeft % 3600000) / 60000);
+
+                if (_onCooldown) {
+                    return `
+                    <div style="text-align:center; margin-bottom:8px; font-size:0.75em; color:${_urgent ? '#ff6644' : '#666'};">
+                        ⏳ Expires in ${_expH}h ${_expM}m
+                    </div>
+                    <button disabled style="width:100%; background:#111; border:1px solid #333; border-radius:10px; padding:13px; color:#555; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:not-allowed;">
+                        🗝️ USED — Ready in ${_cdH}h ${_cdM}m
+                    </button>`;
+                }
                 return `
-                <div style="text-align:center; margin-bottom:12px; font-size:0.75em; color:${_urgent ? '#ff6644' : '#666'};">
-                    ⏳ Expires in ${_h}h ${_m}m — use it to reset the clock
+                <div style="text-align:center; margin-bottom:8px; font-size:0.75em; color:${_urgent ? '#ff6644' : '#666'};">
+                    ⏳ Expires in ${_expH}h ${_expM}m — use it to reset the clock
                 </div>
                 <button onclick="useKey()" style="width:100%; background:linear-gradient(135deg,${key.color}33,${key.color}11); border:1px solid ${key.color}88; border-radius:10px; padding:13px; color:${key.color}; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:pointer; text-shadow:0 0 8px ${key.color}66; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,${key.color}55,${key.color}22)'" onmouseout="this.style.background='linear-gradient(135deg,${key.color}33,${key.color}11)'">
                     🗝️ USE THE KEY

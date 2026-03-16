@@ -20091,7 +20091,11 @@ function pwRenderMap() {
             tt.style.cssText = `position:absolute;left:${(x+nodeSize/2+8).toFixed(0)}px;top:${(y-30).toFixed(0)}px;background:linear-gradient(135deg,#1a0a2a,#0a0812);border:1px solid ${color}66;border-radius:8px;padding:8px 12px;font-size:0.72em;color:#ddd;z-index:100;pointer-events:none;white-space:nowrap;min-width:140px;box-shadow:0 4px 20px rgba(0,0,0,0.8);`;
             tt.innerHTML = `<div style="color:${color};font-weight:bold;margin-bottom:4px;">${PW_NODE_NAMES[i]}</div>
                 <div style="color:#888;font-size:0.9em;">Tier ${tier} · +${tier*5}% war bonus</div>
-                ${isOwned ? `<div style="color:${color};margin-top:3px;">${node.owner_emblem||'⚔'} ${node.owner_pact}</div><div style="color:#555;font-size:0.85em;">Strength: ${strPct}%</div>` : `<div style="color:#555;margin-top:3px;">Unclaimed territory</div>`}`;
+                ${isOwned
+                ? `<div style="color:${color};margin-top:3px;">${node.owner_emblem||'⚔'} ${node.owner_pact}</div>
+                   <div style="color:#555;font-size:0.85em;">Defense: ${node.siege_score ? formatNumber(node.siege_score) + ' souls' : strPct + '% str'}</div>
+                   <div style="color:#333;font-size:0.8em;">Beat this to capture</div>`
+                : `<div style="color:#555;margin-top:3px;">Unclaimed territory</div>`}`;
             map.appendChild(tt);
         });
         el.addEventListener('mouseleave', () => {
@@ -20631,6 +20635,377 @@ setInterval(() => {
         pwUpdateBanner();
     }
 }, 30000);
+
+
+// =================================================================
+// ⚔ SOUL SIEGE — active click-battle minigame for node capture
+// All pact members click simultaneously to fill a shared soul pool
+// Threshold = tier * memberCount * base scaling
+// =================================================================
+
+let _siegeState = null; // active battle state
+let _siegeInterval = null;
+let _siegeChannel = null;
+const SIEGE_DURATION = 60; // seconds
+const SIEGE_BASE = 1e6; // base threshold multiplier
+
+// Tier thresholds: how much combined SPC×seconds needed
+const SIEGE_THRESHOLDS = [0, 30, 60, 120, 240, 500]; // multiplied by SPC each second
+
+function pwClosePrepModal() {
+    document.getElementById('pw-action-overlay').style.display = 'none';
+    clearInterval(window._pwRallyModalInterval);
+    window._pwRallyModalInterval = null;
+}
+
+// ── Launch siege for all committed members ───────────────────────
+async function pwLaunchSiege(battleId, nodeIdx, memberCount, action) {
+    if (!supabaseClient) return;
+    const tier = PW_NODE_BONUS[nodeIdx] || 1;
+    const node = pwNodes[nodeIdx];
+
+    // Threshold: if node is owned, they must BEAT the previous pact's siege_score
+    // If unclaimed, use a base threshold scaled by tier
+    let threshold;
+    if (node.owner_pact && node.siege_score && node.siege_score > 0) {
+        // Must beat their score — plus a 10% buffer so ties always fail
+        threshold = Math.round(node.siege_score * 1.1);
+    } else {
+        // Unclaimed base threshold scales by tier × memberCount
+        const defenseStr = node.owner_pact ? (node.strength || 50) : 10;
+        threshold = Math.round(tier * 80 * (1 + defenseStr/100) * memberCount);
+    }
+
+    _siegeState = {
+        battleId, nodeIdx, action,
+        threshold,
+        myContribution: 0,
+        totalContribution: 0,
+        memberCount,
+        startedAt: Date.now(),
+        ended: false,
+        timerLeft: SIEGE_DURATION,
+    };
+
+    // Update DB with threshold and start time
+    await supabaseClient.from('pact_war_battles').upsert({
+        id: battleId,
+        node_id: nodeIdx,
+        node_name: PW_NODE_NAMES[nodeIdx],
+        pact_name: window.playerPact?.pact_name,
+        action,
+        threshold,
+        current_total: 0,
+        expires_at: new Date(Date.now() + SIEGE_DURATION * 1000).toISOString(),
+        resolved: false,
+        member_count: memberCount
+    }, { onConflict: 'id' });
+
+    pwOpenSiegeScreen(battleId, nodeIdx, threshold, action);
+}
+
+function pwOpenSiegeScreen(battleId, nodeIdx, threshold, action) {
+    const overlay = document.getElementById('pw-siege-overlay');
+    const node    = pwNodes[nodeIdx];
+    const TIER_COLORS = ['#333','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
+    const tier = PW_NODE_BONUS[nodeIdx] || 1;
+    const tc   = TIER_COLORS[tier];
+
+    document.getElementById('siege-node-name').textContent = PW_NODE_NAMES[nodeIdx];
+    document.getElementById('siege-node-name').style.color = tc;
+    document.getElementById('siege-timer-ring').style.stroke = tc;
+    const defScoreLabel = (action !== 'reinforce' && node.owner_pact && node.siege_score)
+        ? ` Their record: ${formatNumber(node.siege_score)} souls — beat it!`
+        : '';
+    document.getElementById('siege-subtitle').textContent =
+        action === 'reinforce' ? `🛡 Reinforcing — contributions add to your node's defense score!`
+        : node.owner_pact ? `⚔ Attacking ${node.owner_pact} —${defScoreLabel}`
+        : `🚩 Unclaimed — pour your souls in before time runs out!`;
+    document.getElementById('siege-progress-label').textContent = `0 / ${formatNumber(threshold)}`;
+    document.getElementById('siege-progress-bar').style.width = '0%';
+    document.getElementById('siege-my-contribution').innerHTML = `Your contribution: <span style="color:#ff8866;">0</span>`;
+    document.getElementById('siege-outcome').style.display = 'none';
+    document.getElementById('siege-click-btn').disabled = false;
+    document.getElementById('siege-click-btn').style.opacity = '1';
+
+    overlay.style.display = 'flex';
+
+    // Subscribe to realtime battle updates
+    if (_siegeChannel) supabaseClient.removeChannel(_siegeChannel);
+    _siegeChannel = supabaseClient.channel('siege-' + battleId)
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pact_war_battles', filter: `id=eq.${battleId}` },
+            (payload) => { if (!_siegeState?.ended) pwUpdateSiegeUI(payload.new); }
+        ).subscribe();
+
+    // Start countdown timer
+    clearInterval(_siegeInterval);
+    const endTime = Date.now() + SIEGE_DURATION * 1000;
+    _siegeInterval = setInterval(async () => {
+        if (!_siegeState || _siegeState.ended) { clearInterval(_siegeInterval); return; }
+        const secsLeft = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+        _siegeState.timerLeft = secsLeft;
+
+        // Update timer ring
+        const pct = secsLeft / SIEGE_DURATION;
+        const circumference = 276.5;
+        const offset = circumference * (1 - pct);
+        document.getElementById('siege-timer-ring').style.strokeDashoffset = offset;
+        document.getElementById('siege-timer-text').textContent = secsLeft;
+
+        // Color danger
+        if (secsLeft <= 10) {
+            document.getElementById('siege-timer-ring').style.stroke = '#ff2222';
+            document.getElementById('siege-timer-text').style.color = '#ff2222';
+        } else if (secsLeft <= 20) {
+            document.getElementById('siege-timer-ring').style.stroke = '#ffaa00';
+        }
+
+        if (secsLeft <= 0) {
+            clearInterval(_siegeInterval);
+            if (!_siegeState.ended) await pwEndSiege(battleId, nodeIdx, false, 'Time ran out!');
+        }
+    }, 1000);
+}
+
+// ── The click ────────────────────────────────────────────────────
+async function pwSiegeClick() {
+    if (!_siegeState || _siegeState.ended) return;
+    const btn = document.getElementById('siege-click-btn');
+    if (btn.disabled) return;
+
+    // Visual feedback — button pulse
+    btn.style.transform = 'scale(0.93)';
+    btn.style.boxShadow = '0 0 60px #ff664466, 0 0 120px #ff664422';
+    setTimeout(() => {
+        btn.style.transform = 'scale(1)';
+        btn.style.boxShadow = '0 0 40px #ff664433, 0 0 80px #ff664411';
+    }, 80);
+
+    // Damage = SPC * a small multiplier so it feels impactful
+    const spc = D(gameState.stats?.spc || 1);
+    const clickDamage = parseFloat(spc.mul(0.1).toFixed(0)) || 1; // 10% of SPC per click
+
+    _siegeState.myContribution += clickDamage;
+    document.getElementById('siege-my-contribution').innerHTML =
+        `Your contribution: <span style="color:#ff8866;">${formatNumber(clickDamage * 10)} souls/click · Total: ${formatNumber(_siegeState.myContribution)}</span>`;
+
+    // Animate floating number
+    const overlay = document.getElementById('pw-siege-overlay');
+    const floater = document.createElement('div');
+    floater.textContent = '+' + formatNumber(clickDamage);
+    floater.style.cssText = `position:absolute; color:#ff8866; font-weight:bold; font-size:1.1em;
+        left:${40 + Math.random()*20}%; top:55%; pointer-events:none; z-index:500;
+        animation:pwFloatUp 0.8s ease-out forwards; text-shadow:0 0 10px #ff6644;`;
+    overlay.appendChild(floater);
+    setTimeout(() => floater.remove(), 800);
+
+    // Push contribution to DB (batched — only update every 3 clicks)
+    _siegeState._pendingClicks = (_siegeState._pendingClicks || 0) + clickDamage;
+    _siegeState._clickCount = (_siegeState._clickCount || 0) + 1;
+    if (_siegeState._clickCount % 3 === 0) {
+        await pwFlushClicksToDb(battleId_from_state());
+    }
+}
+
+function battleId_from_state() { return _siegeState?.battleId; }
+
+async function pwFlushClicksToDb(battleId) {
+    if (!battleId || !_siegeState || !supabaseClient) return;
+    const pending = _siegeState._pendingClicks || 0;
+    if (pending <= 0) return;
+    _siegeState._pendingClicks = 0;
+
+    // Atomically increment the total
+    try {
+        await supabaseClient.rpc('siege_add_contribution', {
+            battle_id: battleId,
+            amount: Math.round(pending),
+            player_name: gameState.playerName
+        });
+    } catch(e) {
+        // Fallback: direct update
+        const { data } = await supabaseClient.from('pact_war_battles')
+            .select('current_total').eq('id', battleId).single().catch(()=>({data:null}));
+        if (data) {
+            await supabaseClient.from('pact_war_battles')
+                .update({ current_total: (data.current_total||0) + Math.round(pending) })
+                .eq('id', battleId);
+        }
+    }
+}
+
+// ── Update UI from realtime DB changes ──────────────────────────
+async function pwUpdateSiegeUI(battle) {
+    if (!_siegeState || _siegeState.ended) return;
+    const total = battle.current_total || 0;
+    const threshold = _siegeState.threshold;
+    const pct = Math.min(100, (total / threshold) * 100);
+
+    _siegeState.totalContribution = total;
+
+    document.getElementById('siege-progress-bar').style.width = pct + '%';
+    document.getElementById('siege-progress-label').textContent = `${formatNumber(total)} / ${formatNumber(threshold)}`;
+    document.getElementById('siege-pct-label').textContent = pct.toFixed(0) + '%';
+
+    // Update participant rows
+    if (battle.participant_data) {
+        try {
+            const parts = typeof battle.participant_data === 'string' ? JSON.parse(battle.participant_data) : battle.participant_data;
+            const pactMembers = window.playerPact?.members || [];
+            document.getElementById('siege-participants').innerHTML = pactMembers.map(m => {
+                const contrib = parts[m] || 0;
+                const isMe = m === gameState.playerName;
+                return `<div style="background:${isMe ? '#ff664418' : '#ffffff08'}; border:1px solid ${isMe ? '#ff664444' : '#222'}; border-radius:8px; padding:5px 10px; font-size:0.72em; text-align:center;">
+                    <div style="color:${isMe ? '#ff8866' : '#888'}; font-weight:${isMe ? 'bold' : 'normal'};">${m}</div>
+                    <div style="color:#555; font-size:0.85em;">${formatNumber(contrib)}</div>
+                </div>`;
+            }).join('');
+        } catch(e) {}
+    }
+
+    // Win condition
+    if (total >= threshold && !_siegeState.ended) {
+        clearInterval(_siegeInterval);
+        // Flush remaining clicks first
+        if (_siegeState._pendingClicks > 0) await pwFlushClicksToDb(_siegeState.battleId);
+        await pwEndSiege(_siegeState.battleId, _siegeState.nodeIdx, true, 'THRESHOLD REACHED!');
+    }
+}
+
+// ── End siege ────────────────────────────────────────────────────
+async function pwEndSiege(battleId, nodeIdx, victory, reason) {
+    if (!_siegeState || _siegeState.ended) return;
+    _siegeState.ended = true;
+
+    clearInterval(_siegeInterval);
+    if (_siegeChannel) { supabaseClient.removeChannel(_siegeChannel); _siegeChannel = null; }
+
+    // Flush any remaining clicks
+    if (_siegeState._pendingClicks > 0) await pwFlushClicksToDb(battleId);
+
+    const btn = document.getElementById('siege-click-btn');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.3'; }
+
+    const myPact = window.playerPact;
+    const node   = pwNodes[nodeIdx];
+    const action = _siegeState.action;
+    const TIER_COLORS = ['#333','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
+    const tier = PW_NODE_BONUS[nodeIdx] || 1;
+
+    // Outcome display
+    const outcomeEl = document.getElementById('siege-outcome');
+    outcomeEl.style.display = 'block';
+
+    if (victory) {
+        outcomeEl.style.background = 'linear-gradient(135deg,#0a3a0a,#1a5a1a)';
+        outcomeEl.style.border = '2px solid #44cc8866';
+        outcomeEl.innerHTML = `<div style="font-size:2em; margin-bottom:8px;">🏆</div>
+            <div style="color:#44cc88; font-weight:bold; font-size:1.1em; letter-spacing:2px;">${action === 'reinforce' ? 'NODE REINFORCED!' : 'NODE CAPTURED!'}</div>
+            <div style="color:#888; font-size:0.82em; margin-top:6px;">${reason}</div>`;
+
+        // Apply the capture to DB — store actual SPC poured in as siege_score
+        // This becomes the defense threshold anyone must beat to take it
+        if (action !== 'reinforce' && myPact) {
+            const siegeScore = _siegeState.totalContribution || _siegeState.threshold;
+            await supabaseClient.from('pact_war_nodes').upsert({
+                node_id: nodeIdx,
+                owner_pact: myPact.pact_name,
+                owner_emblem: myPact.emblem || '⚔',
+                owner_color: myPact.color || '#ff6644',
+                siege_score: siegeScore,   // ← the score to beat
+                strength: 100,             // full strength on capture
+                last_action: new Date().toISOString()
+            }, { onConflict: 'node_id' });
+            // Update local cache immediately
+            const localNode = pwNodes.find(n => n.node_id === nodeIdx);
+            if (localNode) { localNode.siege_score = siegeScore; localNode.strength = 100; }
+        } else if (action === 'reinforce' && myPact) {
+            // Reinforcing adds to siege_score — makes it harder to take
+            const currentScore = node.siege_score || _siegeState.threshold;
+            const addedScore   = _siegeState.totalContribution || 0;
+            const newScore     = currentScore + addedScore;
+            const newStr       = Math.min(100, (node.strength || 0) + 30);
+            await supabaseClient.from('pact_war_nodes').update({
+                siege_score: newScore,
+                strength: newStr,
+                last_action: new Date().toISOString()
+            }).eq('node_id', nodeIdx);
+            const localNode = pwNodes.find(n => n.node_id === nodeIdx);
+            if (localNode) { localNode.siege_score = newScore; localNode.strength = newStr; }
+        }
+
+        const logMsg = action === 'reinforce'
+            ? `🛡 ${myPact?.pact_name} reinforced ${PW_NODE_NAMES[nodeIdx]} via Soul Siege!`
+            : `⚔ ${myPact?.pact_name} CONQUERED ${PW_NODE_NAMES[nodeIdx]} via Soul Siege!`;
+        await supabaseClient.from('pact_war_log').insert({ attacker_pact: myPact?.pact_name, defender_pact: node.owner_pact||null, node_id: nodeIdx, node_name: PW_NODE_NAMES[nodeIdx], action, success: true, attacker_player: gameState.playerName, minion_used: 'Soul Siege', message: logMsg });
+
+        Toastify({ text: logMsg, duration:8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a3a0a,#1a6a1a)', fontSize:'0.9em'} }).showToast();
+
+    } else {
+        outcomeEl.style.background = 'linear-gradient(135deg,#3a0a0a,#5a1a1a)';
+        outcomeEl.style.border = '2px solid #ff444466';
+        outcomeEl.innerHTML = `<div style="font-size:2em; margin-bottom:8px;">💀</div>
+            <div style="color:#ff4444; font-weight:bold; font-size:1.1em; letter-spacing:2px;">SIEGE FAILED</div>
+            <div style="color:#888; font-size:0.82em; margin-top:6px;">${reason} — Pour more souls next time.</div>`;
+
+        const logMsg = `💀 ${myPact?.pact_name} failed to siege ${PW_NODE_NAMES[nodeIdx]} (${formatNumber(_siegeState.totalContribution||0)} / ${formatNumber(_siegeState.threshold)})`;
+        await supabaseClient.from('pact_war_log').insert({ attacker_pact: myPact?.pact_name, defender_pact: node.owner_pact||null, node_id: nodeIdx, node_name: PW_NODE_NAMES[nodeIdx], action, success: false, attacker_player: gameState.playerName, minion_used: 'Soul Siege', message: logMsg });
+        Toastify({ text: logMsg, duration:6000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#3a0a0a,#5a1a1a)'} }).showToast();
+    }
+
+    await supabaseClient.from('pact_war_battles').update({ resolved: true, success: victory }).eq('id', battleId);
+
+    // Close siege screen after 3 seconds
+    setTimeout(async () => {
+        document.getElementById('pw-siege-overlay').style.display = 'none';
+        _siegeState = null;
+        await pwRefresh();
+    }, 3500);
+}
+
+// ── Hook: modify pwStartRally to launch siege when enough members ─
+// Override pwResolveRally to use siege instead of instant resolve
+const _origResolveRally = pwResolveRally;
+pwResolveRally = async function(rallyId, rally, nodeIdx, totalPower, members) {
+    // Mark rally resolved
+    if (supabaseClient) {
+        await supabaseClient.from('pact_war_rallies').update({resolved:true}).eq('id',rallyId);
+    }
+    clearInterval(window._pwRallyModalInterval); window._pwRallyModalInterval = null;
+    document.getElementById('pw-action-overlay').style.display = 'none';
+
+    // Launch siege battle
+    Toastify({ text: `⚔ ALL MEMBERS COMMITTED — SOUL SIEGE BEGINS NOW!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#3a0a00,#5a1a00)'} }).showToast();
+
+    const battleId = 'battle_' + rallyId + '_' + Date.now();
+    await pwLaunchSiege(battleId, nodeIdx, members.length, rally.action || (pwNodes[nodeIdx].owner_pact ? 'attack' : 'claim'));
+};
+
+// ── Solo actions also go through siege ──────────────────────────
+const _origCommitSolo = pwCommitSolo;
+pwCommitSolo = async function(action, nodeIdx) {
+    const radio = document.querySelector('input[name="pw_minion"]:checked');
+    if (!radio) { Toastify({text:'Select a minion first.',duration:2000,gravity:'top',position:'center'}).showToast(); return; }
+
+    document.getElementById('pw-action-overlay').style.display = 'none';
+
+    Toastify({ text: `⚔ Soul Siege begins — 60 seconds!`, duration:2500, gravity:'top', position:'center', style:{background:'#1a0a00'} }).showToast();
+
+    const battleId = 'solo_' + gameState.playerName + '_' + Date.now();
+    await pwLaunchSiege(battleId, nodeIdx, 1, action);
+};
+
+// CSS for floating numbers
+const _pwStyle = document.createElement('style');
+_pwStyle.textContent = `
+@keyframes pwFloatUp {
+    0%   { opacity:1; transform:translateY(0) scale(1); }
+    100% { opacity:0; transform:translateY(-60px) scale(1.3); }
+}
+#siege-click-btn:hover { transform:scale(1.05); box-shadow:0 0 60px #ff664466, 0 0 100px #ff664422 !important; }
+#siege-click-btn:active { transform:scale(0.93) !important; }
+`;
+document.head.appendChild(_pwStyle);
 
 // =================================================================
 // ✎ PLAYER RENAME SYSTEM

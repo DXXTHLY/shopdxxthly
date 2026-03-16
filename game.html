@@ -10326,9 +10326,10 @@ function renderBrewery() {
         if (p.marketOnly) continue; // only available in the Hourly Shop
         if (p.fusedOnly) continue; // only created via Fusion Cauldron
         const meta = getPotionMeta(id);
-        const canAffordSouls = D(gameState.souls).gte(D(p.cost))
+        const canAffordSouls = D(gameState.souls).gte(D(p.cost));
         const canAffordShards = !p.shardsCost || D(gameState.abyssalShards).gte(p.shardsCost);
-        const canAfford = canAffordSouls && canAffordShards;
+        const canAffordFrags = D(gameState.corruptedFragments || 0).gte(1);
+        const canAfford = canAffordSouls && canAffordShards && canAffordFrags;
 
         const cooldownEndTime = gameState.potionCooldowns[id];
         const isOnCooldown = cooldownEndTime && Date.now() < cooldownEndTime;
@@ -10357,6 +10358,7 @@ function renderBrewery() {
             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
                 <span style="color:${canAffordSouls?'#e8c46a':'#ff4444'}; font-size:0.82em;">👻 ${formatNumber(p.cost)}</span>
                 ${p.shardsCost ? `<span style="color:${canAffordShards?'#44aaff':'#ff4444'}; font-size:0.82em;">💎 ${formatNumber(p.shardsCost)} Shards</span>` : ''}
+                <span style="color:${canAffordFrags?'#22c55e':'#ff4444'}; font-size:0.82em;">🔮 1 Fragment</span>
             </div>
             <button class="upgrade-btn" onclick="brewPotion('${id}')" ${isDisabled ? 'disabled' : ''}
                 style="width:100%; border-color:${meta.color}66; ${!isDisabled ? `background:linear-gradient(135deg,${meta.color}18,transparent);` : 'opacity:0.5;'}">
@@ -10500,10 +10502,12 @@ function brewPotion(id) {
         canAfford = D(gameState.souls).gte(D(p.cost)) && D(gameState.abyssalShards).gte(p.shardsCost);
     }
     
-    if (canAfford) {
+    const canAffordFrags = D(gameState.corruptedFragments || 0).gte(1);
+    if (canAfford && canAffordFrags) {
         gameState.souls = D(gameState.souls).sub(D(p.cost));
         gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(p.cost));
         if (p.shardsCost) gameState.abyssalShards = D(gameState.abyssalShards).sub(p.shardsCost);
+        gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(1);
         gameState.potions[id] = (gameState.potions[id] || 0) + 1;
         gameState.potionsBrewed++;
 

@@ -7592,7 +7592,7 @@ function getDefaultGameState() {
         lastPactBuffRoll: 0,
         attackLog: [],
         raidCooldownEnd: 0,
-        heldKey: null, // { id, obtainedAt } — one key at a time, expires 24h
+        heldKey: null, // { id, obtainedAt, lastUsed } — one key at a time, expires 24h after obtaining, usable once per 24h
         itemDurability: {}, // { itemId: currentDurability } — tracked per item instance
         completedPuzzles: [],
         activeExpeditions: {}, 
@@ -16786,7 +16786,20 @@ function addCurrency(type, amt) {
         const id = type.slice(7);
         if (!gameState.minions[id]) gameState.minions[id] = { level: 0, cost: D(minions[id]?.cost || 0), promotionTier: 0 };
         gameState.minions[id].level = (gameState.minions[id].level || 0) + amt;
-        Toastify({ text: `👹 Received ${amt} levels of ${minions[id]?.name || id}!`, duration: 3000, gravity:'top', position:'center' }).showToast();
+        const _prevLv = (gameState.minions[id].level || 0) - amt;
+        const _newLv  = gameState.minions[id].level;
+        const _mn = minions[id];
+        const _bm = battleMinions[id];
+        let _statStr = '';
+        if (_bm && _newLv > 0) {
+            const _total = (1 + Math.floor(_newLv/25)*0.05) * (1 + (gameState.minions[id].promotionTier||0)*0.20);
+            _statStr = ` | ❤${Math.ceil(_bm.hp*_total)} ⚔${Math.ceil(_bm.atk*_total)}`;
+        }
+        Toastify({
+            text: `${_bm?.icon||'👹'} +${amt} ${_mn?.name||id} levels! Lv${_prevLv}→${_newLv}${_statStr}`,
+            duration: 5000, gravity:'top', position:'center',
+            style:{ background:'linear-gradient(135deg,#1a0a0a,#3a1a0a)', border:'1px solid #ff664488' }
+        }).showToast();
     }
 }
 
@@ -19224,20 +19237,37 @@ function closeKeyModal() { document.getElementById('key-modal-overlay').style.di
 function useKey() {
     if (!gameState.heldKey) return;
     const keyId = gameState.heldKey.id;
-    const expired = Date.now() - gameState.heldKey.obtainedAt > KEY_EXPIRY_MS;
+    const now = Date.now();
+
+    // Expire check — key is lost if not used within 24h of obtaining
+    const expired = now - gameState.heldKey.obtainedAt > KEY_EXPIRY_MS;
     if (expired) {
-        // Expired silently — just clear it, no message
         gameState.heldKey = null;
         saveGame();
         renderKeyInSettings();
         return;
     }
+
+    // 24h use cooldown — once used, cannot be used again for 24h
+    if (gameState.heldKey.lastUsed) {
+        const cooldownLeft = KEY_EXPIRY_MS - (now - gameState.heldKey.lastUsed);
+        if (cooldownLeft > 0) {
+            const h = Math.floor(cooldownLeft / 3600000);
+            const m = Math.floor((cooldownLeft % 3600000) / 60000);
+            Toastify({
+                text: `🗝️ Key already used — available again in ${h}h ${m}m`,
+                duration: 4000, gravity:'top', position:'center',
+                style:{ background:'linear-gradient(135deg,#1a0a0a,#3a1010)', border:'1px solid #ff444466' }
+            }).showToast();
+            return;
+        }
+    }
+
     const key = KEYS[keyId];
     const result = key.effect();
 
-    // Using the key resets the 24h timer — key stays with the player
-    // It only disappears if they go 24h WITHOUT using it
-    gameState.heldKey.obtainedAt = Date.now();
+    // Record use time — does NOT reset obtainedAt (expiry clock unchanged)
+    gameState.heldKey.lastUsed = now;
 
     saveGame();
     calculateStats();
@@ -19308,9 +19338,21 @@ function renderKeyInSettings() {
             </div>
             <p style="color:#888; font-size:0.8em; font-style:italic; margin:0 0 10px;">"${key.lore}"</p>
             <p style="color:#aaa; font-size:0.8em; margin:0 0 18px; border-left:2px solid ${key.color}66; padding-left:8px;">${key.desc}</p>
-            <button onclick="useKey()" style="width:100%; background:linear-gradient(135deg,${key.color}33,${key.color}11); border:1px solid ${key.color}88; border-radius:10px; padding:13px; color:${key.color}; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:pointer; text-shadow:0 0 8px ${key.color}66; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,${key.color}55,${key.color}22)'" onmouseout="this.style.background='linear-gradient(135deg,${key.color}33,${key.color}11)'">
-                🗝️ USE THE KEY
-            </button>
+            ${(() => {
+                const _now = Date.now();
+                const _onCd = gameState.heldKey.lastUsed && (KEY_EXPIRY_MS - (_now - gameState.heldKey.lastUsed)) > 0;
+                const _cdLeft = _onCd ? KEY_EXPIRY_MS - (_now - gameState.heldKey.lastUsed) : 0;
+                const _cdH = Math.floor(_cdLeft / 3600000);
+                const _cdM = Math.floor((_cdLeft % 3600000) / 60000);
+                if (_onCd) {
+                    return `<button disabled style="width:100%; background:#1a1a1a; border:1px solid #33333366; border-radius:10px; padding:13px; color:#555; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:not-allowed;">
+                        ⏳ USED — Ready in ${_cdH}h ${_cdM}m
+                    </button>`;
+                }
+                return `<button onclick="useKey()" style="width:100%; background:linear-gradient(135deg,${key.color}33,${key.color}11); border:1px solid ${key.color}88; border-radius:10px; padding:13px; color:${key.color}; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:pointer; text-shadow:0 0 8px ${key.color}66; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,${key.color}55,${key.color}22)'" onmouseout="this.style.background='linear-gradient(135deg,${key.color}33,${key.color}11)'">
+                    🗝️ USE THE KEY
+                </button>`;
+            })()}
         </div>`;
 }
 
@@ -19484,14 +19526,13 @@ function updateBarterDropdowns() {
             const lv = gameState.minions[id]?.level || 0;
             const bm = battleMinions[id];
             const gm = gameState.minions[id];
-            // Compute scaled stats
             const promoTier = gm?.promotionTier || 0;
             const lvlBonus  = 1 + (Math.floor(lv / 25) * 0.05);
             const proBonus  = 1 + (promoTier * 0.20);
             const total     = lvlBonus * proBonus;
             const sHp  = bm ? Math.ceil(bm.hp  * total) : '?';
             const sAtk = bm ? Math.ceil(bm.atk * total) : '?';
-            haveStr = `You have: Lv${lv}${promoTier > 0 ? ' ' + '★'.repeat(promoTier) : ''} — Current stats: ❤${sHp} ⚔${sAtk} ↔${bm?.range||'?'} | Listing deducts levels from your minion`;
+            haveStr = `Lv${lv}${promoTier > 0 ? ' ★'.repeat(promoTier) : ''} · ❤${sHp} ⚔${sAtk} ↔${bm?.range||'?'} — Buyer's levels STACK with any they already own`;
             if (offerAmtInput && !offerAmtInput.value) offerAmtInput.value = lv;
         }
         preview.textContent = haveStr;

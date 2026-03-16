@@ -3239,7 +3239,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div style="color:#ff6644; font-weight:bold; font-size:0.85em; letter-spacing:2px; margin-bottom:12px;">📜 RECENT BATTLES</div>
                     <div id="pw-battle-log" style="display:flex; flex-direction:column; gap:6px; max-height:300px; overflow-y:auto;"></div>
                 </div>
-            </div>
+            </div><!-- /pactwars-screen -->
 
             <!-- ================================================================= -->
             <!-- BANK SCREEN -->
@@ -19798,21 +19798,25 @@ let pwCycleEnd = null;
 
 // ── Load / Refresh ──────────────────────────────────────────────
 async function pwRefresh() {
-    // Always render map immediately with whatever we have (no DB required for initial render)
-    pwInitNodes();
-    pwRenderMap();
-    pwUpdateBanner();
-    pwRenderEmblemPanel();
+    // Step 1: always render immediately — no DB needed
+    pwInitNodes();        // ensure 25 nodes exist
+    pwRenderMap();        // draw the grid
+    pwUpdateBanner();     // show timer
+    pwRenderEmblemPanel(); // show pact identity
 
-    // Then load live data from DB and re-render
-    if (supabaseClient) {
-        await pwLoadNodes();
-        pwRenderMap();
-        pwUpdateBanner();
-        pwRenderBattleLog();
-    } else {
-        const logEl = document.getElementById('pw-battle-log');
-        if (logEl) logEl.innerHTML = '<div style="color:#555; font-size:0.8em; text-align:center; padding:12px;">Connect to Supabase to see live battles.</div>';
+    // Step 2: load live data and re-render
+    try {
+        if (supabaseClient) {
+            await pwLoadNodes();
+            pwRenderMap();
+            pwUpdateBanner();
+            await pwRenderBattleLog();
+        } else {
+            const logEl = document.getElementById('pw-battle-log');
+            if (logEl) logEl.innerHTML = '<div style="color:#444; font-size:0.8em; text-align:center; padding:12px;">Sign in to see live battles.</div>';
+        }
+    } catch(e) {
+        console.warn('[PactWars] refresh error:', e);
     }
 }
 

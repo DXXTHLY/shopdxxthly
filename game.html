@@ -11179,11 +11179,23 @@ async function authSignOut() {
 async function saveGameToCloud(uid, db) {
     if (!uid || !db) return;
     try {
-        // Serialize Decimal fields to strings before cloud save
+        // Serialize ALL Decimal fields to strings before cloud save
         const saveData = { ...gameState,
-            souls:         D(gameState.souls).toString(),
-            lifetimeSouls: D(gameState.lifetimeSouls).toString(),
+            souls:              D(gameState.souls).toString(),
+            lifetimeSouls:      D(gameState.lifetimeSouls).toString(),
+            soulsSpent:         D(gameState.soulsSpent || 0).toString(),
+            darkEssence:        D(gameState.darkEssence).toString(),
+            abyssalShards:      D(gameState.abyssalShards).toString(),
+            aether:             D(gameState.aether).toString(),
+            corruptedFragments: D(gameState.corruptedFragments).toString(),
         };
+        // Also serialize stats.sps/spc if they are Decimal objects
+        if (gameState.stats) {
+            saveData.stats = { ...gameState.stats,
+                sps: D(gameState.stats.sps || 0).toString(),
+                spc: D(gameState.stats.spc || 0).toString(),
+            };
+        }
         // stats.sps is recomputed on load — not serialized
         const ts = Date.now();
         saveData._savedAt = ts;
@@ -11254,7 +11266,7 @@ async function loadGameFromCloud(uid, db) {
 
             gameState = deepMerge(defaultState, chosenState);
             gameState.firebaseUid = uid;
-            // Restore Decimal fields from serialized strings (same as loadGame)
+            // Restore ALL Decimal fields — D() now handles {m,e} objects from old corrupted saves
             gameState.souls              = D(gameState.souls              || 0);
             gameState.lifetimeSouls      = D(gameState.lifetimeSouls      || 0);
             gameState.soulsSpent         = D(gameState.soulsSpent         || 0);
@@ -11262,6 +11274,10 @@ async function loadGameFromCloud(uid, db) {
             gameState.abyssalShards      = D(gameState.abyssalShards      || 0);
             gameState.aether             = D(gameState.aether             || 0);
             gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
+            // Ensure playerName is valid — corruption sometimes resets to Unnamed
+            if (!gameState.playerName || gameState.playerName === 'Unnamed') {
+                gameState.playerName = data.playerName || gameState.playerName || 'Unnamed';
+            }
             // stats.sps always recomputed by calculateStats() in enterGame()
             // IMPORTANT: serialize Decimals back to strings before storing in localStorage
             // JSON.stringify(Decimal) = {"m":1,"e":2} which D() can't parse back
@@ -11273,6 +11289,10 @@ async function loadGameFromCloud(uid, db) {
                 abyssalShards:      D(gameState.abyssalShards).toString(),
                 aether:             D(gameState.aether).toString(),
                 corruptedFragments: D(gameState.corruptedFragments).toString(),
+                stats: { ...(gameState.stats||{}),
+                    sps: D(gameState.stats?.sps || 0).toString(),
+                    spc: D(gameState.stats?.spc || 0).toString(),
+                },
             });
             localStorage.setItem('soulCollectorSave_v3', _cloudSaveStr);
         } else {

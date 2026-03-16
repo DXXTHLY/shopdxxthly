@@ -4331,6 +4331,10 @@ function D(x) {
     if (x === null || x === undefined) return new Decimal(0);
     if (typeof x === 'string') { try { return new Decimal(x); } catch(e) { return new Decimal(0); } }
     if (typeof x === 'number') { if (!isFinite(x) || isNaN(x)) return new Decimal(0); return new Decimal(x); }
+    // Handle corrupted saves: {m: 1.8, e: 264} objects from old Decimal serialization bug
+    if (typeof x === 'object' && x !== null && typeof x.m === 'number' && typeof x.e === 'number') {
+        try { const d = new Decimal(0); d.m = x.m; d.e = x.e; return d; } catch(e) {}
+    }
     return new Decimal(0);
 }
 // Safe toNumber — returns 0 for values beyond JS number range (used only for small quantities)
@@ -7951,6 +7955,13 @@ function loadGame() {
     if (savedGame) {
         try {
             let loadedState = JSON.parse(savedGame);
+            // Detect corrupted save: if souls is a {m,e} object it was saved as Decimal directly
+            // In this case, D() can now recover it — but also trigger a cloud re-sync if logged in
+            const _soulsVal = loadedState.souls;
+            const _saveIsCorrupted = _soulsVal && typeof _soulsVal === 'object' && !(_soulsVal instanceof Decimal) && typeof _soulsVal.m === 'number';
+            if (_saveIsCorrupted) {
+                console.warn('⚠ Corrupted localStorage save detected — Decimals were stored as objects. Recovering...');
+            }
             gameState = deepMerge(defaultState, loadedState);
             // Restore Decimal fields from serialized strings
             gameState.souls              = D(gameState.souls              || 0);
@@ -7970,6 +7981,12 @@ function loadGame() {
             gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
             // stats.sps is always recomputed by calculateStats() — no restore needed
             // Existing player — go straight into the game
+            // If save was corrupted AND user is logged in, force a fresh cloud load
+            if (_saveIsCorrupted && window._scFirebase?.auth?.currentUser) {
+                console.warn('Forcing cloud reload to recover from corrupted localStorage...');
+                loadGameFromCloud(window._scFirebase.auth.currentUser.uid, window._scFirebase.db);
+                return; // cloud load will call enterGame() itself
+            }
             document.getElementById('game-container').style.display = 'block';
             audio.bgm.muted = localStorage.getItem('musicMuted') === 'true';
             audio.sfxMuted  = localStorage.getItem('sfxMuted')   === 'true';

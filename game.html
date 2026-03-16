@@ -2973,11 +2973,11 @@ text-decoration: underline; /* Adds an underline on hover */
                     <h3 style="margin:0 0 4px; color:#aa44ff; letter-spacing:2px;">🔀 ABYSS BARTER</h3>
                     <p style="margin:0 0 18px; color:#666; font-size:0.82em;">Trade resources directly with other players.</p>
                     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;">
-                        <button class="upgrade-btn" id="barter-tab-browse" onclick="showBarterTab('browse')" style="border-color:#c8a80066;">📜 Browse Trades</button>
                         <button class="upgrade-btn" id="barter-tab-post" onclick="showBarterTab('post')" style="border-color:#aa44ff66;">➕ Post a Trade</button>
+                        <button class="upgrade-btn" id="barter-tab-browse" onclick="showBarterTab('browse')" style="border-color:#c8a80066;">📜 Browse Trades</button>
                         <button class="upgrade-btn" onclick="barterPage=0; fetchBarterListings()" style="border-color:#44444466;">🔄 Refresh</button>
                     </div>
-                    <div id="barter-browse-panel">
+                    <div id="barter-browse-panel" style="display:none;">
                         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
                             <span style="color:#666; font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Sort:</span>
                             <select id="barter-sort-select" onchange="barterPage=0; fetchBarterListings()" style="background:#0d0a18; border:1px solid #3d2a4a; color:#aaa; padding:5px 10px; border-radius:7px; font-family:inherit; font-size:0.8em; cursor:pointer;">
@@ -3007,7 +3007,7 @@ text-decoration: underline; /* Adds an underline on hover */
                             <li><em>Loading trades...</em></li>
                         </ul>
                     </div>
-                    <div id="barter-post-panel" style="display:none;">
+                    <div id="barter-post-panel">
                         <div style="background:#0a0812; border:1px solid #3d2a4a; padding:20px; border-radius:10px; max-width:540px; margin:0 auto;">
                             <h4 style="margin:0 0 14px; color:#aa44ff;">Post a Barter Trade</h4>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
@@ -4174,6 +4174,10 @@ window.onload = function() {
                 checkButtons();
             }
 
+            if (document.getElementById('market-screen')?.classList.contains('active')) {
+                const _pPanel = document.getElementById('barter-post-panel');
+                if (_pPanel && _pPanel.style.display !== 'none') updateBarterDropdowns();
+            }
             if (document.getElementById('brewery-screen').classList.contains('active')) {
                 renderBrewery();
             }
@@ -16507,8 +16511,9 @@ function getBarterLabel(type) {
 function showBarterTab(tab) {
     document.getElementById('barter-browse-panel').style.display = tab === 'browse' ? 'block' : 'none';
     document.getElementById('barter-post-panel').style.display   = tab === 'post'   ? 'block' : 'none';
-    document.getElementById('barter-tab-browse').style.borderColor = tab === 'browse' ? '#c8a800' : '';
-    document.getElementById('barter-tab-post').style.borderColor   = tab === 'post'   ? '#c8a800' : '';
+    document.getElementById('barter-tab-browse').style.borderColor = tab === 'browse' ? '#c8a800' : '#c8a80066';
+    document.getElementById('barter-tab-post').style.borderColor   = tab === 'post'   ? '#c8a800' : '#aa44ff66';
+    if (tab === 'post') updateBarterDropdowns();
 }
 
 let barterPage = 0;
@@ -16786,7 +16791,7 @@ async function postBarterListing() {
         if(statusEl) statusEl.textContent = '';
         Toastify({ text: `📜 Trade posted! Waiting for a taker...`, duration: 4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'} }).showToast();
         refreshMarketTicker();
-        showBarterTab('browse');
+        showBarterTab('post');
         fetchBarterListings();
     } catch(e) {
         if(statusEl) statusEl.textContent = 'Error posting trade: ' + e.message;
@@ -19204,13 +19209,101 @@ activateRitual = function(id) {
 };
 
 
-// ── Barter key injection — only show key option if player holds one ────────
+// ── Barter dropdowns — fully rebuilt each time so dynamic options stick ────
 function updateBarterDropdowns() {
     const offerSel = document.getElementById('barter-offer-type');
     const wantSel  = document.getElementById('barter-want-type');
     if (!offerSel || !wantSel) return;
 
-    // Helper to rebuild an optgroup
+    // Save current selections before rebuilding
+    const prevOffer = offerSel.value;
+    const prevWant  = wantSel.value;
+
+    // Helper to fully rebuild a select element
+    function rebuildSelect(sel, includeOwnedOnly) {
+        const holdsKey = gameState.heldKey && (Date.now() - gameState.heldKey.obtainedAt) < KEY_EXPIRY_MS;
+        const keyName = holdsKey ? (KEYS[gameState.heldKey.id]?.name || 'Key of the Abyss') : 'Key of the Abyss';
+
+        sel.innerHTML = '';
+
+        // Currencies
+        const currGroup = document.createElement('optgroup');
+        currGroup.label = 'Currencies';
+        [
+            ['souls', '👻 Souls'],
+            ['darkEssence', '🌑 Dark Essence'],
+            ['abyssalShards', '💎 Abyssal Shards'],
+            ['corruptedFragments', '🔮 Corrupted Fragments'],
+            ['aether', '⚡ Aether'],
+        ].forEach(([val, lbl]) => {
+            const o = document.createElement('option');
+            o.value = val; o.textContent = lbl;
+            currGroup.appendChild(o);
+        });
+        if (holdsKey) {
+            const ko = document.createElement('option');
+            ko.value = 'key'; ko.textContent = `🗝️ ${keyName}`;
+            currGroup.appendChild(ko);
+        }
+        sel.appendChild(currGroup);
+
+        // Potions
+        const myPotions = Object.entries(gameState.potions || {})
+            .filter(([id, qty]) => qty > 0 && potions[id]);
+        const potionSrc = includeOwnedOnly ? myPotions : Object.entries(potions);
+        if (potionSrc.length > 0) {
+            const pg = document.createElement('optgroup'); pg.label = 'Potions';
+            potionSrc.forEach(([id]) => {
+                const qty = gameState.potions[id] || 0;
+                const o = document.createElement('option');
+                o.value = 'potion:' + id;
+                o.textContent = includeOwnedOnly
+                    ? `🧪 ${potions[id].name} (x${qty})`
+                    : `🧪 ${potions[id].name}`;
+                pg.appendChild(o);
+            });
+            sel.appendChild(pg);
+        }
+
+        // Items
+        const myItemIds = [...(gameState.inventory||[]), ...Object.values(gameState.equipped||{}).filter(Boolean)];
+        const itemSrc = includeOwnedOnly
+            ? [...new Set(myItemIds)].filter(id => items[id])
+            : Object.keys(items).filter(id => items[id]);
+        if (itemSrc.length > 0) {
+            const ig = document.createElement('optgroup'); ig.label = 'Items';
+            itemSrc.forEach(id => {
+                const o = document.createElement('option');
+                o.value = 'item:' + id;
+                o.textContent = includeOwnedOnly
+                    ? `🎁 ${items[id].name} (${items[id].rarity})`
+                    : `🎁 ${items[id].name}`;
+                ig.appendChild(o);
+            });
+            sel.appendChild(ig);
+        }
+
+        // Minions
+        const myMinions = Object.entries(gameState.minions || {})
+            .filter(([id, m]) => (m.level || 0) > 0 && minions[id]);
+        const minionSrc = includeOwnedOnly ? myMinions : Object.entries(minions).filter(([id]) => minions[id]);
+        if (minionSrc.length > 0) {
+            const mg = document.createElement('optgroup'); mg.label = 'Minions (levels)';
+            minionSrc.forEach(([id, m]) => {
+                const bm = battleMinions[id];
+                const statsStr = bm ? ` ❤${bm.hp} ⚔${bm.atk} ↔${bm.range} ⚡${bm.cost}pts` : '';
+                const o = document.createElement('option');
+                o.value = 'minion:' + id;
+                o.textContent = includeOwnedOnly
+                    ? `👹 ${minions[id].name} (Lv${(m||gameState.minions[id])?.level||0})${statsStr}`
+                    : `👹 ${minions[id].name}${statsStr}`;
+                mg.appendChild(o);
+            });
+            sel.appendChild(mg);
+        }
+    }
+
+    // Helper to rebuild an optgroup (kept for compatibility)
     function fillGroup(groupId, options) {
         const g = document.getElementById(groupId);
         if (!g) return;
@@ -19222,48 +19315,12 @@ function updateBarterDropdowns() {
         });
     }
 
-    // Potions the player actually has
-    const myPotions = Object.entries(gameState.potions || {})
-        .filter(([id, qty]) => qty > 0 && potions[id])
-        .map(([id, qty]) => ({ value: 'potion:' + id, label: `🧪 ${potions[id].name} (x${qty})` }));
-    fillGroup('barter-offer-potions', myPotions);
-    fillGroup('barter-want-potions', Object.keys(potions).map(id => ({ value: 'potion:' + id, label: `🧪 ${potions[id].name}` })));
+    rebuildSelect(offerSel, true);   // offer: only what you own
+    rebuildSelect(wantSel,  false);  // want: anything
 
-    // Items player owns (inventory + equipped)
-    const myItemIds = [...gameState.inventory, ...Object.values(gameState.equipped || {}).filter(Boolean)];
-    const myItems = [...new Set(myItemIds)].filter(id => items[id])
-        .map(id => ({ value: 'item:' + id, label: `🎁 ${items[id].name} (${items[id].rarity})` }));
-    fillGroup('barter-offer-items', myItems);
-    fillGroup('barter-want-items', Object.keys(items).filter(id => items[id]).map(id => ({ value: 'item:' + id, label: `🎁 ${items[id].name}` })));
-
-    // Minions player has levelled
-    const myMinions = Object.entries(gameState.minions || {})
-        .filter(([id, m]) => (m.level || 0) > 0 && minions[id])
-        .map(([id, m]) => {
-            const bm = battleMinions[id];
-            const statsStr = bm ? ` | ❤${bm.hp} ⚔${bm.atk} ↔${bm.range} ⚡${bm.cost}pts` : '';
-            return { value: 'minion:' + id, label: `👹 ${minions[id].name} (Lv${m.level})${statsStr}` };
-        });
-    fillGroup('barter-offer-minions', myMinions);
-    fillGroup('barter-want-minions', Object.keys(minions).filter(id => minions[id]).map(id => {
-        const bm = battleMinions[id];
-        const statsStr = bm ? ` | ❤${bm.hp} ⚔${bm.atk} ↔${bm.range} ⚡${bm.cost}pts` : '';
-        return { value: 'minion:' + id, label: `👹 ${minions[id].name}${statsStr}` };
-    }));
-
-    // Key handling
-    const holdsKey = gameState.heldKey && (Date.now() - gameState.heldKey.obtainedAt) < KEY_EXPIRY_MS;
-    const keyName = holdsKey ? (KEYS[gameState.heldKey.id]?.name || 'Key of the Abyss') : 'Key of the Abyss';
-    ['barter-offer-type', 'barter-want-type'].forEach((selId, i) => {
-        const sel = document.getElementById(selId);
-        const existing = sel.querySelector('option[value="key"]');
-        if (holdsKey && !existing) {
-            const o = document.createElement('option'); o.value = 'key';
-            o.textContent = i === 0 ? `🗝️ ${keyName}` : `🗝️ A Key of the Abyss`;
-            sel.appendChild(o);
-        } else if (!holdsKey && existing) existing.remove();
-        else if (holdsKey && existing) existing.textContent = i === 0 ? `🗝️ ${keyName}` : `🗝️ A Key of the Abyss`;
-    });
+    // Restore previous selections if still valid
+    if (prevOffer && [...offerSel.options].some(o => o.value === prevOffer)) offerSel.value = prevOffer;
+    if (prevWant  && [...wantSel.options].some(o => o.value === prevWant))   wantSel.value  = prevWant;
 
     // Hide amount for key/item (qty always 1)
     const offerAmt = document.getElementById('barter-offer-amt');
@@ -19290,12 +19347,7 @@ function updateBarterDropdowns() {
     }
 }
 
-// Run on barter tab open
-const _origShowBarterTab = showBarterTab;
-showBarterTab = function(tab) {
-    _origShowBarterTab(tab);
-    if (tab === 'post') setTimeout(updateBarterDropdowns, 50);
-};
+// Barter tab handling is now in showBarterTab directly
 
 
 // =================================================================

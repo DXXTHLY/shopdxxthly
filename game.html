@@ -9531,9 +9531,9 @@ function renderBestiary() {
                 card.innerHTML = `
                     <!-- Header row -->
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                        <div style="font-size:2em; filter:drop-shadow(0 0 6px ${tc}66);">${m.icon}</div>
+                        <div style="font-size:2em; filter:drop-shadow(0 0 6px ${tc}66); position:relative;">${m.icon}${(pm.barterLevels||0)>0 ? '<span style=\"position:absolute;top:-4px;right:-6px;font-size:0.45em;background:#aa44ff;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;\" title=\"Has barter-acquired levels\">🔀</span>' : ''}</div>
                         <div style="flex:1;">
-                            <div style="color:#ddd; font-weight:bold; font-size:0.88em;">${m.name}</div>
+                            <div style="color:#ddd; font-weight:bold; font-size:0.88em;">${m.name}${(pm.promotionTier||0)>0 ? ' <span style=\"color:#c8a800; font-size:0.8em;\">' + '★'.repeat(pm.promotionTier) + '</span>' : ''}</div>
                             <div style="color:#555; font-size:0.7em;">Lv ${pm.level} · ${formatNumber(m.baseSps)} base SPS</div>
                         </div>
                         <div style="text-align:right;">
@@ -9604,6 +9604,25 @@ function renderBestiary() {
                         </div>`;
                     })()}
 
+                    <!-- Barter acquired badge -->
+                    ${(() => {
+                        const bl = pm.barterLevels || 0;
+                        if (bl <= 0) return '';
+                        const earnedLv = pm.level - bl;
+                        const copies = bm ? (bl / pm.level) : 0;
+                        return `<div style="background:linear-gradient(135deg,#aa44ff18,#6622aa10); border:1px solid #aa44ff44; border-left:3px solid #aa44ff; border-radius:8px; padding:8px 12px; margin-bottom:8px;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                                <span style="font-size:1em;">🔀</span>
+                                <span style="color:#aa44ff; font-size:0.72em; font-weight:bold; letter-spacing:1px; text-transform:uppercase;">Barter Acquired</span>
+                                <span style="background:#aa44ff33; border:1px solid #aa44ff55; border-radius:10px; padding:1px 7px; font-size:0.65em; color:#cc88ff; margin-left:auto;">+${bl} levels</span>
+                            </div>
+                            <div style="display:flex; gap:14px; font-size:0.7em; color:#666;">
+                                <span>Earned: <span style="color:#aaa;">Lv ${earnedLv}</span></span>
+                                <span>Purchased: <span style="color:#aa44ff;">Lv ${bl}</span></span>
+                                <span>Total: <span style="color:#ddd; font-weight:bold;">Lv ${pm.level}</span></span>
+                            </div>
+                        </div>`;
+                    })()}
                     <!-- Research tiers -->
                     <div style="border-top:1px solid #1a1030; padding-top:8px;">${researchRows}</div>`;
             }
@@ -16786,6 +16805,8 @@ function addCurrency(type, amt) {
         const id = type.slice(7);
         if (!gameState.minions[id]) gameState.minions[id] = { level: 0, cost: D(minions[id]?.cost || 0), promotionTier: 0 };
         gameState.minions[id].level = (gameState.minions[id].level || 0) + amt;
+        // Track barter-acquired levels separately for Bestiary display
+        gameState.minions[id].barterLevels = (gameState.minions[id].barterLevels || 0) + amt;
         const _prevLv = (gameState.minions[id].level || 0) - amt;
         const _newLv  = gameState.minions[id].level;
         const _mn = minions[id];

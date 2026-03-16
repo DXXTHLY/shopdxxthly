@@ -14284,9 +14284,11 @@ function initializeChat() {
             var existing = document.getElementById('trade-offer-overlay'); if (existing) existing.remove();
             var RARITY_C = { common:'#888', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00' };
             var TYPE_ICON = { weapon:'⚔️', idol:'🗿', sigil:'✶', helm:'🧖', tome:'📖' };
+            // offerChoices stores {label, icon, barterType, barterAmt} for auto-listing
             var offerChoices = [];
-            function addCard(label, icon, topColor, bodyHtml) {
-                var idx = offerChoices.length; offerChoices.push({ label:label, icon:icon });
+            function addCard(label, icon, topColor, barterType, barterAmt, bodyHtml) {
+                var idx = offerChoices.length;
+                offerChoices.push({ label:label, icon:icon, barterType:barterType, barterAmt:barterAmt });
                 return '<div class="toc-card" data-idx="'+idx+'" style="border-radius:8px;padding:7px 5px;text-align:center;cursor:pointer;transition:all 0.15s;border:1px solid #2a1a3a;background:linear-gradient(135deg,#0e0a1a,#1a1020);border-top:2px solid '+topColor+';">'+bodyHtml+'</div>';
             }
             function section(title, cards) {
@@ -14297,20 +14299,20 @@ function initializeChat() {
             var souls=typeof D!=='undefined'?D(gameState.souls||0):null;
             var essence=typeof D!=='undefined'?D(gameState.darkEssence||0):null;
             var shards=typeof D!=='undefined'?D(gameState.abyssalShards||0):null;
-            if(souls&&souls.gt(0))   currCards+=addCard(formatNumber(souls)+' Souls','💀','#c41818','<div style="font-size:1.4em;">💀</div><div style="color:#f0d8d8;font-size:0.58em;font-weight:bold;">'+formatNumber(souls)+'</div><div style="color:#555;font-size:0.5em;">Souls</div>');
-            if(essence&&essence.gt(0))currCards+=addCard(formatNumber(essence)+' Dark Essence','🌑','#6622aa','<div style="font-size:1.4em;">🌑</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;">'+formatNumber(essence)+'</div><div style="color:#555;font-size:0.5em;">Essence</div>');
-            if(shards&&shards.gt(0)) currCards+=addCard(formatNumber(shards)+' Abyssal Shards','💎','#4488ff','<div style="font-size:1.4em;">💎</div><div style="color:#88aaff;font-size:0.58em;font-weight:bold;">'+formatNumber(shards)+'</div><div style="color:#555;font-size:0.5em;">Shards</div>');
+            if(souls&&souls.gt(0))   currCards+=addCard(formatNumber(souls)+' Souls','💀','#c41818','souls',souls.toNumber(),'<div style="font-size:1.4em;">💀</div><div style="color:#f0d8d8;font-size:0.58em;font-weight:bold;">'+formatNumber(souls)+'</div><div style="color:#555;font-size:0.5em;">Souls</div>');
+            if(essence&&essence.gt(0))currCards+=addCard(formatNumber(essence)+' Dark Essence','🌑','#6622aa','darkEssence',essence.toNumber(),'<div style="font-size:1.4em;">🌑</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;">'+formatNumber(essence)+'</div><div style="color:#555;font-size:0.5em;">Essence</div>');
+            if(shards&&shards.gt(0)) currCards+=addCard(formatNumber(shards)+' Abyssal Shards','💎','#4488ff','abyssalShards',shards.toNumber(),'<div style="font-size:1.4em;">💎</div><div style="color:#88aaff;font-size:0.58em;font-weight:bold;">'+formatNumber(shards)+'</div><div style="color:#555;font-size:0.5em;">Shards</div>');
             var potCards='';
             Object.keys(gameState.potions||{}).forEach(function(id){
                 var cnt=gameState.potions[id]; if(!cnt||cnt<1||!potions[id]) return;
                 var p=potions[id]; var ico=(typeof potionMeta!=='undefined'&&potionMeta[id]&&potionMeta[id].icon)?potionMeta[id].icon:'⚗️';
-                potCards+=addCard(p.name+' x'+cnt,ico,'#aa44ff','<div style="font-size:1.4em;">'+ico+'</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div><div style="color:#555;font-size:0.5em;">x'+cnt+'</div>');
+                potCards+=addCard(p.name+' x'+cnt,ico,'#aa44ff','potion:'+id,cnt,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div><div style="color:#555;font-size:0.5em;">x'+cnt+'</div>');
             });
             var itemCards='';
             (gameState.inventory||[]).forEach(function(id){
                 if(!items[id]) return;
                 var it=items[id]; var rc=RARITY_C[it.rarity]||'#888'; var ico=TYPE_ICON[it.type]||'🔮';
-                itemCards+=addCard(it.name,ico,rc,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:'+rc+';font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.5em;">'+escapeHTML(it.rarity||'')+'</div>');
+                itemCards+=addCard(it.name,ico,rc,'item:'+id,1,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:'+rc+';font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.5em;">'+escapeHTML(it.rarity||'')+'</div>');
             });
             var body=section('💀 Currencies',currCards)+section('⚗️ Potions',potCards)+section('📦 Items',itemCards)
                 ||'<div style="color:#444;font-size:0.78em;text-align:center;padding:20px;">Your inventory is empty.</div>';
@@ -14322,31 +14324,32 @@ function initializeChat() {
                 +'<div style="color:#44cc88;font-size:0.72em;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">🤝 Trade Proposal</div>'
                 +'<div style="color:#888;font-size:0.78em;">You want: <b style="color:#ddd;">'+escapeHTML(wantIcon)+' '+escapeHTML(wantName)+(wantAmt>1?' x'+wantAmt:'')+'</b> from <b style="color:#c8a800;">'+escapeHTML(targetName)+'</b></div>'
                 +'</div><button id="toc-close" style="background:none;border:none;color:#555;font-size:1.3em;cursor:pointer;padding:2px 6px;">✕</button></div>'
-                +'<div style="color:#555;font-size:0.7em;margin-bottom:10px;">Pick what you are offering — on accept it auto-posts to the Market for them to buy:</div>'
+                +'<div style="color:#555;font-size:0.7em;margin-bottom:10px;">Pick what you are offering. On accept it auto-lists the trade in the Market:</div>'
                 +'<div id="toc-cards" style="overflow-y:auto;flex:1;padding-right:4px;min-height:80px;">'+body+'</div>'
                 +'<div id="toc-selected" style="display:none;background:#0a180a;border:1px solid #44cc8833;border-radius:8px;padding:8px 12px;margin:10px 0 8px;font-size:0.78em;color:#44cc88;"></div>'
-                +'<div style="display:flex;gap:8px;margin-top:4px;"><input id="toc-custom" type="text" placeholder="Custom offer label (optional)" maxlength="80" style="flex:1;background:#0a0812;border:1px solid #2a1a3a;color:#ddd;padding:8px 10px;border-radius:8px;font-family:inherit;font-size:0.82em;outline:none;">'
-                +'<button id="toc-send" style="background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:8px;padding:8px 14px;color:#44cc88;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;white-space:nowrap;">📨 Send</button></div></div>';
+                +'<div style="display:flex;gap:8px;margin-top:4px;">'
+                +'<button id="toc-send" style="width:100%;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:8px;padding:10px 14px;color:#44cc88;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;">📨 Send Trade Offer</button>'
+                +'</div></div>';
             document.body.appendChild(ov);
-            var selectedLabel='', selectedIcon='', selectedOfferType=null;
+            var selectedChoice=null;
             document.getElementById('toc-cards').addEventListener('click', function(e) {
                 var card=e.target.closest('.toc-card'); if(!card) return;
                 var choice=offerChoices[+card.dataset.idx]; if(!choice) return;
                 ov.querySelectorAll('.toc-card').forEach(function(c){c.style.boxShadow='';});
                 card.style.boxShadow='0 0 0 2px #44cc88';
-                selectedLabel=choice.label; selectedIcon=choice.icon; selectedOfferType=choice.offerType||null;
+                selectedChoice=choice;
                 var sel=document.getElementById('toc-selected');
-                sel.style.display='block'; sel.textContent='Offering: '+selectedIcon+' '+selectedLabel;
-                document.getElementById('toc-custom').value='';
+                sel.style.display='block';
+                sel.textContent='Offering: '+choice.icon+' '+choice.label+' (they want: '+escapeHTML(wantIcon)+' '+escapeHTML(wantName)+')';
             });
             document.getElementById('toc-close').addEventListener('click',function(){ov.remove();});
             ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
             document.getElementById('toc-send').addEventListener('click', function() {
-                var customLabel=document.getElementById('toc-custom').value.trim();
-                var offerText=customLabel||(selectedIcon+' '+selectedLabel);
-                if(!selectedLabel&&!customLabel){
-                    document.getElementById('toc-custom').style.borderColor='#ff4444';
-                    setTimeout(function(){document.getElementById('toc-custom').style.borderColor='#2a1a3a';},1500);
+                if(!selectedChoice){
+                    document.getElementById('toc-selected').style.display='block';
+                    document.getElementById('toc-selected').textContent='Please select what you are offering first.';
+                    document.getElementById('toc-selected').style.color='#ff4444';
+                    setTimeout(function(){document.getElementById('toc-selected').style.color='#44cc88';},1500);
                     return;
                 }
                 var chatDb=_getChatDb(); var uid=_getChatUid();
@@ -14354,10 +14357,12 @@ function initializeChat() {
                 var myName=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';
                 var color=localStorage.getItem('slitherChatNameColor')||'#c8a800';
                 var tradeId='tr_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+                // Store barterType+amt in payload so accept can list correctly
                 var tradePayload=JSON.stringify({
                     id:tradeId, from:myName, fromUid:uid, to:targetName,
                     wantType:wantType, wantName:wantName, wantIcon:wantIcon, wantAmt:wantAmt,
-                    offerText:offerText, offerIcon:selectedIcon||''
+                    offerText:selectedChoice.label, offerIcon:selectedChoice.icon,
+                    offerBarterType:selectedChoice.barterType, offerBarterAmt:selectedChoice.barterAmt
                 });
                 chatDb.ref('slitherChat').push({
                     uid:uid, name:myName, chatNameColor:color,
@@ -14369,72 +14374,57 @@ function initializeChat() {
             });
         };
 
-        // When accepted: auto-post to barter market so recipient can buy it
-        window._respondToTrade = async function(tradeId, accepted, fromName, wantIcon, wantName, offerText) {
+        // Accept: list wantType on market asking for offerBarterType — exact types, exact amounts
+        window._respondToTrade = async function(tradeId, accepted, fromName, wantIcon, wantName, offerText, wantType, wantAmt, offerBarterType, offerBarterAmt) {
             var chatDb=_getChatDb(); var uid=_getChatUid();
             if(!chatDb||!uid) return;
             var myName=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';
-            if (accepted) {
-                // Try to auto-post the wanted item to market for the acceptor to buy
-                // wantName is the item name — map it to a barter type
-                var autoPosted = false;
-                if (typeof supabaseClient !== 'undefined' && supabaseClient) {
-                    try {
-                        // Find barter type from wantName
-                        var barterType = null;
-                        // Check items
-                        Object.keys(items||{}).forEach(function(id){
-                            if(items[id].name===wantName) barterType='item:'+id;
-                        });
-                        // Check potions
-                        Object.keys(potions||{}).forEach(function(id){
-                            if(potions[id].name===wantName) barterType='potion:'+id;
-                        });
-                        // Check currencies by label
-                        var currNames={'Souls':'souls','Dark Essence':'darkEssence','Abyssal Shards':'abyssalShards'};
-                        Object.keys(currNames).forEach(function(k){ if(wantName.indexOf(k)!==-1) barterType=currNames[k]; });
-                        if (barterType && typeof hasEnough==='function' && hasEnough(barterType,1)) {
-                            // Deduct 1 unit and post listing asking for offerText as want
-                            // Since want is freeform text we post with want_type=souls want_amt=1 as placeholder
-                            // and put the offer details in offer_note
-                            deductCurrency(barterType, 1); calculateStats(); renderAll();
-                            var noteData = JSON.stringify({tradeId:tradeId, for:fromName, offerText:offerText, autoTrade:true});
-                            var res = await supabaseClient.from('barter_listings').insert({
-                                poster_name: myName,
-                                offer_type: barterType,
-                                offer_amt: 1,
-                                want_type: 'souls',
-                                want_amt: 1,
-                                is_complete: false,
-                                offer_note: noteData
-                            });
-                            if (!res.error) {
-                                autoPosted = true;
-                                if(typeof fetchBarterListings==='function') fetchBarterListings();
-                                if(typeof refreshMarketTicker==='function') refreshMarketTicker();
-                                saveGame();
-                            } else {
-                                addCurrency(barterType,1); calculateStats(); renderAll();
-                            }
-                        }
-                    } catch(e) { console.warn('Auto-list failed:',e); }
-                }
-                var statusText = autoPosted
-                    ? '✅ '+myName+' accepted! The item has been posted to the Market for '+fromName+' to collect — check the Market tab!'
-                    : '✅ '+myName+' accepted the trade from '+fromName+'! ('+wantIcon+' '+wantName+' ⇄ '+offerText+') — coordinate directly to swap.';
-                chatDb.ref('slitherChat').push({
-                    uid:uid, name:'Trade System', chatNameColor:'#44cc88',
-                    time:firebase.database.ServerValue.TIMESTAMP, text:statusText
-                });
-                if(typeof Toastify!=='undefined'){
-                    Toastify({text:autoPosted?'✅ Item posted to Market!':'✅ Accepted! Coordinate with '+fromName+' directly.',duration:8000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();
-                }
-            } else {
+            if (!accepted) {
                 chatDb.ref('slitherChat').push({
                     uid:uid, name:'Trade System', chatNameColor:'#ff4444',
                     time:firebase.database.ServerValue.TIMESTAMP,
                     text: '❌ '+myName+' declined the trade from '+fromName+'.'
                 });
+                return;
+            }
+            // Post: offering wantType (what they have), asking for offerBarterType (what proposer offered)
+            var autoPosted = false;
+            if (typeof supabaseClient!=='undefined' && supabaseClient && wantType && offerBarterType) {
+                try {
+                    var listAmt  = Math.max(1, Math.round(Number(wantAmt)||1));
+                    var wantAmt2 = Math.max(1, Math.round(Number(offerBarterAmt)||1));
+                    if (typeof hasEnough==='function' && hasEnough(wantType, listAmt)) {
+                        deductCurrency(wantType, listAmt); calculateStats(); renderAll();
+                        var res = await supabaseClient.from('barter_listings').insert({
+                            poster_name: myName,
+                            offer_type:  wantType,
+                            offer_amt:   listAmt,
+                            want_type:   offerBarterType,
+                            want_amt:    wantAmt2,
+                            is_complete: false,
+                            offer_note:  JSON.stringify({tradeId:tradeId, reservedFor:fromName, autoTrade:true})
+                        });
+                        if (!res.error) {
+                            autoPosted = true;
+                            if(typeof fetchBarterListings==='function') fetchBarterListings();
+                            if(typeof refreshMarketTicker==='function') refreshMarketTicker();
+                            saveGame();
+                        } else {
+                            addCurrency(wantType, listAmt); calculateStats(); renderAll();
+                            console.warn('Auto-list error:', res.error);
+                        }
+                    }
+                } catch(e) { console.warn('Auto-list failed:', e); }
+            }
+            var statusText = autoPosted
+                ? '✅ '+myName+' accepted! Listed in Market: '+wantIcon+' '+wantName+' asking for '+offerText+' — '+fromName+', check the Market tab!'
+                : '✅ '+myName+' accepted the trade from '+fromName+'! ('+wantIcon+' '+wantName+' ⇄ '+offerText+') — coordinate directly to swap.';
+            chatDb.ref('slitherChat').push({
+                uid:uid, name:'Trade System', chatNameColor:'#44cc88',
+                time:firebase.database.ServerValue.TIMESTAMP, text:statusText
+            });
+            if(typeof Toastify!=='undefined'){
+                Toastify({text:autoPosted?'✅ Listed in Market! '+fromName+' can now buy it.':'✅ Accepted!',duration:8000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();
             }
         };
 
@@ -14478,7 +14468,7 @@ function initializeChat() {
             if (window.standaloneState && window.standaloneState.ignoredUsers && window.standaloneState.ignoredUsers[msg.uid]) return;
             if (!msg || !msg.uid) return;
 
-            // ── Trade card: JSON encoded in text field ──
+            // ── Trade card ──
             var _tr=(function(){
                 var pfx='\u0002TRADE\u0003',sfx='\u0002END\u0003';
                 if(!msg.text||msg.text.indexOf(pfx)===-1)return null;
@@ -14489,9 +14479,19 @@ function initializeChat() {
                 var isTarget=myName2===_tr.to, isFrom=myName2===_tr.from;
                 var actionBtns='';
                 if (isTarget) {
+                    // Pass all fields as data-attrs so _respondToTrade gets exact types+amounts
+                    var da = 'data-tradeid="'+escapeHTML(_tr.id||'')+'"'
+                        +' data-from="'+escapeHTML(_tr.from||'')+'"'
+                        +' data-wanticon="'+escapeHTML(_tr.wantIcon||'')+'"'
+                        +' data-wantname="'+escapeHTML(_tr.wantName||'')+'"'
+                        +' data-offertext="'+escapeHTML(_tr.offerText||'')+'"'
+                        +' data-wanttype="'+escapeHTML(_tr.wantType||'')+'"'
+                        +' data-wantamt="'+escapeHTML(String(_tr.wantAmt||1))+'"'
+                        +' data-offerbartertype="'+escapeHTML(_tr.offerBarterType||'')+'"'
+                        +' data-offerbarteramt="'+escapeHTML(String(_tr.offerBarterAmt||1))+'"';
                     actionBtns='<div style="display:flex;gap:8px;margin-top:10px;">'
-                        +'<button class="trade-resp-btn" data-tradeid="'+escapeHTML(_tr.id||'')+'" data-accepted="false" data-from="'+escapeHTML(_tr.from||'')+'" data-wanticon="'+escapeHTML(_tr.wantIcon||'')+'" data-wantname="'+escapeHTML(_tr.wantName||'')+'" data-offer="'+escapeHTML(_tr.offerText||'')+'" style="flex:1;background:#ff444422;border:1px solid #ff444466;border-radius:7px;padding:8px;color:#ff8888;cursor:pointer;font-family:inherit;font-size:0.82em;">❌ Decline</button>'
-                        +'<button class="trade-resp-btn" data-tradeid="'+escapeHTML(_tr.id||'')+'" data-accepted="true" data-from="'+escapeHTML(_tr.from||'')+'" data-wanticon="'+escapeHTML(_tr.wantIcon||'')+'" data-wantname="'+escapeHTML(_tr.wantName||'')+'" data-offer="'+escapeHTML(_tr.offerText||'')+'" style="flex:2;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:7px;padding:8px;color:#44cc88;cursor:pointer;font-family:inherit;font-size:0.85em;font-weight:bold;">✅ Accept — auto-posts to Market</button>'
+                        +'<button class="trade-resp-btn" '+da+' data-accepted="false" style="flex:1;background:#ff444422;border:1px solid #ff444466;border-radius:7px;padding:8px;color:#ff8888;cursor:pointer;font-family:inherit;font-size:0.82em;">❌ Decline</button>'
+                        +'<button class="trade-resp-btn" '+da+' data-accepted="true" style="flex:2;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:7px;padding:8px;color:#44cc88;cursor:pointer;font-family:inherit;font-size:0.85em;font-weight:bold;">✅ Accept — auto-posts to Market</button>'
                         +'</div>';
                 } else if (isFrom) {
                     actionBtns='<div style="color:#555;font-size:0.72em;text-align:center;margin-top:8px;font-style:italic;">Awaiting response from '+escapeHTML(_tr.to||'')+'...</div>';
@@ -14513,7 +14513,12 @@ function initializeChat() {
                     var btn=e.target.closest('.trade-resp-btn'); if(!btn) return;
                     btn.closest('div').querySelectorAll('button').forEach(function(b){b.disabled=true;b.style.opacity='0.5';});
                     var accepted=btn.dataset.accepted==='true';
-                    window._respondToTrade(btn.dataset.tradeid,accepted,btn.dataset.from,btn.dataset.wanticon,btn.dataset.wantname,btn.dataset.offer);
+                    window._respondToTrade(
+                        btn.dataset.tradeid, accepted, btn.dataset.from,
+                        btn.dataset.wanticon, btn.dataset.wantname, btn.dataset.offertext,
+                        btn.dataset.wanttype, btn.dataset.wantamt,
+                        btn.dataset.offerbartertype, btn.dataset.offerbarteramt
+                    );
                     btn.parentElement.innerHTML='<div style="color:#44cc88;font-size:0.72em;text-align:center;padding:6px;font-style:italic;">'+(accepted?'✅ Accepted! Posting to Market...':'❌ Declined')+'</div>';
                 });
                 chatBodyElement.appendChild(tradeEl);

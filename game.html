@@ -7851,8 +7851,7 @@ function _safeAddCur(key, amount) {
         n = (amount instanceof Decimal) ? amount : D(amount);
     } catch(e) { return; }
     // Use plain number check for the guard (avoids relying on instance method)
-    const asNum = n.toNumber();
-    if (!isFinite(asNum) || isNaN(asNum) || asNum <= 0) return;
+    if (n.isNaN() || !n.isFinite() || n.lte(0)) return;
     gameState[key] = D(gameState[key] || 0).add(n);
 }
 
@@ -8221,10 +8220,10 @@ function buyArtifact(id) {
     let canAfford = false;
     // THIS IS THE FIXED PART: We now check against the calculated 'currentCost' for BOTH types
     if (costType === 'shards' && D(gameState.abyssalShards).gte(currentCost)) {
-        gameState.abyssalShards = D(gameState.abyssalShards).sub(currentCost).toNumber();
+        gameState.abyssalShards = D(gameState.abyssalShards).sub(currentCost);
         canAfford = true;
     } else if (costType === 'essence' && D(gameState.darkEssence).gte(currentCost)) {
-        gameState.darkEssence = D(gameState.darkEssence).sub(currentCost).toNumber();
+        gameState.darkEssence = D(gameState.darkEssence).sub(currentCost);
         canAfford = true;
     }
 
@@ -8359,7 +8358,7 @@ function activateRitual(id) {
     // ── New ritual effect types ──────────────────────────────────────
     if (effect.type === 'gain_aether_no_reset_flat') {
         const gained = Math.max(effect.value, Math.floor(calculateAetherOnCollapse() * effect.value));
-        gameState.aether = (gameState.aether || 0) + (isFinite(gained) ? gained : effect.value);
+        gameState.aether = D(gameState.aether || 0).add(isFinite(gained) ? gained : effect.value);
         Toastify({ text: `⚡ Gained ${formatNumber(gained)} Aether!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#001a2a,#00e5ff)'} }).showToast();
     }
     if (effect.type === 'instant_clicks_flat') {
@@ -10562,7 +10561,7 @@ function usePotion(id) {
             Toastify({ text: `⏳ ALL cooldowns reset — everything is ready!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0a2a,#aa44ff)'} }).showToast();
         }
         if (effect.type === 'double_essence_flat') {
-            const bonus = Math.floor(gameState.darkEssence);
+            const bonus = D(gameState.darkEssence || 0);
             _safeAddCur("darkEssence", bonus);
             Toastify({ text: `🌑 Dark Essence doubled! +${formatNumber(bonus)} DE!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#6600cc)'} }).showToast();
         }

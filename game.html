@@ -3170,6 +3170,19 @@ text-decoration: underline; /* Adds an underline on hover */
                 <h2 style="letter-spacing:3px; color:#ff6644;">⚔ PACT WARS ⚔</h2>
                 <p style="color:var(--dim-color); max-width:600px; margin:0 auto 20px;">Guilds battle for dominion over the Abyss. Claim nodes, crush rivals, and collect the spoils of war.</p>
 
+                <!-- Unclaimed reward alert -->
+                <div id="pw-reward-alert" style="display:none; background:linear-gradient(135deg,#1a1a00,#2a2a00); border:2px solid #c8a80088; border-top:3px solid #c8a800; border-radius:12px; padding:16px 20px; max-width:900px; margin:0 auto 16px; text-align:center; cursor:pointer; animation:pwRewardPulse 2s ease-in-out infinite;" onclick="pwClaimRewards()">
+                    <div style="color:#c8a800; font-family:var(--font-title); font-size:1em; letter-spacing:2px; margin-bottom:4px;">🏆 CYCLE REWARDS READY TO CLAIM!</div>
+                    <div id="pw-reward-alert-desc" style="color:#888; font-size:0.82em;"></div>
+                    <div style="color:#c8a800; font-size:0.78em; margin-top:6px; opacity:0.7;">Click to collect your fragments</div>
+                </div>
+
+                <!-- Last cycle champions banner -->
+                <div id="pw-champions-banner" style="display:none; background:linear-gradient(135deg,#1a1200,#0e0a00); border:1px solid #c8a80033; border-radius:12px; padding:14px 20px; max-width:900px; margin:0 auto 16px;">
+                    <div style="color:#c8a800; font-size:0.75em; letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; opacity:0.7;">⚔ Last Cycle Champions</div>
+                    <div id="pw-champions-content" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;"></div>
+                </div>
+
                 <!-- War status banner -->
                 <div id="pw-status-banner" style="background:linear-gradient(135deg,#1a0a08,#2a1010); border:1px solid #ff664444; border-top:3px solid #ff6644; border-radius:12px; padding:14px 20px; max-width:900px; margin:0 auto 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
                     <div>
@@ -19881,6 +19894,7 @@ async function pwRefresh() {
             pwRenderMap();
             pwUpdateBanner();
             await pwRenderBattleLog();
+            await pwCheckCycleReset();
         } else {
             const logEl = document.getElementById('pw-battle-log');
             if (logEl) logEl.innerHTML = '<div style="color:#444; font-size:0.8em; text-align:center; padding:12px;">Sign in to see live battles.</div>';
@@ -21006,10 +21020,248 @@ _pwStyle.textContent = `
     0%   { opacity:1; transform:translateY(0) scale(1); }
     100% { opacity:0; transform:translateY(-60px) scale(1.3); }
 }
+@keyframes pwRewardPulse {
+    0%,100% { box-shadow:0 0 10px #c8a80033; border-color:#c8a80066; }
+    50%      { box-shadow:0 0 30px #c8a80099, 0 0 60px #c8a80033; border-color:#c8a800cc; }
+}
+#pw-reward-alert { animation:pwRewardPulse 2s ease-in-out infinite; }
 #siege-click-btn:hover { transform:scale(1.05); box-shadow:0 0 60px #ff664466, 0 0 100px #ff664422 !important; }
 #siege-click-btn:active { transform:scale(0.93) !important; }
 `;
 document.head.appendChild(_pwStyle);
+
+
+// =================================================================
+// ⚔ PACT WARS — CYCLE END REWARDS
+// Runs client-side on Monday open. First player to open triggers
+// the cycle close: tallies nodes, writes results, clears the map.
+// Each player claims their own fragments on next login/open.
+// =================================================================
+
+// Fragments per node owned by pact at cycle end (per member)
+const PW_FRAGS_PER_NODE   = 2;
+const PW_OMEGA_BONUS_FRAGS = 5;  // bonus for holding node 24 (Omega)
+const PW_WINNER_BONUS_FRAGS = 10; // most nodes bonus per member
+const PW_SECOND_BONUS_FRAGS = 5;
+
+// ── Get the Monday that just passed (start of current cycle) ────
+function pwGetCycleStart() {
+    var now = new Date();
+    var day = now.getUTCDay(); // 0=Sun, 1=Mon
+    var diff = (day === 0 ? 6 : day - 1); // days since Monday
+    var start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - diff));
+    return start;
+}
+
+function pwGetCycleId() {
+    return pwGetCycleStart().toISOString().slice(0, 10); // e.g. "2026-03-16"
+}
+
+// ── Check if cycle needs closing, load last results, check rewards ─
+async function pwCheckCycleReset() {
+    if (!supabaseClient) return;
+    try {
+        var cycleId = pwGetCycleId();
+
+        // 1. Load last completed cycle result for champions banner
+        var res = await supabaseClient
+            .from('pact_war_cycle_results')
+            .select('*')
+            .order('cycle_id', { ascending: false })
+            .limit(1)
+            .single();
+
+        var lastResult = res.data;
+
+        if (lastResult) {
+            pwShowChampionsBanner(lastResult);
+
+            // 2. Check if this player has unclaimed rewards from last cycle
+            if (lastResult.cycle_id !== cycleId) {
+                // Last result is from a previous cycle — check if player is in it
+                pwCheckUnclaimedReward(lastResult);
+            }
+        }
+
+        // 3. Check if current cycle needs to be closed
+        // (no result exists for this cycle_id = hasn't been tallied yet)
+        if (!lastResult || lastResult.cycle_id !== cycleId) {
+            // Also check if there was a previous cycle that wasn't closed
+            // (i.e. lastResult is from 2+ weeks ago or null)
+            // Trigger close if we're in a new cycle
+            if (!lastResult || lastResult.cycle_id < pwGetPrevCycleId()) {
+                await pwCloseCycle(cycleId);
+            }
+        }
+
+    } catch(e) {
+        console.warn('[PW] cycle check error:', e);
+    }
+}
+
+function pwGetPrevCycleId() {
+    var start = pwGetCycleStart();
+    var prev = new Date(start.getTime() - 7 * 86400000);
+    return prev.toISOString().slice(0, 10);
+}
+
+// ── Close the cycle — tally, write result, clear nodes ──────────
+async function pwCloseCycle(cycleId) {
+    if (!supabaseClient) return;
+
+    // Load all current nodes
+    var nodesRes = await supabaseClient.from('pact_war_nodes').select('*');
+    var nodes = nodesRes.data || [];
+    if (nodes.length === 0) return; // nothing to tally
+
+    // Load all pacts for member lists
+    var pactsRes = await supabaseClient.from('pacts').select('pact_name, members, emblem, color');
+    var pacts = pactsRes.data || [];
+
+    // Tally nodes per pact
+    var pactNodes = {}; // pactName -> [nodeIds]
+    nodes.forEach(function(n) {
+        if (!n.owner_pact) return;
+        if (!pactNodes[n.owner_pact]) pactNodes[n.owner_pact] = [];
+        pactNodes[n.owner_pact].push(n.node_id);
+    });
+
+    // Sort by node count
+    var rankings = Object.keys(pactNodes).map(function(name) {
+        var p = pacts.find(function(x) { return x.pact_name === name; }) || {};
+        return {
+            pact_name: name,
+            emblem: p.emblem || '⚔',
+            color: p.color || '#ff6644',
+            members: p.members || [],
+            nodes: pactNodes[name],
+            node_count: pactNodes[name].length,
+            held_omega: pactNodes[name].indexOf(24) >= 0
+        };
+    }).sort(function(a, b) { return b.node_count - a.node_count; });
+
+    if (rankings.length === 0) return; // no pacts owned anything
+
+    // Build rewards map: playerName -> fragments
+    var rewardMap = {};
+
+    rankings.forEach(function(r, rank) {
+        var baseFrags = r.node_count * PW_FRAGS_PER_NODE;
+        var bonusFrags = 0;
+        if (rank === 0) bonusFrags += PW_WINNER_BONUS_FRAGS;
+        if (rank === 1) bonusFrags += PW_SECOND_BONUS_FRAGS;
+        if (r.held_omega) bonusFrags += PW_OMEGA_BONUS_FRAGS;
+        var totalFrags = baseFrags + bonusFrags;
+
+        r.frags_per_member = totalFrags;
+        r.members.forEach(function(m) {
+            rewardMap[m] = (rewardMap[m] || 0) + totalFrags;
+        });
+    });
+
+    // Write cycle result
+    await supabaseClient.from('pact_war_cycle_results').upsert({
+        cycle_id: cycleId,
+        rankings: rankings,
+        reward_map: rewardMap,
+        closed_at: new Date().toISOString(),
+        total_pacts: rankings.length,
+        winner_pact: rankings[0].pact_name,
+        winner_nodes: rankings[0].node_count
+    }, { onConflict: 'cycle_id' });
+
+    // Reset the map — clear all node ownership
+    await supabaseClient.from('pact_war_nodes').delete().neq('node_id', -1);
+
+    console.log('[PW] Cycle closed:', cycleId, 'Winner:', rankings[0]?.pact_name);
+}
+
+// ── Check if player has unclaimed reward ────────────────────────
+function pwCheckUnclaimedReward(lastResult) {
+    if (!gameState.playerName) return;
+    var rewardMap = lastResult.reward_map || {};
+    var myFrags = rewardMap[gameState.playerName] || 0;
+    if (myFrags <= 0) return;
+
+    // Check if already claimed this cycle
+    var claimedKey = 'pw_claimed_' + lastResult.cycle_id;
+    if (gameState[claimedKey]) return;
+
+    // Show the alert
+    var alert = document.getElementById('pw-reward-alert');
+    var desc  = document.getElementById('pw-reward-alert-desc');
+    if (alert && desc) {
+        desc.textContent = myFrags + ' Corrupted Fragments waiting — from ' + lastResult.winner_pact + ''s cycle ending ' + lastResult.cycle_id;
+        alert.style.display = 'block';
+        alert._cycleResult = lastResult;
+        alert._myFrags = myFrags;
+    }
+}
+
+// ── Player claims their reward ──────────────────────────────────
+function pwClaimRewards() {
+    var alert = document.getElementById('pw-reward-alert');
+    if (!alert || !alert._cycleResult) return;
+    var lastResult = alert._cycleResult;
+    var myFrags    = alert._myFrags || 0;
+    if (myFrags <= 0) return;
+
+    // Mark claimed so we don't give twice
+    var claimedKey = 'pw_claimed_' + lastResult.cycle_id;
+    gameState[claimedKey] = true;
+
+    // Give fragments
+    gameState.corruptedFragments = D(gameState.corruptedFragments || 0).add(myFrags);
+    calculateStats();
+    saveGame();
+
+    alert.style.display = 'none';
+
+    // Big toast
+    var rankings = lastResult.rankings || [];
+    var myRank = rankings.findIndex(function(r) {
+        return r.members && r.members.indexOf(gameState.playerName) >= 0;
+    });
+    var rankLabel = myRank === 0 ? '🥇 Champions!' : myRank === 1 ? '🥈 Runners-up' : '⚔ Participant';
+
+    Toastify({
+        text: '🏆 ' + rankLabel + ' — Collected ' + myFrags + ' Corrupted Fragments from last week's Pact Wars!',
+        duration: 8000, gravity: 'top', position: 'center',
+        style: { background: 'linear-gradient(135deg,#1a1a00,#3a3000)', border: '1px solid #c8a80066', fontSize: '0.9em' }
+    }).showToast();
+}
+
+// ── Show champions banner ───────────────────────────────────────
+function pwShowChampionsBanner(result) {
+    var banner  = document.getElementById('pw-champions-banner');
+    var content = document.getElementById('pw-champions-content');
+    if (!banner || !content) return;
+
+    var rankings = result.rankings || [];
+    if (rankings.length === 0) { banner.style.display = 'none'; return; }
+
+    var medals = ['🥇','🥈','🥉'];
+    var html = '';
+
+    // Cycle date
+    html += '<div style="color:#554400; font-size:0.72em; white-space:nowrap; align-self:flex-start; padding-top:4px;">' + result.cycle_id + '</div>';
+
+    rankings.slice(0, 3).forEach(function(r, i) {
+        var fragLabel = r.frags_per_member > 0 ? ' · +' + r.frags_per_member + ' frags/member' : '';
+        var omegaBadge = r.held_omega ? ' <span style="color:#ff6644; font-size:0.85em;">⚡Omega</span>' : '';
+        html += '<div style="background:' + (r.color || '#ff6644') + '18; border:1px solid ' + (r.color || '#ff6644') + '44; border-radius:10px; padding:8px 14px; display:flex; align-items:center; gap:8px;">'
+            + '<span style="font-size:1.2em;">' + medals[i] + '</span>'
+            + '<span style="font-size:1.3em;">' + (r.emblem || '⚔') + '</span>'
+            + '<div>'
+            +   '<div style="color:' + (r.color || '#ddd') + '; font-weight:bold; font-size:0.85em;">' + r.pact_name + omegaBadge + '</div>'
+            +   '<div style="color:#555; font-size:0.7em;">' + r.node_count + ' nodes' + fragLabel + '</div>'
+            + '</div>'
+            + '</div>';
+    });
+
+    content.innerHTML = html;
+    banner.style.display = 'block';
+}
 
 // =================================================================
 // ✎ PLAYER RENAME SYSTEM

@@ -20198,14 +20198,18 @@ async function pwOpenNodeAction(nodeIdx) {
 
     // Check for active rally on this node already
     if (supabaseClient) {
-        const { data: existing } = await supabaseClient
-            .from('pact_war_rallies')
-            .select('*')
-            .eq('node_id', nodeIdx)
-            .eq('pact_name', myPact.pact_name)
-            .eq('resolved', false)
-            .gt('expires_at', new Date().toISOString())
-            .single().catch(() => ({ data: null }));
+        let existing = null;
+        try {
+            const { data: _ex } = await supabaseClient
+                .from('pact_war_rallies')
+                .select('*')
+                .eq('node_id', nodeIdx)
+                .eq('pact_name', myPact.pact_name)
+                .eq('resolved', false)
+                .gt('expires_at', new Date().toISOString())
+                .maybeSingle();
+            existing = _ex;
+        } catch(e) { existing = null; }
 
         if (existing) {
             // Already a rally in progress — join it

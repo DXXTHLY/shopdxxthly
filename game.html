@@ -9349,7 +9349,7 @@ function showScreen(screenId) {
         renderPactScreen();
         fetchPactLeaderboard();
     }
-    if (screenId === 'pactwars') { pwRefresh(); }
+    if (screenId === 'pactwars') { pwRefresh(); setTimeout(pwCheckActiveRallies, 1500); }
     if (screenId === 'provinggrounds')
     {
         renderProvingGrounds();
@@ -20047,48 +20047,162 @@ function pwRenderMap() {
     });
 }
 
-// ── Node action modal ────────────────────────────────────────────
-function pwOpenNodeAction(nodeIdx) {
+// ── RALLY SYSTEM — coordinated pact attacks ──────────────────────
+// Tier 1-2: solo claim/reinforce OK. Attack needs 1+ members.
+// Tier 3: needs 2 pact members to commit within 3 min window
+// Tier 4: needs 3 pact members
+// Tier 5 (Omega): needs ALL pact members
+const PW_MEMBERS_REQUIRED = [0, 1, 1, 2, 3, 999]; // by tier
+
+let _pwRallyChannel = null; // Supabase realtime channel
+
+async function pwOpenNodeAction(nodeIdx) {
     const myPact = window.playerPact;
     if (!myPact) {
-        Toastify({ text: '⚔ You must be in a Pact to participate in Pact Wars.', duration:3000, gravity:'top', position:'center', style:{background:'#1a0808'} }).showToast();
+        Toastify({ text: '⚔ Join a Pact to fight in Pact Wars.', duration:3000, gravity:'top', position:'center', style:{background:'#1a0808'} }).showToast();
         return;
     }
 
-    const node     = pwNodes[nodeIdx];
-    const isMine   = node.owner_pact === myPact.pact_name;
-    const isOwned  = !!node.owner_pact;
-    const name     = PW_NODE_NAMES[nodeIdx];
-    const tier     = PW_NODE_BONUS[nodeIdx] || 1;
-    const overlay  = document.getElementById('pw-action-overlay');
-    const title    = document.getElementById('pw-action-title');
-    const desc     = document.getElementById('pw-action-desc');
-    const body     = document.getElementById('pw-action-body');
-    const confirm  = document.getElementById('pw-action-confirm');
-    pwSelectedNode = nodeIdx;
+    const node    = pwNodes[nodeIdx];
+    const isMine  = node.owner_pact === myPact.pact_name;
+    const isOwned = !!node.owner_pact;
+    const tier    = PW_NODE_BONUS[nodeIdx] || 1;
+    const needed  = PW_MEMBERS_REQUIRED[tier] || 1;
+    const pactSize = (myPact.members||[]).length;
+
+    // Check for active rally on this node already
+    if (supabaseClient) {
+        const { data: existing } = await supabaseClient
+            .from('pact_war_rallies')
+            .select('*')
+            .eq('node_id', nodeIdx)
+            .eq('pact_name', myPact.pact_name)
+            .eq('resolved', false)
+            .gt('expires_at', new Date().toISOString())
+            .single().catch(() => ({ data: null }));
+
+        if (existing) {
+            // Already a rally in progress — join it
+            pwShowRallyJoinModal(existing, nodeIdx, isMine, isOwned);
+            return;
+        }
+    }
+
+    pwShowInitiateModal(nodeIdx, isMine, isOwned, tier, needed, pactSize);
+}
+
+function pwShowInitiateModal(nodeIdx, isMine, isOwned, tier, needed, pactSize) {
+    const node   = pwNodes[nodeIdx];
+    const name   = PW_NODE_NAMES[nodeIdx];
+    const myPact = window.playerPact;
+    const overlay = document.getElementById('pw-action-overlay');
+    const title   = document.getElementById('pw-action-title');
+    const desc    = document.getElementById('pw-action-desc');
+    const body    = document.getElementById('pw-action-body');
+    const confirm = document.getElementById('pw-action-confirm');
+    const TIER_COLORS = ['#333','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
+    const tc = TIER_COLORS[tier] || '#888';
+    const actualNeeded = isMine ? 1 : Math.min(needed, pactSize);
 
     title.textContent = name;
 
+    const requirementBadge = actualNeeded <= 1
+        ? `<span style="color:#44cc88; background:#44cc8818; border:1px solid #44cc8844; border-radius:6px; padding:2px 8px; font-size:0.8em;">Solo action</span>`
+        : `<span style="color:${tc}; background:${tc}18; border:1px solid ${tc}44; border-radius:6px; padding:2px 8px; font-size:0.8em;">⚔ Needs ${actualNeeded} members</span>`;
+
     if (isMine) {
-        desc.innerHTML  = `<span style="color:#44cc88;">Your pact controls this node.</span> Strengthen its defenses to resist attacks.`;
-        body.innerHTML  = pwMinionSelectHTML('reinforce');
-        confirm.textContent = '🛡 Reinforce';
-        confirm.onclick = () => pwCommitAction('reinforce', nodeIdx);
+        desc.innerHTML = `<span style="color:#44cc88;">Your territory.</span> Reinforce to resist attacks. ${requirementBadge}`;
     } else if (isOwned) {
-        desc.innerHTML  = `Controlled by <span style="color:${node.owner_color||'#ff8888'}; font-weight:bold;">${node.owner_emblem||'⚔'} ${node.owner_pact}</span>. Send your minions to conquer it.`;
-        body.innerHTML  = pwMinionSelectHTML('attack');
-        confirm.textContent = '⚔ Attack';
-        confirm.style.color = '#ff8888';
-        confirm.onclick = () => pwCommitAction('attack', nodeIdx);
+        desc.innerHTML = `Held by <b style="color:${node.owner_color||'#ff8888'};">${node.owner_emblem||'⚔'} ${node.owner_pact}</b>. ${requirementBadge}`;
     } else {
-        desc.innerHTML  = `Unclaimed territory. <span style="color:#c8a800;">Tier ${tier} — worth +${tier*5}% war bonus.</span>`;
-        body.innerHTML  = pwMinionSelectHTML('claim');
-        confirm.textContent = '🚩 Claim Node';
-        confirm.style.color = '#c8a800';
-        confirm.onclick = () => pwCommitAction('claim', nodeIdx);
+        desc.innerHTML = `Unclaimed. <span style="color:${tc};">Tier ${tier} · +${tier*5}% bonus.</span> ${requirementBadge}`;
     }
 
+    body.innerHTML = `
+        ${actualNeeded > 1 ? `<div style="background:#ff664412; border:1px solid #ff664433; border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:0.78em; color:#ff8866; line-height:1.5;">
+            <b>📯 Rally Required!</b><br>
+            Your pact needs <b>${actualNeeded} members</b> to take this Tier ${tier} node.<br>
+            You'll start a 3-minute rally window. All pact members will see an alert and can join.<br>
+            The attack fires automatically when enough members commit — or fails when time runs out.
+        </div>` : ''}
+        ${pwMinionSelectHTML(isMine ? 'reinforce' : 'attack')}
+    `;
+
+    confirm.style.color = isMine ? '#44cc88' : isOwned ? '#ff8888' : '#c8a800';
+    confirm.textContent = isMine ? '🛡 Reinforce' : actualNeeded > 1 ? `📯 Start Rally (${actualNeeded} needed)` : isOwned ? '⚔ Attack' : '🚩 Claim';
+    confirm.onclick = () => {
+        if (isMine || actualNeeded <= 1) {
+            pwCommitSolo(isMine ? 'reinforce' : isOwned ? 'attack' : 'claim', nodeIdx);
+        } else {
+            pwStartRally(nodeIdx, actualNeeded);
+        }
+    };
+
     overlay.style.display = 'flex';
+}
+
+function pwShowRallyJoinModal(rally, nodeIdx, isMine, isOwned) {
+    const overlay = document.getElementById('pw-action-overlay');
+    const title   = document.getElementById('pw-action-title');
+    const desc    = document.getElementById('pw-action-desc');
+    const body    = document.getElementById('pw-action-body');
+    const confirm = document.getElementById('pw-action-confirm');
+    const node    = pwNodes[nodeIdx];
+    const TIER_COLORS = ['#333','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
+    const tier = PW_NODE_BONUS[nodeIdx] || 1;
+    const tc = TIER_COLORS[tier];
+
+    const committed = rally.committed_members || [];
+    const needed    = rally.members_needed || 2;
+    const expiresAt = new Date(rally.expires_at);
+    const secsLeft  = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+    const minsLeft  = Math.floor(secsLeft / 60);
+    const secsFmt   = (secsLeft % 60).toString().padStart(2,'0');
+    const alreadyIn = committed.includes(gameState.playerName);
+
+    title.textContent = `⚔ ACTIVE RALLY — ${PW_NODE_NAMES[nodeIdx]}`;
+    desc.innerHTML = `<span style="color:${tc};">Tier ${tier} node.</span> Rally expires in <b style="color:#ff6644;">${minsLeft}:${secsFmt}</b>`;
+
+    body.innerHTML = `
+        <div style="background:#ff664412; border:1px solid #ff664433; border-radius:8px; padding:12px; margin-bottom:12px;">
+            <div style="color:#ff8866; font-weight:bold; margin-bottom:8px;">⚔ ${rally.pact_name} is rallying!</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                ${(window.playerPact?.members||[]).map(m => {
+                    const isIn = committed.includes(m);
+                    return `<div style="background:${isIn ? '#44cc8822' : '#ffffff0a'}; border:1px solid ${isIn ? '#44cc8866' : '#333'}; border-radius:6px; padding:4px 10px; font-size:0.75em; color:${isIn ? '#44cc88' : '#555'};">
+                        ${isIn ? '✅' : '⏳'} ${m}
+                    </div>`;
+                }).join('')}
+            </div>
+            <div style="color:#888; font-size:0.75em;">${committed.length} / ${needed} members committed</div>
+            <div style="background:#ffffff10; border-radius:4px; height:6px; margin-top:8px; overflow:hidden;">
+                <div style="height:100%; width:${Math.min(100, committed.length/needed*100)}%; background:linear-gradient(90deg,#ff6644,#c8a800); transition:width 0.5s;"></div>
+            </div>
+        </div>
+        ${alreadyIn ? '<div style="color:#44cc88; text-align:center; padding:8px;">✅ You've committed — waiting for more members...</div>' : pwMinionSelectHTML('attack')}
+    `;
+
+    confirm.style.display = alreadyIn ? 'none' : 'flex';
+    confirm.textContent = '⚔ Join Rally';
+    confirm.style.color = '#ff8866';
+    confirm.onclick = () => pwJoinRally(rally.id, nodeIdx);
+
+    overlay.style.display = 'flex';
+
+    // Auto-refresh the modal every 5 seconds
+    if (!window._pwRallyModalInterval) {
+        window._pwRallyModalInterval = setInterval(async () => {
+            if (document.getElementById('pw-action-overlay').style.display !== 'flex') {
+                clearInterval(window._pwRallyModalInterval);
+                window._pwRallyModalInterval = null;
+                return;
+            }
+            // Re-fetch rally
+            const { data: updated } = await supabaseClient
+                .from('pact_war_rallies').select('*').eq('id', rally.id).single().catch(() => ({data:null}));
+            if (updated) pwShowRallyJoinModal(updated, nodeIdx, isMine, isOwned);
+        }, 5000);
+    }
 }
 
 function pwMinionSelectHTML(action) {
@@ -20117,99 +20231,244 @@ function pwMinionSelectHTML(action) {
     return html;
 }
 
-// ── Commit action ────────────────────────────────────────────────
-async function pwCommitAction(action, nodeIdx) {
+// ── Helper: compute a player's power from their selected minion ──
+function pwGetMyPower() {
+    const radio = document.querySelector('input[name="pw_minion"]:checked');
+    if (!radio) return 0;
+    const id = radio.value;
+    const gm = gameState.minions[id]; const bm = battleMinions[id];
+    if (!gm || !bm) return 0;
+    const lv = gm.level||0, pt = gm.promotionTier||0;
+    const tot = (1 + Math.floor(lv/25)*0.05) * (1 + pt*0.20);
+    return Math.ceil(bm.atk*tot)*3 + Math.ceil(bm.hp*tot);
+}
+function pwGetMyMinionName() {
+    const radio = document.querySelector('input[name="pw_minion"]:checked');
+    if (!radio) return '';
+    const bm = battleMinions[radio.value];
+    return bm?.name || radio.value;
+}
+
+// ── Solo actions (reinforce / low-tier claim / tier-1 attack) ────
+async function pwCommitSolo(action, nodeIdx) {
     const myPact = window.playerPact;
     if (!myPact || !supabaseClient) return;
+    const radio = document.querySelector('input[name="pw_minion"]:checked');
+    if (!radio) { Toastify({text:'Select a minion first.',duration:2000,gravity:'top',position:'center'}).showToast(); return; }
 
-    const minionRadio = document.querySelector('input[name="pw_minion"]:checked');
-    if (!minionRadio) {
-        Toastify({ text: 'Select a minion first.', duration:2500, gravity:'top', position:'center' }).showToast();
-        return;
-    }
-
-    const minionId = minionRadio.value;
-    const gm   = gameState.minions[minionId];
-    const bm   = battleMinions[minionId];
-    const lv   = gm?.level || 0;
-    const pt   = gm?.promotionTier || 0;
-    const tot  = (1 + Math.floor(lv/25)*0.05) * (1 + pt*0.20);
-    const sAtk = Math.ceil(bm.atk * tot);
-    const sHp  = Math.ceil(bm.hp  * tot);
+    const myPower = pwGetMyPower();
     const node = pwNodes[nodeIdx];
+    const pactEmblem = myPact.emblem||'⚔', pactColor = myPact.color||'#ff6644';
+    let success=false, logMsg='';
 
-    // Power score = weighted ATK + HP
-    const myPower = sAtk * 3 + sHp;
-
-    const pactEmblem = myPact.emblem || '⚔';
-    const pactColor  = myPact.color  || '#ff6644';
-
-    let success = false;
-    let logMsg  = '';
-
-    if (action === 'claim') {
-        // Unclaimed — always succeed, set strength to myPower capped at 100
-        const str = Math.min(100, Math.round(myPower / 10));
-        await supabaseClient.from('pact_war_nodes').upsert({
-            node_id: nodeIdx,
-            owner_pact: myPact.pact_name,
-            owner_emblem: pactEmblem,
-            owner_color: pactColor,
-            strength: str,
-            last_action: new Date().toISOString()
-        }, { onConflict: 'node_id' });
-        success = true;
-        logMsg = `🚩 ${myPact.pact_name} claimed ${PW_NODE_NAMES[nodeIdx]}`;
-
-    } else if (action === 'reinforce') {
-        const newStr = Math.min(100, (node.strength || 0) + Math.round(myPower / 20));
-        await supabaseClient.from('pact_war_nodes').update({ strength: newStr, last_action: new Date().toISOString() }).eq('node_id', nodeIdx);
-        success = true;
-        logMsg = `🛡 ${myPact.pact_name} reinforced ${PW_NODE_NAMES[nodeIdx]} (→${newStr}%)`;
-
-    } else if (action === 'attack') {
-        const defPower = ((node.strength || 0) / 100) * 500; // defender's effective power from strength
-        const roll = Math.random();
-        const winChance = Math.min(0.85, Math.max(0.15, myPower / (myPower + defPower)));
-        success = roll < winChance;
+    if (action==='claim') {
+        const str = Math.min(100, Math.round(myPower/10));
+        await supabaseClient.from('pact_war_nodes').upsert({node_id:nodeIdx,owner_pact:myPact.pact_name,owner_emblem:pactEmblem,owner_color:pactColor,strength:str,last_action:new Date().toISOString()},{onConflict:'node_id'});
+        success=true; logMsg=`🚩 ${myPact.pact_name} claimed ${PW_NODE_NAMES[nodeIdx]}`;
+    } else if (action==='reinforce') {
+        const newStr = Math.min(100,(node.strength||0)+Math.round(myPower/20));
+        await supabaseClient.from('pact_war_nodes').update({strength:newStr,last_action:new Date().toISOString()}).eq('node_id',nodeIdx);
+        success=true; logMsg=`🛡 ${myPact.pact_name} reinforced ${PW_NODE_NAMES[nodeIdx]} → ${newStr}%`;
+    } else if (action==='attack') {
+        const defPower = ((node.strength||0)/100)*500;
+        const winChance = Math.min(0.85,Math.max(0.15,myPower/(myPower+defPower)));
+        success = Math.random() < winChance;
         if (success) {
-            const str = Math.min(100, Math.round(myPower / 10));
-            await supabaseClient.from('pact_war_nodes').upsert({
-                node_id: nodeIdx,
-                owner_pact: myPact.pact_name,
-                owner_emblem: pactEmblem,
-                owner_color: pactColor,
-                strength: str,
-                last_action: new Date().toISOString()
-            }, { onConflict: 'node_id' });
-            logMsg = `⚔ ${myPact.pact_name} CONQUERED ${PW_NODE_NAMES[nodeIdx]} from ${node.owner_pact}!`;
+            const str=Math.min(100,Math.round(myPower/10));
+            await supabaseClient.from('pact_war_nodes').upsert({node_id:nodeIdx,owner_pact:myPact.pact_name,owner_emblem:pactEmblem,owner_color:pactColor,strength:str,last_action:new Date().toISOString()},{onConflict:'node_id'});
+            logMsg=`⚔ ${myPact.pact_name} TOOK ${PW_NODE_NAMES[nodeIdx]} from ${node.owner_pact}!`;
         } else {
-            logMsg = `💀 ${myPact.pact_name} FAILED to take ${PW_NODE_NAMES[nodeIdx]} from ${node.owner_pact}`;
+            logMsg=`💀 ${myPact.pact_name} failed to take ${PW_NODE_NAMES[nodeIdx]}`;
         }
     }
 
-    // Log the battle
-    await supabaseClient.from('pact_war_log').insert({
-        attacker_pact: myPact.pact_name,
-        defender_pact: node.owner_pact || null,
+    await supabaseClient.from('pact_war_log').insert({attacker_pact:myPact.pact_name,defender_pact:node.owner_pact||null,node_id:nodeIdx,node_name:PW_NODE_NAMES[nodeIdx],action,success,attacker_player:gameState.playerName,minion_used:pwGetMyMinionName(),message:logMsg});
+    document.getElementById('pw-action-overlay').style.display='none';
+    Toastify({text:success?`✅ ${logMsg}`:`❌ ${logMsg}`,duration:5000,gravity:'top',position:'center',style:{background:success?'linear-gradient(135deg,#0a2a0a,#1a5a1a)':'linear-gradient(135deg,#2a0a0a,#5a1a1a)'}}).showToast();
+    await pwRefresh();
+}
+
+// ── Start a rally — writes to DB, notifies pactmates via realtime ─
+async function pwStartRally(nodeIdx, needed) {
+    const myPact = window.playerPact;
+    const radio = document.querySelector('input[name="pw_minion"]:checked');
+    if (!radio) { Toastify({text:'Select a minion first.',duration:2000,gravity:'top',position:'center'}).showToast(); return; }
+    if (!myPact || !supabaseClient) return;
+
+    const myPower = pwGetMyPower();
+    const expiresAt = new Date(Date.now() + 3*60*1000); // 3 minute window
+
+    const { data: rally, error } = await supabaseClient.from('pact_war_rallies').insert({
+        pact_name: myPact.pact_name,
         node_id: nodeIdx,
         node_name: PW_NODE_NAMES[nodeIdx],
-        action: action,
-        success: success,
-        attacker_player: gameState.playerName,
-        minion_used: bm.name,
-        message: logMsg
-    });
+        action: pwNodes[nodeIdx].owner_pact ? 'attack' : 'claim',
+        members_needed: needed,
+        committed_members: [gameState.playerName],
+        committed_power: myPower,
+        committed_minions: [pwGetMyMinionName()],
+        expires_at: expiresAt.toISOString(),
+        resolved: false
+    }).select().single();
 
-    document.getElementById('pw-action-overlay').style.display = 'none';
+    if (error) { Toastify({text:'Failed to start rally: '+error.message,duration:3000,gravity:'top',position:'center'}).showToast(); return; }
+
+    document.getElementById('pw-action-overlay').style.display='none';
+    Toastify({text:`📯 Rally started! ${needed} members needed. Your pact has 3 minutes to join!`,duration:6000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a0a2a,#3a1a00)'}}).showToast();
+
+    // Subscribe to this rally for real-time updates
+    pwSubscribeToRally(rally.id, nodeIdx);
+    await pwRefresh();
+}
+
+// ── Join an existing rally ───────────────────────────────────────
+async function pwJoinRally(rallyId, nodeIdx) {
+    const myPact = window.playerPact;
+    const radio = document.querySelector('input[name="pw_minion"]:checked');
+    if (!radio) { Toastify({text:'Select a minion first.',duration:2000,gravity:'top',position:'center'}).showToast(); return; }
+    if (!myPact || !supabaseClient) return;
+
+    const myPower = pwGetMyPower();
+
+    // Fetch current rally
+    const { data: rally } = await supabaseClient.from('pact_war_rallies').select('*').eq('id',rallyId).single();
+    if (!rally || rally.resolved) { Toastify({text:'Rally has ended.',duration:2000,gravity:'top',position:'center'}).showToast(); return; }
+    if (new Date(rally.expires_at) < new Date()) { Toastify({text:'Rally expired!',duration:2000,gravity:'top',position:'center'}).showToast(); return; }
+    if ((rally.committed_members||[]).includes(gameState.playerName)) { Toastify({text:'Already committed!',duration:2000,gravity:'top',position:'center'}).showToast(); return; }
+
+    const newMembers = [...(rally.committed_members||[]), gameState.playerName];
+    const newPower   = (rally.committed_power||0) + myPower;
+    const newMinions = [...(rally.committed_minions||[]), pwGetMyMinionName()];
+
+    await supabaseClient.from('pact_war_rallies').update({
+        committed_members: newMembers,
+        committed_power: newPower,
+        committed_minions: newMinions
+    }).eq('id', rallyId);
+
+    // Check if we have enough members to fire
+    if (newMembers.length >= rally.members_needed) {
+        await pwResolveRally(rallyId, rally, nodeIdx, newPower, newMembers);
+    } else {
+        clearInterval(window._pwRallyModalInterval); window._pwRallyModalInterval = null;
+        document.getElementById('pw-action-overlay').style.display='none';
+        Toastify({text:`⚔ Committed! ${newMembers.length}/${rally.members_needed} — waiting for more...`,duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a0a2a,#2a1a00)'}}).showToast();
+    }
+    await pwRefresh();
+}
+
+// ── Resolve rally — fires when enough members commit ────────────
+async function pwResolveRally(rallyId, rally, nodeIdx, totalPower, members) {
+    const myPact = window.playerPact;
+    if (!myPact || !supabaseClient) return;
+
+    await supabaseClient.from('pact_war_rallies').update({resolved:true}).eq('id',rallyId);
+    clearInterval(window._pwRallyModalInterval); window._pwRallyModalInterval = null;
+    document.getElementById('pw-action-overlay').style.display='none';
+
+    const node = pwNodes[nodeIdx];
+    const pactEmblem=myPact.emblem||'⚔', pactColor=myPact.color||'#ff6644';
+    const action = rally.action || 'attack';
+    const boost = members.length * 1.3; // +30% power per extra member
+    const boostedPower = Math.round(totalPower * boost);
+
+    let success=false, logMsg='';
+
+    if (action==='claim' || !node.owner_pact) {
+        const str=Math.min(100,Math.round(boostedPower/10));
+        await supabaseClient.from('pact_war_nodes').upsert({node_id:nodeIdx,owner_pact:myPact.pact_name,owner_emblem:pactEmblem,owner_color:pactColor,strength:str,last_action:new Date().toISOString()},{onConflict:'node_id'});
+        success=true; logMsg=`🚩 ${myPact.pact_name} [${members.join(', ')}] CLAIMED ${PW_NODE_NAMES[nodeIdx]}!`;
+    } else {
+        const defPower=((node.strength||0)/100)*800;
+        const winChance=Math.min(0.92,Math.max(0.2,boostedPower/(boostedPower+defPower)));
+        success=Math.random()<winChance;
+        if (success) {
+            const str=Math.min(100,Math.round(boostedPower/10));
+            await supabaseClient.from('pact_war_nodes').upsert({node_id:nodeIdx,owner_pact:myPact.pact_name,owner_emblem:pactEmblem,owner_color:pactColor,strength:str,last_action:new Date().toISOString()},{onConflict:'node_id'});
+            logMsg=`⚔ ${myPact.pact_name} [${members.length} warriors] CONQUERED ${PW_NODE_NAMES[nodeIdx]}!`;
+        } else {
+            logMsg=`💀 ${myPact.pact_name}'s rally on ${PW_NODE_NAMES[nodeIdx]} was repelled!`;
+        }
+    }
+
+    await supabaseClient.from('pact_war_log').insert({attacker_pact:myPact.pact_name,defender_pact:node.owner_pact||null,node_id:nodeIdx,node_name:PW_NODE_NAMES[nodeIdx],action,success,attacker_player:members.join('+'),minion_used:(rally.committed_minions||[]).join('+'),message:logMsg});
+
+    Toastify({text:success?`🏆 ${logMsg}`:`❌ ${logMsg}`,duration:8000,gravity:'top',position:'center',style:{background:success?'linear-gradient(135deg,#0a3a0a,#1a6a1a)':'linear-gradient(135deg,#3a0a0a,#6a1a1a)',fontSize:'0.9em'}}).showToast();
+    await pwRefresh();
+}
+
+// ── Subscribe to rally updates via Supabase Realtime ─────────────
+function pwSubscribeToRally(rallyId, nodeIdx) {
+    if (_pwRallyChannel) { supabaseClient.removeChannel(_pwRallyChannel); _pwRallyChannel=null; }
+    _pwRallyChannel = supabaseClient
+        .channel('rally-'+rallyId)
+        .on('postgres_changes', {event:'UPDATE', schema:'public', table:'pact_war_rallies', filter:`id=eq.${rallyId}`},
+            async (payload) => {
+                const rally = payload.new;
+                // Show war alert to pact members who haven't committed
+                if (!rally.resolved && !(rally.committed_members||[]).includes(gameState.playerName)) {
+                    pwShowWarAlert(rally, nodeIdx);
+                }
+                // Auto-resolve if enough members
+                if (!rally.resolved && (rally.committed_members||[]).length >= rally.members_needed) {
+                    await pwResolveRally(rallyId, rally, nodeIdx, rally.committed_power, rally.committed_members);
+                }
+                await pwRefresh();
+            }
+        ).subscribe();
+
+    // Auto-fail after 3 min
+    setTimeout(async () => {
+        if (!supabaseClient) return;
+        const { data } = await supabaseClient.from('pact_war_rallies').select('*').eq('id',rallyId).single().catch(()=>({data:null}));
+        if (data && !data.resolved) {
+            await supabaseClient.from('pact_war_rallies').update({resolved:true}).eq('id',rallyId);
+            Toastify({text:`⌛ Rally on ${PW_NODE_NAMES[nodeIdx]} expired — not enough members joined.`,duration:5000,gravity:'top',position:'center',style:{background:'#1a0808'}}).showToast();
+            await pwRefresh();
+        }
+    }, 3*60*1000+5000);
+}
+
+// ── War Alert — shown to pact members when rally starts ──────────
+async function pwShowWarAlert(rally, nodeIdx) {
+    // Only show if player is in the pact
+    if (!window.playerPact || window.playerPact.pact_name !== rally.pact_name) return;
+    const TIER_COLORS=['#333','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
+    const tier = PW_NODE_BONUS[nodeIdx]||1;
+    const tc = TIER_COLORS[tier];
+    const expiresAt = new Date(rally.expires_at);
+    const secsLeft = Math.max(0,Math.floor((expiresAt-Date.now())/1000));
+    const minsLeft = Math.floor(secsLeft/60), secsF=(secsLeft%60).toString().padStart(2,'0');
 
     Toastify({
-        text: success ? `✅ ${logMsg}` : `❌ ${logMsg}`,
-        duration: 5000, gravity:'top', position:'center',
-        style:{ background: success ? 'linear-gradient(135deg,#0a2a0a,#1a5a1a)' : 'linear-gradient(135deg,#2a0a0a,#5a1a1a)' }
+        text: `📯 WAR RALLY — ${rally.pact_name} is attacking ${rally.node_name}!
+⚔ ${rally.committed_members?.length||0}/${rally.members_needed} members · ${minsLeft}:${secsF} left
+Go to Pact Wars → click the node to JOIN!`,
+        duration:15000, gravity:'top', position:'center',
+        style:{background:`linear-gradient(135deg,#2a0a00,${tc}44)`,border:`1px solid ${tc}66`,fontSize:'0.85em',cursor:'pointer'},
+        onClick: () => { showScreen('pactwars'); pwRefresh(); }
     }).showToast();
+}
 
-    await pwRefresh();
+// ── Check for active rallies on load ────────────────────────────
+async function pwCheckActiveRallies() {
+    if (!supabaseClient || !window.playerPact) return;
+    try {
+        const { data } = await supabaseClient
+            .from('pact_war_rallies')
+            .select('*')
+            .eq('pact_name', window.playerPact.pact_name)
+            .eq('resolved', false)
+            .gt('expires_at', new Date().toISOString());
+        if (data && data.length > 0) {
+            data.forEach(rally => {
+                if (!rally.committed_members?.includes(gameState.playerName)) {
+                    pwShowWarAlert(rally, rally.node_id);
+                }
+                pwSubscribeToRally(rally.id, rally.node_id);
+            });
+        }
+    } catch(e) {}
 }
 
 // ── Emblem panel ─────────────────────────────────────────────────

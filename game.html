@@ -11208,8 +11208,18 @@ async function loadGameFromCloud(uid, db) {
                 // Push newer local state to cloud immediately
                 const _ls2 = D(chosenState.lifetimeSouls || 0);
                 const _log2 = _ls2.gt(0) ? parseFloat(_ls2.log10().toNumber().toFixed(6)) : 0;
+                // Serialize state properly (chosenState may have Decimal objects)
+                const _stateStr = JSON.stringify({ ...chosenState,
+                    souls:              D(chosenState.souls || 0).toString(),
+                    lifetimeSouls:      D(chosenState.lifetimeSouls || 0).toString(),
+                    soulsSpent:         D(chosenState.soulsSpent || 0).toString(),
+                    darkEssence:        D(chosenState.darkEssence || 0).toString(),
+                    abyssalShards:      D(chosenState.abyssalShards || 0).toString(),
+                    aether:             D(chosenState.aether || 0).toString(),
+                    corruptedFragments: D(chosenState.corruptedFragments || 0).toString(),
+                });
                 await db.ref('gameSaves/' + uid).set({
-                    state: JSON.stringify(chosenState),
+                    state: _stateStr,
                     savedAt: localSavedAt,
                     playerName: chosenState.playerName || 'Unknown',
                     soulsLog: _log2,
@@ -11224,11 +11234,26 @@ async function loadGameFromCloud(uid, db) {
             gameState = deepMerge(defaultState, chosenState);
             gameState.firebaseUid = uid;
             // Restore Decimal fields from serialized strings (same as loadGame)
-            gameState.souls         = D(gameState.souls         || 0);
-            gameState.lifetimeSouls = D(gameState.lifetimeSouls || 0);
-            gameState.soulsSpent    = D(gameState.soulsSpent    || 0);
+            gameState.souls              = D(gameState.souls              || 0);
+            gameState.lifetimeSouls      = D(gameState.lifetimeSouls      || 0);
+            gameState.soulsSpent         = D(gameState.soulsSpent         || 0);
+            gameState.darkEssence        = D(gameState.darkEssence        || 0);
+            gameState.abyssalShards      = D(gameState.abyssalShards      || 0);
+            gameState.aether             = D(gameState.aether             || 0);
+            gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
             // stats.sps always recomputed by calculateStats() in enterGame()
-            localStorage.setItem('soulCollectorSave_v3', JSON.stringify(gameState));
+            // IMPORTANT: serialize Decimals back to strings before storing in localStorage
+            // JSON.stringify(Decimal) = {"m":1,"e":2} which D() can't parse back
+            const _cloudSaveStr = JSON.stringify({ ...gameState,
+                souls:              D(gameState.souls).toString(),
+                lifetimeSouls:      D(gameState.lifetimeSouls).toString(),
+                soulsSpent:         D(gameState.soulsSpent || 0).toString(),
+                darkEssence:        D(gameState.darkEssence).toString(),
+                abyssalShards:      D(gameState.abyssalShards).toString(),
+                aether:             D(gameState.aether).toString(),
+                corruptedFragments: D(gameState.corruptedFragments).toString(),
+            });
+            localStorage.setItem('soulCollectorSave_v3', _cloudSaveStr);
         } else {
             if (localSave) {
                 gameState = deepMerge(defaultState, JSON.parse(localSave));

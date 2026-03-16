@@ -19254,11 +19254,46 @@ const KEYS = {
 
 const KEY_IDS = Object.keys(KEYS);
 const KEY_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+const KEY_POOL_TOTAL = 10; // Only 10 keys exist in the entire game world
+
+// ── Pool helpers (Supabase) ──────────────────────────────────────────────
+async function getKeyPoolAvailable() {
+    if (!supabaseClient) return 0;
+    try {
+        const { data } = await supabaseClient
+            .from('key_pool')
+            .select('available')
+            .eq('id', 1)
+            .single();
+        return data?.available ?? 0;
+    } catch(e) { return 0; }
+}
+
+async function decrementKeyPool() {
+    // Use RPC to atomically decrement — returns new value or null if already 0
+    if (!supabaseClient) return false;
+    try {
+        const { data, error } = await supabaseClient.rpc('claim_key');
+        return data === true;
+    } catch(e) { return false; }
+}
+
+async function returnKeyToPool() {
+    if (!supabaseClient) return;
+    try {
+        await supabaseClient.rpc('return_key');
+    } catch(e) {}
+}
 
 // ── Acquisition ─────────────────────────────────────────────────────────
-function rollForKey(source) {
-    // Chance is pre-checked at call site — this just picks a random key and presents it
-    // Sources: 'breach' (0.5%), 'cache' (0.05%), 'shop' (0.5% of hours, separate logic)
+async function rollForKey(source) {
+    // Check pool before granting
+    const claimed = await decrementKeyPool();
+    if (!claimed) {
+        // Pool empty — all 10 keys are currently held
+        console.log('[Keys] Pool empty — no key granted from', source);
+        return;
+    }
     const keyId = KEY_IDS[Math.floor(Math.random() * KEY_IDS.length)];
     presentKey(keyId, source);
 }
@@ -19267,16 +19302,15 @@ function presentKey(keyId, source) {
     const key = KEYS[keyId];
     if (!key) return;
 
-    // Check expiry on current key
     if (gameState.heldKey) {
         const expired = Date.now() - gameState.heldKey.obtainedAt > KEY_EXPIRY_MS;
         if (!expired) {
-            // Player already holds a valid key — show choice modal
             showKeyChoiceModal(keyId, source);
             return;
         }
+        // Expired key — return it to pool before replacing
+        returnKeyToPool();
     }
-    // No key or expired — grant directly
     grantKey(keyId);
 }
 
@@ -19352,8 +19386,8 @@ function showKeyChoiceModal(newKeyId, source) {
     overlay.style.display = 'flex';
 }
 
-function keepOldKey(rejectedKeyId) { closeKeyModal(); /* Unchosen key vanishes silently — no hint */ }
-function takeNewKey(newKeyId) { grantKey(newKeyId); }
+function keepOldKey(rejectedKeyId) { returnKeyToPool(); closeKeyModal(); /* rejected key returns to pool */ }
+function takeNewKey(newKeyId) { /* old key is replaced — it returns to pool */ returnKeyToPool(); grantKey(newKeyId); }
 function closeKeyModal() { document.getElementById('key-modal-overlay').style.display = 'none'; }
 
 // ── Usage ───────────────────────────────────────────────────────────────
@@ -19392,7 +19426,8 @@ setInterval(() => {
     if (!gameState.heldKey) return;
     const timeLeft = KEY_EXPIRY_MS - (Date.now() - gameState.heldKey.obtainedAt);
     if (timeLeft <= 0) {
-        // Key is gone. No announcement. No toast. It simply... isn't there anymore.
+        // Key expired — return it to the shared pool of 10
+        returnKeyToPool();
         gameState.heldKey = null;
         saveGame();
         renderKeyInSettings();
@@ -19438,6 +19473,7 @@ function renderKeyInSettings() {
                 <span style="font-size:2.2em; filter:drop-shadow(0 0 12px ${key.glow}); animation:keyFloat 2s ease-in-out infinite;">${key.icon}</span>
                 <div style="flex:1;">
                     <div style="color:${key.color}; font-family:var(--font-title); font-size:0.85em; letter-spacing:2px; text-shadow:0 0 10px ${key.color}66;">YOU HOLD A KEY</div>
+                    <div style="color:#444; font-size:0.65em; margin-top:2px;">1 of ${KEY_POOL_TOTAL} in existence</div>
                     <div style="color:${key.color}; font-weight:bold; font-size:1.1em; margin-top:2px;">${key.name}</div>
                 </div>
                 <div style="display:flex; align-items:center; gap:6px; ${dotAnim}">

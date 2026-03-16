@@ -2436,7 +2436,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     <button onclick="showScreen('map')">Worlds</button>
                     <button onclick="showScreen('pvp')">Raids</button>
                     <button onclick="showScreen('crashgame')">Gauntlet</button>
-                    <button onclick="showScreen('market')">Market</button>
+                    <button onclick="showScreen('market'); setTimeout(()=>{updateBarterDropdowns(); fetchBarterListings();}, 100)">Market</button>
                     <button onclick="showScreen('provinggrounds')">Proving Grounds</button>
                 </div>
             </div>
@@ -2946,89 +2946,75 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
 
                 <!-- BARTER -->
-                <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #aa44ff44; border-top:3px solid #aa44ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto;">
-                    <h3 style="margin:0 0 4px; color:#aa44ff; letter-spacing:2px;">🔀 ABYSS BARTER</h3>
-                    <p style="margin:0 0 18px; color:#666; font-size:0.82em;">Trade resources directly with other players.</p>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;">
-                        <button class="upgrade-btn" id="barter-tab-post" onclick="showBarterTab('post')" style="border-color:#aa44ff66;">➕ Post a Trade</button>
-                        <button class="upgrade-btn" id="barter-tab-browse" onclick="showBarterTab('browse')" style="border-color:#c8a80066;">📜 Browse Trades</button>
-                        <button class="upgrade-btn" onclick="barterPage=0; fetchBarterListings()" style="border-color:#44444466;">🔄 Refresh</button>
-                    </div>
-                    <div id="barter-browse-panel" style="display:none;">
-                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
-                            <span style="color:#666; font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Sort:</span>
-                            <select id="barter-sort-select" onchange="barterPage=0; fetchBarterListings()" style="background:#0d0a18; border:1px solid #3d2a4a; color:#aaa; padding:5px 10px; border-radius:7px; font-family:inherit; font-size:0.8em; cursor:pointer;">
-                                <option value="newest">🕐 Newest First</option>
-                                <option value="oldest">🕐 Oldest First</option>
-                                <option value="offer_high">💰 Offering: High → Low</option>
-                                <option value="offer_low">💰 Offering: Low → High</option>
-                                <option value="want_high">🎯 Wanting: High → Low</option>
-                                <option value="want_low">🎯 Wanting: Low → High</option>
-                            </select>
-                            <select id="barter-filter-offer" onchange="barterPage=0; fetchBarterListings()" style="background:#0d0a18; border:1px solid #3d2a4a; color:#aaa; padding:5px 10px; border-radius:7px; font-family:inherit; font-size:0.8em; cursor:pointer;">
-                                <option value="">🔍 Offering Any</option>
-                                <option value="souls">👻 Offering Souls</option>
-                                <option value="darkEssence">🌑 Offering Essence</option>
-                                <option value="abyssalShards">💎 Offering Shards</option>
-                                <option value="corruptedFragments">🔮 Offering Fragments</option>
-                            </select>
-                            <select id="barter-filter-want" onchange="barterPage=0; fetchBarterListings()" style="background:#0d0a18; border:1px solid #3d2a4a; color:#aaa; padding:5px 10px; border-radius:7px; font-family:inherit; font-size:0.8em; cursor:pointer;">
-                                <option value="">🎯 Wanting Any</option>
-                                <option value="souls">👻 Wanting Souls</option>
-                                <option value="darkEssence">🌑 Wanting Essence</option>
-                                <option value="abyssalShards">💎 Wanting Shards</option>
-                                <option value="corruptedFragments">🔮 Wanting Fragments</option>
-                            </select>
+                <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #aa44ff44; border-top:3px solid #aa44ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
+                        <div>
+                            <h3 style="margin:0 0 3px; color:#aa44ff; letter-spacing:2px;">🔀 ABYSS BARTER</h3>
+                            <p style="margin:0; color:#555; font-size:0.8em;">Trade anything directly with other Soul Collectors.</p>
                         </div>
-                        <div id="barter-listing-list" style="margin:0; display:flex; flex-direction:column; gap:0;">
-                            <li><em>Loading trades...</em></li>
-                        </ul>
+                        <button onclick="barterPage=0; fetchBarterListings()" style="background:#aa44ff18; border:1px solid #aa44ff44; border-radius:7px; padding:6px 16px; color:#aa44ff; cursor:pointer; font-family:inherit; font-size:0.8em; font-weight:bold; letter-spacing:1px;">🔄 REFRESH</button>
                     </div>
-                    <div id="barter-post-panel">
-                        <div style="background:#0a0812; border:1px solid #3d2a4a; padding:20px; border-radius:10px; max-width:540px; margin:0 auto;">
-                            <h4 style="margin:0 0 14px; color:#aa44ff;">Post a Barter Trade</h4>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+
+                    <!-- POST FORM (always visible, collapsible) -->
+                    <details id="barter-post-details" style="margin-bottom:20px;" ontoggle="if(this.open) updateBarterDropdowns()">
+                        <summary style="cursor:pointer; background:linear-gradient(135deg,#aa44ff22,#aa44ff08); border:1px solid #aa44ff44; border-radius:10px; padding:12px 16px; color:#aa44ff; font-weight:bold; font-size:0.9em; letter-spacing:1px; list-style:none; display:flex; align-items:center; gap:8px; user-select:none;">
+                            <span style="font-size:1.1em;">➕</span> POST A TRADE OFFER
+                            <span style="margin-left:auto; font-size:0.75em; color:#aa44ff88;">▼ expand</span>
+                        </summary>
+                        <div style="background:#0a0812; border:1px solid #3d2a4a; border-top:none; border-radius:0 0 10px 10px; padding:20px;">
+                            <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:start; margin-bottom:14px;">
                                 <div>
-                                    <label style="color:#888; font-size:0.8em; text-transform:uppercase; letter-spacing:1px;">I'm offering</label>
-                                    <select id="barter-offer-type" onchange="updateBarterDropdowns()" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:6px;">
-                                        <optgroup label="Currencies">
-                                            <option value="souls">👻 Souls</option>
-                                            <option value="darkEssence">🌑 Dark Essence</option>
-                                            <option value="abyssalShards">💎 Abyssal Shards</option>
-                                            <option value="corruptedFragments">🔮 Corrupted Fragments</option>
-                                            <option value="aether">⚡ Aether</option>
-                                        </optgroup>
-                                        <optgroup label="Potions" id="barter-offer-potions"></optgroup>
-                                        <optgroup label="Items" id="barter-offer-items"></optgroup>
-                                        <optgroup label="Minions" id="barter-offer-minions"></optgroup>
-                                    </select>
-                                    <input id="barter-offer-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:8px;">
+                                    <label style="color:#888; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:6px;">I'm Offering</label>
+                                    <select id="barter-offer-type" onchange="updateBarterDropdowns()" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-bottom:8px;"></select>
+                                    <input id="barter-offer-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit;">
                                 </div>
+                                <div style="text-align:center; padding-top:28px; color:#555; font-size:1.4em;">⇄</div>
                                 <div>
-                                    <label style="color:#888; font-size:0.8em; text-transform:uppercase; letter-spacing:1px;">I want in return</label>
-                                    <select id="barter-want-type" onchange="updateBarterDropdowns()" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:6px;">
-                                        <optgroup label="Currencies">
-                                            <option value="darkEssence">🌑 Dark Essence</option>
-                                            <option value="souls">👻 Souls</option>
-                                            <option value="abyssalShards">💎 Abyssal Shards</option>
-                                            <option value="corruptedFragments">🔮 Corrupted Fragments</option>
-                                            <option value="aether">⚡ Aether</option>
-                                        </optgroup>
-                                        <optgroup label="Potions" id="barter-want-potions"></optgroup>
-                                        <optgroup label="Items" id="barter-want-items"></optgroup>
-                                        <optgroup label="Minions" id="barter-want-minions"></optgroup>
-                                    </select>
-                                    <input id="barter-want-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:8px;">
+                                    <label style="color:#888; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:6px;">I Want In Return</label>
+                                    <select id="barter-want-type" onchange="updateBarterDropdowns()" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-bottom:8px;"></select>
+                                    <input id="barter-want-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit;">
                                 </div>
                             </div>
-                            <div id="barter-offer-preview" style="color:#aaa; font-size:0.78em; margin-bottom:10px; min-height:18px;"></div>
-                            <button class="upgrade-btn" onclick="postBarterListing()" style="width:100%; border-color:#aa44ff66; background:linear-gradient(135deg,#aa44ff15,transparent);">
-                                <span style="color:#aa44ff;">📜 Post Trade Offer</span>
+                            <div id="barter-offer-preview" style="color:#aaa; font-size:0.78em; margin-bottom:12px; min-height:16px; background:#ffffff05; border-radius:6px; padding:6px 10px;"></div>
+                            <button class="upgrade-btn" onclick="postBarterListing()" style="width:100%; border-color:#aa44ff66; background:linear-gradient(135deg,#aa44ff22,#aa44ff08); padding:12px;">
+                                <span style="color:#aa44ff; font-size:1em;">📜 Post Trade Offer</span>
                             </button>
                             <div id="barter-post-msg" style="color:#ff9944; margin-top:10px; font-size:0.85em; text-align:center;"></div>
                         </div>
+                    </details>
+
+                    <!-- SORT / FILTER -->
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid #ffffff08;">
+                        <span style="color:#555; font-size:0.72em; text-transform:uppercase; letter-spacing:1px;">Sort:</span>
+                        <select id="barter-sort-select" onchange="barterPage=0; fetchBarterListings()" style="background:#0d0a18; border:1px solid #2a1a3a; color:#aaa; padding:5px 10px; border-radius:7px; font-family:inherit; font-size:0.78em; cursor:pointer;">
+                            <option value="newest">🕐 Newest First</option>
+                            <option value="oldest">🕐 Oldest First</option>
+                            <option value="offer_high">💰 Offering: High→Low</option>
+                            <option value="offer_low">💰 Offering: Low→High</option>
+                            <option value="want_high">🎯 Wanting: High→Low</option>
+                            <option value="want_low">🎯 Wanting: Low→High</option>
+                        </select>
+                        <select id="barter-filter-offer" onchange="barterPage=0; fetchBarterListings()" style="background:#0d0a18; border:1px solid #2a1a3a; color:#aaa; padding:5px 10px; border-radius:7px; font-family:inherit; font-size:0.78em; cursor:pointer;">
+                            <option value="">🔍 Offering Any</option>
+                            <option value="souls">👻 Souls</option>
+                            <option value="darkEssence">🌑 Essence</option>
+                            <option value="abyssalShards">💎 Shards</option>
+                            <option value="corruptedFragments">🔮 Fragments</option>
+                        </select>
+                        <select id="barter-filter-want" onchange="barterPage=0; fetchBarterListings()" style="background:#0d0a18; border:1px solid #2a1a3a; color:#aaa; padding:5px 10px; border-radius:7px; font-family:inherit; font-size:0.78em; cursor:pointer;">
+                            <option value="">🎯 Wanting Any</option>
+                            <option value="souls">👻 Souls</option>
+                            <option value="darkEssence">🌑 Essence</option>
+                            <option value="abyssalShards">💎 Shards</option>
+                            <option value="corruptedFragments">🔮 Fragments</option>
+                        </select>
                     </div>
-    
+
+                    <!-- LISTINGS (always visible) -->
+                    <div id="barter-listing-list" style="display:flex; flex-direction:column; gap:0;">
+                        <div style="text-align:center; color:#555; padding:20px; font-size:0.85em;"><em>Loading trades...</em></div>
+                    </div>
+                </div>
 
                 <!-- CURRENT LISTINGS -->
                 <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #4488ff44; border-top:3px solid #4488ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
@@ -3041,10 +3027,6 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
                     <ul id="market-listing-list" class="leaderboard-list" style="margin:0;"></ul>
                 </div>
-
-            </div>
-
-            </div>
             <!-- SELL PRICE MODAL -->
             <div id="sell-price-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); justify-content:center; align-items:center; z-index:400; backdrop-filter:blur(6px);">
                 <div style="background:linear-gradient(135deg,#0e0a1a,#0e1a12); border:2px solid #44cc8844; border-radius:16px; padding:28px; max-width:380px; width:90%; text-align:center;">
@@ -3059,7 +3041,8 @@ text-decoration: underline; /* Adds an underline on hover */
                         <button onclick="confirmSellItem()" style="flex:1; background:linear-gradient(135deg,#44cc8822,#44cc8811); border:2px solid #44cc8866; border-radius:9px; padding:10px; color:#44cc88; font-family:inherit; font-weight:bold; cursor:pointer;">📤 List Item</button>
                     </div>
                 </div>
-            </div>
+            </div><!-- /sell-price-modal -->
+            </div><!-- /market-screen -->
             <div id="leaderboard-screen" class="screen">
                 <h2>🏆 Leaderboards 🏆</h2>
                 <div class="upgrade-section">
@@ -4166,8 +4149,12 @@ window.onload = function() {
             }
 
             if (document.getElementById('market-screen')?.classList.contains('active')) {
-                const _pPanel = document.getElementById('barter-post-panel');
-                if (_pPanel && _pPanel.style.display !== 'none') updateBarterDropdowns();
+                updateBarterDropdowns();
+                // Auto-load barter listings if not loaded yet
+                const _bl = document.getElementById('barter-listing-list');
+                if (_bl && (_bl.children.length === 0 || _bl.querySelector('em'))) {
+                    fetchBarterListings();
+                }
             }
             if (document.getElementById('brewery-screen').classList.contains('active')) {
                 renderBrewery();
@@ -16500,11 +16487,9 @@ function getBarterLabel(type) {
 }
 
 function showBarterTab(tab) {
-    document.getElementById('barter-browse-panel').style.display = tab === 'browse' ? 'block' : 'none';
-    document.getElementById('barter-post-panel').style.display   = tab === 'post'   ? 'block' : 'none';
-    document.getElementById('barter-tab-browse').style.borderColor = tab === 'browse' ? '#c8a800' : '#c8a80066';
-    document.getElementById('barter-tab-post').style.borderColor   = tab === 'post'   ? '#c8a800' : '#aa44ff66';
-    if (tab === 'post') updateBarterDropdowns();
+    // Tabs removed — barter is always visible. Just refresh dropdowns.
+    updateBarterDropdowns();
+    fetchBarterListings();
 }
 
 
@@ -16905,7 +16890,7 @@ async function postBarterListing() {
         if(statusEl) statusEl.textContent = '';
         Toastify({ text: `📜 Trade posted! Waiting for a taker...`, duration: 4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'} }).showToast();
         refreshMarketTicker();
-        showBarterTab('post');
+        updateBarterDropdowns();
         fetchBarterListings();
     } catch(e) {
         if(statusEl) statusEl.textContent = 'Error posting trade: ' + e.message;
@@ -19511,7 +19496,7 @@ function updateBarterDropdowns() {
     }
 }
 
-// Barter tab handling is now in showBarterTab directly
+// Barter is tab-free — dropdowns refresh on market screen open
 
 
 // =================================================================

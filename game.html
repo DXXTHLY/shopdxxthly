@@ -14671,6 +14671,9 @@ function initializeChat() {
                     const cardStyle = 'background:linear-gradient(135deg,#0e0a1a,#1a1020);border-radius:8px;padding:8px 6px;text-align:center;position:relative;cursor:pointer;transition:transform 0.1s;';
                     const tradeBtn = '<div style="font-size:0.5em;color:#44cc8888;margin-top:4px;letter-spacing:0.5px;">💬 Propose Trade</div>';
 
+                    // Helper: safely encode a value for a data-* attribute
+                    function dAttr(val) { return String(val).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
                     if (tab === 'minions') {
                         if (!st.minions || !st.minions.length) { invPanel.innerHTML = '<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No minion data — syncs every 30s.</div>'; return; }
                         let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
@@ -14678,11 +14681,16 @@ function initializeChat() {
                             const tc = TIER_COLORS2[Math.min(5,Math.floor((m.level||0)/25))];
                             const stars = m.promoTier > 0 ? '<span style="color:#c8a800;font-size:0.55em;">'+('★'.repeat(m.promoTier))+'</span>' : '';
                             const barter = m.barterLevels > 0 ? '<span style="position:absolute;top:3px;right:3px;font-size:0.5em;background:#aa44ff;border-radius:3px;padding:1px 3px;color:#fff;">🔀</span>' : '';
-                            h += '<div style="'+cardStyle+'border:1px solid '+tc+'33;border-top:2px solid '+tc+';" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'" onclick="window._proposeItemTrade('+JSON.stringify('minion:'+m.id)+','+JSON.stringify(m.name)+','+JSON.stringify(m.icon||'👿')+','+m.level+','+JSON.stringify(targetName)+')">'
-                                +barter+'<div style="font-size:1.5em;">'+m.icon+'</div>'
-                                +'<div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+m.name+'</div>'
+                            h += '<div class="prof-trade-card" style="'+cardStyle+'border:1px solid '+tc+'33;border-top:2px solid '+tc+';"'
+                                +' data-trade-type="minion:'+dAttr(m.id)+'"'
+                                +' data-trade-name="'+dAttr(m.name)+'"'
+                                +' data-trade-icon="'+dAttr(m.icon||'👿')+'"'
+                                +' data-trade-amt="'+m.level+'"'
+                                +' data-trade-target="'+dAttr(targetName)+'">'
+                                +barter+'<div style="font-size:1.5em;">'+(m.icon||'👿')+'</div>'
+                                +'<div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(m.name)+'</div>'
                                 +'<div style="color:'+tc+';font-size:0.58em;">Lv'+m.level+stars+'</div>'
-                                +(m.hp!==null?'<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">❤'+m.hp+'</span> <span style="color:#ff9944;">⚔'+m.atk+'</span></div>':'')
+                                +(m.hp!=null?'<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">❤'+m.hp+'</span> <span style="color:#ff9944;">⚔'+m.atk+'</span></div>':'')
                                 +tradeBtn+'</div>';
                         });
                         invPanel.innerHTML = h+'</div>';
@@ -14692,10 +14700,15 @@ function initializeChat() {
                         let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.inventory.forEach(it => {
                             const rc = RARITY_COLORS2[it.rarity]||'#888';
-                            h += '<div style="'+cardStyle+'border:1px solid '+rc+'33;border-top:2px solid '+rc+';" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'" onclick="window._proposeItemTrade('+JSON.stringify('item:'+it.id)+','+JSON.stringify(it.name)+','+JSON.stringify(it.icon||'📦')+',1,'+JSON.stringify(targetName)+')">'
+                            h += '<div class="prof-trade-card" style="'+cardStyle+'border:1px solid '+rc+'33;border-top:2px solid '+rc+';"'
+                                +' data-trade-type="item:'+dAttr(it.id)+'"'
+                                +' data-trade-name="'+dAttr(it.name)+'"'
+                                +' data-trade-icon="'+dAttr(it.icon||'📦')+'"'
+                                +' data-trade-amt="1"'
+                                +' data-trade-target="'+dAttr(targetName)+'">'
                                 +'<div style="font-size:1.5em;">'+(it.icon||'📦')+'</div>'
-                                +'<div style="color:'+rc+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+it.name+'</div>'
-                                +'<div style="color:#555;font-size:0.52em;">'+it.rarity+'</div>'
+                                +'<div style="color:'+rc+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div>'
+                                +'<div style="color:#555;font-size:0.52em;">'+escapeHTML(it.rarity||'')+'</div>'
                                 +tradeBtn+'</div>';
                         });
                         invPanel.innerHTML = h+'</div>';
@@ -14704,14 +14717,36 @@ function initializeChat() {
                         if (!st.potions || !st.potions.length) { invPanel.innerHTML = '<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No potions.</div>'; return; }
                         let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.potions.forEach(p => {
-                            h += '<div style="'+cardStyle+'border:1px solid '+p.color+'33;border-top:2px solid '+p.color+';" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'" onclick="window._proposeItemTrade('+JSON.stringify('potion:'+p.id)+','+JSON.stringify(p.name)+','+JSON.stringify(p.icon||'⚗️')+','+p.count+','+JSON.stringify(targetName)+')">'
+                            h += '<div class="prof-trade-card" style="'+cardStyle+'border:1px solid '+(p.color||'#888')+'33;border-top:2px solid '+(p.color||'#888')+';"'
+                                +' data-trade-type="potion:'+dAttr(p.id)+'"'
+                                +' data-trade-name="'+dAttr(p.name)+'"'
+                                +' data-trade-icon="'+dAttr(p.icon||'⚗️')+'"'
+                                +' data-trade-amt="'+p.count+'"'
+                                +' data-trade-target="'+dAttr(targetName)+'">'
                                 +'<div style="font-size:1.5em;">'+(p.icon||'⚗️')+'</div>'
-                                +'<div style="color:'+p.color+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+p.name+'</div>'
+                                +'<div style="color:'+(p.color||'#888')+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div>'
                                 +'<div style="color:#555;font-size:0.52em;">×'+p.count+'</div>'
                                 +tradeBtn+'</div>';
                         });
                         invPanel.innerHTML = h+'</div>';
                     }
+
+                    // Attach click handlers via delegation (avoids all inline-JSON escaping issues)
+                    invPanel.onclick = function(e) {
+                        const card = e.target.closest('.prof-trade-card');
+                        if (!card) return;
+                        e.stopPropagation();
+                        window._proposeItemTrade(
+                            card.dataset.tradeType,
+                            card.dataset.tradeName,
+                            card.dataset.tradeIcon,
+                            parseFloat(card.dataset.tradeAmt) || 1,
+                            card.dataset.tradeTarget
+                        );
+                    };
+                    // Hover effect via delegation
+                    invPanel.onmouseover = function(e) { const c = e.target.closest('.prof-trade-card'); if(c) c.style.transform='scale(1.05)'; };
+                    invPanel.onmouseout  = function(e) { const c = e.target.closest('.prof-trade-card'); if(c) c.style.transform='scale(1)'; };
                 }
 
                 profTabs.forEach(btn => btn.addEventListener('click', () => renderProfileTab(btn.dataset.tab)));

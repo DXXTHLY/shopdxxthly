@@ -14494,16 +14494,21 @@ function initializeChat() {
                         if (window._scIsDev && window._scIsDev(uid)) {
                             if (confirm('Clear all chat messages? This wipes the entire slitherChat log.')) {
                                 db.ref('slitherChat').set(null).then(() => {
+
+                                // Clear chat UI instantly for the person who ran the command
+                                document.getElementById("chat-messages").innerHTML = "";
+
                                 return db.ref('slitherChat').push({
                                     uid: "system",
                                     name: "System",
-                                    text: "Chat cleared by a developer.",
+                                    text: "Chat cleared by developer.",
                                     time: firebase.database.ServerValue.TIMESTAMP
                                 });
+
                             }).then(() => {
                                 console.log('[Dev] slitherChat cleared');
                             }).catch(err => alert('Clear failed: ' + err.message));
-                            }
+                                                        }
                         } else {
                             console.log('[Chat] /clear is a dev-only command');
                         }

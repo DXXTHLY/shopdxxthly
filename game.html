@@ -3008,30 +3008,43 @@ text-decoration: underline; /* Adds an underline on hover */
                         </ul>
                     </div>
                     <div id="barter-post-panel" style="display:none;">
-                        <div style="background:#0a0812; border:1px solid #3d2a4a; padding:20px; border-radius:10px; max-width:500px; margin:0 auto;">
+                        <div style="background:#0a0812; border:1px solid #3d2a4a; padding:20px; border-radius:10px; max-width:540px; margin:0 auto;">
                             <h4 style="margin:0 0 14px; color:#aa44ff;">Post a Barter Trade</h4>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
                                 <div>
                                     <label style="color:#888; font-size:0.8em; text-transform:uppercase; letter-spacing:1px;">I'm offering</label>
                                     <select id="barter-offer-type" onchange="updateBarterDropdowns()" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:6px;">
-                                        <option value="souls">👻 Souls</option>
-                                        <option value="darkEssence">🌑 Dark Essence</option>
-                                        <option value="abyssalShards">💎 Abyssal Shards</option>
-                                        <option value="corruptedFragments">🔮 Corrupted Fragments</option>
+                                        <optgroup label="Currencies">
+                                            <option value="souls">👻 Souls</option>
+                                            <option value="darkEssence">🌑 Dark Essence</option>
+                                            <option value="abyssalShards">💎 Abyssal Shards</option>
+                                            <option value="corruptedFragments">🔮 Corrupted Fragments</option>
+                                            <option value="aether">⚡ Aether</option>
+                                        </optgroup>
+                                        <optgroup label="Potions" id="barter-offer-potions"></optgroup>
+                                        <optgroup label="Items" id="barter-offer-items"></optgroup>
+                                        <optgroup label="Minions" id="barter-offer-minions"></optgroup>
                                     </select>
                                     <input id="barter-offer-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:8px;">
                                 </div>
                                 <div>
                                     <label style="color:#888; font-size:0.8em; text-transform:uppercase; letter-spacing:1px;">I want in return</label>
-                                    <select id="barter-want-type" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:6px;">
-                                        <option value="darkEssence">🌑 Dark Essence</option>
-                                        <option value="souls">👻 Souls</option>
-                                        <option value="abyssalShards">💎 Abyssal Shards</option>
-                                        <option value="corruptedFragments">🔮 Corrupted Fragments</option>
+                                    <select id="barter-want-type" onchange="updateBarterDropdowns()" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:6px;">
+                                        <optgroup label="Currencies">
+                                            <option value="darkEssence">🌑 Dark Essence</option>
+                                            <option value="souls">👻 Souls</option>
+                                            <option value="abyssalShards">💎 Abyssal Shards</option>
+                                            <option value="corruptedFragments">🔮 Corrupted Fragments</option>
+                                            <option value="aether">⚡ Aether</option>
+                                        </optgroup>
+                                        <optgroup label="Potions" id="barter-want-potions"></optgroup>
+                                        <optgroup label="Items" id="barter-want-items"></optgroup>
+                                        <optgroup label="Minions" id="barter-want-minions"></optgroup>
                                     </select>
                                     <input id="barter-want-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-top:8px;">
                                 </div>
                             </div>
+                            <div id="barter-offer-preview" style="color:#aaa; font-size:0.78em; margin-bottom:10px; min-height:18px;"></div>
                             <button class="upgrade-btn" onclick="postBarterListing()" style="width:100%; border-color:#aa44ff66; background:linear-gradient(135deg,#aa44ff15,transparent);">
                                 <span style="color:#aa44ff;">📜 Post Trade Offer</span>
                             </button>
@@ -16480,8 +16493,16 @@ async function fetchPactLeaderboard() {
 const BARTER_LABELS = {
     souls: '👻 Souls', darkEssence: '🌑 Dark Essence',
     abyssalShards: '💎 Abyssal Shards', corruptedFragments: '🔮 Corrupted Fragments',
-    key: '🗝️ Key of the Abyss'
+    aether: '⚡ Aether', key: '🗝️ Key of the Abyss'
 };
+// Dynamically built labels for potions, items, minions
+function getBarterLabel(type) {
+    if (BARTER_LABELS[type]) return BARTER_LABELS[type];
+    if (type.startsWith('potion:')) { const id = type.slice(7); return '🧪 ' + (potions[id]?.name || id); }
+    if (type.startsWith('item:'))   { const id = type.slice(5);  return '🎁 ' + (items[id]?.name || id); }
+    if (type.startsWith('minion:')) { const id = type.slice(7);  return '👹 ' + (minions[id]?.name || id) + ' (levels)'; }
+    return type;
+}
 
 function showBarterTab(tab) {
     document.getElementById('barter-browse-panel').style.display = tab === 'browse' ? 'block' : 'none';
@@ -16609,16 +16630,19 @@ async function fetchBarterListings(page) {
 
 function hasEnough(type, amt) {
     switch(type) {
-        case 'souls':              return D(gameState.souls).gte(D(amt))
+        case 'souls':              return D(gameState.souls).gte(D(amt));
         case 'darkEssence':        return D(gameState.darkEssence).gte(amt);
         case 'abyssalShards':      return D(gameState.abyssalShards).gte(amt);
         case 'corruptedFragments': return D(gameState.corruptedFragments).gte(amt);
+        case 'aether':             return D(gameState.aether || 0).gte(amt);
         case 'key': {
-            // Can sell if holding a key that hasn't expired
             if (!gameState.heldKey) return false;
             return (Date.now() - gameState.heldKey.obtainedAt) < KEY_EXPIRY_MS;
         }
     }
+    if (type.startsWith('potion:')) { const id = type.slice(7); return (gameState.potions[id] || 0) >= amt; }
+    if (type.startsWith('item:'))   { const id = type.slice(5);  return gameState.inventory.includes(id) || gameState.equipped.weapon === id || gameState.equipped.idol === id || gameState.equipped.sigil === id || gameState.equipped.helm === id || gameState.equipped.tome === id; }
+    if (type.startsWith('minion:')) { const id = type.slice(7);  return (gameState.minions[id]?.level || 0) >= amt; }
     return false;
 }
 
@@ -16628,12 +16652,27 @@ function deductCurrency(type, amt) {
         case 'darkEssence':        gameState.darkEssence = D(gameState.darkEssence).sub(amt); break;
         case 'abyssalShards':      gameState.abyssalShards = D(gameState.abyssalShards).sub(amt); break;
         case 'corruptedFragments': gameState.corruptedFragments = D(gameState.corruptedFragments).sub(amt); break;
+        case 'aether':             gameState.aether = D(gameState.aether || 0).sub(amt); break;
         case 'key':
-            // Selling the key — remove it from inventory, transfer to pending
             gameState._barterHeldKeyId = gameState.heldKey?.id || null;
             gameState.heldKey = null;
             renderKeyInSettings();
             break;
+    }
+    if (type.startsWith('potion:')) {
+        const id = type.slice(7);
+        gameState.potions[id] = Math.max(0, (gameState.potions[id] || 0) - amt);
+    }
+    if (type.startsWith('item:')) {
+        const id = type.slice(5);
+        // Remove from inventory or unequip
+        const invIdx = gameState.inventory.indexOf(id);
+        if (invIdx !== -1) gameState.inventory.splice(invIdx, 1);
+        else { for (const slot in gameState.equipped) { if (gameState.equipped[slot] === id) { gameState.equipped[slot] = null; break; } } }
+    }
+    if (type.startsWith('minion:')) {
+        const id = type.slice(7);
+        if (gameState.minions[id]) gameState.minions[id].level = Math.max(0, (gameState.minions[id].level || 0) - amt);
     }
 }
 
@@ -16643,14 +16682,29 @@ function addCurrency(type, amt) {
         case 'darkEssence':        _safeAddCur("darkEssence", amt); break;
         case 'abyssalShards':      _safeAddCur("abyssalShards", amt); break;
         case 'corruptedFragments': _safeAddCur('corruptedFragments', amt); break;
+        case 'aether':             gameState.aether = D(gameState.aether || 0).add(amt); break;
         case 'key': {
-            // Buyer receives key — grant it to them
-            // The barter listing stores which key it was in offer_note or defaults to a random one
             const keyId = gameState._pendingBarterKeyId || KEY_IDS[Math.floor(Math.random() * KEY_IDS.length)];
             delete gameState._pendingBarterKeyId;
             if (typeof presentKey === 'function') presentKey(keyId, 'barter');
             break;
         }
+    }
+    if (type.startsWith('potion:')) {
+        const id = type.slice(7);
+        gameState.potions[id] = (gameState.potions[id] || 0) + amt;
+        Toastify({ text: `🧪 Received ${amt}x ${potions[id]?.name || id}!`, duration: 3000, gravity:'top', position:'center' }).showToast();
+    }
+    if (type.startsWith('item:')) {
+        const id = type.slice(5);
+        if (!gameState.inventory.includes(id)) gameState.inventory.push(id);
+        Toastify({ text: `🎁 Received item: ${items[id]?.name || id}!`, duration: 3000, gravity:'top', position:'center' }).showToast();
+    }
+    if (type.startsWith('minion:')) {
+        const id = type.slice(7);
+        if (!gameState.minions[id]) gameState.minions[id] = { level: 0, cost: D(minions[id]?.cost || 0), promotionTier: 0 };
+        gameState.minions[id].level = (gameState.minions[id].level || 0) + amt;
+        Toastify({ text: `👹 Received ${amt} levels of ${minions[id]?.name || id}!`, duration: 3000, gravity:'top', position:'center' }).showToast();
     }
 }
 
@@ -16708,7 +16762,10 @@ async function postBarterListing() {
         deductCurrency(offerType, offerAmtFinal);
         calculateStats(); renderAll();
 
-        const offerNote = (offerType === 'key' && gameState._barterHeldKeyId) ? gameState._barterHeldKeyId : null;
+        if (offerType === 'key' && gameState._barterHeldKeyId) {
+            gameState._barterPendingKeyId = gameState._barterHeldKeyId;
+        }
+        const _offerNote = (offerType === 'key' && gameState._barterHeldKeyId) ? gameState._barterHeldKeyId : null;
         const { error } = await supabaseClient.from('barter_listings').insert({
             poster_name: gameState.playerName,
             offer_type: offerType,
@@ -16716,7 +16773,7 @@ async function postBarterListing() {
             want_type: wantType,
             want_amt: wantAmtFinal,
             is_complete: false,
-            offer_note: offerNote
+            ..._offerNote ? { offer_note: _offerNote } : {}
         });
         if (error) {
             // Refund on failure
@@ -16962,16 +17019,16 @@ async function arenaInitialize() {
         console.log(data, error);
         if (error && error.code !== 'PGRST116') throw error;
 
-        // Scale budget: 50 base + 10 per ascension + 5 per world beyond void_threshold
-        const baseBudget = 50;
-        const ascBonus = (gameState.ascensions || 0) * 10;
+        // Scale budget: 200 base + 25 per ascension (no cap) + 20 per late world
+        const baseBudget = 200;
+        const ascBonus = (gameState.ascensions || 0) * 25;
         const worldOrder = ['void_threshold','nexus_of_all_realities','the_dreaming_dark','shattered_omniverse','the_primordial_wound'];
-        const worldBonus = worldOrder.filter(w => gameState.unlockedWorlds.includes(w)).length * 5;
+        const worldBonus = worldOrder.filter(w => gameState.unlockedWorlds.includes(w)).length * 20;
         const pointBudget = baseBudget + ascBonus + worldBonus;
 
         arenaState = {
-            mode: 'defense_setup', playerUnits: data ? data.defense_data : [], enemyUnits: [],
-            pointsSpent: data ? data.defense_data.reduce((sum, unit) => sum + unit.cost, 0) : 0,
+            mode: 'defense_setup', playerUnits: data && data.defense_data ? (Array.isArray(data.defense_data) ? data.defense_data : (() => { try { return JSON.parse(data.defense_data); } catch(e) { return []; } })()) : [], enemyUnits: [],
+            pointsSpent: data && data.defense_data ? (Array.isArray(data.defense_data) ? data.defense_data : JSON.parse(data.defense_data || '[]')).reduce((sum, unit) => sum + (unit.cost || 0), 0) : 0,
             pointBudget, opponent: null, isCombatActive: false,
         };
     } catch (e) {
@@ -17210,9 +17267,11 @@ async function arenaSaveDefense() {
             _level: _level || 0,
             _promoTier: _promoTier || 0,
         }));
-        const{error} = await supabaseClient.from('arena_defenses').upsert({ player_name: gameState.playerName, defense_data: defenseSetup }, { onConflict: 'player_name' });
-        console.log(error);
-        Toastify({ text: "Defensive formation saved!", duration: 4000, style: { background: "linear-gradient(to right, #4caf50, #2e7d32)" } }).showToast();
+        const{data: saveData, error} = await supabaseClient.from('arena_defenses').upsert({ player_name: gameState.playerName, defense_data: defenseSetup, updated_at: new Date().toISOString() }, { onConflict: 'player_name' }).select();
+        if (error) { console.error('Defense save error:', error); alert('Failed to save defense: ' + error.message); return; }
+        console.log('Defense saved:', saveData);
+        Toastify({ text: "✅ Defensive formation saved! Others can now challenge you.", duration: 4000, style: { background: "linear-gradient(to right, #4caf50, #2e7d32)" } }).showToast();
+        arenaFetchOpponents();
     } catch (e) {
         alert("Failed to save defense: " + e.message);
     } finally {
@@ -17237,8 +17296,9 @@ async function arenaFetchOpponents() {
         if (!gameState.pvpBeatenToday) gameState.pvpBeatenToday = {};
 
         data.forEach((opponent) => {
-            const defenseCount = opponent.defense_data ? opponent.defense_data.length : 0;
-            const units = opponent.defense_data || [];
+            const _rawDef = opponent.defense_data;
+            const units = Array.isArray(_rawDef) ? _rawDef : (typeof _rawDef === 'string' ? (() => { try { return JSON.parse(_rawDef); } catch(e) { return []; } })() : []);
+            const defenseCount = units.length;
             const totalCost = units.reduce((s, u) => s + (u.cost || 0), 0);
             const defenseIcons = units.slice(0, 5).map(u => u.icon || '👿').join(' ');
 
@@ -19150,39 +19210,84 @@ function updateBarterDropdowns() {
     const wantSel  = document.getElementById('barter-want-type');
     if (!offerSel || !wantSel) return;
 
-    const holdsKey = gameState.heldKey &&
-        (Date.now() - gameState.heldKey.obtainedAt) < KEY_EXPIRY_MS;
+    // Helper to rebuild an optgroup
+    function fillGroup(groupId, options) {
+        const g = document.getElementById(groupId);
+        if (!g) return;
+        g.innerHTML = '';
+        options.forEach(({value, label}) => {
+            const o = document.createElement('option');
+            o.value = value; o.textContent = label;
+            g.appendChild(o);
+        });
+    }
+
+    // Potions the player actually has
+    const myPotions = Object.entries(gameState.potions || {})
+        .filter(([id, qty]) => qty > 0 && potions[id])
+        .map(([id, qty]) => ({ value: 'potion:' + id, label: `🧪 ${potions[id].name} (x${qty})` }));
+    fillGroup('barter-offer-potions', myPotions);
+    fillGroup('barter-want-potions', Object.keys(potions).map(id => ({ value: 'potion:' + id, label: `🧪 ${potions[id].name}` })));
+
+    // Items player owns (inventory + equipped)
+    const myItemIds = [...gameState.inventory, ...Object.values(gameState.equipped || {}).filter(Boolean)];
+    const myItems = [...new Set(myItemIds)].filter(id => items[id])
+        .map(id => ({ value: 'item:' + id, label: `🎁 ${items[id].name} (${items[id].rarity})` }));
+    fillGroup('barter-offer-items', myItems);
+    fillGroup('barter-want-items', Object.keys(items).filter(id => items[id]).map(id => ({ value: 'item:' + id, label: `🎁 ${items[id].name}` })));
+
+    // Minions player has levelled
+    const myMinions = Object.entries(gameState.minions || {})
+        .filter(([id, m]) => (m.level || 0) > 0 && minions[id])
+        .map(([id, m]) => {
+            const bm = battleMinions[id];
+            const statsStr = bm ? ` | ❤${bm.hp} ⚔${bm.atk} ↔${bm.range} ⚡${bm.cost}pts` : '';
+            return { value: 'minion:' + id, label: `👹 ${minions[id].name} (Lv${m.level})${statsStr}` };
+        });
+    fillGroup('barter-offer-minions', myMinions);
+    fillGroup('barter-want-minions', Object.keys(minions).filter(id => minions[id]).map(id => {
+        const bm = battleMinions[id];
+        const statsStr = bm ? ` | ❤${bm.hp} ⚔${bm.atk} ↔${bm.range} ⚡${bm.cost}pts` : '';
+        return { value: 'minion:' + id, label: `👹 ${minions[id].name}${statsStr}` };
+    }));
+
+    // Key handling
+    const holdsKey = gameState.heldKey && (Date.now() - gameState.heldKey.obtainedAt) < KEY_EXPIRY_MS;
     const keyName = holdsKey ? (KEYS[gameState.heldKey.id]?.name || 'Key of the Abyss') : 'Key of the Abyss';
+    ['barter-offer-type', 'barter-want-type'].forEach((selId, i) => {
+        const sel = document.getElementById(selId);
+        const existing = sel.querySelector('option[value="key"]');
+        if (holdsKey && !existing) {
+            const o = document.createElement('option'); o.value = 'key';
+            o.textContent = i === 0 ? `🗝️ ${keyName}` : `🗝️ A Key of the Abyss`;
+            sel.appendChild(o);
+        } else if (!holdsKey && existing) existing.remove();
+        else if (holdsKey && existing) existing.textContent = i === 0 ? `🗝️ ${keyName}` : `🗝️ A Key of the Abyss`;
+    });
 
-    // Offer dropdown — add/remove key option
-    const existingOfferKey = offerSel.querySelector('option[value="key"]');
-    if (holdsKey && !existingOfferKey) {
-        const opt = document.createElement('option');
-        opt.value = 'key';
-        opt.textContent = `🗝️ ${keyName}`;
-        offerSel.appendChild(opt);
-    } else if (!holdsKey && existingOfferKey) {
-        existingOfferKey.remove();
-    } else if (holdsKey && existingOfferKey) {
-        existingOfferKey.textContent = `🗝️ ${keyName}`;
-    }
-
-    // Want dropdown — add/remove key option (only visible if you know keys exist)
-    const existingWantKey = wantSel.querySelector('option[value="key"]');
-    if (holdsKey && !existingWantKey) {
-        const opt = document.createElement('option');
-        opt.value = 'key';
-        opt.textContent = `🗝️ A Key of the Abyss`;
-        wantSel.appendChild(opt);
-    } else if (!holdsKey && existingWantKey) {
-        existingWantKey.remove();
-    }
-
-    // Hide amount input when key is selected (keys are quantity 1)
+    // Hide amount for key/item (qty always 1)
     const offerAmt = document.getElementById('barter-offer-amt');
     const wantAmt  = document.getElementById('barter-want-amt');
-    if (offerAmt) offerAmt.style.display = offerSel.value === 'key' ? 'none' : '';
-    if (wantAmt)  wantAmt.style.display  = wantSel.value  === 'key' ? 'none' : '';
+    const offerNoAmt = offerSel.value === 'key' || offerSel.value.startsWith('item:');
+    const wantNoAmt  = wantSel.value  === 'key' || wantSel.value.startsWith('item:');
+    if (offerAmt) { offerAmt.style.display = offerNoAmt ? 'none' : ''; if (offerNoAmt) offerAmt.value = 1; }
+    if (wantAmt)  { wantAmt.style.display  = wantNoAmt  ? 'none' : ''; if (wantNoAmt)  wantAmt.value  = 1; }
+
+    // Preview what you currently have
+    const preview = document.getElementById('barter-offer-preview');
+    if (preview) {
+        const t = offerSel.value;
+        let haveStr = '';
+        if (t === 'souls')              haveStr = `You have: ${formatNumber(D(gameState.souls))}`;
+        else if (t === 'darkEssence')   haveStr = `You have: ${formatNumber(gameState.darkEssence)}`;
+        else if (t === 'abyssalShards') haveStr = `You have: ${formatNumber(gameState.abyssalShards)}`;
+        else if (t === 'corruptedFragments') haveStr = `You have: ${formatNumber(gameState.corruptedFragments)}`;
+        else if (t === 'aether')        haveStr = `You have: ${formatNumber(gameState.aether || 0)}`;
+        else if (t.startsWith('potion:')) { const id = t.slice(7); haveStr = `You have: ${gameState.potions[id] || 0}x`; }
+        else if (t.startsWith('item:'))   haveStr = `Item from your inventory`;
+        else if (t.startsWith('minion:')) { const id = t.slice(7); haveStr = `You have: Lv${gameState.minions[id]?.level || 0}`; }
+        preview.textContent = haveStr;
+    }
 }
 
 // Run on barter tab open

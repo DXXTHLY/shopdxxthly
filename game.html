@@ -19258,7 +19258,7 @@ async function validateAndSyncSoulsLog() {
             .from('players')
             .select('soulsLog, name')
             .eq('user_id', gameState.playerName)
-            .single().catch(() => ({ data: null }));
+            .maybeSingle();
 
         if (!data) return;
 
@@ -20198,18 +20198,14 @@ async function pwOpenNodeAction(nodeIdx) {
 
     // Check for active rally on this node already
     if (supabaseClient) {
-        let existing = null;
-        try {
-            const { data: _ex } = await supabaseClient
-                .from('pact_war_rallies')
-                .select('*')
-                .eq('node_id', nodeIdx)
-                .eq('pact_name', myPact.pact_name)
-                .eq('resolved', false)
-                .gt('expires_at', new Date().toISOString())
-                .maybeSingle();
-            existing = _ex;
-        } catch(e) { existing = null; }
+        const { data: existing } = await supabaseClient
+            .from('pact_war_rallies')
+            .select('*')
+            .eq('node_id', nodeIdx)
+            .eq('pact_name', myPact.pact_name)
+            .eq('resolved', false)
+            .gt('expires_at', new Date().toISOString())
+            .maybeSingle();
 
         if (existing) {
             // Already a rally in progress — join it
@@ -20329,7 +20325,7 @@ function pwShowRallyJoinModal(rally, nodeIdx, isMine, isOwned) {
             }
             // Re-fetch rally
             const { data: updated } = await supabaseClient
-                .from('pact_war_rallies').select('*').eq('id', rally.id).single().catch(() => ({data:null}));
+                .from('pact_war_rallies').select('*').eq('id', rally.id).maybeSingle();
             if (updated) pwShowRallyJoinModal(updated, nodeIdx, isMine, isOwned);
         }, 5000);
     }
@@ -20550,7 +20546,7 @@ function pwSubscribeToRally(rallyId, nodeIdx) {
     // Auto-fail after 3 min
     setTimeout(async () => {
         if (!supabaseClient) return;
-        const { data } = await supabaseClient.from('pact_war_rallies').select('*').eq('id',rallyId).single().catch(()=>({data:null}));
+        let data = null; try { const {data:_ar} = await supabaseClient.from('pact_war_rallies').select('*').eq('id',rallyId).maybeSingle(); data=_ar; } catch(e){}
         if (data && !data.resolved) {
             await supabaseClient.from('pact_war_rallies').update({resolved:true}).eq('id',rallyId);
             Toastify({text:`⌛ Rally on ${PW_NODE_NAMES[nodeIdx]} expired — not enough members joined.`,duration:5000,gravity:'top',position:'center',style:{background:'#1a0808'}}).showToast();
@@ -20840,7 +20836,7 @@ async function pwSiegeClick() {
     const btn = document.getElementById('siege-click-btn');
     if (btn.disabled) return;
 
-    // Visual feedback — button pulse
+    // Button pulse
     btn.style.transform = 'scale(0.93)';
     btn.style.boxShadow = '0 0 60px #ff664466, 0 0 120px #ff664422';
     setTimeout(() => {
@@ -20848,33 +20844,56 @@ async function pwSiegeClick() {
         btn.style.boxShadow = '0 0 40px #ff664433, 0 0 80px #ff664411';
     }, 80);
 
-    // Damage = SPC * a small multiplier so it feels impactful
-    const spc = D(gameState.stats?.spc || 1);
-    const clickDamage = parseFloat(spc.mul(0.1).toFixed(0)) || 1; // 10% of SPC per click
+    // Calculate damage — use SPC from gameState, clamp to a real number
+    const spcRaw = gameState.stats && gameState.stats.spc ? gameState.stats.spc : D(1);
+    const spcNum = parseFloat(D(spcRaw).toString()) || 1;
+    const clickDamage = Math.max(1, Math.floor(spcNum * 0.1));
 
-    _siegeState.myContribution += clickDamage;
-    document.getElementById('siege-my-contribution').innerHTML =
-        `Your contribution: <span style="color:#ff8866;">${formatNumber(clickDamage * 10)} souls/click · Total: ${formatNumber(_siegeState.myContribution)}</span>`;
+    // Add to local totals immediately
+    _siegeState.myContribution = (_siegeState.myContribution || 0) + clickDamage;
+    _siegeState.totalContribution = (_siegeState.totalContribution || 0) + clickDamage;
 
-    // Animate floating number
+    // Update contribution label
+    const contribEl = document.getElementById('siege-my-contribution');
+    if (contribEl) contribEl.innerHTML = 'Your contribution: <span style="color:#ff8866;">'
+        + formatNumber(clickDamage) + ' per click &middot; Total: ' + formatNumber(_siegeState.myContribution) + '</span>';
+
+    // Update progress bar locally (dont wait for realtime)
+    const threshold = _siegeState.threshold || 1;
+    const total = _siegeState.totalContribution;
+    const pct = Math.min(100, (total / threshold) * 100);
+    const progBar = document.getElementById('siege-progress-bar');
+    const progLabel = document.getElementById('siege-progress-label');
+    const pctLabel = document.getElementById('siege-pct-label');
+    if (progBar) progBar.style.width = pct.toFixed(1) + '%';
+    if (progLabel) progLabel.textContent = formatNumber(total) + ' / ' + formatNumber(threshold);
+    if (pctLabel) pctLabel.textContent = pct.toFixed(0) + '%';
+
+    // Floating damage number
     const overlay = document.getElementById('pw-siege-overlay');
-    const floater = document.createElement('div');
-    floater.textContent = '+' + formatNumber(clickDamage);
-    floater.style.cssText = `position:absolute; color:#ff8866; font-weight:bold; font-size:1.1em;
-        left:${40 + Math.random()*20}%; top:55%; pointer-events:none; z-index:500;
-        animation:pwFloatUp 0.8s ease-out forwards; text-shadow:0 0 10px #ff6644;`;
-    overlay.appendChild(floater);
-    setTimeout(() => floater.remove(), 800);
+    if (overlay) {
+        const floater = document.createElement('div');
+        floater.textContent = '+' + formatNumber(clickDamage);
+        floater.style.cssText = 'position:absolute; color:#ff8866; font-weight:bold; font-size:1.1em;'
+            + 'left:' + (40 + Math.random()*20) + '%; top:55%; pointer-events:none; z-index:500;'
+            + 'animation:pwFloatUp 0.8s ease-out forwards; text-shadow:0 0 10px #ff6644;';
+        overlay.appendChild(floater);
+        setTimeout(function() { if (floater.parentNode) floater.parentNode.removeChild(floater); }, 800);
+    }
 
-    // Push contribution to DB (batched — only update every 3 clicks)
+    // Check win condition locally
+    if (total >= threshold && !_siegeState.ended) {
+        await pwEndSiege(_siegeState.battleId, _siegeState.nodeIdx, true, 'THRESHOLD REACHED!');
+        return;
+    }
+
+    // Batch DB writes — flush every 3 clicks
     _siegeState._pendingClicks = (_siegeState._pendingClicks || 0) + clickDamage;
     _siegeState._clickCount = (_siegeState._clickCount || 0) + 1;
     if (_siegeState._clickCount % 3 === 0) {
-        await pwFlushClicksToDb(battleId_from_state());
+        pwFlushClicksToDb(_siegeState.battleId); // fire and forget
     }
 }
-
-function battleId_from_state() { return _siegeState?.battleId; }
 
 async function pwFlushClicksToDb(battleId) {
     if (!battleId || !_siegeState || !supabaseClient) return;
@@ -20891,12 +20910,16 @@ async function pwFlushClicksToDb(battleId) {
         });
     } catch(e) {
         // Fallback: direct update
-        const { data } = await supabaseClient.from('pact_war_battles')
-            .select('current_total').eq('id', battleId).single().catch(()=>({data:null}));
-        if (data) {
-            await supabaseClient.from('pact_war_battles')
-                .update({ current_total: (data.current_total||0) + Math.round(pending) })
-                .eq('id', battleId);
+        try {
+            const { data: _fb } = await supabaseClient.from('pact_war_battles')
+                .select('current_total').eq('id', battleId).maybeSingle();
+            if (_fb) {
+                await supabaseClient.from('pact_war_battles')
+                    .update({ current_total: (_fb.current_total||0) + Math.round(pending) })
+                    .eq('id', battleId);
+            }
+        } catch(_fe) {}
+        if (false) {
         }
     }
 }

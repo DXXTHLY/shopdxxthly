@@ -14178,6 +14178,40 @@ function initializeChat() {
                 // Build public stats snapshot — shown when others click your name
                 function buildPublicStats() {
                     const gs = gameState;
+                    // Build minion list — only owned minions (level >= 1)
+                    const minionList = [];
+                    for (const id in gs.minions) {
+                        const pm = gs.minions[id];
+                        const lv = pm?.level || 0;
+                        if (lv < 1) continue;
+                        const bm = typeof battleMinions !== 'undefined' ? battleMinions[id] : null;
+                        const md = typeof minions !== 'undefined' ? minions[id] : null;
+                        const pt = pm.promotionTier || 0;
+                        const tot = (1 + Math.floor(lv/25)*0.05) * (1 + pt*0.20);
+                        const scaledHp  = bm ? Math.ceil(bm.hp  * tot) : null;
+                        const scaledAtk = bm ? Math.ceil(bm.atk * tot) : null;
+                        minionList.push({
+                            id,
+                            name:       md?.name || id,
+                            icon:       bm?.icon || md?.icon || '👿',
+                            level:      lv,
+                            promoTier:  pt,
+                            hp:         scaledHp,
+                            atk:        scaledAtk,
+                            range:      bm?.range || null,
+                            cost:       bm?.cost  || null,
+                            world:      md?.requiredWorld || null,
+                            secret:     md?.secret || false,
+                            barterLevels: pm.barterLevels || 0,
+                        });
+                    }
+                    // Sort by world order then level desc
+                    const WORLD_ORDER = ['nether_plains','ashen_wastes','stygian_depths','burning_hells','frozen_abyss','celestial_ruins','void_threshold'];
+                    minionList.sort((a, b) => {
+                        const wa = WORLD_ORDER.indexOf(a.world), wb = WORLD_ORDER.indexOf(b.world);
+                        if (wa !== wb) return wa - wb;
+                        return b.level - a.level;
+                    });
                     return {
                         souls:     D(gs.souls).toFixed(0),
                         essence:   D(gs.darkEssence).toFixed(0),
@@ -14185,13 +14219,12 @@ function initializeChat() {
                         aether:    D(gs.aether).toFixed(0),
                         fragments: D(gs.corruptedFragments).toFixed(0),
                         ascensions: gs.ascensions || 0,
-                        // Key: only write if holding a valid, non-expired key
                         hasKey: !!(gs.heldKey && (Date.now() - gs.heldKey.obtainedAt) < 86400000),
-                        // Inventory: top 6 items by rarity (no names, just slot+rarity for privacy)
                         equippedSlots: Object.entries(gs.equipped || {})
                             .filter(([,v]) => v)
                             .map(([slot, itemId]) => ({ slot, rarity: items[itemId]?.rarity || 'common', name: items[itemId]?.name || itemId }))
                             .slice(0, 8),
+                        minions: minionList,
                     };
                 }
 
@@ -14436,7 +14469,16 @@ function initializeChat() {
                         <div class="profile-item-chips">${itemChips}</div>
                     </div>
 
-                    ${keySection}`;
+                    ${keySection}
+
+                    ${(st.minions && st.minions.length > 0) ? `
+                    <div class="profile-items-section" style="border-top:1px solid #1a0820; padding:14px 16px;">
+                        <button id="profile-minion-toggle" style="width:100%; background:linear-gradient(135deg,#ff664422,#ff664408); border:1px solid #ff664455; border-radius:9px; padding:9px 14px; color:#ff8866; font-family:var(--font-title); font-size:0.78em; letter-spacing:2px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,#ff664433,#ff664415)'" onmouseout="this.style.background='linear-gradient(135deg,#ff664422,#ff664408)'">
+                            ⚔ VIEW MINIONS (${st.minions.length})
+                        </button>
+                        <div id="profile-minion-panel" style="display:none; margin-top:12px;"></div>
+                    </div>` : ''}
+                    `;
 
                 // ── Dev moderation tools ──────────────────────────────────
                 if (isCurrentUserDev) {
@@ -14459,6 +14501,50 @@ function initializeChat() {
                 document.body.appendChild(popup);
 
                 popup.querySelector('.close-btn').addEventListener('click', () => popup.remove());
+
+                // Wire minion panel toggle
+                const minionToggleBtn = popup.querySelector('#profile-minion-toggle');
+                if (minionToggleBtn && st.minions && st.minions.length > 0) {
+                    minionToggleBtn.addEventListener('click', () => {
+                        const panel = popup.querySelector('#profile-minion-panel');
+                        if (!panel) return;
+                        if (panel.style.display !== 'none') {
+                            panel.style.display = 'none';
+                            minionToggleBtn.textContent = '⚔ VIEW MINIONS (' + st.minions.length + ')';
+                            return;
+                        }
+                        minionToggleBtn.textContent = '⚔ HIDE MINIONS';
+
+                        // Build minion grid
+                        const TIER_COLORS = ['#555','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
+                        const WORLD_LABELS = {
+                            nether_plains:'🌋 Nether', ashen_wastes:'🌑 Ashen', stygian_depths:'🌊 Stygian',
+                            burning_hells:'🔥 Hells', frozen_abyss:'❄️ Frozen', celestial_ruins:'✨ Celestial',
+                            void_threshold:'🌀 Void', singularity:'⚫ Singularity', event_horizon:'🕳️ Event Horizon',
+                        };
+                        let html = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px;">';
+                        st.minions.forEach(m => {
+                            const tc = TIER_COLORS[Math.min(5, Math.floor(m.level/25))] || '#555';
+                            const stars = m.promoTier > 0 ? ' ' + '★'.repeat(m.promoTier) : '';
+                            const barterBadge = m.barterLevels > 0 ? '<div style="position:absolute;top:4px;right:4px;font-size:0.55em;background:#aa44ff;border-radius:4px;padding:1px 4px;color:#fff;">🔀</div>' : '';
+                            html += '<div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ' + tc + '33; border-top:2px solid ' + tc + '; border-radius:8px; padding:8px; text-align:center; position:relative;">'
+                                + barterBadge
+                                + '<div style="font-size:1.8em;">' + (m.icon || '👿') + '</div>'
+                                + '<div style="color:#ddd; font-size:0.7em; font-weight:bold; margin:2px 0;">' + (m.name || m.id) + '</div>'
+                                + '<div style="color:' + tc + '; font-size:0.65em;">Lv' + m.level + (stars ? '<span style="color:#c8a800;">' + stars + '</span>' : '') + '</div>'
+                                + (m.hp !== null ? '<div style="display:flex; justify-content:center; gap:6px; margin-top:4px; font-size:0.6em;">'
+                                    + '<span style="color:#cc4444;">❤' + (m.hp || '?') + '</span>'
+                                    + '<span style="color:#ff9944;">⚔' + (m.atk || '?') + '</span>'
+                                    + (m.range !== null ? '<span style="color:#44aaff;">↔' + m.range + '</span>' : '')
+                                    + '</div>' : '')
+                                + (m.world ? '<div style="color:#333; font-size:0.55em; margin-top:3px;">' + (WORLD_LABELS[m.world] || m.world) + '</div>' : '')
+                                + '</div>';
+                        });
+                        html += '</div>';
+                        panel.innerHTML = html;
+                        panel.style.display = 'block';
+                    });
+                }
                 // Close on outside click
                 setTimeout(() => {
                     document.addEventListener('click', function outsideClick(e) {

@@ -17426,7 +17426,7 @@ async function arenaFetchOpponents() {
     try {
         // Fetch your own defense separately to show as preview
         const { data: myDef } = await supabaseClient.from('arena_defenses').select('*').eq('player_name', gameState.playerName).single();
-        const { data, error } = await supabaseClient.from('arena_defenses').select('*').neq('player_name', gameState.playerName).limit(20);
+        const { data, error } = await supabaseClient.from('arena_defenses').select('*').neq('player_name', gameState.playerName).order('updated_at', { ascending: false }).limit(50);
         if (error) throw error;
         list.innerHTML = '';
 
@@ -17462,32 +17462,54 @@ async function arenaFetchOpponents() {
         const today = new Date().toDateString();
         if (!gameState.pvpBeatenToday) gameState.pvpBeatenToday = {};
 
-        data.forEach((opponent) => {
-            const _rawDef = opponent.defense_data;
-            const units = Array.isArray(_rawDef) ? _rawDef : (typeof _rawDef === 'string' ? (() => { try { return JSON.parse(_rawDef); } catch(e) { return []; } })() : []);
-            const defenseCount = units.length;
-            const totalCost = units.reduce((s, u) => s + (u.cost || 0), 0);
-            const defenseIcons = units.slice(0, 5).map(u => u.icon || '👿').join(' ');
+        // Sort: unbeaten first, beaten today pushed to bottom
+        const sorted = [...data].sort((a, b) => {
+            const aBeaten = gameState.pvpBeatenToday?.[a.player_name] === today;
+            const bBeaten = gameState.pvpBeatenToday?.[b.player_name] === today;
+            if (aBeaten && !bBeaten) return 1;
+            if (!aBeaten && bBeaten) return -1;
+            return 0;
+        });
 
+        const unbeatenCount = sorted.filter(o => gameState.pvpBeatenToday?.[o.player_name] !== today).length;
+        const beatenCount   = sorted.length - unbeatenCount;
+
+        // Count header
+        const countDiv = document.createElement('div');
+        countDiv.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:0.75em; color:#555;';
+        countDiv.innerHTML = `
+            <span>⚔ <span style="color:#ff8888;">${unbeatenCount}</span> available · <span style="color:#444;">${beatenCount}</span> beaten today</span>
+            ${beatenCount > 0 ? `<button onclick="this.closest('#arena-opponent-list') ? null : null; window._hideBeaten = !window._hideBeaten; arenaFetchOpponents()" style="background:#ff444412; border:1px solid #ff444433; border-radius:5px; padding:2px 8px; color:#ff6666; cursor:pointer; font-family:inherit; font-size:0.9em;">${window._hideBeaten ? '👁 Show All' : '🙈 Hide Beaten'}</button>` : ''}`;
+        list.appendChild(countDiv);
+
+        sorted.forEach((opponent) => {
             const beatenDate = gameState.pvpBeatenToday?.[opponent.player_name];
             const alreadyBeaten = beatenDate === today;
 
+            // Optionally hide beaten opponents
+            if (alreadyBeaten && window._hideBeaten) return;
+
+            const _rawDef = opponent.defense_data;
+            const units = Array.isArray(_rawDef) ? _rawDef : (typeof _rawDef === 'string' ? (() => { try { return JSON.parse(_rawDef); } catch(e) { return []; } })() : []);
+            const defenseCount = units.length;
+            const defenseIcons = units.slice(0, 6).map(u => u.icon || '👿').join(' ');
+
             const li = document.createElement('div');
-            li.style.cssText = `background:linear-gradient(135deg,${alreadyBeaten ? '#0a0a0a' : '#0e0a1a'},${alreadyBeaten ? '#111' : '#1a0a0a'}); border:1px solid ${alreadyBeaten ? '#22222244' : '#ff444422'}; border-left:3px solid ${alreadyBeaten ? '#333' : '#ff4444'}; border-radius:10px; padding:12px 14px; opacity:${alreadyBeaten ? '0.5' : '1'};`;
+            li.style.cssText = `background:linear-gradient(135deg,${alreadyBeaten ? '#0a0a0a' : '#0e0a1a'},${alreadyBeaten ? '#111' : '#1a0a0a'}); border:1px solid ${alreadyBeaten ? '#22222244' : '#ff444433'}; border-left:3px solid ${alreadyBeaten ? '#333' : '#ff4444'}; border-radius:10px; padding:12px 14px; opacity:${alreadyBeaten ? '0.4' : '1'}; margin-bottom:8px;`;
             li.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <div style="color:${alreadyBeaten ? '#555' : '#ff8888'}; font-weight:bold; font-size:0.95em;">💀 ${opponent.player_name}</div>
                     ${alreadyBeaten
                         ? `<span style="background:#22222244; border:1px solid #33333344; border-radius:6px; padding:2px 8px; font-size:0.68em; color:#555;">✓ Defeated today</span>`
-                        : `<span style="color:#555; font-size:0.72em;">${defenseCount} defenders</span>`
+                        : `<span style="color:#555; font-size:0.72em;">${defenseCount} defender${defenseCount !== 1 ? 's' : ''}</span>`
                     }
                 </div>
-                <div style="color:#666; font-size:1.1em; margin-bottom:10px; letter-spacing:4px;">${defenseIcons || '???'}</div>
+                <div style="color:#666; font-size:1.2em; margin-bottom:10px; letter-spacing:4px;">${defenseIcons || '???'}</div>
                 <button onclick='${alreadyBeaten ? '' : `arenaSetupAttack(${JSON.stringify(opponent)})`}'
                     ${alreadyBeaten ? 'disabled' : ''}
-                    style="width:100%; background:${alreadyBeaten ? 'transparent' : 'linear-gradient(135deg,#330000,#1a0000)'}; border:1px solid ${alreadyBeaten ? '#222' : '#ff444455'}; border-radius:7px; padding:7px; color:${alreadyBeaten ? '#333' : '#ff6666'}; cursor:${alreadyBeaten ? 'default' : 'pointer'}; font-family:inherit; font-size:0.8em; font-weight:bold;"
-                    ${alreadyBeaten ? '' : `onmouseover="this.style.background='linear-gradient(135deg,#440000,#220000)'; this.style.borderColor='#ff444499';" onmouseout="this.style.background='linear-gradient(135deg,#330000,#1a0000)'; this.style.borderColor='#ff444455';"`}>
-                    ${alreadyBeaten ? '⚔ Already challenged today' : '⚔ Challenge'}
+                    style="width:100%; background:${alreadyBeaten ? 'transparent' : 'linear-gradient(135deg,#330000,#1a0000)'}; border:1px solid ${alreadyBeaten ? '#222' : '#ff444455'}; border-radius:7px; padding:8px; color:${alreadyBeaten ? '#333' : '#ff6666'}; cursor:${alreadyBeaten ? 'default' : 'pointer'}; font-family:inherit; font-size:0.8em; font-weight:bold;"
+                    ${alreadyBeaten ? '' : `onmouseover="this.style.background='linear-gradient(135deg,#550000,#220000)'; this.style.borderColor='#ff444499';" onmouseout="this.style.background='linear-gradient(135deg,#330000,#1a0000)'; this.style.borderColor='#ff444455';"`}>
+                    ${alreadyBeaten ? '✓ Already challenged today' : '⚔ Challenge'}
                 </button>`;
             list.appendChild(li);
         });

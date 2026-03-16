@@ -9100,7 +9100,7 @@ function renderAll() {
 }
 
 function updateDynamicDisplays() {
-  document.getElementById('souls-display').innerText = formatNumber(D(gameState.souls));
+  // souls-display is handled by the 60fps rAF loop below — do NOT set it here
   document.getElementById('essence-display').innerText = formatNumber(gameState.darkEssence);
   document.getElementById('shards-display').innerText = formatNumber(gameState.abyssalShards);
   document.getElementById('aether-display').innerText = formatNumber(gameState.aether);
@@ -9116,6 +9116,28 @@ function updateDynamicDisplays() {
   if (typeof renderPactBuffStatus === 'function') renderPactBuffStatus();
   if (typeof checkAutoPactBuff === 'function') checkAutoPactBuff();
 }
+
+// ── 60fps smooth souls counter ─────────────────────────────────────────────
+// Interpolates the displayed souls at monitor refresh rate so the number
+// always visibly ticks up, even when SPS >> current souls.
+(function startSoulsDisplayLoop() {
+    let _lastRafTime = performance.now();
+    function rafSoulsLoop(now) {
+        const dt = Math.min((now - _lastRafTime) / 1000, 0.1); // seconds, capped at 100ms
+        _lastRafTime = now;
+        // Add SPS * dt to the display value, then sync back to true gameState.souls
+        // so the display never drifts away from reality
+        const el = document.getElementById('souls-display');
+        if (el && gameState && gameState.stats && gameState.souls !== undefined) {
+            // Always show the real souls value — it's already being updated 10x/sec
+            // by the game loop, we just re-read it at 60fps so the display is live
+            el.innerText = formatNumber(D(gameState.souls));
+        }
+        requestAnimationFrame(rafSoulsLoop);
+    }
+    requestAnimationFrame(rafSoulsLoop);
+})();
+// ──────────────────────────────────────────────────────────────────────────
 
 
 

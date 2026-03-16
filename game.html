@@ -698,13 +698,13 @@
             position: fixed; /* This makes it stay in place even if the page scrolls */
             bottom: 10px;    /* 10 pixels from the bottom of the screen */
             left: 50%;       /* Start it in the horizontal center */
-            transform: translateX(-50%); /* Nudge it back so it's perfectly centered */
+            transform: translateX(-50%); /* Nudge it back so it is perfectly centered */
             
             color: var(--dim-color); /* Use a subtle color from theme */
             font-family: var(--font-body);
             font-size: 0.9rem;
             text-shadow: 1px 1px 2px #000;
-            z-index: 1001; /* Make sure it's on top of everything */
+            z-index: 1001; /* Make sure it is on top of everything */
             padding: 5px 10px;
             background-color: rgba(0, 0, 0, 0.5); /* A semi-transparent background */
             border-radius: 5px;
@@ -1181,7 +1181,7 @@
             cursor: pointer;
             padding: 0 15px;
             transition: transform 0.2s;
-            /* We make sure it's not a block element */
+            /* We make sure it is not a block element */
             display: inline-block; 
             line-height: 1;
         }
@@ -4219,7 +4219,7 @@ window.onload = function() {
 
     // --- The rest of your original onload code continues below this ---
     document.getElementById('version-number').textContent = GAME_VERSION
-    // Load Firebase for auth IMMEDIATELY — don't wait for chat to init
+    // Load Firebase for auth IMMEDIATELY — do not wait for chat to init
     loadAuthFirebase();
     loadGame();
     calculateStats();
@@ -4341,7 +4341,7 @@ window.onload = function() {
             saveGame();
         }
     }, 1000 / TICKS_PER_SECOND);
-    setInterval(ensureIntegrity, 100); // The real anti-cheat guard is here, and it's all you need.
+    setInterval(ensureIntegrity, 100); // The real anti-cheat guard is here, and it is all you need.
 };
 
 // =================================================================
@@ -5305,7 +5305,7 @@ const minions = {
     // ── THE PRIMORDIAL WOUND ──────────────────────────────────────
     wound_tendril: {
         name: "Wound Tendril", baseSps: 1e240, cost: 1e252, multiplier: 4.0, requiredWorld: 'the_primordial_wound',
-        lore: "A pseudopod of the wound itself — a living piece of the gash in reality. It reaches into worlds that don't yet exist and drains their potential.",
+        lore: "A pseudopod of the wound itself — a living piece of the gash in reality. It reaches into worlds that do not yet exist and drains their potential.",
         icon: '🩸',
         promotions: [ { level: 25, soulCost: 1e255, essenceCost: 1e28, multiplier: 2 }, { level: 50, soulCost: 3e256, essenceCost: 4e28, multiplier: 3 }, { level: 100, soulCost: 9e257, essenceCost: 1.6e29, multiplier: 5 } ],
         researchTiers: [
@@ -8226,7 +8226,7 @@ function buyUpgrade(type) {
     
     // This part handles upgrades that cost Souls
     if (type === 'click' || type === 'sacrifice') {
-        if (D(gameState.souls).lt(D(upgrade.cost))) return; // Stop if the player can't afford it
+        if (D(gameState.souls).lt(D(upgrade.cost))) return; // Stop if the player cannot afford it
         gameState.souls = D(gameState.souls).sub(D(upgrade.cost));
         gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(upgrade.cost));
         
@@ -8272,7 +8272,7 @@ function buyUpgrade(type) {
     } 
     // This part handles upgrades that cost Dark Essence
     else if (type === 'resonance') {
-        if (D(gameState.darkEssence).lt(upgrade.cost)) return; // Stop if the player can't afford it
+        if (D(gameState.darkEssence).lt(upgrade.cost)) return; // Stop if the player cannot afford it
         gameState.darkEssence = D(gameState.darkEssence).sub(upgrade.cost);
         upgrade.level++;
     }
@@ -8496,7 +8496,7 @@ function activateRitual(id) {
     }
     if (D(gameState.souls).lt(D(ritualData.cost))) {
         console.log("Ritual stopped: Not enough souls.");
-        return; // Stop if you can't afford it
+        return; // Stop if you cannot afford it
     }
 
     // --- All checks passed, let's activate it! ---
@@ -9318,7 +9318,7 @@ function updateDynamicDisplays() {
         // so the display never drifts away from reality
         const el = document.getElementById('souls-display');
         if (el && gameState && gameState.stats && gameState.souls !== undefined) {
-            // Always show the real souls value — it's already being updated 10x/sec
+            // Always show the real souls value — it is already being updated 10x/sec
             // by the game loop, we just re-read it at 60fps so the display is live
             el.innerText = formatNumber(D(gameState.souls));
         }
@@ -9489,7 +9489,7 @@ function renderMinions() {
         // Secret minions are never shown in the purchase grid
         if (m.secret) continue;
         
-        // Show if: purchased (always) OR in current world OR world not unlocked yet (don't show locked worlds at all)
+        // Show if: purchased (always) OR in current world OR world not unlocked yet (do not show locked worlds at all)
         if (!worldUnlocked) continue;
         if (!isPurchased && m.requiredWorld !== gameState.currentWorld) continue;
         
@@ -10728,7 +10728,7 @@ function brewPotion(id) {
         gameState.potionsBrewed++;
 
         // Cooldown is NOT set at brew time — only starts when you actually USE the potion.
-        // Re-brewing is blocked by the alreadyOwned check above (you can't brew a second
+        // Re-brewing is blocked by the alreadyOwned check above (you cannot brew a second
         // copy while you already have one sitting on your shelf).
 
         Toastify({ text: `🧪 ${p.name} added to your shelf!`, duration:3000, gravity:'top', position:'center',
@@ -11461,7 +11461,7 @@ async function saveGameToCloud(uid, db) {
             state: JSON.stringify(saveData),
             savedAt: ts,
             playerName: gameState.playerName,
-            soulsLog: soulsLogVal,        // auth-protected — can't be faked by other users
+            soulsLog: soulsLogVal,        // auth-protected — cannot be faked by other users
             ascensions: gameState.ascensions || 0,
             pvpWins: gameState.pvpWins || 0
         });
@@ -11535,7 +11535,7 @@ async function loadGameFromCloud(uid, db) {
             }
             // stats.sps always recomputed by calculateStats() in enterGame()
             // IMPORTANT: serialize Decimals back to strings before storing in localStorage
-            // JSON.stringify(Decimal) = {"m":1,"e":2} which D() can't parse back
+            // JSON.stringify(Decimal) = {"m":1,"e":2} which D() cannot parse back
             const _cloudSaveStr = JSON.stringify({ ...gameState,
                 souls:              D(gameState.souls).toString(),
                 lifetimeSouls:      D(gameState.lifetimeSouls).toString(),
@@ -14280,7 +14280,7 @@ function initializeChat() {
                 }
 
                 // ── Key slot — only shown if they hold a key ─────────────
-                // Keys are mysterious — never hint at their existence to players who don't have one
+                // Keys are mysterious — never hint at their existence to players who do not have one
                 const keySection = st.hasKey ? `
                     <div class="profile-items-section" style="border-top:1px solid #1a0820;">
                         <div class="profile-items-label" style="color:#c8a80066;">🗝️ Keys of the Abyss</div>
@@ -14469,7 +14469,7 @@ function confirmExpedition() {
             const count = parseInt(input.value);
             if (count > 0) {
                 if (count > gameState.minions[minionId].level) {
-                    alert(`You don't have that many ${minions[minionId].name}s!`);
+                    alert(`You do not have that many ${minions[minionId].name}s!`);
                     return;
                 }
                 sentMinions[minionId] = count;
@@ -14998,7 +14998,7 @@ function changeFont(fontPair) {
     document.body.style.setProperty('--font-title', titleFont);
     document.body.style.setProperty('--font-body', bodyFont);
     
-    // Save the combined choice so it's remembered
+    // Save the combined choice so it is remembered
     localStorage.setItem('chosenFontPair', fontPair);
     
     // Force the dropdown to re-render with the new body font
@@ -15340,7 +15340,7 @@ function resolveTileEvent(tile) {
             break;
         case 'key_room': {
             // An unmarked room. No icon. No warning. Something ancient was waiting here.
-            tile.event = null; // consume so it can't trigger twice
+            tile.event = null; // consume so it cannot trigger twice
             addBreachLog('🗝️ The air changes. Something ancient stirs in the dark.', 'objective');
             const _keyId = KEY_IDS[Math.floor(Math.random() * KEY_IDS.length)];
             setTimeout(() => { if (typeof presentKey === 'function') presentKey(_keyId, 'breach'); }, 800);
@@ -17135,7 +17135,7 @@ async function postBarterListing() {
         if(statusEl) statusEl.textContent = 'You can\'t trade a resource for itself.'; return;
     }
     if (!hasEnough(offerType, offerAmtFinal)) {
-        if(statusEl) statusEl.textContent = `You don't have enough ${BARTER_LABELS[offerType]}.`; return;
+        if(statusEl) statusEl.textContent = `You do not have enough ${BARTER_LABELS[offerType]}.`; return;
     }
 
     try {
@@ -17205,7 +17205,7 @@ async function acceptBarterListing(listingId) {
             .from('barter_listings').select('*').eq('id', listingId).single();
         if (fetchErr || !listing) { alert('Trade no longer available.'); fetchBarterListings(); return; }
         if (listing.is_complete) { alert('This trade has already been completed.'); fetchBarterListings(); return; }
-        if (!hasEnough(listing.want_type, listing.want_amt)) { alert(`You don't have enough ${BARTER_LABELS[listing.want_type]}.`); return; }
+        if (!hasEnough(listing.want_type, listing.want_amt)) { alert(`You do not have enough ${BARTER_LABELS[listing.want_type]}.`); return; }
 
         if (!confirm(`Accept trade?\nYou pay: ${formatNumber(listing.want_amt)} ${BARTER_LABELS[listing.want_type]}\nYou receive: ${formatNumber(listing.offer_amt)} ${BARTER_LABELS[listing.offer_type]}`)) return;
 
@@ -17972,7 +17972,7 @@ async function arenaEndBattle(playerWon) {
         const reward = 25;
         gameState.darkEssence += reward;
         gameState.pvpWins++;
-        // Track beaten opponent with today's date — can't rematch same day
+        // Track beaten opponent with today's date — cannot rematch same day
         const today = new Date().toDateString();
         if (!gameState.pvpBeatenToday) gameState.pvpBeatenToday = {};
         gameState.pvpBeatenToday[opponentName] = today;
@@ -18300,7 +18300,7 @@ function gntNextWave(){
 // =================================================================
 // 🗺️ GAUNTLET LOCATIONS — daily rotating map with buffs/debuffs
 // Seed = Math.floor(Date.now() / 86400000) → changes every day
-// Wave difficulty also seeds off this so it can't be memorized
+// Wave difficulty also seeds off this so it cannot be memorized
 // =================================================================
 
 // =================================================================
@@ -19889,7 +19889,7 @@ function updateBarterDropdowns() {
             const total     = lvlBonus * proBonus;
             const sHp  = bm ? Math.ceil(bm.hp  * total) : '?';
             const sAtk = bm ? Math.ceil(bm.atk * total) : '?';
-            haveStr = `Lv${lv}${promoTier > 0 ? ' ★'.repeat(promoTier) : ''} · ❤${sHp} ⚔${sAtk} ↔${bm?.range||'?'} — Buyer's levels STACK with any they already own`;
+            haveStr = `Lv${lv}${promoTier > 0 ? ' ★'.repeat(promoTier) : ''} · ❤${sHp} ⚔${sAtk} ↔${bm?.range||'?'} — Buyers levels STACK with any they already own`;
             if (offerAmtInput && !offerAmtInput.value) offerAmtInput.value = lv;
         }
         preview.textContent = haveStr;
@@ -21251,7 +21251,7 @@ function pwClaimRewards() {
     var myFrags    = alert._myFrags || 0;
     if (myFrags <= 0) return;
 
-    // Mark claimed so we don't give twice
+    // Mark claimed so we do not give twice
     var claimedKey = 'pw_claimed_' + lastResult.cycle_id;
     gameState[claimedKey] = true;
 
@@ -21270,7 +21270,7 @@ function pwClaimRewards() {
     var rankLabel = myRank === 0 ? '🥇 Champions!' : myRank === 1 ? '🥈 Runners-up' : '⚔ Participant';
 
     Toastify({
-        text: '🏆 ' + rankLabel + ' — Collected ' + myFrags + ' Corrupted Fragments from last week's Pact Wars!',
+        text: '🏆 ' + rankLabel + ' — Collected ' + myFrags + ' Corrupted Fragments from last week Pact Wars!',
         duration: 8000, gravity: 'top', position: 'center',
         style: { background: 'linear-gradient(135deg,#1a1a00,#3a3000)', border: '1px solid #c8a80066', fontSize: '0.9em' }
     }).showToast();

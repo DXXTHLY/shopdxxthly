@@ -14263,8 +14263,7 @@ function initializeChat() {
         // Sends a chat trade-request message; target sees Accept/Decline buttons
 
         // TRADE OFFER SYSTEM
-        // All trade data is encoded into the text field as JSON so it passes Firebase rules unchanged.
-        // Format: TRADE{...json...}END  (uses control chars as delimiters)
+        // All trade data encoded in text field to satisfy Firebase $other:false rule
         var TRADE_PREFIX = '\u0002TRADE\u0003';
         var TRADE_SUFFIX = '\u0002END\u0003';
 
@@ -14274,14 +14273,6 @@ function initializeChat() {
         }
         function _getChatUid() {
             return window._chatUid || window._scChatUid || null;
-        }
-        function _parseTrade(text) {
-            if (!text || text.indexOf(TRADE_PREFIX) === -1) return null;
-            try {
-                var s = text.indexOf(TRADE_PREFIX) + TRADE_PREFIX.length;
-                var e = text.indexOf(TRADE_SUFFIX, s);
-                return JSON.parse(text.slice(s, e));
-            } catch(x) { return null; }
         }
 
         window._proposeItemTrade = function(itemType, itemName, itemIcon, itemAmt, targetPlayerName) {
@@ -14296,7 +14287,7 @@ function initializeChat() {
             var existing = document.getElementById('trade-offer-overlay');
             if (existing) existing.remove();
             var RARITY_C = { common:'#888', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00' };
-            var TYPE_ICON = { weapon:'\u2694\ufe0f', idol:'\U0001f5ff', sigil:'\u2736', helm:'\U0001f9d6', tome:'\U0001f4d6' };
+            var TYPE_ICON = { weapon:'⚔️', idol:'🗿', sigil:'✶', helm:'🧖', tome:'📖' };
             var offerChoices = [];
             function addCard(label, icon, topColor, bodyHtml) {
                 var idx = offerChoices.length; offerChoices.push({ label:label, icon:icon });
@@ -14310,36 +14301,36 @@ function initializeChat() {
             var souls   = typeof D!=='undefined'?D(gameState.souls||0):null;
             var essence = typeof D!=='undefined'?D(gameState.darkEssence||0):null;
             var shards  = typeof D!=='undefined'?D(gameState.abyssalShards||0):null;
-            if (souls   && souls.gt(0))   currCards += addCard(formatNumber(souls)+' Souls','\U0001f480','#c41818','<div style="font-size:1.4em;">\U0001f480</div><div style="color:#f0d8d8;font-size:0.58em;font-weight:bold;">'+formatNumber(souls)+'</div><div style="color:#555;font-size:0.5em;">Souls</div>');
-            if (essence && essence.gt(0)) currCards += addCard(formatNumber(essence)+' Dark Essence','\U0001f311','#6622aa','<div style="font-size:1.4em;">\U0001f311</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;">'+formatNumber(essence)+'</div><div style="color:#555;font-size:0.5em;">Essence</div>');
-            if (shards  && shards.gt(0))  currCards += addCard(formatNumber(shards)+' Abyssal Shards','\U0001f48e','#4488ff','<div style="font-size:1.4em;">\U0001f48e</div><div style="color:#88aaff;font-size:0.58em;font-weight:bold;">'+formatNumber(shards)+'</div><div style="color:#555;font-size:0.5em;">Shards</div>');
+            if (souls   && souls.gt(0))   currCards += addCard(formatNumber(souls)+' Souls','💀','#c41818','<div style="font-size:1.4em;">💀</div><div style="color:#f0d8d8;font-size:0.58em;font-weight:bold;">'+formatNumber(souls)+'</div><div style="color:#555;font-size:0.5em;">Souls</div>');
+            if (essence && essence.gt(0)) currCards += addCard(formatNumber(essence)+' Dark Essence','🌑','#6622aa','<div style="font-size:1.4em;">🌑</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;">'+formatNumber(essence)+'</div><div style="color:#555;font-size:0.5em;">Essence</div>');
+            if (shards  && shards.gt(0))  currCards += addCard(formatNumber(shards)+' Abyssal Shards','💎','#4488ff','<div style="font-size:1.4em;">💎</div><div style="color:#88aaff;font-size:0.58em;font-weight:bold;">'+formatNumber(shards)+'</div><div style="color:#555;font-size:0.5em;">Shards</div>');
             var potCards = '';
             Object.keys(gameState.potions||{}).forEach(function(id) {
                 var cnt=gameState.potions[id]; if(!cnt||cnt<1||!potions[id]) return;
-                var p=potions[id]; var ico=(typeof potionMeta!=='undefined'&&potionMeta[id]&&potionMeta[id].icon)?potionMeta[id].icon:'\u2697\ufe0f';
+                var p=potions[id]; var ico=(typeof potionMeta!=='undefined'&&potionMeta[id]&&potionMeta[id].icon)?potionMeta[id].icon:'⚗️';
                 potCards+=addCard(p.name+' x'+cnt,ico,'#aa44ff','<div style="font-size:1.4em;">'+ico+'</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div><div style="color:#555;font-size:0.5em;">x'+cnt+'</div>');
             });
             var itemCards = '';
             (gameState.inventory||[]).forEach(function(id) {
                 if (!items[id]) return;
-                var it=items[id]; var rc=RARITY_C[it.rarity]||'#888'; var ico=TYPE_ICON[it.type]||'\U0001f52e';
+                var it=items[id]; var rc=RARITY_C[it.rarity]||'#888'; var ico=TYPE_ICON[it.type]||'🔮';
                 itemCards+=addCard(it.name,ico,rc,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:'+rc+';font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.5em;">'+escapeHTML(it.rarity||'')+'</div>');
             });
-            var body = section('\U0001f480 Currencies',currCards)+section('\u2697\ufe0f Potions',potCards)+section('\U0001f4e6 Items',itemCards)
+            var body = section('💀 Currencies',currCards)+section('⚗️ Potions',potCards)+section('📦 Items',itemCards)
                 || '<div style="color:#444;font-size:0.78em;text-align:center;padding:20px;">Your inventory is empty.</div>';
             var ov = document.createElement('div');
             ov.id = 'trade-offer-overlay';
             ov.style.cssText = 'position:fixed;inset:0;background:#000000cc;z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
             ov.innerHTML = '<div style="background:linear-gradient(160deg,#06040f,#0e0a1a);border:1px solid #3a1a5a;border-top:3px solid #44cc88;border-radius:14px;max-width:460px;width:94%;padding:22px 18px;box-shadow:0 0 60px #00000099;max-height:85vh;display:flex;flex-direction:column;">'
                 +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;"><div>'
-                +'<div style="color:#44cc88;font-size:0.72em;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">\U0001f91d Trade Proposal</div>'
+                +'<div style="color:#44cc88;font-size:0.72em;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">🤝 Trade Proposal</div>'
                 +'<div style="color:#888;font-size:0.78em;">You want: <b style="color:#ddd;">'+escapeHTML(wantIcon)+' '+escapeHTML(wantName)+(wantAmt>1?' x'+wantAmt:'')+'</b> from <b style="color:#c8a800;">'+escapeHTML(targetName)+'</b></div>'
-                +'</div><button id="toc-close" style="background:none;border:none;color:#555;font-size:1.3em;cursor:pointer;padding:2px 6px;">\u2715</button></div>'
+                +'</div><button id="toc-close" style="background:none;border:none;color:#555;font-size:1.3em;cursor:pointer;padding:2px 6px;">✕</button></div>'
                 +'<div style="color:#555;font-size:0.7em;margin-bottom:10px;">Click what you are offering, or type a custom offer below:</div>'
                 +'<div id="toc-cards" style="overflow-y:auto;flex:1;padding-right:4px;min-height:80px;">'+body+'</div>'
                 +'<div id="toc-selected" style="display:none;background:#0a180a;border:1px solid #44cc8833;border-radius:8px;padding:8px 12px;margin:10px 0 8px;font-size:0.78em;color:#44cc88;"></div>'
                 +'<div style="display:flex;gap:8px;margin-top:4px;"><input id="toc-custom" type="text" placeholder="Or type custom offer..." maxlength="80" style="flex:1;background:#0a0812;border:1px solid #2a1a3a;color:#ddd;padding:8px 10px;border-radius:8px;font-family:inherit;font-size:0.82em;outline:none;">'
-                +'<button id="toc-send" style="background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:8px;padding:8px 14px;color:#44cc88;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;white-space:nowrap;">\U0001f4e8 Send</button></div></div>';
+                +'<button id="toc-send" style="background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:8px;padding:8px 14px;color:#44cc88;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;white-space:nowrap;">📨 Send</button></div></div>';
             document.body.appendChild(ov);
             var selectedLabel='', selectedIcon='';
             document.getElementById('toc-cards').addEventListener('click', function(e) {
@@ -14367,7 +14358,6 @@ function initializeChat() {
                 var myName=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';
                 var color=localStorage.getItem('slitherChatNameColor')||'#c8a800';
                 var tradeId='tr_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-                // Encode all trade data inside text field — only allowed fields used
                 var tradePayload = JSON.stringify({
                     id:tradeId, from:myName, fromUid:uid, to:targetName,
                     wantType:wantType, wantName:wantName, wantIcon:wantIcon, wantAmt:wantAmt,
@@ -14380,25 +14370,24 @@ function initializeChat() {
                     text:msgText
                 });
                 ov.remove();
-                if(typeof Toastify!=='undefined'){Toastify({text:'\U0001f4e8 Trade offer sent to '+targetName+'!',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();}
+                if(typeof Toastify!=='undefined'){Toastify({text:'📨 Trade offer sent to '+targetName+'!',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();}
             });
         };
 
-        // Accept/Decline just push a new plain message — no .set() on existing nodes needed
         window._respondToTrade = function(tradeId, accepted, fromName, wantIcon, wantName, offerText) {
             var chatDb=_getChatDb(); var uid=_getChatUid();
             if(!chatDb||!uid) return;
             var myName=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';
             var statusText = accepted
-                ? '\u2705 '+myName+' accepted the trade! ('+wantIcon+' '+wantName+' \u21c4 '+offerText+') \u2014 meet in Barter to complete.'
-                : '\u274c '+myName+' declined the trade offer from '+fromName+'.';
+                ? '✅ '+myName+' accepted the trade from '+fromName+'! ('+wantIcon+' '+wantName+' ⇄ '+offerText+') — coordinate directly to swap.'
+                : '❌ '+myName+' declined the trade from '+fromName+'.';
             chatDb.ref('slitherChat').push({
                 uid:uid, name:'Trade System', chatNameColor:accepted?'#44cc88':'#ff4444',
                 time:firebase.database.ServerValue.TIMESTAMP,
                 text:statusText
             });
             if(accepted&&typeof Toastify!=='undefined'){
-                Toastify({text:'\u2705 Trade accepted! Open Barter to complete it.',duration:6000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();
+                Toastify({text:'✅ Trade accepted! Coordinate with '+fromName+' directly to complete the swap.',duration:8000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();
             }
         };
 
@@ -14442,53 +14431,47 @@ function initializeChat() {
             if (window.standaloneState && window.standaloneState.ignoredUsers && window.standaloneState.ignoredUsers[msg.uid]) return;
             if (!msg || !msg.uid) return;
 
-            // ── Trade card: parse JSON encoded in text field ─────────────
-            var _parsedTrade = (function(){
+            // ── Trade card: parse JSON encoded in text ────────────
+            var _tr = (function(){
                 var pfx='\u0002TRADE\u0003', sfx='\u0002END\u0003';
-                if (!msg.text || msg.text.indexOf(pfx)===-1) return null;
-                try {
-                    var s=msg.text.indexOf(pfx)+pfx.length, e=msg.text.indexOf(sfx,s);
-                    return JSON.parse(msg.text.slice(s,e));
-                } catch(x){return null;}
+                if (!msg.text||msg.text.indexOf(pfx)===-1) return null;
+                try{ var s=msg.text.indexOf(pfx)+pfx.length, e=msg.text.indexOf(sfx,s); return JSON.parse(msg.text.slice(s,e)); }catch(x){return null;}
             })();
-            if (_parsedTrade) {
-                var tr = _parsedTrade;
-                var myName2 = gameState.playerName||localStorage.getItem('slitherChatNickname')||'';
-                var isTarget = myName2===tr.to;
-                var isFrom   = myName2===tr.from;
-                var actionBtns = '';
+            if (_tr) {
+                var myName2=gameState.playerName||localStorage.getItem('slitherChatNickname')||'';
+                var isTarget=myName2===_tr.to, isFrom=myName2===_tr.from;
+                var actionBtns='';
                 if (isTarget) {
-                    actionBtns = '<div style="display:flex;gap:8px;margin-top:10px;">'
-                        +'<button class="trade-resp-btn" data-tradeid="'+escapeHTML(tr.id||'')+'" data-accepted="false" data-from="'+escapeHTML(tr.from||'')+'" data-wanticon="'+escapeHTML(tr.wantIcon||'')+'" data-wantname="'+escapeHTML(tr.wantName||'')+'" data-offer="'+escapeHTML(tr.offerText||'')+'" style="flex:1;background:#ff444422;border:1px solid #ff444466;border-radius:7px;padding:8px;color:#ff8888;cursor:pointer;font-family:inherit;font-size:0.82em;">\u274c Decline</button>'
-                        +'<button class="trade-resp-btn" data-tradeid="'+escapeHTML(tr.id||'')+'" data-accepted="true"  data-from="'+escapeHTML(tr.from||'')+'" data-wanticon="'+escapeHTML(tr.wantIcon||'')+'" data-wantname="'+escapeHTML(tr.wantName||'')+'" data-offer="'+escapeHTML(tr.offerText||'')+'" style="flex:2;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:7px;padding:8px;color:#44cc88;cursor:pointer;font-family:inherit;font-size:0.85em;font-weight:bold;">\u2705 Accept Trade</button>'
+                    actionBtns='<div style="display:flex;gap:8px;margin-top:10px;">'
+                        +'<button class="trade-resp-btn" data-tradeid="'+escapeHTML(_tr.id||'')+'" data-accepted="false" data-from="'+escapeHTML(_tr.from||'')+'" data-wanticon="'+escapeHTML(_tr.wantIcon||'')+'" data-wantname="'+escapeHTML(_tr.wantName||'')+'" data-offer="'+escapeHTML(_tr.offerText||'')+'" style="flex:1;background:#ff444422;border:1px solid #ff444466;border-radius:7px;padding:8px;color:#ff8888;cursor:pointer;font-family:inherit;font-size:0.82em;">❌ Decline</button>'
+                        +'<button class="trade-resp-btn" data-tradeid="'+escapeHTML(_tr.id||'')+'" data-accepted="true"  data-from="'+escapeHTML(_tr.from||'')+'" data-wanticon="'+escapeHTML(_tr.wantIcon||'')+'" data-wantname="'+escapeHTML(_tr.wantName||'')+'" data-offer="'+escapeHTML(_tr.offerText||'')+'" style="flex:2;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:7px;padding:8px;color:#44cc88;cursor:pointer;font-family:inherit;font-size:0.85em;font-weight:bold;">✅ Accept Trade</button>'
                         +'</div>';
                 } else if (isFrom) {
-                    actionBtns = '<div style="color:#555;font-size:0.72em;text-align:center;margin-top:8px;font-style:italic;">Awaiting response from '+escapeHTML(tr.to||'')+'...</div>';
+                    actionBtns='<div style="color:#555;font-size:0.72em;text-align:center;margin-top:8px;font-style:italic;">Awaiting response from '+escapeHTML(_tr.to||'')+'...</div>';
                 }
-                var tradeEl = document.createElement('div');
-                tradeEl.style.cssText = 'margin:8px 0;padding:14px 16px;background:linear-gradient(135deg,#0a1a0a,#0e1a0e);border:1px solid #44cc8844;border-left:3px solid #44cc88;border-radius:10px;';
-                tradeEl.innerHTML = '<div style="color:#44cc88;font-size:0.7em;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">\U0001f91d Trade Proposal \u2014 <span style="color:#888;">'+escapeHTML(tr.from||'')+'</span> \u2192 <span style="color:#c8a800;">'+escapeHTML(tr.to||'')+'</span></div>'
+                var tradeEl=document.createElement('div');
+                tradeEl.style.cssText='margin:8px 0;padding:14px 16px;background:linear-gradient(135deg,#0a1a0a,#0e1a0e);border:1px solid #44cc8844;border-left:3px solid #44cc88;border-radius:10px;';
+                tradeEl.innerHTML='<div style="color:#44cc88;font-size:0.7em;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">🤝 Trade Proposal — <span style="color:#888;">'+escapeHTML(_tr.from||'')+'</span> → <span style="color:#c8a800;">'+escapeHTML(_tr.to||'')+'</span></div>'
                     +'<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;">'
                     +'<div style="background:#ffffff08;border-radius:8px;padding:10px;text-align:center;"><div style="color:#555;font-size:0.6em;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Wants</div>'
-                    +'<div style="font-size:1.8em;">'+escapeHTML(tr.wantIcon||'\u2753')+'</div>'
-                    +'<div style="color:#ddd;font-size:0.72em;font-weight:bold;margin-top:3px;">'+escapeHTML(tr.wantName||'')+'</div>'
-                    +(tr.wantAmt>1?'<div style="color:#888;font-size:0.62em;">\u00d7'+tr.wantAmt+'</div>':'')+'</div>'
-                    +'<div style="color:#555;font-size:1.2em;text-align:center;">\u21c4</div>'
+                    +'<div style="font-size:1.8em;">'+escapeHTML(_tr.wantIcon||'❓')+'</div>'
+                    +'<div style="color:#ddd;font-size:0.72em;font-weight:bold;margin-top:3px;">'+escapeHTML(_tr.wantName||'')+'</div>'
+                    +(_tr.wantAmt>1?'<div style="color:#888;font-size:0.62em;">×'+_tr.wantAmt+'</div>':'')+'</div>'
+                    +'<div style="color:#555;font-size:1.2em;text-align:center;">⇄</div>'
                     +'<div style="background:#ffffff08;border-radius:8px;padding:10px;text-align:center;"><div style="color:#555;font-size:0.6em;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Offers</div>'
-                    +'<div style="font-size:1.8em;">'+escapeHTML(tr.offerIcon||'\U0001f4b0')+'</div>'
-                    +'<div style="color:#c8a800;font-size:0.72em;font-weight:bold;margin-top:3px;">'+escapeHTML(tr.offerText||'')+'</div></div>'
+                    +'<div style="font-size:1.8em;">'+escapeHTML(_tr.offerIcon||'💰')+'</div>'
+                    +'<div style="color:#c8a800;font-size:0.72em;font-weight:bold;margin-top:3px;">'+escapeHTML(_tr.offerText||'')+'</div></div>'
                     +'</div>'+actionBtns;
-                tradeEl.addEventListener('click', function(e) {
+                tradeEl.addEventListener('click',function(e){
                     var btn=e.target.closest('.trade-resp-btn'); if(!btn) return;
                     var accepted=btn.dataset.accepted==='true';
-                    window._respondToTrade(btn.dataset.tradeid, accepted, btn.dataset.from, btn.dataset.wanticon, btn.dataset.wantname, btn.dataset.offer);
-                    btn.parentElement.innerHTML='<div style="color:#555;font-size:0.72em;text-align:center;padding:6px;font-style:italic;">'+(accepted?'\u2705 Accepted!':'\u274c Declined')+'</div>';
+                    window._respondToTrade(btn.dataset.tradeid,accepted,btn.dataset.from,btn.dataset.wanticon,btn.dataset.wantname,btn.dataset.offer);
+                    btn.parentElement.innerHTML='<div style="color:#555;font-size:0.72em;text-align:center;padding:6px;font-style:italic;">'+(accepted?'✅ Accepted!':'❌ Declined')+'</div>';
                 });
                 chatBodyElement.appendChild(tradeEl);
-                if (shouldScroll) chatBodyElement.scrollTop = chatBodyElement.scrollHeight;
+                if (shouldScroll) chatBodyElement.scrollTop=chatBodyElement.scrollHeight;
                 return;
             }
-            // skip legacy tradeRequest-only messages
             if (msg.tradeRequest && !msg.text) return;
 
             // --- 1. SETUP & VALIDATION ---
@@ -14739,23 +14722,23 @@ function initializeChat() {
                         b.style.borderColor=active?'#ff664455':'#1a1030';
                     });
                     if (!invPanel) return;
-                    var TYPE_ICON={weapon:'\u2694\ufe0f',idol:'\U0001f5ff',sigil:'\u2736',helm:'\U0001f9d6',tome:'\U0001f4d6'};
+                    var TYPE_ICON={weapon:'⚔️',idol:'🗿',sigil:'✶',helm:'🧖',tome:'📖'};
                     var cardStyle='background:linear-gradient(135deg,#0e0a1a,#1a1020);border-radius:8px;padding:8px 6px;text-align:center;position:relative;cursor:pointer;transition:transform 0.1s;';
-                    var tradeBtn='<div style="font-size:0.5em;color:#44cc8888;margin-top:4px;letter-spacing:0.5px;">\U0001f4ac Propose Trade</div>';
+                    var tradeBtn='<div style="font-size:0.5em;color:#44cc8888;margin-top:4px;letter-spacing:0.5px;">💬 Propose Trade</div>';
                     invPanel._tradeItems=[];
                     function makeCard(payload,borderColor,topColor,innerHTML){
                         var idx=invPanel._tradeItems.length; invPanel._tradeItems.push(payload);
-                        return '<div class="ptc" data-idx="'+idx+'" style="'+cardStyle+'border:1px solid '+borderColor+'33;border-top:2px solid '+topColor+';">'+innerHTML+tradeBtn+'</div>';
+                        return '<div class="ptc" data-idx="'+idx+'" style="'+cardStyle+'border:1px solid '+borderColor+'33;border-top:2px solid '+topColor+';">' +innerHTML+tradeBtn+'</div>';
                     }
                     if (tab==='minions') {
                         if(!st.minions||!st.minions.length){invPanel.innerHTML='<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No minion data - syncs every 30s.</div>';return;}
                         var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.minions.forEach(function(m){
                             var tc=TIER_COLORS2[Math.min(5,Math.floor((m.level||0)/25))];
-                            var stars=m.promoTier>0?'<span style="color:#c8a800;font-size:0.55em;">'+('\u2605'.repeat(m.promoTier))+'</span>':'';
-                            var barter=m.barterLevels>0?'<span style="position:absolute;top:3px;right:3px;font-size:0.5em;background:#aa44ff;border-radius:3px;padding:1px 3px;color:#fff;">\U0001f500</span>':'';
-                            var micon=m.icon||'\U0001f47f';
-                            var inner=barter+'<div style="font-size:1.5em;">'+micon+'</div><div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(m.name)+'</div><div style="color:'+tc+';font-size:0.58em;">Lv'+m.level+stars+'</div>'+(m.hp!=null?'<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">\u2764'+m.hp+'</span> <span style="color:#ff9944;">\u2694'+m.atk+'</span></div>':'');
+                            var stars=m.promoTier>0?'<span style="color:#c8a800;font-size:0.55em;">'+('★'.repeat(m.promoTier))+'</span>':'';
+                            var barter=m.barterLevels>0?'<span style="position:absolute;top:3px;right:3px;font-size:0.5em;background:#aa44ff;border-radius:3px;padding:1px 3px;color:#fff;">🔀</span>':'';
+                            var micon=m.icon||'👿';
+                            var inner=barter+'<div style="font-size:1.5em;">'+micon+'</div><div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(m.name)+'</div><div style="color:'+tc+';font-size:0.58em;">Lv'+m.level+stars+'</div>'+(m.hp!=null?'<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">❤'+m.hp+'</span> <span style="color:#ff9944;">⚔'+m.atk+'</span></div>':'');
                             h+=makeCard(['minion:'+m.id,m.name,micon,m.level,targetName],tc,tc,inner);
                         });
                         invPanel.innerHTML=h+'</div>';
@@ -14763,7 +14746,7 @@ function initializeChat() {
                         if(!st.inventory||!st.inventory.length){invPanel.innerHTML='<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No items in inventory.</div>';return;}
                         var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.inventory.forEach(function(it){
-                            var rc=RARITY_COLORS2[it.rarity]||'#888'; var ico=TYPE_ICON[it.type]||'\U0001f52e';
+                            var rc=RARITY_COLORS2[it.rarity]||'#888'; var ico=TYPE_ICON[it.type]||'🔮';
                             var inner='<div style="font-size:1.5em;">'+ico+'</div><div style="color:'+rc+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.52em;">'+escapeHTML(it.rarity||'')+'</div>';
                             h+=makeCard(['item:'+it.id,it.name,ico,1,targetName],rc,rc,inner);
                         });
@@ -14773,7 +14756,7 @@ function initializeChat() {
                         var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.potions.forEach(function(p){
                             var col=p.color||'#888';
-                            var ico=(typeof potionMeta!=='undefined'&&potionMeta[p.id]&&potionMeta[p.id].icon)?potionMeta[p.id].icon:'\u2697\ufe0f';
+                            var ico=(typeof potionMeta!=='undefined'&&potionMeta[p.id]&&potionMeta[p.id].icon)?potionMeta[p.id].icon:'⚗️';
                             var inner='<div style="font-size:1.5em;">'+ico+'</div><div style="color:'+col+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div><div style="color:#555;font-size:0.52em;">x'+p.count+'</div>';
                             h+=makeCard(['potion:'+p.id,p.name,ico,p.count,targetName],col,col,inner);
                         });

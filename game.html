@@ -13159,9 +13159,11 @@ function withdrawShards() {
 
 function depositSouls() {
     const essenceCost = 25;
-    const depositAmt = Math.max(50000, Math.floor(D(gameState.stats.sps).mul(10).toNumber()));
+    // Deposit = 10x SPS, minimum 50k — kept as Decimal to handle huge SPS values
+    const spsD = D(gameState.stats && gameState.stats.sps ? gameState.stats.sps : 0);
+    const depositAmt = spsD.mul(10).max(50000).floor();
 
-    if (D(gameState.souls).lt(D(depositAmt))) {
+    if (D(gameState.souls).lt(depositAmt)) {
         Toastify({ text: `Need ${formatNumber(depositAmt)} souls to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
@@ -13169,9 +13171,9 @@ function depositSouls() {
         Toastify({ text: `Need ${essenceCost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    gameState.souls = D(gameState.souls).sub(D(depositAmt));
+    gameState.souls = D(gameState.souls).sub(depositAmt);
     gameState.darkEssence = D(gameState.darkEssence).sub(essenceCost);
-    gameState.bankedSouls = D(gameState.bankedSouls || 0).add(D(depositAmt));
+    gameState.bankedSouls = D(gameState.bankedSouls || 0).add(depositAmt);
     playSound('upgrade');
     Toastify({ text: `🏦 ${formatNumber(depositAmt)} souls secured in the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a1800,#c8a800)'} }).showToast();
     renderBank();

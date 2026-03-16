@@ -8644,7 +8644,7 @@ function executeAscension() {
   gameState.hasWithdrawnShards     = false;
   gameState.ascensions = oldAscensions + 1;
   gameState.abyssalShards = D(oldAbyssalShards).add(D(shardsGained));
-  gameState.totalShardsEarned = oldTotalShardsEarned + shardsGained;
+  gameState.totalShardsEarned = (isFinite(oldTotalShardsEarned) ? oldTotalShardsEarned : 0) + (isFinite(shardsGained) ? shardsGained : 0);
   gameState.darkEssence = D(essenceToRetain || 0);
   gameState.upgrades.resonance = oldResonance;
   gameState.pvpWins = oldPvpWins;
@@ -8816,8 +8816,23 @@ function executeCollapse() {
 }
 
 function calculateShardsOnAscend() {
-    // 1. Calculate the base Shards from lifetime souls.
-    let baseShards = Math.floor(Math.pow(D(gameState.lifetimeSouls).div(1e7).toNumber(), 0.5));
+    // 1. Calculate base Shards from lifetime souls — Decimal-safe
+    // Formula: floor(sqrt(lifetimeSouls / 1e7))
+    // Use log to avoid Infinity: sqrt(x) = 10^(log10(x)/2)
+    let baseShards;
+    try {
+        const soulsD = D(gameState.lifetimeSouls || 0);
+        if (soulsD.lte(0)) {
+            baseShards = 0;
+        } else {
+            const log10val = soulsD.div(1e7).log10().div(2);
+            // Cap at a sane shard value — 1e15 shards is already astronomical
+            const cappedLog = Math.min(log10val.toNumber(), 15);
+            baseShards = Math.floor(Math.pow(10, cappedLog));
+        }
+    } catch(e) {
+        baseShards = 0;
+    }
 
     // 2. Calculate the bonus from the "Soul Resonance" upgrade.
     let resonanceEffectiveness = 0.05;

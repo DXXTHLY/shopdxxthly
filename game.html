@@ -2572,6 +2572,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
 
                     <!-- Fuse button -->
+                    <div id="fusion-frag-cost" style="text-align:center; color:#888; font-size:0.78em; margin-bottom:6px;">🔮 Costs 1 Corrupted Fragment · You have <span id="fusion-frag-count">0</span></div>
                     <button id="fusion-btn" onclick="executeFusion()" disabled
                         style="width:100%; margin-top:16px; padding:12px; background:linear-gradient(135deg,#1a0a2a,#2a0a4a); border:1px solid #aa44ff44; border-bottom:3px solid #000; border-radius:10px; color:#444; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:not-allowed; text-transform:uppercase; transition:all 0.2s;">
                         🔮 Fuse Potions
@@ -10244,6 +10245,10 @@ function executeFusion() {
         Toastify({ text: "You need at least one of each potion in your shelf.", duration:3000, gravity:'top', position:'center', style:{background:'#550000'} }).showToast();
         return;
     }
+    if (D(gameState.corruptedFragments || 0).lt(1)) {
+        Toastify({ text: "🔮 Fusion requires 1 Corrupted Fragment.", duration:3000, gravity:'top', position:'center', style:{background:'#550033'} }).showToast();
+        return;
+    }
 
     const resultId = getFusionResult(a, b);
     const rp = potions[resultId];
@@ -10263,9 +10268,10 @@ Into:
 Both potions will be consumed. Proceed?`;
     if (!confirm(confirmMsg)) return;
 
-    // Consume both
+    // Consume both potions + 1 fragment
     gameState.potions[a]--;
     gameState.potions[b]--;
+    gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(1);
 
     // Grant result
     if (!gameState.potions[resultId]) gameState.potions[resultId] = 0;
@@ -10289,6 +10295,11 @@ Both potions will be consumed. Proceed?`;
 
     saveGame();
     renderBrewery();
+}
+
+function updateFusionFragCount() {
+    const el = document.getElementById('fusion-frag-count');
+    if (el) el.textContent = formatNumber(D(gameState.corruptedFragments || 0));
 }
 
 function tickFusionCooldown() {
@@ -10316,6 +10327,7 @@ function renderBrewery() {
 
     recipeGrid.innerHTML = '';
     inventoryGrid.innerHTML = '';
+    updateFusionFragCount();
 
     // Potion visual config
     // Uses global getPotionMeta() defined above renderBrewery

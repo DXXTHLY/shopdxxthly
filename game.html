@@ -2980,7 +2980,7 @@ text-decoration: underline; /* Adds an underline on hover */
                                 <option value="corruptedFragments">🔮 Wanting Fragments</option>
                             </select>
                         </div>
-                        <ul id="barter-listing-list" class="leaderboard-list" style="margin:0;">
+                        <div id="barter-listing-list" style="margin:0; display:flex; flex-direction:column; gap:0;">
                             <li><em>Loading trades...</em></li>
                         </ul>
                     </div>
@@ -16553,22 +16553,38 @@ function getBarterTypeInfo(type, amt, listing) {
         const m = minions[id];
         const bm = battleMinions[id];
         if (m) {
-            // Try to get scaled stats from offer_note (stored at post time)
-            let hp = bm?.hp, atk = bm?.atk, range = bm?.range, cost = bm?.cost, lvlStr = '';
-            if (listing?.offer_note && !listing.offer_note.startsWith('"')) {
+            let hp = bm?.hp, atk = bm?.atk, range = bm?.range, cost = bm?.cost, lvlStr = '', starStr = '';
+
+            // Priority 1: stored scaled stats in offer_note (set at post time)
+            if (listing?.offer_note && listing.offer_note !== 'null' && listing.offer_note.startsWith('{')) {
                 try {
                     const sn = JSON.parse(listing.offer_note);
                     if (sn.scaledHp) { hp = sn.scaledHp; atk = sn.scaledAtk; range = sn.range; cost = sn.cost; }
-                    if (sn.level)    lvlStr = ` (Lv${sn.level}${sn.promoTier > 0 ? ' ' + '★'.repeat(sn.promoTier) : ''})`;
+                    if (sn.level) { lvlStr = `Lv${sn.level}`; starStr = sn.promoTier > 0 ? ' ' + '★'.repeat(sn.promoTier) : ''; }
                 } catch(e) {}
             }
+
+            // Priority 2: compute from local gameState if we own this minion (viewer is poster)
+            if (hp === bm?.hp && gameState.minions?.[id]) {
+                const gm = gameState.minions[id];
+                const level = gm.level || 0;
+                const promoTier = gm.promotionTier || 0;
+                const total = (1 + Math.floor(level/25)*0.05) * (1 + promoTier*0.20);
+                hp  = Math.ceil((bm?.hp  || 0) * total);
+                atk = Math.ceil((bm?.atk || 0) * total);
+                lvlStr  = `Lv${level}`;
+                starStr = promoTier > 0 ? ' ' + '★'.repeat(promoTier) : '';
+            }
+
+            const displayLevel = lvlStr ? `${lvlStr}${starStr}` : '';
             return {
-            icon: bm?.icon || '👹',
-            name: m.name + lvlStr,
-            color: '#ff6644',
-            subtitle: `${formatNumber(amt)} level${amt>1?'s':''}`,
-            desc: hp ? `❤ ${hp}  ⚔ ${atk}  ↔ ${range}  ⚡ ${cost}pts` : ''
-        }; }
+                icon: bm?.icon || '👹',
+                name: m.name,
+                color: '#ff6644',
+                subtitle: `${displayLevel ? displayLevel + ' · ' : ''}${formatNumber(amt)} level${amt>1?'s':''}`,
+                desc: hp ? `❤ ${hp}  ⚔ ${atk}  ↔ ${range}  ⚡ ${cost}pts` : ''
+            };
+        }
         return { icon:'👹', name: id, color:'#ff6644', subtitle:`${formatNumber(amt)} levels`, desc:'' };
     }
 
@@ -16582,7 +16598,7 @@ async function fetchBarterListings(page) {
     if (page !== undefined) barterPage = page;
     const list = document.getElementById('barter-listing-list');
     if (!list || !supabaseClient) return;
-    list.innerHTML = '<li><em>Consulting the abyssal brokers...</em></li>';
+    list.innerHTML = '<div style="text-align:center;color:#555;padding:20px;font-size:0.85em;"><em>Consulting the abyssal brokers...</em></div>';
 
     const sortVal     = document.getElementById('barter-sort-select')?.value  || 'newest';
     const filterOffer = document.getElementById('barter-filter-offer')?.value || '';
@@ -16620,7 +16636,7 @@ async function fetchBarterListings(page) {
         if (isAmountSort) sorted = sorted.slice(barterPage * BARTER_PAGE_SIZE, (barterPage + 1) * BARTER_PAGE_SIZE);
 
         if (!sorted.length) {
-            list.innerHTML = '<li style="text-align:center; color:#555; padding:16px;">No trades match your filters.</li>';
+            list.innerHTML = '<div style="text-align:center;color:#555;padding:24px;font-size:0.85em;">No trades match your filters.</div>';
             return;
         }
 
@@ -16633,35 +16649,55 @@ async function fetchBarterListings(page) {
             const offerInfo = getBarterTypeInfo(listing.offer_type, listing.offer_amt, listing);
             const wantInfo  = getBarterTypeInfo(listing.want_type,  listing.want_amt, null);
 
-            function tradeCard(info) {
-                return `<div style="background:${info.color}14; border:1px solid ${info.color}44; border-radius:10px; padding:10px 14px; text-align:center; min-width:120px; max-width:180px;">
-                    <div style="font-size:1.8em; line-height:1; margin-bottom:4px;">${info.icon}</div>
-                    <div style="color:${info.color}; font-weight:bold; font-size:0.95em; margin-bottom:2px;">${info.name}</div>
-                    <div style="color:#eee; font-size:0.85em; font-weight:bold; margin-bottom:${info.desc?'4px':'0'};">${info.subtitle}</div>
-                    ${info.desc ? `<div style="color:#888; font-size:0.68em; line-height:1.3;">${info.desc}</div>` : ''}
+            function tradeCard(info, side) {
+                const isBig = side === 'offer';
+                return `<div style="
+                    background:linear-gradient(135deg,${info.color}18,${info.color}08);
+                    border:1px solid ${info.color}55;
+                    border-top:3px solid ${info.color};
+                    border-radius:12px;
+                    padding:14px 16px;
+                    text-align:center;
+                    min-width:130px;
+                    max-width:200px;
+                    flex:1;
+                    box-shadow:0 4px 20px ${info.color}18;
+                ">
+                    <div style="font-size:2.2em; line-height:1; margin-bottom:6px; filter:drop-shadow(0 0 8px ${info.color}88);">${info.icon}</div>
+                    <div style="color:${info.color}; font-weight:bold; font-size:0.92em; margin-bottom:3px; letter-spacing:0.5px;">${info.name}</div>
+                    <div style="color:#fff; font-size:1em; font-weight:bold; margin-bottom:${info.desc?'6px':'0'};">${info.subtitle}</div>
+                    ${info.desc ? `<div style="color:${info.color}aa; font-size:0.7em; line-height:1.5; margin-top:4px; background:${info.color}0a; border-radius:6px; padding:4px 6px;">${info.desc}</div>` : ''}
                 </div>`;
             }
 
-            li.style.cssText = 'display:block; padding:0; overflow:hidden; border-left-color:' + (isMe ? 'var(--primary-color)' : offerInfo.color) + ';';
+            const borderColor = isMe ? '#aa44ff' : offerInfo.color;
+            li.style.cssText = `display:block; padding:0; overflow:hidden; border-left:3px solid ${borderColor}; border-radius:10px; margin-bottom:10px; background:linear-gradient(135deg,#0e0a18,#130e20);`;
             li.innerHTML = `
-            <div style="padding:14px 18px;">
-                <div style="color:#888; font-size:0.75em; margin-bottom:10px;">
-                    Posted by <span style="color:${isMe ? 'var(--primary-color)' : '#ccc'}; font-weight:bold;">${listing.poster_name}</span>${isMe ? ' <em style="color:#666;">(you)</em>' : ''}
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-                    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-                        ${tradeCard(offerInfo)}
-                        <div style="color:#555; font-size:1.4em; flex-shrink:0;">⇄</div>
-                        ${tradeCard(wantInfo)}
+            <div style="padding:16px 18px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:6px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="color:#555; font-size:0.72em; text-transform:uppercase; letter-spacing:1px;">Posted by</span>
+                        <span style="color:${isMe ? '#aa44ff' : '#ccc'}; font-weight:bold; font-size:0.85em;">${listing.poster_name}</span>
+                        ${isMe ? '<span style="background:#aa44ff22; border:1px solid #aa44ff44; border-radius:20px; padding:1px 8px; font-size:0.65em; color:#aa44ff;">YOU</span>' : ''}
                     </div>
-                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0;">
+                    ${!isMe ? `<div style="color:#555; font-size:0.7em;">${canFill ? '✅ You can fill this' : '❌ Need more ' + wantInfo.icon}</div>` : ''}
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:stretch; gap:8px; flex-wrap:wrap;">
+                    <div style="display:flex; align-items:center; gap:10px; flex:1; flex-wrap:wrap; min-width:240px;">
+                        ${tradeCard(offerInfo, 'offer')}
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:4px; flex-shrink:0;">
+                            <div style="color:#555; font-size:0.6em; text-transform:uppercase; letter-spacing:1px;">for</div>
+                            <div style="color:#444; font-size:1.6em;">⇄</div>
+                        </div>
+                        ${tradeCard(wantInfo, 'want')}
+                    </div>
+                    <div style="display:flex; flex-direction:column; justify-content:center; align-items:flex-end; gap:8px; flex-shrink:0; min-width:120px;">
                         ${isMe
-                            ? `<button class="upgrade-btn" style="font-size:0.82em; background:#3a0a0a; border-color:#8a0000;" onclick="cancelBarterListing(${listing.id})">❌ Cancel</button>`
-                            : `<button class="upgrade-btn" style="font-size:0.85em; ${canFill ? '' : 'opacity:0.45;'}" onclick="acceptBarterListing(${listing.id})" ${!canFill ? 'disabled' : ''}>
-                                ${canFill ? '🤝 Accept Trade' : 'Need More'}
+                            ? `<button class="upgrade-btn" style="font-size:0.8em; background:linear-gradient(135deg,#3a0808,#1a0404); border-color:#cc333366; min-width:110px;" onclick="cancelBarterListing(${listing.id})">❌ Cancel</button>`
+                            : `<button class="upgrade-btn" style="font-size:0.85em; ${canFill ? `background:linear-gradient(135deg,${offerInfo.color}22,${offerInfo.color}08); border-color:${offerInfo.color}66;` : 'opacity:0.35;'} min-width:110px;" onclick="acceptBarterListing(${listing.id})" ${!canFill ? 'disabled' : ''}>
+                                ${canFill ? '🤝 Accept' : 'Need More'}
                             </button>`
                         }
-                        ${!isMe && !canFill ? `<div style="color:#555; font-size:0.72em; text-align:right;">Need ${wantInfo.subtitle} ${wantInfo.icon}</div>` : ''}
                     </div>
                 </div>
             </div>`;
@@ -16684,7 +16720,7 @@ async function fetchBarterListings(page) {
             list.appendChild(pager);
         }
     } catch(e) {
-        list.innerHTML = `<li style="color:#ff9944;">⚠️ Barter table not set up yet. Run the SQL in Supabase to enable this feature.</li>`;
+        list.innerHTML = `<div style="color:#ff9944;text-align:center;padding:16px;font-size:0.85em;">⚠️ Barter table not set up yet. Run the SQL in Supabase to enable this feature.</div>`;
     }
 }
 

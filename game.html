@@ -8909,12 +8909,13 @@ function calculateStats() {
         const playerMinion = gameState.minions[id];
         const minionData = minions[id];
         if (playerMinion.level > 0) {
-            let minionSps = playerMinion.level * minionData.baseSps;
+            // Use Decimal throughout — plain JS multiplication overflows to Infinity at high levels
+            let minionSps = D(playerMinion.level).mul(D(minionData.baseSps));
 
             for (const artifactId in gameState.ownedArtifacts) {
                 const artifactBonus = artifacts[artifactId]?.bonus;
                 if (artifactBonus && artifactBonus.type === 'minion_specific_multiplier' && artifactBonus.target.includes(id)) {
-                    minionSps *= Math.pow(artifactBonus.value, gameState.ownedArtifacts[artifactId].level);
+                    minionSps = minionSps.mul(D(artifactBonus.value).pow(gameState.ownedArtifacts[artifactId].level));
                 }
             }
 
@@ -8924,14 +8925,14 @@ function calculateStats() {
                 if (researchTiers[i].bonus.type === 'minion_self_multiplier') {
                     let value = researchTiers[i].bonus.value;
                     if (meta_research_doubler > 1) value = 1 + ((value - 1) * meta_research_doubler);
-                    minionSps *= value;
+                    minionSps = minionSps.mul(D(value));
                 }
             }
 
             for (let i = 0; i < playerMinion.promotionTier; i++) {
-                minionSps *= minionData.promotions[i].multiplier;
+                minionSps = minionSps.mul(D(minionData.promotions[i].multiplier));
             }
-            sps = sps.add(D(isFinite(minionSps) ? minionSps : 0));
+            sps = sps.add(minionSps);
         }
     }
 
@@ -9018,12 +9019,15 @@ function calculateStats() {
     // NaN guard: if any multiplier is NaN (from Decimal-as-number bug), fall back to 1.
     // Do NOT fall back on Infinity — pass it to D() which stores it as a huge-but-valid Decimal.
     // global_multiplier is already Decimal; sps/spc multipliers are plain numbers (small values)
-    const _safeN = v => (isNaN(v) || !isFinite(v)) ? 1 : v;
+    // sps_multiplier and spc_multiplier are plain numbers — clamp Infinity/NaN to 1
+    // but also pass through very large finite values via Decimal so they don't cap at 1.79e308
+    const _safeN = v => (isNaN(v) || v <= 0) ? 1 : v;
+    const _safeMul = v => { const n = _safeN(v); return isFinite(n) ? D(n) : D(10).pow(Math.log10(n)); };
     let final_sps_D = sps
-        .mul(D(_safeN(sps_multiplier)))
+        .mul(_safeMul(sps_multiplier))
         .mul(global_multiplier);
     let final_spc_D = D(isFinite(baseSpc) ? baseSpc : 1)
-        .mul(D(_safeN(spc_multiplier)))
+        .mul(_safeMul(spc_multiplier))
         .mul(global_multiplier);
 
     // All post-calc bonus additions done in pure Decimal — no .toNumber() cap

@@ -3233,15 +3233,74 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
 
                 <!-- Attack / Defend modal (hidden) -->
+                <!-- Pre-battle modal: pick minion / start rally -->
                 <div id="pw-action-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.92); justify-content:center; align-items:center; z-index:300; backdrop-filter:blur(4px);">
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a0a08); border:2px solid #ff664466; border-radius:16px; padding:28px; max-width:420px; width:90%;">
+                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a0a08); border:2px solid #ff664466; border-radius:16px; padding:28px; max-width:480px; width:92%;">
                         <div id="pw-action-title" style="color:#ff6644; font-weight:bold; font-size:1.1em; letter-spacing:2px; margin-bottom:6px;"></div>
                         <div id="pw-action-desc" style="color:#888; font-size:0.8em; margin-bottom:18px;"></div>
                         <div id="pw-action-body"></div>
                         <div style="display:flex; gap:10px; margin-top:18px;">
-                            <button onclick="document.getElementById('pw-action-overlay').style.display='none'" style="flex:1; background:#1a1a1a; border:1px solid #333; border-radius:9px; padding:10px; color:#666; font-family:inherit; cursor:pointer;">✗ Cancel</button>
+                            <button onclick="pwClosePrepModal()" style="flex:1; background:#1a1a1a; border:1px solid #333; border-radius:9px; padding:10px; color:#666; font-family:inherit; cursor:pointer;">✗ Cancel</button>
                             <button id="pw-action-confirm" style="flex:2; background:linear-gradient(135deg,#ff664422,#ff664408); border:1px solid #ff664466; border-radius:9px; padding:10px; color:#ff8866; font-family:inherit; font-weight:bold; cursor:pointer;">⚔ Commit</button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- SOUL SIEGE battle screen — full takeover during active battle -->
+                <div id="pw-siege-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.97); justify-content:center; align-items:center; z-index:400; backdrop-filter:blur(8px); flex-direction:column;">
+                    <div style="width:100%; max-width:600px; padding:20px; box-sizing:border-box;">
+                        <!-- Header -->
+                        <div style="text-align:center; margin-bottom:20px;">
+                            <div id="siege-node-name" style="color:#ff6644; font-family:var(--font-title); font-size:1.4em; letter-spacing:3px; text-shadow:0 0 30px #ff664499;"></div>
+                            <div id="siege-subtitle" style="color:#666; font-size:0.8em; margin-top:4px;"></div>
+                        </div>
+
+                        <!-- Timer ring -->
+                        <div style="display:flex; justify-content:center; margin-bottom:20px;">
+                            <div style="position:relative; width:100px; height:100px;">
+                                <svg viewBox="0 0 100 100" style="position:absolute; top:0; left:0; width:100%; height:100%; transform:rotate(-90deg);">
+                                    <circle cx="50" cy="50" r="44" fill="none" stroke="#1a1030" stroke-width="8"/>
+                                    <circle id="siege-timer-ring" cx="50" cy="50" r="44" fill="none" stroke="#ff6644" stroke-width="8" stroke-dasharray="276.5" stroke-dashoffset="0" style="transition:stroke-dashoffset 1s linear, stroke 0.5s;"/>
+                                </svg>
+                                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center;">
+                                    <div id="siege-timer-text" style="color:#ff6644; font-size:1.6em; font-weight:bold; font-family:monospace; line-height:1;">60</div>
+                                    <div style="color:#555; font-size:0.55em;">SEC</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Collective progress bar -->
+                        <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:#888; font-size:0.75em; letter-spacing:1px; text-transform:uppercase;">⚔ Soul Siege Progress</span>
+                            <span id="siege-progress-label" style="color:#ff6644; font-size:0.8em; font-weight:bold;">0 / 0</span>
+                        </div>
+                        <div style="background:#0a0812; border:1px solid #2a1a3a; border-radius:8px; height:24px; overflow:hidden; margin-bottom:20px; position:relative;">
+                            <div id="siege-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#ff4444,#ff6644,#ffaa00); border-radius:8px; transition:width 0.2s ease; position:relative;">
+                                <div style="position:absolute; right:8px; top:50%; transform:translateY(-50%); color:#fff; font-size:0.7em; font-weight:bold; white-space:nowrap;" id="siege-pct-label">0%</div>
+                            </div>
+                        </div>
+
+                        <!-- THE CLICK BUTTON -->
+                        <div style="text-align:center; margin-bottom:20px;">
+                            <button id="siege-click-btn" onclick="pwSiegeClick()"
+                                style="width:160px; height:160px; border-radius:50%;
+                                background:radial-gradient(circle at 40% 35%, #ff664444, #2a0a00);
+                                border:3px solid #ff664488; color:#ff8866; font-size:3em;
+                                cursor:pointer; font-family:inherit; transition:all 0.08s ease;
+                                box-shadow:0 0 40px #ff664433, 0 0 80px #ff664411;
+                                display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+                                margin:0 auto; user-select:none; -webkit-user-select:none;">
+                                <span id="siege-btn-icon">⚔</span>
+                                <span style="font-size:0.3em; letter-spacing:2px; color:#ff6644aa;">STRIKE</span>
+                            </button>
+                            <div id="siege-my-contribution" style="color:#888; font-size:0.75em; margin-top:10px;">Your contribution: <span style="color:#ff8866;">0</span></div>
+                        </div>
+
+                        <!-- Participant status -->
+                        <div id="siege-participants" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:16px;"></div>
+
+                        <!-- Outcome message -->
+                        <div id="siege-outcome" style="display:none; text-align:center; padding:16px; border-radius:12px; margin-bottom:16px;"></div>
                     </div>
                 </div>
 

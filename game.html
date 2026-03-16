@@ -14212,6 +14212,23 @@ function initializeChat() {
                         if (wa !== wb) return wa - wb;
                         return b.level - a.level;
                     });
+                    // Inventory items
+                    const invList = (gs.inventory || []).map(itemId => {
+                        const it = typeof items !== 'undefined' ? items[itemId] : null;
+                        return it ? { id: itemId, name: it.name || itemId, icon: it.icon || '📦', rarity: it.rarity || 'common', desc: (it.desc || '').slice(0, 80) } : null;
+                    }).filter(Boolean);
+
+                    // Potions (owned, not just active)
+                    const potionList = [];
+                    for (const id in gs.potions) {
+                        const count = gs.potions[id] || 0;
+                        if (count < 1) continue;
+                        const pd = typeof potions !== 'undefined' ? potions[id] : null;
+                        if (!pd) continue;
+                        const meta = typeof getPotionMeta !== 'undefined' ? getPotionMeta(id) : { icon: '⚗️', color: '#aa44ff' };
+                        potionList.push({ id, name: pd.name || id, icon: meta.icon || '⚗️', color: meta.color || '#aa44ff', count, desc: (pd.desc || '').slice(0, 80) });
+                    }
+
                     return {
                         souls:     D(gs.souls).toFixed(0),
                         essence:   D(gs.darkEssence).toFixed(0),
@@ -14225,18 +14242,100 @@ function initializeChat() {
                             .map(([slot, itemId]) => ({ slot, rarity: items[itemId]?.rarity || 'common', name: items[itemId]?.name || itemId }))
                             .slice(0, 8),
                         minions: minionList,
+                        inventory: invList,
+                        potions: potionList,
+                        playerName: gs.playerName || '',
                     };
                 }
 
                 userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP, stats: buildPublicStats() });
                 // Refresh stats + heartbeat every 3 min
-                setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP, stats: buildPublicStats() }), 3 * 60 * 1000);
+                setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP, stats: buildPublicStats() }), 30 * 1000);
 
                 listenForChatMessages(db, uid);
                 listenForOnlineUsers(db);
                 setupEventListeners(db, uid);
             });
         }
+
+        // ── Trade Proposal System ────────────────────────────────────
+        // Sends a chat trade-request message; target sees Accept/Decline buttons
+
+        window._proposeItemTrade = function(itemType, itemName, itemIcon, itemAmt, targetPlayerName) {
+            if (!window._scFirebase || !window._scFirebase.auth.currentUser) {
+                alert('You must be signed in to propose a trade.');
+                return;
+            }
+            const myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
+            if (myName === targetPlayerName) { alert('You cannot trade with yourself.'); return; }
+
+            const offerInput = prompt(
+                'Propose trade to ' + targetPlayerName + '\n\n'
+                + 'They have: ' + itemIcon + ' ' + itemName + (itemAmt > 1 ? ' (×'+itemAmt+')' : '') + '\n\n'
+                + 'What are you offering in return? (e.g. "500k Souls", "2 Shards", "Imp Lv200")',
+                ''
+            );
+            if (!offerInput || !offerInput.trim()) return;
+
+            const tradeId = 'trade_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+            const db2 = window._scFirebase.db;
+            const uid2 = window._scFirebase.auth.currentUser.uid;
+            const color = localStorage.getItem('slitherChatNameColor') || '#c8a800';
+
+            // Post a trade request message to chat
+            db2.ref('slitherChat').push({
+                uid: uid2,
+                name: myName,
+                chatNameColor: color,
+                time: firebase.database.ServerValue.TIMESTAMP,
+                tradeRequest: {
+                    id: tradeId,
+                    from: myName,
+                    fromUid: uid2,
+                    to: targetPlayerName,
+                    wantType: itemType,
+                    wantName: itemName,
+                    wantIcon: itemIcon,
+                    wantAmt: itemAmt,
+                    offering: offerInput.trim(),
+                    status: 'pending',
+                }
+            });
+
+            // Close profile popup
+            document.querySelector('.profile-popup')?.remove();
+        };
+
+        // Handle trade accept/decline
+        window._respondToTrade = function(tradeId, msgKey, accepted) {
+            if (!window._scFirebase || !window._scFirebase.auth.currentUser) return;
+            const db2 = window._scFirebase.db;
+            const myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
+
+            // Update the message trade status
+            db2.ref('slitherChat/' + msgKey + '/tradeRequest/status').set(accepted ? 'accepted' : 'declined');
+            db2.ref('slitherChat/' + msgKey + '/tradeRequest/respondedBy').set(myName);
+
+            if (accepted) {
+                // Post a follow-up system message
+                db2.ref('slitherChat').push({
+                    uid: 'system',
+                    name: 'Trade System',
+                    chatNameColor: '#44cc88',
+                    time: firebase.database.ServerValue.TIMESTAMP,
+                    text: '✅ ' + myName + ' accepted the trade! Open the Barter to complete it.',
+                });
+                Toastify({ text: '✅ Trade accepted! Use the Barter Market to complete the exchange.', duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a2a0a,#1a5a1a)' } }).showToast();
+            } else {
+                db2.ref('slitherChat').push({
+                    uid: 'system',
+                    name: 'Trade System',
+                    chatNameColor: '#ff4444',
+                    time: firebase.database.ServerValue.TIMESTAMP,
+                    text: '❌ ' + myName + ' declined the trade offer.',
+                });
+            }
+        };
 
         function listenForChatMessages(db, currentUid) {
             const chatBody = document.getElementById('chat-body');
@@ -14277,6 +14376,48 @@ function initializeChat() {
             // Check if user is ignored (this is for future-proofing, doesn't do anything yet)
             if (window.standaloneState && window.standaloneState.ignoredUsers && window.standaloneState.ignoredUsers[msg.uid]) return;
             if (!msg || !msg.uid) return;
+
+            // ── Trade request card ───────────────────────────────────────
+            if (msg.tradeRequest) {
+                const tr = msg.tradeRequest;
+                const myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || '';
+                const isTarget = myName === tr.to;
+                const isFrom   = myName === tr.from;
+                const status   = tr.status || 'pending';
+                const isPending = status === 'pending';
+
+                const statusBadge = !isPending
+                    ? '<div style="text-align:center;margin-top:8px;padding:5px 10px;border-radius:6px;font-size:0.75em;font-weight:bold;background:'+(status==='accepted'?'#44cc8833':'#ff444433')+';color:'+(status==='accepted'?'#44cc88':'#ff4444')+';">'+(status==='accepted'?'✅ Accepted':'❌ Declined')+'</div>'
+                    : '';
+                const actionBtns = (isTarget && isPending)
+                    ? '<div style="display:flex;gap:8px;margin-top:10px;">'
+                      + '<button onclick="window._respondToTrade(\''+tr.id+'\',\''+msg.key+'\',false)" style="flex:1;background:#ff444422;border:1px solid #ff444466;border-radius:7px;padding:7px;color:#ff8888;cursor:pointer;font-family:inherit;font-size:0.8em;">❌ Decline</button>'
+                      + '<button onclick="window._respondToTrade(\''+tr.id+'\',\''+msg.key+'\',true)" style="flex:2;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:7px;padding:7px;color:#44cc88;cursor:pointer;font-family:inherit;font-size:0.85em;font-weight:bold;">✅ Accept Trade</button>'
+                      + '</div>'
+                    : (isFrom && isPending ? '<div style="color:#555;font-size:0.72em;text-align:center;margin-top:8px;font-style:italic;">Waiting for response...</div>' : '');
+
+                const el = document.createElement('div');
+                el.style.cssText = 'margin:8px 0; padding:12px 14px; background:linear-gradient(135deg,#0a1a0a,#1a2a0a); border:1px solid #44cc8844; border-left:3px solid #44cc88; border-radius:10px;';
+                el.innerHTML = '<div style="color:#44cc88;font-size:0.72em;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">🤝 Trade Proposal</div>'
+                    + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+                    + '<div style="background:#ffffff08;border-radius:8px;padding:8px 12px;text-align:center;min-width:80px;">'
+                    + '<div style="font-size:1.6em;">'+(tr.wantIcon||'❓')+'</div>'
+                    + '<div style="color:#ddd;font-size:0.7em;font-weight:bold;">'+(tr.wantName||'')+'</div>'
+                    + (tr.wantAmt > 1 ? '<div style="color:#888;font-size:0.62em;">×'+tr.wantAmt+'</div>' : '')
+                    + '</div>'
+                    + '<div style="color:#555;">→</div>'
+                    + '<div style="flex:1;">'
+                    + '<div style="color:#888;font-size:0.7em;">Offering:</div>'
+                    + '<div style="color:#c8a800;font-size:0.82em;font-weight:bold;">'+(tr.offering||'')+'</div>'
+                    + '</div>'
+                    + '</div>'
+                    + '<div style="color:#555;font-size:0.68em;margin-top:6px;"><b style="color:#888;">'+tr.from+'</b> → <b style="color:#aaa;">'+tr.to+'</b></div>'
+                    + statusBadge + actionBtns;
+
+                chatBodyElement.appendChild(el);
+                if (shouldScroll) chatBodyElement.scrollTop = chatBodyElement.scrollHeight;
+                return;
+            }
 
             // --- 1. SETUP & VALIDATION ---
             const isValidHexColor = (color) => /^#([0-9a-fA-F]{3}){1,2}$/.test(color);
@@ -14473,15 +14614,19 @@ function initializeChat() {
 
                     `;
 
-                // Minion section — always show, even if data not yet synced
+                // Inventory viewer — tabbed: Minions / Items / Potions
                 {
-                    const minionCount = (st.minions && st.minions.length) ? st.minions.length : 0;
-                    const btnLabel = minionCount > 0 ? '⚔ VIEW MINIONS (' + minionCount + ')' : '⚔ VIEW MINIONS';
-                    popupHTML += '<div class="profile-items-section" style="border-top:1px solid #1a0820; padding:14px 16px;">'
-                        + '<button id="profile-minion-toggle" style="width:100%; background:linear-gradient(135deg,#ff664422,#ff664408); border:1px solid #ff664455; border-radius:9px; padding:9px 14px; color:#ff8866; font-family:var(--font-title); font-size:0.78em; letter-spacing:2px; cursor:pointer;">'
-                        + btnLabel
-                        + '</button>'
-                        + '<div id="profile-minion-panel" style="display:none; margin-top:12px;"></div>'
+                    const mc = (st.minions && st.minions.length) || 0;
+                    const ic = (st.inventory && st.inventory.length) || 0;
+                    const pc = (st.potions && st.potions.length) || 0;
+                    popupHTML += '<div id="profile-inv-section" style="border-top:1px solid #1a0820; padding:14px 16px;">'
+                        // Tab bar
+                        + '<div style="display:flex; gap:6px; margin-bottom:10px;">'
+                        + '<button class="prof-tab" data-tab="minions" style="flex:1; background:#ff664422; border:1px solid #ff664455; border-radius:7px; padding:7px 4px; color:#ff8866; font-size:0.7em; cursor:pointer; font-family:inherit;">⚔ Minions' + (mc ? ' ('+mc+')' : '') + '</button>'
+                        + '<button class="prof-tab" data-tab="items" style="flex:1; background:#0d0a18; border:1px solid #2a1a3a; border-radius:7px; padding:7px 4px; color:#888; font-size:0.7em; cursor:pointer; font-family:inherit;">📦 Items' + (ic ? ' ('+ic+')' : '') + '</button>'
+                        + '<button class="prof-tab" data-tab="potions" style="flex:1; background:#0d0a18; border:1px solid #2a1a3a; border-radius:7px; padding:7px 4px; color:#888; font-size:0.7em; cursor:pointer; font-family:inherit;">⚗️ Potions' + (pc ? ' ('+pc+')' : '') + '</button>'
+                        + '</div>'
+                        + '<div id="profile-inv-panel" style="max-height:280px; overflow-y:auto;"></div>'
                         + '</div>';
                 }
 
@@ -14507,56 +14652,70 @@ function initializeChat() {
 
                 popup.querySelector('.close-btn').addEventListener('click', () => popup.remove());
 
-                // Wire minion panel toggle
-                const minionToggleBtn = popup.querySelector('#profile-minion-toggle');
-                if (minionToggleBtn) {
-                    minionToggleBtn.addEventListener('click', () => {
-                        const panel = popup.querySelector('#profile-minion-panel');
-                        if (!panel) return;
-                        if (panel.style.display !== 'none') {
-                            panel.style.display = 'none';
-                            const mc = (st.minions && st.minions.length) ? st.minions.length : 0;
-                            minionToggleBtn.textContent = '⚔ VIEW MINIONS' + (mc > 0 ? ' (' + mc + ')' : '');
-                            return;
-                        }
-                        minionToggleBtn.textContent = '⚔ HIDE MINIONS';
+                // ── Tab system + trade proposals ─────────────────────────
+                const invPanel = popup.querySelector('#profile-inv-panel');
+                const profTabs = popup.querySelectorAll('.prof-tab');
+                const targetName = st.playerName || userData.name || 'them';
+                const TIER_COLORS2 = ['#555','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
+                const RARITY_COLORS2 = { common:'#888', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00' };
 
-                        if (!st.minions || st.minions.length === 0) {
-                            panel.innerHTML = '<div style="color:#555; font-size:0.78em; text-align:center; padding:12px; font-style:italic;">No minion data yet — syncs every 3 minutes.</div>';
-                            panel.style.display = 'block';
-                            return;
-                        }
-
-                        // Build minion grid
-                        const TIER_COLORS = ['#555','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
-                        const WORLD_LABELS = {
-                            nether_plains:'🌋 Nether', ashen_wastes:'🌑 Ashen', stygian_depths:'🌊 Stygian',
-                            burning_hells:'🔥 Hells', frozen_abyss:'❄️ Frozen', celestial_ruins:'✨ Celestial',
-                            void_threshold:'🌀 Void', singularity:'⚫ Singularity', event_horizon:'🕳️ Event Horizon',
-                        };
-                        let html = '<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px;">';
-                        st.minions.forEach(m => {
-                            const tc = TIER_COLORS[Math.min(5, Math.floor(m.level/25))] || '#555';
-                            const stars = m.promoTier > 0 ? ' ' + '★'.repeat(m.promoTier) : '';
-                            const barterBadge = m.barterLevels > 0 ? '<div style="position:absolute;top:4px;right:4px;font-size:0.55em;background:#aa44ff;border-radius:4px;padding:1px 4px;color:#fff;">🔀</div>' : '';
-                            html += '<div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ' + tc + '33; border-top:2px solid ' + tc + '; border-radius:8px; padding:8px; text-align:center; position:relative;">'
-                                + barterBadge
-                                + '<div style="font-size:1.8em;">' + (m.icon || '👿') + '</div>'
-                                + '<div style="color:#ddd; font-size:0.7em; font-weight:bold; margin:2px 0;">' + (m.name || m.id) + '</div>'
-                                + '<div style="color:' + tc + '; font-size:0.65em;">Lv' + m.level + (stars ? '<span style="color:#c8a800;">' + stars + '</span>' : '') + '</div>'
-                                + (m.hp !== null ? '<div style="display:flex; justify-content:center; gap:6px; margin-top:4px; font-size:0.6em;">'
-                                    + '<span style="color:#cc4444;">❤' + (m.hp || '?') + '</span>'
-                                    + '<span style="color:#ff9944;">⚔' + (m.atk || '?') + '</span>'
-                                    + (m.range !== null ? '<span style="color:#44aaff;">↔' + m.range + '</span>' : '')
-                                    + '</div>' : '')
-                                + (m.world ? '<div style="color:#333; font-size:0.55em; margin-top:3px;">' + (WORLD_LABELS[m.world] || m.world) + '</div>' : '')
-                                + '</div>';
-                        });
-                        html += '</div>';
-                        panel.innerHTML = html;
-                        panel.style.display = 'block';
+                function renderProfileTab(tab) {
+                    profTabs.forEach(b => {
+                        const active = b.dataset.tab === tab;
+                        b.style.background = active ? '#ff664422' : '#0d0a18';
+                        b.style.color = active ? '#ff8866' : '#555';
+                        b.style.borderColor = active ? '#ff664455' : '#1a1030';
                     });
+                    if (!invPanel) return;
+
+                    const cardStyle = 'background:linear-gradient(135deg,#0e0a1a,#1a1020);border-radius:8px;padding:8px 6px;text-align:center;position:relative;cursor:pointer;transition:transform 0.1s;';
+                    const tradeBtn = '<div style="font-size:0.5em;color:#44cc8888;margin-top:4px;letter-spacing:0.5px;">💬 Propose Trade</div>';
+
+                    if (tab === 'minions') {
+                        if (!st.minions || !st.minions.length) { invPanel.innerHTML = '<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No minion data — syncs every 30s.</div>'; return; }
+                        let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
+                        st.minions.forEach(m => {
+                            const tc = TIER_COLORS2[Math.min(5,Math.floor((m.level||0)/25))];
+                            const stars = m.promoTier > 0 ? '<span style="color:#c8a800;font-size:0.55em;">'+('★'.repeat(m.promoTier))+'</span>' : '';
+                            const barter = m.barterLevels > 0 ? '<span style="position:absolute;top:3px;right:3px;font-size:0.5em;background:#aa44ff;border-radius:3px;padding:1px 3px;color:#fff;">🔀</span>' : '';
+                            h += '<div style="'+cardStyle+'border:1px solid '+tc+'33;border-top:2px solid '+tc+';" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'" onclick="window._proposeItemTrade('+JSON.stringify('minion:'+m.id)+','+JSON.stringify(m.name)+','+JSON.stringify(m.icon||'👿')+','+m.level+','+JSON.stringify(targetName)+')">'
+                                +barter+'<div style="font-size:1.5em;">'+m.icon+'</div>'
+                                +'<div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+m.name+'</div>'
+                                +'<div style="color:'+tc+';font-size:0.58em;">Lv'+m.level+stars+'</div>'
+                                +(m.hp!==null?'<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">❤'+m.hp+'</span> <span style="color:#ff9944;">⚔'+m.atk+'</span></div>':'')
+                                +tradeBtn+'</div>';
+                        });
+                        invPanel.innerHTML = h+'</div>';
+
+                    } else if (tab === 'items') {
+                        if (!st.inventory || !st.inventory.length) { invPanel.innerHTML = '<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No items in inventory.</div>'; return; }
+                        let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
+                        st.inventory.forEach(it => {
+                            const rc = RARITY_COLORS2[it.rarity]||'#888';
+                            h += '<div style="'+cardStyle+'border:1px solid '+rc+'33;border-top:2px solid '+rc+';" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'" onclick="window._proposeItemTrade('+JSON.stringify('item:'+it.id)+','+JSON.stringify(it.name)+','+JSON.stringify(it.icon||'📦')+',1,'+JSON.stringify(targetName)+')">'
+                                +'<div style="font-size:1.5em;">'+(it.icon||'📦')+'</div>'
+                                +'<div style="color:'+rc+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+it.name+'</div>'
+                                +'<div style="color:#555;font-size:0.52em;">'+it.rarity+'</div>'
+                                +tradeBtn+'</div>';
+                        });
+                        invPanel.innerHTML = h+'</div>';
+
+                    } else if (tab === 'potions') {
+                        if (!st.potions || !st.potions.length) { invPanel.innerHTML = '<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No potions.</div>'; return; }
+                        let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
+                        st.potions.forEach(p => {
+                            h += '<div style="'+cardStyle+'border:1px solid '+p.color+'33;border-top:2px solid '+p.color+';" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'" onclick="window._proposeItemTrade('+JSON.stringify('potion:'+p.id)+','+JSON.stringify(p.name)+','+JSON.stringify(p.icon||'⚗️')+','+p.count+','+JSON.stringify(targetName)+')">'
+                                +'<div style="font-size:1.5em;">'+(p.icon||'⚗️')+'</div>'
+                                +'<div style="color:'+p.color+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+p.name+'</div>'
+                                +'<div style="color:#555;font-size:0.52em;">×'+p.count+'</div>'
+                                +tradeBtn+'</div>';
+                        });
+                        invPanel.innerHTML = h+'</div>';
+                    }
                 }
+
+                profTabs.forEach(btn => btn.addEventListener('click', () => renderProfileTab(btn.dataset.tab)));
+                renderProfileTab('minions');
                 // Close on outside click
                 setTimeout(() => {
                     document.addEventListener('click', function outsideClick(e) {

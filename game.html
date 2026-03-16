@@ -2945,29 +2945,6 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div id="hourly-shop-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px;"></div>
                 </div>
 
-                <!-- SELL AN ITEM -->
-                <div style="background:linear-gradient(135deg,#0e0a1a,#0e1a12); border:1px solid #44cc8833; border-top:3px solid #44cc88; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
-                        <div>
-                            <h3 style="margin:0 0 3px; color:#44cc88; letter-spacing:2px;">📤 SELL AN ITEM</h3>
-                            <p style="margin:0; color:#555; font-size:0.8em;">Click any item to set a price and list it on the market.</p>
-                        </div>
-                    </div>
-                    <div id="market-sell-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px;"></div>
-                </div>
-
-                <!-- CURRENT LISTINGS -->
-                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #4488ff44; border-top:3px solid #4488ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
-                    <div style="margin-bottom:16px;">
-                        <div style="background:linear-gradient(90deg,#4488ff22,#4488ff08); border:1px solid #4488ff33; border-radius:8px; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                            <span style="color:#4488ff; font-weight:bold; font-size:1em; letter-spacing:3px; text-transform:uppercase; font-family:var(--font-title);">🏪 CURRENT LISTINGS</span>
-                            <button onclick="fetchMarketListings()" style="background:#4488ff18; border:1px solid #4488ff44; border-radius:7px; padding:5px 14px; color:#4488ff; cursor:pointer; font-family:inherit; font-size:0.78em; font-weight:bold; letter-spacing:1px;">🔄 REFRESH</button>
-                        </div>
-                        <p style="margin:8px 0 0; color:#555; font-size:0.78em;">Items listed by other Soul Collectors for Dark Essence.</p>
-                    </div>
-                    <ul id="market-listing-list" class="leaderboard-list" style="margin:0;"></ul>
-                </div>
-
                 <!-- BARTER -->
                 <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #aa44ff44; border-top:3px solid #aa44ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto;">
                     <h3 style="margin:0 0 4px; color:#aa44ff; letter-spacing:2px;">🔀 ABYSS BARTER</h3>
@@ -3051,7 +3028,21 @@ text-decoration: underline; /* Adds an underline on hover */
                             <div id="barter-post-msg" style="color:#ff9944; margin-top:10px; font-size:0.85em; text-align:center;"></div>
                         </div>
                     </div>
+    
+
+                <!-- CURRENT LISTINGS -->
+                <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #4488ff44; border-top:3px solid #4488ff; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
+                    <div style="margin-bottom:16px;">
+                        <div style="background:linear-gradient(90deg,#4488ff22,#4488ff08); border:1px solid #4488ff33; border-radius:8px; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                            <span style="color:#4488ff; font-weight:bold; font-size:1em; letter-spacing:3px; text-transform:uppercase; font-family:var(--font-title);">🏪 CURRENT LISTINGS</span>
+                            <button onclick="fetchMarketListings()" style="background:#4488ff18; border:1px solid #4488ff44; border-radius:7px; padding:5px 14px; color:#4488ff; cursor:pointer; font-family:inherit; font-size:0.78em; font-weight:bold; letter-spacing:1px;">🔄 REFRESH</button>
+                        </div>
+                        <p style="margin:8px 0 0; color:#555; font-size:0.78em;">Items listed by other Soul Collectors for Dark Essence.</p>
+                    </div>
+                    <ul id="market-listing-list" class="leaderboard-list" style="margin:0;"></ul>
                 </div>
+
+            </div>
 
             </div>
             <!-- SELL PRICE MODAL -->
@@ -16516,6 +16507,64 @@ function showBarterTab(tab) {
     if (tab === 'post') updateBarterDropdowns();
 }
 
+
+// Returns {icon, name, color, subtitle, desc} for any barter type+id
+function getBarterTypeInfo(type, amt) {
+    // Currencies
+    const currMap = {
+        souls:              { icon:'👻', name:'Souls',               color:'#c8a800' },
+        darkEssence:        { icon:'🌑', name:'Dark Essence',        color:'#a855f7' },
+        abyssalShards:      { icon:'💎', name:'Abyssal Shards',      color:'#3b82f6' },
+        corruptedFragments: { icon:'🔮', name:'Corrupted Fragments', color:'#22c55e' },
+        aether:             { icon:'⚡', name:'Aether',              color:'#00e5ff' },
+        key:                { icon:'🗝️', name:'Key of the Abyss',    color:'#c8a800' },
+    };
+    if (currMap[type]) return { ...currMap[type], subtitle: formatNumber(amt), desc: '' };
+
+    if (type.startsWith('potion:')) {
+        const id = type.slice(7);
+        const p = potions[id];
+        if (p) return {
+            icon: '🧪',
+            name: p.name,
+            color: '#9944cc',
+            subtitle: `x${formatNumber(amt)}`,
+            desc: p.desc ? p.desc.slice(0,60) + (p.desc.length>60?'…':'') : ''
+        };
+        return { icon:'🧪', name: id, color:'#9944cc', subtitle:`x${formatNumber(amt)}`, desc:'' };
+    }
+
+    if (type.startsWith('item:')) {
+        const id = type.slice(5);
+        const it = items[id];
+        const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+        if (it) return {
+            icon: { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' }[it.type] || '🎁',
+            name: it.name,
+            color: rarityColor[it.rarity] || '#aaa',
+            subtitle: it.rarity.toUpperCase(),
+            desc: it.desc ? it.desc.slice(0,70) + (it.desc.length>70?'…':'') : ''
+        };
+        return { icon:'🎁', name: id, color:'#aaa', subtitle:'', desc:'' };
+    }
+
+    if (type.startsWith('minion:')) {
+        const id = type.slice(7);
+        const m = minions[id];
+        const bm = battleMinions[id];
+        if (m) return {
+            icon: bm?.icon || '👹',
+            name: m.name,
+            color: '#ff6644',
+            subtitle: `${formatNumber(amt)} level${amt>1?'s':''}`,
+            desc: bm ? `❤ ${bm.hp}  ⚔ ${bm.atk}  ↔ ${bm.range}  ⚡ ${bm.cost}pts` : ''
+        };
+        return { icon:'👹', name: id, color:'#ff6644', subtitle:`${formatNumber(amt)} levels`, desc:'' };
+    }
+
+    return { icon:'❓', name: type, color:'#888', subtitle: formatNumber(amt), desc:'' };
+}
+
 let barterPage = 0;
 const BARTER_PAGE_SIZE = 8;
 
@@ -16567,46 +16616,42 @@ async function fetchBarterListings(page) {
 
         list.innerHTML = '';
         sorted.forEach(listing => {
-            const li      = document.createElement('li');
-            const isMe    = listing.poster_name === gameState.playerName;
+            const li   = document.createElement('li');
+            const isMe = listing.poster_name === gameState.playerName;
             const canFill = !isMe && hasEnough(listing.want_type, listing.want_amt);
 
-            const currencyIcons  = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮' };
-            const currencyColors = { souls:'#c8a800', darkEssence:'#a855f7', abyssalShards:'#3b82f6', corruptedFragments:'#22c55e' };
+            const offerInfo = getBarterTypeInfo(listing.offer_type, listing.offer_amt);
+            const wantInfo  = getBarterTypeInfo(listing.want_type,  listing.want_amt);
 
-            const offerColor = currencyColors[listing.offer_type] || '#aaa';
-            const wantColor  = currencyColors[listing.want_type]  || '#aaa';
+            function tradeCard(info) {
+                return `<div style="background:${info.color}14; border:1px solid ${info.color}44; border-radius:10px; padding:10px 14px; text-align:center; min-width:120px; max-width:180px;">
+                    <div style="font-size:1.8em; line-height:1; margin-bottom:4px;">${info.icon}</div>
+                    <div style="color:${info.color}; font-weight:bold; font-size:0.95em; margin-bottom:2px;">${info.name}</div>
+                    <div style="color:#eee; font-size:0.85em; font-weight:bold; margin-bottom:${info.desc?'4px':'0'};">${info.subtitle}</div>
+                    ${info.desc ? `<div style="color:#888; font-size:0.68em; line-height:1.3;">${info.desc}</div>` : ''}
+                </div>`;
+            }
 
-            li.style.cssText = 'display:block; padding:0; overflow:hidden; border-left-color:' + (isMe ? 'var(--primary-color)' : offerColor) + ';';
+            li.style.cssText = 'display:block; padding:0; overflow:hidden; border-left-color:' + (isMe ? 'var(--primary-color)' : offerInfo.color) + ';';
             li.innerHTML = `
             <div style="padding:14px 18px;">
+                <div style="color:#888; font-size:0.75em; margin-bottom:10px;">
+                    Posted by <span style="color:${isMe ? 'var(--primary-color)' : '#ccc'}; font-weight:bold;">${listing.poster_name}</span>${isMe ? ' <em style="color:#666;">(you)</em>' : ''}
+                </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-                    <div style="flex:1; min-width:200px;">
-                        <div style="color:#888; font-size:0.75em; margin-bottom:8px;">
-                            Posted by <span style="color:${isMe ? 'var(--primary-color)' : '#ccc'}; font-weight:bold;">${listing.poster_name}</span>${isMe ? ' <em style="color:#666;">(you)</em>' : ''}
-                        </div>
-                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                            <div style="background:${offerColor}18; border:1px solid ${offerColor}44; border-radius:8px; padding:8px 14px; text-align:center;">
-                                <div style="font-size:1.4em; line-height:1;">${currencyIcons[listing.offer_type]}</div>
-                                <div style="color:${offerColor}; font-weight:bold; font-size:1em; margin-top:2px;">${formatNumber(listing.offer_amt)}</div>
-                                <div style="color:#666; font-size:0.7em;">${BARTER_LABELS[listing.offer_type]?.replace(/^.\s/,'') || listing.offer_type}</div>
-                            </div>
-                            <div style="color:#555; font-size:1.3em;">⇄</div>
-                            <div style="background:${wantColor}18; border:1px solid ${wantColor}44; border-radius:8px; padding:8px 14px; text-align:center;">
-                                <div style="font-size:1.4em; line-height:1;">${currencyIcons[listing.want_type]}</div>
-                                <div style="color:${wantColor}; font-weight:bold; font-size:1em; margin-top:2px;">${formatNumber(listing.want_amt)}</div>
-                                <div style="color:#666; font-size:0.7em;">${BARTER_LABELS[listing.want_type]?.replace(/^.\s/,'') || listing.want_type}</div>
-                            </div>
-                        </div>
+                    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                        ${tradeCard(offerInfo)}
+                        <div style="color:#555; font-size:1.4em; flex-shrink:0;">⇄</div>
+                        ${tradeCard(wantInfo)}
                     </div>
-                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0;">
                         ${isMe
                             ? `<button class="upgrade-btn" style="font-size:0.82em; background:#3a0a0a; border-color:#8a0000;" onclick="cancelBarterListing(${listing.id})">❌ Cancel</button>`
                             : `<button class="upgrade-btn" style="font-size:0.85em; ${canFill ? '' : 'opacity:0.45;'}" onclick="acceptBarterListing(${listing.id})" ${!canFill ? 'disabled' : ''}>
                                 ${canFill ? '🤝 Accept Trade' : 'Need More'}
                             </button>`
                         }
-                        ${!isMe && !canFill ? `<div style="color:#555; font-size:0.72em;">Need ${formatNumber(listing.want_amt)} ${currencyIcons[listing.want_type]}</div>` : ''}
+                        ${!isMe && !canFill ? `<div style="color:#555; font-size:0.72em; text-align:right;">Need ${wantInfo.subtitle} ${wantInfo.icon}</div>` : ''}
                     </div>
                 </div>
             </div>`;
@@ -17289,11 +17334,38 @@ async function arenaFetchOpponents() {
     if (!list) return;
     list.innerHTML = '<li style="color:#555; font-size:0.85em; text-align:center; padding:8px;"><em>⚔ Scouring the abyss for rivals...</em></li>';
     try {
+        // Fetch your own defense separately to show as preview
+        const { data: myDef } = await supabaseClient.from('arena_defenses').select('*').eq('player_name', gameState.playerName).single();
         const { data, error } = await supabaseClient.from('arena_defenses').select('*').neq('player_name', gameState.playerName).limit(20);
         if (error) throw error;
         list.innerHTML = '';
+
+        // Show player's own defense as a preview at top
+        if (myDef && myDef.defense_data) {
+            const myUnits = Array.isArray(myDef.defense_data) ? myDef.defense_data : (() => { try { return JSON.parse(myDef.defense_data); } catch(e) { return []; } })();
+            const myIcons = myUnits.slice(0, 6).map(u => u.icon || '👿').join(' ');
+            const myHeader = document.createElement('div');
+            myHeader.style.cssText = 'background:linear-gradient(135deg,#0a0e14,#0a1a10); border:1px solid #44cc8844; border-left:3px solid #44cc88; border-radius:10px; padding:12px 14px; margin-bottom:12px;';
+            myHeader.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <div style="color:#44cc88; font-weight:bold; font-size:0.9em;">🛡 Your Saved Defense</div>
+                    <span style="color:#555; font-size:0.72em;">${myUnits.length} defenders</span>
+                </div>
+                <div style="color:#888; font-size:1.1em; letter-spacing:4px;">${myIcons || 'No units placed'}</div>
+                <div style="color:#555; font-size:0.72em; margin-top:4px;">Others can see and challenge this formation. You cannot challenge yourself.</div>`;
+            list.appendChild(myHeader);
+        } else {
+            const noDefDiv = document.createElement('div');
+            noDefDiv.style.cssText = 'background:#0a0812; border:1px solid #33333344; border-left:3px solid #555; border-radius:10px; padding:12px 14px; margin-bottom:12px;';
+            noDefDiv.innerHTML = `<div style="color:#555; font-size:0.85em;">🛡 No defense saved yet — set up your formation above and hit Save Defense!</div>`;
+            list.appendChild(noDefDiv);
+        }
+
         if (!data || data.length === 0) {
-            list.innerHTML = '<li style="color:#555; font-size:0.82em; text-align:center; padding:12px;"><em>No rivals have set a defense yet.</em><br><span style="color:#333;">Be the first to save yours!</span></li>';
+            const emptyDiv = document.createElement('div');
+            emptyDiv.style.cssText = 'text-align:center; color:#555; padding:12px; font-size:0.82em;';
+            emptyDiv.innerHTML = '<em>No rivals have set a defense yet.</em><br><span style="color:#333;">Be the first to save yours!</span>';
+            list.appendChild(emptyDiv);
             return;
         }
 

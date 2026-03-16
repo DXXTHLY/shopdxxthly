@@ -20344,9 +20344,10 @@ function pwMinionSelectHTML(action) {
         const tot  = (1 + Math.floor(lv/25)*0.05) * (1 + pt*0.20);
         const sHp  = Math.ceil(bm.hp  * tot);
         const sAtk = Math.ceil(bm.atk * tot);
-        html += `<label style="background:#0d0a18; border:2px solid #2a1a3a; border-radius:8px; padding:8px; text-align:center; cursor:pointer; transition:border-color 0.15s;" 
-                    onmouseover="this.style.borderColor='#ff664488'" onmouseout="this.style.borderColor='#2a1a3a'">
-            <input type="radio" name="pw_minion" value="${id}" style="display:none;" onchange="this.parentElement.style.borderColor='#ff6644'">
+        html += `<label style="background:#0d0a18; border:2px solid #2a1a3a; border-radius:8px; padding:8px; text-align:center; cursor:pointer; transition:all 0.15s;" 
+                    onclick="document.querySelectorAll('.pw-minion-label').forEach(l=>{ l.style.borderColor='#2a1a3a'; l.style.background='#0d0a18'; }); this.style.borderColor='#ff6644'; this.style.background='#2a0a00';"
+                    class="pw-minion-label">
+            <input type="radio" name="pw_minion" value="${id}" style="display:none;">
             <div style="font-size:1.6em;">${bm.icon}</div>
             <div style="color:#ddd; font-size:0.7em; font-weight:bold;">${bm.name}</div>
             <div style="color:#555; font-size:0.6em;">Lv${lv}</div>
@@ -20825,7 +20826,17 @@ function pwOpenSiegeScreen(battleId, nodeIdx, threshold, action) {
 
         if (secsLeft <= 0) {
             clearInterval(_siegeInterval);
-            if (!_siegeState.ended) await pwEndSiege(battleId, nodeIdx, false, 'Time ran out!');
+            if (!_siegeState.ended) {
+                // Flush final clicks
+                if (_siegeState._pendingClicks > 0) await pwFlushClicksToDb(_siegeState.battleId);
+                if (_siegeState.captured) {
+                    // Won — save final fortify score and end victoriously
+                    await pwSaveFortifyScore(_siegeState.nodeIdx, _siegeState.totalContribution);
+                    await pwEndSiege(battleId, nodeIdx, true, 'Fortification complete!');
+                } else {
+                    await pwEndSiege(battleId, nodeIdx, false, 'Time ran out!');
+                }
+            }
         }
     }, 1000);
 }
@@ -20858,16 +20869,23 @@ async function pwSiegeClick() {
     if (contribEl) contribEl.innerHTML = 'Your contribution: <span style="color:#ff8866;">'
         + formatNumber(clickDamage) + ' per click &middot; Total: ' + formatNumber(_siegeState.myContribution) + '</span>';
 
-    // Update progress bar locally (dont wait for realtime)
+    // Update progress bar — fortify mode shows running total
     const threshold = _siegeState.threshold || 1;
     const total = _siegeState.totalContribution;
-    const pct = Math.min(100, (total / threshold) * 100);
-    const progBar = document.getElementById('siege-progress-bar');
-    const progLabel = document.getElementById('siege-progress-label');
-    const pctLabel = document.getElementById('siege-pct-label');
-    if (progBar) progBar.style.width = pct.toFixed(1) + '%';
-    if (progLabel) progLabel.textContent = formatNumber(total) + ' / ' + formatNumber(threshold);
-    if (pctLabel) pctLabel.textContent = pct.toFixed(0) + '%';
+    if (_siegeState.captured) {
+        // Fortify mode: show growing defense score
+        const progLabel = document.getElementById('siege-progress-label');
+        if (progLabel) progLabel.textContent = 'Defense: ' + formatNumber(total) + ' (keep going!)';
+    } else {
+        // Capture mode: show progress toward threshold
+        const pct = Math.min(100, (total / threshold) * 100);
+        const progBar = document.getElementById('siege-progress-bar');
+        const progLabel = document.getElementById('siege-progress-label');
+        const pctLabel = document.getElementById('siege-pct-label');
+        if (progBar) progBar.style.width = pct.toFixed(1) + '%';
+        if (progLabel) progLabel.textContent = formatNumber(total) + ' / ' + formatNumber(threshold);
+        if (pctLabel) pctLabel.textContent = pct.toFixed(0) + '%';
+    }
 
     // Floating damage number
     const overlay = document.getElementById('pw-siege-overlay');
@@ -20881,10 +20899,13 @@ async function pwSiegeClick() {
         setTimeout(function() { if (floater.parentNode) floater.parentNode.removeChild(floater); }, 800);
     }
 
-    // Check win condition locally
-    if (total >= threshold && !_siegeState.ended) {
-        await pwEndSiege(_siegeState.battleId, _siegeState.nodeIdx, true, 'THRESHOLD REACHED!');
-        return;
+    // Phase transition: capture threshold hit — switch to FORTIFY mode
+    if (total >= threshold && !_siegeState.captured) {
+        _siegeState.captured = true;
+        // Claim the node immediately
+        await pwCaptureSiegeNode(_siegeState.nodeIdx, total);
+        // Switch UI to fortify mode — keep clicking to raise the defense score
+        pwEnterFortifyMode(_siegeState.nodeIdx, total);
     }
 
     // Batch DB writes — flush every 3 clicks
@@ -20924,6 +20945,89 @@ async function pwFlushClicksToDb(battleId) {
     }
 }
 
+// ── Capture node immediately when threshold hit ─────────────────
+async function pwCaptureSiegeNode(nodeIdx, currentTotal) {
+    const myPact = window.playerPact;
+    if (!myPact || !supabaseClient) return;
+    const node = pwNodes[nodeIdx];
+    // Claim the node — siege_score = current total so far (will grow during fortify)
+    try {
+        await supabaseClient.from('pact_war_nodes').upsert({
+            node_id: nodeIdx,
+            owner_pact: myPact.pact_name,
+            owner_emblem: myPact.emblem || '⚔',
+            owner_color: myPact.color || '#ff6644',
+            siege_score: Math.round(currentTotal),
+            strength: 50, // starts at 50%, rises as fortify continues
+            last_action: new Date().toISOString()
+        }, { onConflict: 'node_id' });
+        // Update local cache
+        const local = pwNodes.find(n => n.node_id === nodeIdx);
+        if (local) { local.owner_pact = myPact.pact_name; local.siege_score = currentTotal; local.strength = 50; }
+    } catch(e) { console.warn('[PW] capture node error:', e); }
+}
+
+// ── Save final fortify score at timer end ────────────────────────
+async function pwSaveFortifyScore(nodeIdx, finalTotal) {
+    const myPact = window.playerPact;
+    if (!myPact || !supabaseClient) return;
+    const str = Math.min(100, Math.round((finalTotal / (_siegeState.threshold || 1)) * 50 + 50));
+    try {
+        await supabaseClient.from('pact_war_nodes').update({
+            siege_score: Math.round(finalTotal),
+            strength: str,
+            last_action: new Date().toISOString()
+        }).eq('node_id', nodeIdx).eq('owner_pact', myPact.pact_name);
+        const local = pwNodes.find(n => n.node_id === nodeIdx);
+        if (local) { local.siege_score = finalTotal; local.strength = str; }
+    } catch(e) {}
+}
+
+// ── Enter fortify mode — node captured, now build defense score ──
+function pwEnterFortifyMode(nodeIdx, currentTotal) {
+    const tc = '#44cc88';
+    const TIER_COLORS = ['#333','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
+    const tier = PW_NODE_BONUS[nodeIdx] || 1;
+
+    // Flash the outcome banner (don't end the siege — just show capture)
+    const outcomeEl = document.getElementById('siege-outcome');
+    if (outcomeEl) {
+        outcomeEl.style.display = 'block';
+        outcomeEl.style.background = 'linear-gradient(135deg,#0a3a0a,#1a5a1a)';
+        outcomeEl.style.border = '1px solid #44cc8844';
+        outcomeEl.innerHTML = '<div style="font-size:1.4em; margin-bottom:4px;">🏆 NODE CAPTURED!</div>'
+            + '<div style="color:#44cc88; font-size:0.82em;">Keep clicking to fortify your defense score!</div>'
+            + '<div style="color:#555; font-size:0.72em; margin-top:4px;">When time ends, your total becomes the defense others must beat.</div>';
+    }
+
+    // Update subtitle
+    const sub = document.getElementById('siege-subtitle');
+    if (sub) sub.textContent = '🛡 FORTIFYING — pour more souls in to raise your defense score!';
+
+    // Change button color to green/fortify mode
+    const btn = document.getElementById('siege-click-btn');
+    if (btn) {
+        btn.style.background = 'radial-gradient(circle at 40% 35%, #44cc8844, #0a2a0a)';
+        btn.style.borderColor = '#44cc8888';
+        btn.style.color = '#44cc88';
+        const icon = document.getElementById('siege-btn-icon');
+        if (icon) icon.textContent = '🛡';
+    }
+
+    // Change progress bar to show fortify progress above threshold
+    const progBar = document.getElementById('siege-progress-bar');
+    if (progBar) {
+        progBar.style.background = 'linear-gradient(90deg,#44cc88,#88ffaa)';
+        progBar.style.width = '100%';
+    }
+    const pctLabel = document.getElementById('siege-pct-label');
+    if (pctLabel) pctLabel.textContent = '✓';
+
+    // Switch progress label to show fortify total
+    const progLabel = document.getElementById('siege-progress-label');
+    if (progLabel) progLabel.textContent = 'Defense: ' + formatNumber(currentTotal) + ' (keep going!)';
+}
+
 // ── Update UI from realtime DB changes ──────────────────────────
 async function pwUpdateSiegeUI(battle) {
     if (!_siegeState || _siegeState.ended) return;
@@ -20953,12 +21057,10 @@ async function pwUpdateSiegeUI(battle) {
         } catch(e) {}
     }
 
-    // Win condition
-    if (total >= threshold && !_siegeState.ended) {
-        clearInterval(_siegeInterval);
-        // Flush remaining clicks first
-        if (_siegeState._pendingClicks > 0) await pwFlushClicksToDb(_siegeState.battleId);
-        await pwEndSiege(_siegeState.battleId, _siegeState.nodeIdx, true, 'THRESHOLD REACHED!');
+    // Phase check from realtime — if other pact member already captured, enter fortify
+    if (total >= threshold && !_siegeState.captured) {
+        _siegeState.captured = true;
+        pwEnterFortifyMode(_siegeState.nodeIdx, total);
     }
 }
 
@@ -20993,35 +21095,35 @@ async function pwEndSiege(battleId, nodeIdx, victory, reason) {
             <div style="color:#44cc88; font-weight:bold; font-size:1.1em; letter-spacing:2px;">${action === 'reinforce' ? 'NODE REINFORCED!' : 'NODE CAPTURED!'}</div>
             <div style="color:#888; font-size:0.82em; margin-top:6px;">${reason}</div>`;
 
-        // Apply the capture to DB — store actual SPC poured in as siege_score
-        // This becomes the defense threshold anyone must beat to take it
+        // Final save — use total contribution as the defense score to beat
         if (action !== 'reinforce' && myPact) {
-            const siegeScore = _siegeState.totalContribution || _siegeState.threshold;
-            await supabaseClient.from('pact_war_nodes').upsert({
-                node_id: nodeIdx,
-                owner_pact: myPact.pact_name,
-                owner_emblem: myPact.emblem || '⚔',
-                owner_color: myPact.color || '#ff6644',
-                siege_score: siegeScore,   // ← the score to beat
-                strength: 100,             // full strength on capture
-                last_action: new Date().toISOString()
-            }, { onConflict: 'node_id' });
-            // Update local cache immediately
-            const localNode = pwNodes.find(n => n.node_id === nodeIdx);
-            if (localNode) { localNode.siege_score = siegeScore; localNode.strength = 100; }
+            const finalScore = Math.round(_siegeState.totalContribution || _siegeState.threshold);
+            const str = Math.min(100, Math.round((finalScore / (_siegeState.threshold||1)) * 50 + 50));
+            try {
+                await supabaseClient.from('pact_war_nodes').upsert({
+                    node_id: nodeIdx,
+                    owner_pact: myPact.pact_name,
+                    owner_emblem: myPact.emblem || '⚔',
+                    owner_color: myPact.color || '#ff6644',
+                    siege_score: finalScore,
+                    strength: str,
+                    last_action: new Date().toISOString()
+                }, { onConflict: 'node_id' });
+                const localNode = pwNodes.find(n => n.node_id === nodeIdx);
+                if (localNode) { localNode.siege_score = finalScore; localNode.strength = str; }
+            } catch(e) {}
         } else if (action === 'reinforce' && myPact) {
-            // Reinforcing adds to siege_score — makes it harder to take
-            const currentScore = node.siege_score || _siegeState.threshold;
-            const addedScore   = _siegeState.totalContribution || 0;
-            const newScore     = currentScore + addedScore;
-            const newStr       = Math.min(100, (node.strength || 0) + 30);
-            await supabaseClient.from('pact_war_nodes').update({
-                siege_score: newScore,
-                strength: newStr,
-                last_action: new Date().toISOString()
-            }).eq('node_id', nodeIdx);
-            const localNode = pwNodes.find(n => n.node_id === nodeIdx);
-            if (localNode) { localNode.siege_score = newScore; localNode.strength = newStr; }
+            const addedScore = Math.round(_siegeState.totalContribution || 0);
+            const newScore   = (node.siege_score || 0) + addedScore;
+            const newStr     = Math.min(100, (node.strength || 0) + 30);
+            try {
+                await supabaseClient.from('pact_war_nodes').update({
+                    siege_score: newScore, strength: newStr,
+                    last_action: new Date().toISOString()
+                }).eq('node_id', nodeIdx);
+                const localNode = pwNodes.find(n => n.node_id === nodeIdx);
+                if (localNode) { localNode.siege_score = newScore; localNode.strength = newStr; }
+            } catch(e) {}
         }
 
         const logMsg = action === 'reinforce'

@@ -3888,7 +3888,7 @@ text-decoration: underline; /* Adds an underline on hover */
             // log10(this) * exp  -> result
             const log = this.log10().toNumber();
             const newE = log * exp;
-            if (!isFinite(newE)) return new Decimal(0);
+            if (!isFinite(newE)) { const d = new Decimal(0); d.m = 1; d.e = EXP_LIMIT; return d; } // cap at max, never zero
             const expPart = Math.floor(newE);
             const mantPart = Math.pow(10, newE - expPart);
             const d = new Decimal(0);
@@ -8766,13 +8766,17 @@ function calculateStats() {
         if (bonus.type === 'upgrade_cost_reducer' && bonus.target === 'click') clickUpgradeCostFactor *= Math.pow(value, level);
         if (bonus.type === 'essence_multiplier') essence_multiplier *= Math.pow(value, level);
         if (bonus.type === 'prestige_bonus_enhancer') prestigeBonusEnhancer *= Math.pow(value, level);
-        // For per_world/per_artifact/per_ascension, always use raw bonus.value (not the enhanced value)
-        // to prevent the meta_artifact_doubler from making the base rate negative
-        global_multiplier = global_multiplier.mul(D(1 + bonus.value * meta_artifact_doubler * gameState.unlockedWorlds.length).pow(level));
-        global_multiplier = global_multiplier.mul(D(1 + bonus.value * meta_artifact_doubler * Object.keys(gameState.ownedArtifacts).length).pow(level));
-        global_multiplier = global_multiplier.mul(D(1 + bonus.value * meta_artifact_doubler * gameState.ascensions).pow(level));
-        global_multiplier = global_multiplier.mul(D(Math.max(1, gameState.ascensions * level)));
-        global_multiplier = global_multiplier.mul(D(Math.max(1, Math.pow(gameState.ascensions, 2) * level)));
+        // Per-type global multipliers — only apply for their specific bonus type
+        if (bonus.type === 'global_multiplier_per_world')
+            global_multiplier = global_multiplier.mul(D(1 + bonus.value * meta_artifact_doubler * gameState.unlockedWorlds.length).pow(level));
+        if (bonus.type === 'global_multiplier_per_artifact')
+            global_multiplier = global_multiplier.mul(D(1 + bonus.value * meta_artifact_doubler * Object.keys(gameState.ownedArtifacts).length).pow(level));
+        if (bonus.type === 'global_multiplier_per_ascension')
+            global_multiplier = global_multiplier.mul(D(1 + bonus.value * meta_artifact_doubler * gameState.ascensions).pow(level));
+        if (bonus.type === 'global_multiplier_by_ascensions')
+            global_multiplier = global_multiplier.mul(D(Math.max(1, gameState.ascensions * level)));
+        if (bonus.type === 'global_multiplier_by_ascensions_squared')
+            global_multiplier = global_multiplier.mul(D(Math.max(1, Math.pow(gameState.ascensions, 2) * level)));
 
         // --- Previously unhandled artifact types ---
         // Paragon Soul: +10% global per 100 shards

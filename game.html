@@ -16652,7 +16652,7 @@ async function fetchPactLeaderboard() {
             return;
         }
 
-        // Fetch all member stats in one query
+        // Fetch member stats
         const allMembers = [...new Set(pacts.flatMap(p => p.members || []))];
         let memberStats = {};
         try {
@@ -16660,12 +16660,45 @@ async function fetchPactLeaderboard() {
             if (players) players.forEach(p => { memberStats[p.name] = p; });
         } catch(e) {}
 
-        // Compute scores for sorting
+        // Fetch current war nodes for live node counts
+        let warNodes = [];
+        try {
+            const { data: nodes } = await supabaseClient.from('pact_war_nodes').select('owner_pact,node_id,siege_score');
+            warNodes = nodes || [];
+        } catch(e) {}
+
+        // Fetch last cycle result for all-time war record
+        let lastCycle = null;
+        try {
+            const { data: cr } = await supabaseClient.from('pact_war_cycle_results').select('rankings,cycle_id').order('cycle_id',{ascending:false}).limit(1).single();
+            lastCycle = cr;
+        } catch(e) {}
+
+        // Build war node map: pactName -> { current, totalWins }
+        const warMap = {};
+        warNodes.forEach(n => {
+            if (!n.owner_pact) return;
+            if (!warMap[n.owner_pact]) warMap[n.owner_pact] = { current: 0, highScore: 0 };
+            warMap[n.owner_pact].current++;
+            if (n.siege_score && n.siege_score > (warMap[n.owner_pact].highScore || 0))
+                warMap[n.owner_pact].highScore = n.siege_score;
+        });
+
+        // Pull last cycle wins
+        if (lastCycle && lastCycle.rankings) {
+            lastCycle.rankings.forEach((r, idx) => {
+                if (!warMap[r.pact_name]) warMap[r.pact_name] = { current: 0, highScore: 0 };
+                warMap[r.pact_name].lastNodes = r.node_count;
+                warMap[r.pact_name].lastRank  = idx + 1;
+            });
+        }
+
         const enriched = pacts.map(pact => {
             const members = pact.members || [];
             const totalAsc   = members.reduce((s, m) => s + (memberStats[m]?.ascensions || 0), 0);
             const totalSouls = members.reduce((s, m) => D(s).add(D(memberStats[m]?.lifetimeSouls || 0)), D(0));
-            return { ...pact, totalAsc, totalSouls, memberCount: members.length };
+            const war        = warMap[pact.pact_name] || { current: 0, highScore: 0 };
+            return { ...pact, totalAsc, totalSouls, memberCount: members.length, war };
         });
         enriched.sort((a, b) => b.totalAsc - a.totalAsc || (D(b.totalSouls).gt(D(a.totalSouls)) ? 1 : -1));
 
@@ -16673,35 +16706,47 @@ async function fetchPactLeaderboard() {
         const rankBorders = ['#ffd70066','#c0c0c066','#cd7f3266'];
 
         list.innerHTML = enriched.map((pact, i) => {
-            const medal   = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span style="color:#666;">#${i+1}</span>`;
+            const medal   = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '<span style="color:#666;">#' + (i+1) + '</span>';
             const isMe    = (pact.members || []).includes(gameState.playerName);
             const color   = isMe ? 'var(--primary-color)' : (rankColors[i] || '#aaa');
             const border  = isMe ? 'var(--primary-color)' : (rankBorders[i] || '#3d2a4a');
             const bg      = isMe ? '#1e0a2a' : 'transparent';
+            const war      = pact.war;
+            const pactColor = pact.color || '#ff6644';
+            const pactEmb  = pact.emblem || '⚔';
 
-            return `<div style="display:flex; align-items:center; justify-content:space-between; background:${bg}; border:1px solid ${border}; border-radius:8px; padding:12px 16px; margin-bottom:8px; gap:12px; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <div style="font-size:1.4em; min-width:28px; text-align:center;">${medal}</div>
-                    <div>
-                        <div style="color:${color}; font-weight:bold; font-size:1em;">${pact.pact_name}${isMe ? ' <span style="color:#666; font-size:0.75em; font-weight:normal;">(yours)</span>' : ''}</div>
-                        <div style="color:#555; font-size:0.72em; margin-top:2px;">${(pact.members || []).join(' · ') || 'No members'}</div>
-                    </div>
-                </div>
-                <div style="display:flex; gap:16px; text-align:center; flex-wrap:wrap;">
-                    <div>
-                        <div style="color:${color}; font-weight:bold;">${pact.totalAsc}</div>
-                        <div style="color:#555; font-size:0.7em;">Total Ascensions</div>
-                    </div>
-                    <div>
-                        <div style="color:#888; font-size:0.85em;">${formatNumber(pact.totalSouls instanceof Decimal ? pact.totalSouls : D(pact.totalSouls))}</div>
-                        <div style="color:#555; font-size:0.7em;">Total Souls Harvested</div>
-                    </div>
-                    <div>
-                        <div style="color:#666;">${pact.memberCount} / 4</div>
-                        <div style="color:#555; font-size:0.7em;">Members</div>
-                    </div>
-                </div>
-            </div>`;
+            // War badge
+            const warBadge = war.current > 0
+                ? '<span style="background:' + pactColor + '22; border:1px solid ' + pactColor + '44; border-radius:10px; padding:1px 7px; font-size:0.68em; color:' + pactColor + ';">⚔ ' + war.current + ' nodes</span>'
+                : '';
+            const lastCycleBadge = war.lastRank
+                ? (war.lastRank === 1 ? '<span style="color:#c8a800; font-size:0.68em;">🏆 Last cycle champs</span>'
+                   : war.lastRank === 2 ? '<span style="color:#aaa; font-size:0.68em;">🥈 Last cycle 2nd</span>'
+                   : '<span style="color:#666; font-size:0.68em;">Last cycle: ' + (war.lastNodes||0) + ' nodes</span>')
+                : '';
+
+            return '<div style="background:' + bg + '; border:1px solid ' + border + '; border-radius:10px; padding:12px 16px; margin-bottom:8px;">'
+                + '<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">'
+                +   '<div style="display:flex; align-items:center; gap:10px;">'
+                +     '<div style="font-size:1.4em; min-width:28px; text-align:center;">' + medal + '</div>'
+                +     '<div style="font-size:1.5em;">' + pactEmb + '</div>'
+                +     '<div>'
+                +       '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">'
+                +         '<span style="color:' + color + '; font-weight:bold; font-size:1em;">' + pact.pact_name + (isMe ? ' <span style="color:#666;font-size:0.75em;font-weight:normal;">(yours)</span>' : '') + '</span>'
+                +         warBadge + lastCycleBadge
+                +       '</div>'
+                +       '<div style="color:#555; font-size:0.7em; margin-top:2px;">' + ((pact.members || []).join(' · ') || 'No members') + '</div>'
+                +     '</div>'
+                +   '</div>'
+                +   '<div style="display:flex; gap:14px; text-align:center; flex-wrap:wrap;">'
+                +     '<div><div style="color:' + color + '; font-weight:bold;">' + pact.totalAsc + '</div><div style="color:#555; font-size:0.7em;">Ascensions</div></div>'
+                +     '<div><div style="color:#888; font-size:0.85em;">' + formatNumber(pact.totalSouls instanceof Decimal ? pact.totalSouls : D(pact.totalSouls)) + '</div><div style="color:#555; font-size:0.7em;">Lifetime Souls</div></div>'
+                +     '<div><div style="color:' + (war.current > 0 ? pactColor : '#444') + '; font-weight:bold;">' + war.current + '</div><div style="color:#555; font-size:0.7em;">Nodes Now</div></div>'
+                +     (war.highScore > 0 ? '<div><div style="color:#aa44ff; font-size:0.8em;">' + formatNumber(war.highScore) + '</div><div style="color:#555; font-size:0.7em;">Best Siege</div></div>' : '')
+                +     '<div><div style="color:#666;">' + pact.memberCount + ' / 4</div><div style="color:#555; font-size:0.7em;">Members</div></div>'
+                +   '</div>'
+                + '</div>'
+                + '</div>';
         }).join('');
     } catch(e) {
         list.innerHTML = '<div style="color:#ff4444; text-align:center; padding:20px;">Error loading pact leaderboard.</div>';
@@ -20468,7 +20513,7 @@ async function pwResolveRally(rallyId, rally, nodeIdx, totalPower, members) {
             await supabaseClient.from('pact_war_nodes').upsert({node_id:nodeIdx,owner_pact:myPact.pact_name,owner_emblem:pactEmblem,owner_color:pactColor,strength:str,last_action:new Date().toISOString()},{onConflict:'node_id'});
             logMsg=`⚔ ${myPact.pact_name} [${members.length} warriors] CONQUERED ${PW_NODE_NAMES[nodeIdx]}!`;
         } else {
-            logMsg=`💀 ${myPact.pact_name}'s rally on ${PW_NODE_NAMES[nodeIdx]} was repelled!`;
+            logMsg=`💀 ${myPact.pact_name} rally on ${PW_NODE_NAMES[nodeIdx]} was repelled!`;
         }
     }
 
@@ -20682,7 +20727,7 @@ async function pwLaunchSiege(battleId, nodeIdx, memberCount, action) {
     const tier = PW_NODE_BONUS[nodeIdx] || 1;
     const node = pwNodes[nodeIdx];
 
-    // Threshold: if node is owned, they must BEAT the previous pact's siege_score
+    // Threshold: if node is owned, they must BEAT the previous pact siege_score
     // If unclaimed, use a base threshold scaled by tier
     let threshold;
     if (node.owner_pact && node.siege_score && node.siege_score > 0) {
@@ -20736,7 +20781,7 @@ function pwOpenSiegeScreen(battleId, nodeIdx, threshold, action) {
         ? ` Their record: ${formatNumber(node.siege_score)} souls — beat it!`
         : '';
     document.getElementById('siege-subtitle').textContent =
-        action === 'reinforce' ? `🛡 Reinforcing — contributions add to your node's defense score!`
+        action === 'reinforce' ? `🛡 Reinforcing — contributions add to your node defense score!`
         : node.owner_pact ? `⚔ Attacking ${node.owner_pact} —${defScoreLabel}`
         : `🚩 Unclaimed — pour your souls in before time runs out!`;
     document.getElementById('siege-progress-label').textContent = `0 / ${formatNumber(threshold)}`;
@@ -21191,7 +21236,7 @@ function pwCheckUnclaimedReward(lastResult) {
     var alert = document.getElementById('pw-reward-alert');
     var desc  = document.getElementById('pw-reward-alert-desc');
     if (alert && desc) {
-        desc.textContent = myFrags + ' Corrupted Fragments waiting — from ' + lastResult.winner_pact + ''s cycle ending ' + lastResult.cycle_id;
+        desc.textContent = myFrags + ' Corrupted Fragments waiting — from ' + lastResult.winner_pact + ' - cycle ending ' + lastResult.cycle_id;
         alert.style.display = 'block';
         alert._cycleResult = lastResult;
         alert._myFrags = myFrags;

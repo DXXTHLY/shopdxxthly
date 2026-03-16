@@ -8691,7 +8691,7 @@ function calculateStats() {
                     minionCostFactor *= puzzle.reward.value;
                     break;
                 case 'global_all_multiplier':
-                    global_multiplier = _gm_mul(D(puzzle.reward.value, ++_gm_step));
+                    global_multiplier = _gm_mul(D(puzzle.reward.value));
                     break;
                 case 'essence_multiplier':
                     essence_multiplier *= puzzle.reward.value;
@@ -8775,35 +8775,35 @@ function calculateStats() {
         if (bonus.type === 'prestige_bonus_enhancer') prestigeBonusEnhancer *= Math.pow(value, level);
         // Per-type global multipliers — only apply for their specific bonus type
         if (bonus.type === 'global_multiplier_per_world')
-            global_multiplier = _gm_mul(D(1 + bonus.value * meta_artifact_doubler * gameState.unlockedWorlds.length, ++_gm_step).pow(level));
+            global_multiplier = _gm_mul(D(1 + bonus.value * meta_artifact_doubler * gameState.unlockedWorlds.length).pow(level));
         if (bonus.type === 'global_multiplier_per_artifact')
-            global_multiplier = _gm_mul(D(1 + bonus.value * meta_artifact_doubler * Object.keys(gameState.ownedArtifacts, ++_gm_step).length).pow(level));
+            global_multiplier = _gm_mul(D(1 + bonus.value * meta_artifact_doubler * Object.keys(gameState.ownedArtifacts).length).pow(level));
         if (bonus.type === 'global_multiplier_per_ascension')
-            global_multiplier = _gm_mul(D(1 + bonus.value * meta_artifact_doubler * gameState.ascensions, ++_gm_step).pow(level));
+            global_multiplier = _gm_mul(D(1 + bonus.value * meta_artifact_doubler * gameState.ascensions).pow(level));
         if (bonus.type === 'global_multiplier_by_ascensions')
-            global_multiplier = _gm_mul(D(Math.max(1, gameState.ascensions * level, ++_gm_step)));
+            global_multiplier = _gm_mul(D(Math.max(1, gameState.ascensions * level)));
         if (bonus.type === 'global_multiplier_by_ascensions_squared')
-            global_multiplier = _gm_mul(D(Math.max(1, Math.pow(gameState.ascensions, 2, ++_gm_step) * level)));
+            global_multiplier = _gm_mul(D(Math.max(1, Math.pow(gameState.ascensions, 2) * level)));
 
         // --- Previously unhandled artifact types ---
         // Paragon Soul: +10% global per 100 shards
         if (bonus.type === 'global_multiplier_per_100_shards') {
             const hundredsOfShards = Math.floor(D(gameState.abyssalShards || 0).toNumber() / 100);
-            global_multiplier = _gm_mul(D(1 + bonus.value * hundredsOfShards, ++_gm_step).pow(level));
+            global_multiplier = _gm_mul(D(1 + bonus.value * hundredsOfShards).pow(level));
         }
         // Eye of Chaos / Singularity Engine: multiplier per unique minion owned
         if (bonus.type === 'global_multiplier_per_unique_minion') {
             const uniqueMinions = Object.values(gameState.minions).filter(m => m.level > 0).length;
-            global_multiplier = _gm_mul(D(1 + bonus.value * uniqueMinions, ++_gm_step).pow(level));
+            global_multiplier = _gm_mul(D(1 + bonus.value * uniqueMinions).pow(level));
         }
         if (bonus.type === 'multiplier_per_unique_minion_owned') {
             const uniqueMinions = Object.values(gameState.minions).filter(m => m.level > 0).length;
-            global_multiplier = _gm_mul(D(bonus.value, ++_gm_step).pow(uniqueMinions * level));
+            global_multiplier = _gm_mul(D(bonus.value).pow(uniqueMinions * level));
         }
         // The God Paradox: multiplier by log10(shards)
         if (bonus.type === 'multiplier_by_log10_shards') {
             const logShards = Math.max(1, Math.log10(Math.max(1, D(gameState.abyssalShards).toNumber())));
-            global_multiplier = _gm_mul(D(logShards, ++_gm_step).pow(level));
+            global_multiplier = _gm_mul(D(logShards).pow(level));
         }
         // Möbius Script: essence gain +1% per ascension
         if (bonus.type === 'essence_per_ascension') {
@@ -8872,7 +8872,7 @@ function calculateStats() {
                     if (bonus.type === 'spc_multiplier') spc_multiplier *= effectiveValue;
                     if (bonus.type === 'sps_per_playtime_hour') {
                         const hoursPlayed = (gameState.playTime || 0) / 3600;
-                        global_multiplier = _gm_mul(D((1 + (Math.floor(hoursPlayed, ++_gm_step) * effectiveValue))));
+                        global_multiplier = _gm_mul(D((1 + (Math.floor(hoursPlayed) * effectiveValue))));
                     }
                     if (bonus.type === 'sps_multiplier_per_unique_minion') {
                         const uniqueMinionsOwned = Object.values(gameState.minions).filter(m => m.level > 0).length;
@@ -8926,9 +8926,9 @@ function calculateStats() {
             const effect = rituals[id].effect;
             if (effect.type === 'spc_multiplier') spc_multiplier *= effect.value;
             if (effect.type === 'sps_multiplier') sps_multiplier *= effect.value;
-            global_multiplier = _gm_mul(D(effect.value, ++_gm_step));
+            global_multiplier = _gm_mul(D(effect.value));
             if (effect.type === 'temp_minion_cost_reducer') tempMinionCostFactor *= effect.value;
-            global_multiplier = _gm_mul(D(D(gameState.darkEssence || 0, ++_gm_step).toNumber() || 1));
+            global_multiplier = _gm_mul(D(D(gameState.darkEssence || 0).toNumber() || 1));
             if (effect.type === 'square_all_gain') isGainSquared = true;
         }
     }
@@ -8938,7 +8938,7 @@ function calculateStats() {
         if (Date.now() < buff.buffEndTime) {
             const effect = buff.effect;
             if (effect.type === 'global_multiplier_flat') {
-                global_multiplier = _gm_mul(D(effect.value, ++_gm_step));
+                global_multiplier = _gm_mul(D(effect.value));
             }
         }
     }
@@ -8953,11 +8953,11 @@ function calculateStats() {
             if (!effect) continue;
             if (effect.type === 'sps_multiplier_flat')             sps_multiplier *= effect.value;
             if (effect.type === 'spc_multiplier_flat')             spc_multiplier *= effect.value;
-            global_multiplier = _gm_mul(D(effect.value, ++_gm_step));
+            global_multiplier = _gm_mul(D(effect.value));
             if (effect.type === 'temp_minion_cost_reducer')        tempMinionCostFactor *= effect.value;
             if (effect.type === 'temp_minion_cost_reducer_flat')   tempMinionCostFactor *= effect.value;
             if (effect.type === 'resonance_bonus_enhancer_flat')   prestigeBonusEnhancer *= (1 + effect.value);
-            global_multiplier = _gm_mul(D(pb, ++_gm_step));
+            global_multiplier = _gm_mul(D(pb));
             global_multiplier = global_multiplier.pow(effect.value || 1.05);
             if (effect.type === 'add_sps_to_spc_flat')            { /* handled post-SPS calc */ }
         }
@@ -8965,7 +8965,7 @@ function calculateStats() {
     // =================================================================
     sps_multiplier *= gameState.permanentRitualBonuses.sps_multiplier;
     spc_multiplier *= gameState.permanentRitualBonuses.spc_multiplier;
-    global_multiplier = _gm_mul(D(gameState.permanentRitualBonuses.global_multiplier, ++_gm_step));
+    global_multiplier = _gm_mul(D(gameState.permanentRitualBonuses.global_multiplier));
 
     // Soul Pact bonus: +10% SPS & SPC per additional pact member
     if (window.playerPact && window.playerPact.members) {
@@ -8980,16 +8980,16 @@ function calculateStats() {
     const worldBonus = worlds[gameState.currentWorld]?.bonus || { type: 'none' };
     if (worldBonus.type === 'sps_multiplier') sps_multiplier *= worldBonus.value;
     if (worldBonus.type === 'spc_multiplier') spc_multiplier *= worldBonus.value;
-    global_multiplier = _gm_mul(D(worldBonus.value, ++_gm_step));
+    global_multiplier = _gm_mul(D(worldBonus.value));
 
     const prestige_bonus = 1 + (D(gameState.abyssalShards || 0).toNumber() * (0.1 * prestigeBonusEnhancer));
     if (isFinite(prestige_bonus)) {
-        global_multiplier = _gm_mul(D(prestige_bonus, ++_gm_step));
+        global_multiplier = _gm_mul(D(prestige_bonus));
     }
 
     const aetherGlobalBonusLvl = gameState.aetherUpgrades?.globalBonus?.level || 0;
     if (isFinite(aetherGlobalBonusLvl) && aetherGlobalBonusLvl > 0) {
-        global_multiplier = _gm_mul(D(Math.pow(2, aetherGlobalBonusLvl, ++_gm_step)));
+        global_multiplier = _gm_mul(D(Math.pow(2, aetherGlobalBonusLvl)));
     }
 
     // =================================================================

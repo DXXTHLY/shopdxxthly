@@ -14261,6 +14261,12 @@ function initializeChat() {
         // ── Trade Proposal System ────────────────────────────────────
         // Sends a chat trade-request message; target sees Accept/Decline buttons
 
+        // ══════════════════════════════════════════════════════════════
+        // TRADE OFFER SYSTEM — local popup → plain chat message
+        // No special Firebase path needed; uses the normal slitherChat push
+        // ══════════════════════════════════════════════════════════════
+
+        // Called when you click an item in THEIR profile popup
         window._proposeItemTrade = function(itemType, itemName, itemIcon, itemAmt, targetPlayerName) {
             if (!window._scFirebase || !window._scFirebase.auth.currentUser) {
                 alert('You must be signed in to propose a trade.');
@@ -14269,72 +14275,132 @@ function initializeChat() {
             const myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
             if (myName === targetPlayerName) { alert('You cannot trade with yourself.'); return; }
 
-            const offerInput = prompt(
-                'Propose trade to ' + targetPlayerName + '\n\n'
-                + 'They have: ' + itemIcon + ' ' + itemName + (itemAmt > 1 ? ' (×'+itemAmt+')' : '') + '\n\n'
-                + 'What are you offering in return? (e.g. "500k Souls", "2 Shards", "Imp Lv200")',
-                ''
-            );
-            if (!offerInput || !offerInput.trim()) return;
-
-            const tradeId = 'trade_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-            const db2 = window._scFirebase.db;
-            const uid2 = window._scFirebase.auth.currentUser.uid;
-            const color = localStorage.getItem('slitherChatNameColor') || '#c8a800';
-
-            // Post a trade request message to chat
-            db2.ref('slitherChat').push({
-                uid: uid2,
-                name: myName,
-                chatNameColor: color,
-                time: firebase.database.ServerValue.TIMESTAMP,
-                tradeRequest: {
-                    id: tradeId,
-                    from: myName,
-                    fromUid: uid2,
-                    to: targetPlayerName,
-                    wantType: itemType,
-                    wantName: itemName,
-                    wantIcon: itemIcon,
-                    wantAmt: itemAmt,
-                    offering: offerInput.trim(),
-                    status: 'pending',
-                }
-            });
-
-            // Close profile popup
+            // Close profile popup before opening trade picker
             document.querySelector('.profile-popup')?.remove();
+
+            // Show "what are you offering?" picker using YOUR inventory
+            window._showTradeOfferPicker(itemType, itemName, itemIcon, itemAmt, targetPlayerName);
         };
 
-        // Handle trade accept/decline
-        window._respondToTrade = function(tradeId, msgKey, accepted) {
-            if (!window._scFirebase || !window._scFirebase.auth.currentUser) return;
-            const db2 = window._scFirebase.db;
-            const myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
+        // Show a popup of YOUR items so you pick what to offer
+        window._showTradeOfferPicker = function(wantType, wantName, wantIcon, wantAmt, targetName) {
+            document.getElementById('trade-offer-overlay')?.remove();
 
-            // Update the message trade status
-            db2.ref('slitherChat/' + msgKey + '/tradeRequest/status').set(accepted ? 'accepted' : 'declined');
-            db2.ref('slitherChat/' + msgKey + '/tradeRequest/respondedBy').set(myName);
+            const RARITY_C = { common:'#888', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00' };
 
-            if (accepted) {
-                // Post a follow-up system message
-                db2.ref('slitherChat').push({
-                    uid: 'system',
-                    name: 'Trade System',
-                    chatNameColor: '#44cc88',
-                    time: firebase.database.ServerValue.TIMESTAMP,
-                    text: '✅ ' + myName + ' accepted the trade! Open the Barter to complete it.',
-                });
-                Toastify({ text: '✅ Trade accepted! Use the Barter Market to complete the exchange.', duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a2a0a,#1a5a1a)' } }).showToast();
-            } else {
-                db2.ref('slitherChat').push({
-                    uid: 'system',
-                    name: 'Trade System',
-                    chatNameColor: '#ff4444',
-                    time: firebase.database.ServerValue.TIMESTAMP,
-                    text: '❌ ' + myName + ' declined the trade offer.',
-                });
+            // Build MY inventory sections
+            function makeSection(title, cards) {
+                if (!cards.length) return '';
+                return '<div style="margin-bottom:14px;">'
+                    + '<div style="color:#555;font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">'+title+'</div>'
+                    + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px;">'
+                    + cards.join('') + '</div></div>';
             }
+
+            const cardBase = 'border-radius:8px;padding:7px 5px;text-align:center;cursor:pointer;transition:all 0.15s;border:1px solid #2a1a3a;background:linear-gradient(135deg,#0e0a1a,#1a1020);';
+
+            // Currencies
+            const souls   = D(gameState.souls   || 0);
+            const essence = D(gameState.darkEssence  || 0);
+            const shards  = D(gameState.abyssalShards || 0);
+            const currCards = [];
+            if (souls.gt(0))   currCards.push('<div class="toc" data-label="'+escapeHTML(formatSouls(souls))+' Souls" data-icon="💀" style="'+cardBase+'border-top:2px solid #c41818;"><div style="font-size:1.4em;">💀</div><div style="color:#f0d8d8;font-size:0.58em;font-weight:bold;">'+formatSouls(souls)+'</div><div style="color:#555;font-size:0.5em;">Souls</div></div>');
+            if (essence.gt(0)) currCards.push('<div class="toc" data-label="'+escapeHTML(formatSouls(essence))+' Dark Essence" data-icon="🌑" style="'+cardBase+'border-top:2px solid #6622aa;"><div style="font-size:1.4em;">🌑</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;">'+formatSouls(essence)+'</div><div style="color:#555;font-size:0.5em;">Essence</div></div>');
+            if (shards.gt(0))  currCards.push('<div class="toc" data-label="'+escapeHTML(formatSouls(shards))+' Abyssal Shards" data-icon="💎" style="'+cardBase+'border-top:2px solid #4488ff;"><div style="font-size:1.4em;">💎</div><div style="color:#88aaff;font-size:0.58em;font-weight:bold;">'+formatSouls(shards)+'</div><div style="color:#555;font-size:0.5em;">Shards</div></div>');
+
+            // Potions
+            const potCards = [];
+            Object.entries(gameState.potions || {}).forEach(([id, cnt]) => {
+                if (!cnt || cnt < 1 || !potions[id]) return;
+                const p = potions[id];
+                potCards.push('<div class="toc" data-label="'+escapeHTML(p.name)+' ×'+cnt+'" data-icon="⚗️" style="'+cardBase+'border-top:2px solid #aa44ff;"><div style="font-size:1.4em;">⚗️</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div><div style="color:#555;font-size:0.5em;">×'+cnt+'</div></div>');
+            });
+
+            // Items
+            const itemCards = [];
+            (gameState.inventory || []).forEach(id => {
+                if (!items[id]) return;
+                const it = items[id];
+                const rc = RARITY_C[it.rarity] || '#888';
+                const ico = it.icon || '📦';
+                itemCards.push('<div class="toc" data-label="'+escapeHTML(it.name)+'" data-icon="'+escapeHTML(ico)+'" style="'+cardBase+'border-top:2px solid '+rc+';"><div style="font-size:1.4em;">'+ico+'</div><div style="color:'+rc+';font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.5em;">'+escapeHTML(it.rarity||'')+'</div></div>');
+            });
+
+            const hasSomething = currCards.length || potCards.length || itemCards.length;
+
+            const ov = document.createElement('div');
+            ov.id = 'trade-offer-overlay';
+            ov.style.cssText = 'position:fixed;inset:0;background:#000000cc;z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+            ov.innerHTML = `
+              <div style="background:linear-gradient(160deg,#06040f,#0e0a1a);border:1px solid #3a1a5a;border-top:3px solid #44cc88;border-radius:14px;max-width:460px;width:94%;padding:22px 18px;box-shadow:0 0 60px #00000099;max-height:85vh;display:flex;flex-direction:column;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+                  <div>
+                    <div style="color:#44cc88;font-size:0.72em;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">🤝 Propose Trade</div>
+                    <div style="color:#888;font-size:0.78em;">You want: <b style="color:#ddd;">${escapeHTML(wantIcon)} ${escapeHTML(wantName)}${wantAmt>1?' ×'+wantAmt:''}</b> from <b style="color:#c8a800;">${escapeHTML(targetName)}</b></div>
+                  </div>
+                  <button id="toc-close" style="background:none;border:none;color:#555;font-size:1.3em;cursor:pointer;padding:2px 6px;">✕</button>
+                </div>
+                <div style="color:#555;font-size:0.7em;margin-bottom:10px;">Pick what you're offering, or type a custom offer below:</div>
+                <div id="toc-cards" style="overflow-y:auto;flex:1;padding-right:4px;min-height:80px;">
+                  ${hasSomething
+                    ? makeSection('💀 Currencies', currCards) + makeSection('⚗️ Potions', potCards) + makeSection('📦 Items', itemCards)
+                    : '<div style="color:#444;font-size:0.78em;text-align:center;padding:20px;">Your inventory is empty.</div>'}
+                </div>
+                <div id="toc-selected" style="display:none;background:#0a180a;border:1px solid #44cc8833;border-radius:8px;padding:8px 12px;margin:10px 0 8px;font-size:0.78em;color:#44cc88;"></div>
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                  <input id="toc-custom" type="text" placeholder='Or type custom offer… e.g. "500k Souls"' maxlength="80"
+                    style="flex:1;background:#0a0812;border:1px solid #2a1a3a;color:#ddd;padding:8px 10px;border-radius:8px;font-family:inherit;font-size:0.82em;outline:none;">
+                  <button id="toc-send" style="background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:8px;padding:8px 14px;color:#44cc88;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;white-space:nowrap;">Send 📨</button>
+                </div>
+              </div>`;
+            document.body.appendChild(ov);
+
+            let selectedLabel = '';
+            let selectedIcon  = '';
+
+            // Card click — select as offer
+            ov.querySelectorAll('.toc').forEach(card => {
+                card.addEventListener('mouseenter', () => card.style.transform='scale(1.05)');
+                card.addEventListener('mouseleave', () => card.style.transform='scale(1)');
+                card.addEventListener('click', () => {
+                    ov.querySelectorAll('.toc').forEach(c => c.style.boxShadow='');
+                    card.style.boxShadow = '0 0 0 2px #44cc88';
+                    selectedLabel = card.dataset.label;
+                    selectedIcon  = card.dataset.icon;
+                    const sel = document.getElementById('toc-selected');
+                    sel.style.display = 'block';
+                    sel.textContent = '✓ Offering: ' + selectedIcon + ' ' + selectedLabel;
+                    document.getElementById('toc-custom').value = '';
+                });
+            });
+
+            document.getElementById('toc-close').onclick = () => ov.remove();
+            ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+
+            document.getElementById('toc-send').onclick = () => {
+                const custom = document.getElementById('toc-custom').value.trim();
+                const offerText = custom || (selectedIcon + ' ' + selectedLabel);
+                if (!offerText.trim() || offerText.trim() === ' ') {
+                    document.getElementById('toc-custom').style.borderColor = '#ff4444';
+                    setTimeout(() => document.getElementById('toc-custom').style.borderColor = '#2a1a3a', 1500);
+                    return;
+                }
+                // Send as a plain chat message — uses the same slitherChat push you already have permission for
+                const db2 = window._scFirebase.db;
+                const uid2 = window._scFirebase.auth.currentUser.uid;
+                const myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
+                const color  = localStorage.getItem('slitherChatNameColor') || '#c8a800';
+                const msg = '🤝 [TRADE OFFER to ' + targetName + '] I want your ' + wantIcon + ' ' + wantName + (wantAmt>1?' ×'+wantAmt:'') + ' — offering: ' + offerText;
+                db2.ref('slitherChat').push({
+                    uid: uid2,
+                    name: myName,
+                    chatNameColor: color,
+                    time: firebase.database.ServerValue.TIMESTAMP,
+                    text: msg,
+                });
+                ov.remove();
+                Toastify({ text: '📨 Trade offer sent to ' + targetName + '!', duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)' } }).showToast();
+            };
         };
 
         function listenForChatMessages(db, currentUid) {
@@ -14377,47 +14443,8 @@ function initializeChat() {
             if (window.standaloneState && window.standaloneState.ignoredUsers && window.standaloneState.ignoredUsers[msg.uid]) return;
             if (!msg || !msg.uid) return;
 
-            // ── Trade request card ───────────────────────────────────────
-            if (msg.tradeRequest) {
-                const tr = msg.tradeRequest;
-                const myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || '';
-                const isTarget = myName === tr.to;
-                const isFrom   = myName === tr.from;
-                const status   = tr.status || 'pending';
-                const isPending = status === 'pending';
-
-                const statusBadge = !isPending
-                    ? '<div style="text-align:center;margin-top:8px;padding:5px 10px;border-radius:6px;font-size:0.75em;font-weight:bold;background:'+(status==='accepted'?'#44cc8833':'#ff444433')+';color:'+(status==='accepted'?'#44cc88':'#ff4444')+';">'+(status==='accepted'?'✅ Accepted':'❌ Declined')+'</div>'
-                    : '';
-                const actionBtns = (isTarget && isPending)
-                    ? '<div style="display:flex;gap:8px;margin-top:10px;">'
-                      + '<button onclick="window._respondToTrade(\''+tr.id+'\',\''+msg.key+'\',false)" style="flex:1;background:#ff444422;border:1px solid #ff444466;border-radius:7px;padding:7px;color:#ff8888;cursor:pointer;font-family:inherit;font-size:0.8em;">❌ Decline</button>'
-                      + '<button onclick="window._respondToTrade(\''+tr.id+'\',\''+msg.key+'\',true)" style="flex:2;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:7px;padding:7px;color:#44cc88;cursor:pointer;font-family:inherit;font-size:0.85em;font-weight:bold;">✅ Accept Trade</button>'
-                      + '</div>'
-                    : (isFrom && isPending ? '<div style="color:#555;font-size:0.72em;text-align:center;margin-top:8px;font-style:italic;">Waiting for response...</div>' : '');
-
-                const el = document.createElement('div');
-                el.style.cssText = 'margin:8px 0; padding:12px 14px; background:linear-gradient(135deg,#0a1a0a,#1a2a0a); border:1px solid #44cc8844; border-left:3px solid #44cc88; border-radius:10px;';
-                el.innerHTML = '<div style="color:#44cc88;font-size:0.72em;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">🤝 Trade Proposal</div>'
-                    + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
-                    + '<div style="background:#ffffff08;border-radius:8px;padding:8px 12px;text-align:center;min-width:80px;">'
-                    + '<div style="font-size:1.6em;">'+(tr.wantIcon||'❓')+'</div>'
-                    + '<div style="color:#ddd;font-size:0.7em;font-weight:bold;">'+(tr.wantName||'')+'</div>'
-                    + (tr.wantAmt > 1 ? '<div style="color:#888;font-size:0.62em;">×'+tr.wantAmt+'</div>' : '')
-                    + '</div>'
-                    + '<div style="color:#555;">→</div>'
-                    + '<div style="flex:1;">'
-                    + '<div style="color:#888;font-size:0.7em;">Offering:</div>'
-                    + '<div style="color:#c8a800;font-size:0.82em;font-weight:bold;">'+(tr.offering||'')+'</div>'
-                    + '</div>'
-                    + '</div>'
-                    + '<div style="color:#555;font-size:0.68em;margin-top:6px;"><b style="color:#888;">'+tr.from+'</b> → <b style="color:#aaa;">'+tr.to+'</b></div>'
-                    + statusBadge + actionBtns;
-
-                chatBodyElement.appendChild(el);
-                if (shouldScroll) chatBodyElement.scrollTop = chatBodyElement.scrollHeight;
-                return;
-            }
+            // Skip legacy tradeRequest-only messages (old format, no text field)
+            if (msg.tradeRequest && !msg.text) return;
 
             // --- 1. SETUP & VALIDATION ---
             const isValidHexColor = (color) => /^#([0-9a-fA-F]{3}){1,2}$/.test(color);
@@ -14671,9 +14698,6 @@ function initializeChat() {
                     const cardStyle = 'background:linear-gradient(135deg,#0e0a1a,#1a1020);border-radius:8px;padding:8px 6px;text-align:center;position:relative;cursor:pointer;transition:transform 0.1s;';
                     const tradeBtn = '<div style="font-size:0.5em;color:#44cc8888;margin-top:4px;letter-spacing:0.5px;">💬 Propose Trade</div>';
 
-                    // Helper: safely encode a value for a data-* attribute
-                    function dAttr(val) { return String(val).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-
                     if (tab === 'minions') {
                         if (!st.minions || !st.minions.length) { invPanel.innerHTML = '<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No minion data — syncs every 30s.</div>'; return; }
                         let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
@@ -14681,16 +14705,11 @@ function initializeChat() {
                             const tc = TIER_COLORS2[Math.min(5,Math.floor((m.level||0)/25))];
                             const stars = m.promoTier > 0 ? '<span style="color:#c8a800;font-size:0.55em;">'+('★'.repeat(m.promoTier))+'</span>' : '';
                             const barter = m.barterLevels > 0 ? '<span style="position:absolute;top:3px;right:3px;font-size:0.5em;background:#aa44ff;border-radius:3px;padding:1px 3px;color:#fff;">🔀</span>' : '';
-                            h += '<div class="prof-trade-card" style="'+cardStyle+'border:1px solid '+tc+'33;border-top:2px solid '+tc+';"'
-                                +' data-trade-type="minion:'+dAttr(m.id)+'"'
-                                +' data-trade-name="'+dAttr(m.name)+'"'
-                                +' data-trade-icon="'+dAttr(m.icon||'👿')+'"'
-                                +' data-trade-amt="'+m.level+'"'
-                                +' data-trade-target="'+dAttr(targetName)+'">'
-                                +barter+'<div style="font-size:1.5em;">'+(m.icon||'👿')+'</div>'
-                                +'<div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(m.name)+'</div>'
+                            h += '<div style="'+cardStyle+'border:1px solid '+tc+'33;border-top:2px solid '+tc+';" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'" onclick="window._proposeItemTrade('+JSON.stringify('minion:'+m.id)+','+JSON.stringify(m.name)+','+JSON.stringify(m.icon||'👿')+','+m.level+','+JSON.stringify(targetName)+')">'
+                                +barter+'<div style="font-size:1.5em;">'+m.icon+'</div>'
+                                +'<div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+m.name+'</div>'
                                 +'<div style="color:'+tc+';font-size:0.58em;">Lv'+m.level+stars+'</div>'
-                                +(m.hp!=null?'<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">❤'+m.hp+'</span> <span style="color:#ff9944;">⚔'+m.atk+'</span></div>':'')
+                                +(m.hp!==null?'<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">❤'+m.hp+'</span> <span style="color:#ff9944;">⚔'+m.atk+'</span></div>':'')
                                 +tradeBtn+'</div>';
                         });
                         invPanel.innerHTML = h+'</div>';
@@ -14700,15 +14719,10 @@ function initializeChat() {
                         let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.inventory.forEach(it => {
                             const rc = RARITY_COLORS2[it.rarity]||'#888';
-                            h += '<div class="prof-trade-card" style="'+cardStyle+'border:1px solid '+rc+'33;border-top:2px solid '+rc+';"'
-                                +' data-trade-type="item:'+dAttr(it.id)+'"'
-                                +' data-trade-name="'+dAttr(it.name)+'"'
-                                +' data-trade-icon="'+dAttr(it.icon||'📦')+'"'
-                                +' data-trade-amt="1"'
-                                +' data-trade-target="'+dAttr(targetName)+'">'
+                            h += '<div style="'+cardStyle+'border:1px solid '+rc+'33;border-top:2px solid '+rc+';" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'" onclick="window._proposeItemTrade('+JSON.stringify('item:'+it.id)+','+JSON.stringify(it.name)+','+JSON.stringify(it.icon||'📦')+',1,'+JSON.stringify(targetName)+')">'
                                 +'<div style="font-size:1.5em;">'+(it.icon||'📦')+'</div>'
-                                +'<div style="color:'+rc+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div>'
-                                +'<div style="color:#555;font-size:0.52em;">'+escapeHTML(it.rarity||'')+'</div>'
+                                +'<div style="color:'+rc+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+it.name+'</div>'
+                                +'<div style="color:#555;font-size:0.52em;">'+it.rarity+'</div>'
                                 +tradeBtn+'</div>';
                         });
                         invPanel.innerHTML = h+'</div>';
@@ -14717,36 +14731,14 @@ function initializeChat() {
                         if (!st.potions || !st.potions.length) { invPanel.innerHTML = '<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No potions.</div>'; return; }
                         let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.potions.forEach(p => {
-                            h += '<div class="prof-trade-card" style="'+cardStyle+'border:1px solid '+(p.color||'#888')+'33;border-top:2px solid '+(p.color||'#888')+';"'
-                                +' data-trade-type="potion:'+dAttr(p.id)+'"'
-                                +' data-trade-name="'+dAttr(p.name)+'"'
-                                +' data-trade-icon="'+dAttr(p.icon||'⚗️')+'"'
-                                +' data-trade-amt="'+p.count+'"'
-                                +' data-trade-target="'+dAttr(targetName)+'">'
+                            h += '<div style="'+cardStyle+'border:1px solid '+p.color+'33;border-top:2px solid '+p.color+';" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'" onclick="window._proposeItemTrade('+JSON.stringify('potion:'+p.id)+','+JSON.stringify(p.name)+','+JSON.stringify(p.icon||'⚗️')+','+p.count+','+JSON.stringify(targetName)+')">'
                                 +'<div style="font-size:1.5em;">'+(p.icon||'⚗️')+'</div>'
-                                +'<div style="color:'+(p.color||'#888')+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div>'
+                                +'<div style="color:'+p.color+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+p.name+'</div>'
                                 +'<div style="color:#555;font-size:0.52em;">×'+p.count+'</div>'
                                 +tradeBtn+'</div>';
                         });
                         invPanel.innerHTML = h+'</div>';
                     }
-
-                    // Attach click handlers via delegation (avoids all inline-JSON escaping issues)
-                    invPanel.onclick = function(e) {
-                        const card = e.target.closest('.prof-trade-card');
-                        if (!card) return;
-                        e.stopPropagation();
-                        window._proposeItemTrade(
-                            card.dataset.tradeType,
-                            card.dataset.tradeName,
-                            card.dataset.tradeIcon,
-                            parseFloat(card.dataset.tradeAmt) || 1,
-                            card.dataset.tradeTarget
-                        );
-                    };
-                    // Hover effect via delegation
-                    invPanel.onmouseover = function(e) { const c = e.target.closest('.prof-trade-card'); if(c) c.style.transform='scale(1.05)'; };
-                    invPanel.onmouseout  = function(e) { const c = e.target.closest('.prof-trade-card'); if(c) c.style.transform='scale(1)'; };
                 }
 
                 profTabs.forEach(btn => btn.addEventListener('click', () => renderProfileTab(btn.dataset.tab)));

@@ -8573,20 +8573,17 @@ function performAscension() {
   
   const shardsGained = calculateShardsOnAscend();
   if (!shardsGained || D(shardsGained).lt(1)) {
-    alert("You need to harvest more souls this run before ascending (need at least 1 Shard).");
+    alert('You need to harvest more souls this run before ascending (need at least 1 Shard).');
     return;
   }
 
-  showPrestigeConfirm({
-    type: 'ascend',
-    icon: '✨',
-    title: 'CONFIRM ASCENSION',
-    titleColor: '#c8a800',
-    body: 'This will reset your souls, minions, upgrades, and world progress. Your shards, artifacts, and research bonuses are kept.',
-    rewardHtml: `<div style="color:#666; font-size:0.75em; margin-bottom:4px;">You will receive</div><div style="font-size:1.8em; font-weight:bold; color:#c8a800; font-family:var(--font-title);">💎 ${formatNumber(shardsGained)}</div><div style="color:#886600; font-size:0.75em; margin-top:2px;">Abyssal Shards</div>`,
-    btnColor: '#c8a800',
-    btnLabel: '✨ Ascend',
-  });
+  const confirmed = confirm(
+    'ASCEND?' +
+    '\n\nYou will receive: ' + formatNumber(shardsGained) + ' Abyssal Shards' +
+    '\n\nThis resets: souls, minions, upgrades, world progress.' +
+    '\nYou KEEP: shards, artifacts, banked resources, research.'
+  );
+  if (confirmed) executeAscension();
 }
 
 function executeAscension() {
@@ -8728,20 +8725,17 @@ function updateCollapsePreview() {
 function performCollapse() {
     const aetherGained = calculateAetherOnCollapse();
     if (aetherGained < 1) {
-        alert("You are not powerful enough to Collapse Reality. Gain more Abyssal Shards.");
+        alert('You are not powerful enough to Collapse Reality. Gain more Abyssal Shards.');
         return;
     }
 
-    showPrestigeConfirm({
-        type: 'collapse',
-        icon: '🌀',
-        title: 'COLLAPSE REALITY',
-        titleColor: '#00e5ff',
-        body: 'This erases EVERYTHING — souls, shards, artifacts, minions, worlds. Only Aether and Aether Upgrades survive. This cannot be undone.',
-        rewardHtml: `<div style="color:#666; font-size:0.75em; margin-bottom:4px;">You will receive</div><div style="font-size:1.8em; font-weight:bold; color:#00e5ff; font-family:var(--font-title);">🌀 ${formatNumber(aetherGained)}</div><div style="color:#006677; font-size:0.75em; margin-top:2px;">Aether</div>`,
-        btnColor: '#00e5ff',
-        btnLabel: '🌀 Collapse Reality',
-    });
+    const confirmed = confirm(
+        'COLLAPSE REALITY?' +
+        '\n\nYou will receive: ' + formatNumber(aetherGained) + ' Aether' +
+        '\n\nWARNING: This erases EVERYTHING — souls, shards, artifacts, minions, worlds.' +
+        '\nOnly Aether and Aether Upgrades survive. THIS CANNOT BE UNDONE.'
+    );
+    if (confirmed) executeCollapse();
 }
 
 function executeCollapse() {

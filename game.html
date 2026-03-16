@@ -9408,7 +9408,7 @@ function showScreen(screenId) {
         renderPactScreen();
         fetchPactLeaderboard();
     }
-    if (screenId === 'pactwars') { pwRefresh(); setTimeout(pwCheckActiveRallies, 1500); }
+    if (screenId === 'pactwars') { requestAnimationFrame(() => { pwRefresh(); setTimeout(pwCheckActiveRallies, 1500); }); }
     if (screenId === 'provinggrounds')
     {
         renderProvingGrounds();
@@ -19932,14 +19932,16 @@ function pwGetCycleEnd() {
 }
 
 function pwUpdateBanner() {
+    try {
     const timerEl = document.getElementById('pw-cycle-timer');
     const myNodesEl = document.getElementById('pw-my-nodes');
     const myBonusEl = document.getElementById('pw-my-bonus');
     if (!timerEl) return;
 
     const end = pwGetCycleEnd();
-    if (isNaN(end.getTime())) { timerEl.textContent = 'Resets weekly (Monday 00:00 UTC)'; return; }
+    if (!end || isNaN(end.getTime())) { timerEl.textContent = 'Resets weekly — Monday 00:00 UTC'; return; }
     const left = end - Date.now();
+    if (left <= 0) { timerEl.textContent = 'Cycle resetting...'; return; }
     const days  = Math.floor(left / 86400000);
     const hours = Math.floor((left % 86400000) / 3600000);
     const mins  = Math.floor((left % 3600000) / 60000);
@@ -19956,12 +19958,15 @@ function pwUpdateBanner() {
     } else {
         gameState._pactWarBonus = 0;
     }
+    } catch(e) { console.warn('[PW] banner error:', e); }
 }
 
 // ── Map render — cinematic SVG hex-style map ────────────────────
 function pwRenderMap() {
+    try {
     const map = document.getElementById('pw-map');
     if (!map) return;
+    if (!pwNodes || pwNodes.length === 0) { pwInitNodes(); }
 
     const myPact = window.playerPact?.pact_name;
     const TIER_COLORS = ['#333','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
@@ -20108,6 +20113,7 @@ function pwRenderMap() {
 
         map.appendChild(el);
     });
+    } catch(e) { console.error("[PW] renderMap error:", e); }
 }
 
 // ── RALLY SYSTEM — coordinated pact attacks ──────────────────────

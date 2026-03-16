@@ -14255,6 +14255,7 @@ function initializeChat() {
                 listenForChatMessages(db, uid);
                 listenForOnlineUsers(db);
                 setupEventListeners(db, uid);
+                window._chatDb = db; window._chatUid = uid; // used by trade sender
             });
         }
 
@@ -14263,7 +14264,7 @@ function initializeChat() {
 
         // TRADE OFFER SYSTEM
         window._proposeItemTrade = function(itemType, itemName, itemIcon, itemAmt, targetPlayerName) {
-            if (!window._scFirebase || !window._scFirebase.auth.currentUser) { alert('You must be signed in.'); return; }
+            if (!window._chatDb || !window._chatUid) { alert('Chat not ready yet, try again in a moment.'); return; }
             var myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
             if (myName === targetPlayerName) { alert('You cannot trade with yourself.'); return; }
             var pp = document.querySelector('.profile-popup');
@@ -14354,12 +14355,14 @@ function initializeChat() {
                     setTimeout(function() { document.getElementById('toc-custom').style.borderColor = '#2a1a3a'; }, 1500);
                     return;
                 }
-                var db2 = window._scFirebase.db;
-                var uid2 = window._scFirebase.auth.currentUser.uid;
+                // Use the same db reference the chat input uses
+                var db  = window._chatDb;
+                var uid = window._chatUid;
                 var myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
-                var color = localStorage.getItem('slitherChatNameColor') || '#c8a800';
+                var color  = localStorage.getItem('slitherChatNameColor') || '#c8a800';
                 var msgText = '🤝 [TRADE OFFER to ' + targetName + '] I want your ' + wantIcon + ' ' + wantName + (wantAmt > 1 ? ' x' + wantAmt : '') + ' -- offering: ' + offerText;
-                db2.ref('slitherChat').push({ uid: uid2, name: myName, chatNameColor: color, time: firebase.database.ServerValue.TIMESTAMP, text: msgText });
+                db.ref('slitherChat').push({ uid: uid, name: myName, chatNameColor: color, time: firebase.database.ServerValue.TIMESTAMP, text: msgText });
+                db.ref('discordBridge').push({ uid: uid, name: myName, text: msgText, time: firebase.database.ServerValue.TIMESTAMP });
                 ov.remove();
                 if (typeof Toastify !== 'undefined') { Toastify({ text: '📨 Trade offer sent to ' + targetName + '!', duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)' } }).showToast(); }
             });

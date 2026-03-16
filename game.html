@@ -14261,12 +14261,9 @@ function initializeChat() {
         // ── Trade Proposal System ────────────────────────────────────
         // Sends a chat trade-request message; target sees Accept/Decline buttons
 
-        // TRADE OFFER SYSTEM - popup showing YOUR inventory -> plain chat message
+        // TRADE OFFER SYSTEM
         window._proposeItemTrade = function(itemType, itemName, itemIcon, itemAmt, targetPlayerName) {
-            if (!window._scFirebase || !window._scFirebase.auth.currentUser) {
-                alert('You must be signed in to propose a trade.');
-                return;
-            }
+            if (!window._scFirebase || !window._scFirebase.auth.currentUser) { alert('You must be signed in.'); return; }
             var myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
             if (myName === targetPlayerName) { alert('You cannot trade with yourself.'); return; }
             var pp = document.querySelector('.profile-popup');
@@ -14279,6 +14276,7 @@ function initializeChat() {
             if (existing) existing.remove();
 
             var RARITY_C = { common:'#888', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00' };
+            var TYPE_ICON = { weapon:'⚔️', idol:'🗿', sigil:'✶', helm:'🧖', tome:'📖' };
             var offerChoices = [];
 
             function addCard(label, icon, topColor, bodyHtml) {
@@ -14295,40 +14293,43 @@ function initializeChat() {
             var souls   = typeof D !== 'undefined' ? D(gameState.souls         || 0) : null;
             var essence = typeof D !== 'undefined' ? D(gameState.darkEssence   || 0) : null;
             var shards  = typeof D !== 'undefined' ? D(gameState.abyssalShards || 0) : null;
-            if (souls   && souls.gt(0))   currCards += addCard(formatNumber(souls)   + ' Souls',         'Souls',   '#c41818', '<div style="font-size:1.4em;">Souls</div><div style="color:#f0d8d8;font-size:0.58em;font-weight:bold;">'   + formatNumber(souls)   + '</div>');
-            if (essence && essence.gt(0)) currCards += addCard(formatNumber(essence) + ' Dark Essence',  'Essence', '#6622aa', '<div style="font-size:1.4em;">Essence</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;">' + formatNumber(essence) + '</div>');
-            if (shards  && shards.gt(0))  currCards += addCard(formatNumber(shards)  + ' Abyssal Shards','Shards',  '#4488ff', '<div style="font-size:1.4em;">Shards</div><div style="color:#88aaff;font-size:0.58em;font-weight:bold;">'  + formatNumber(shards)  + '</div>');
+            if (souls   && souls.gt(0))   currCards += addCard(formatNumber(souls)   + ' Souls',         '💀', '#c41818', '<div style="font-size:1.4em;">💀</div><div style="color:#f0d8d8;font-size:0.58em;font-weight:bold;">' + formatNumber(souls)   + '</div><div style="color:#555;font-size:0.5em;">Souls</div>');
+            if (essence && essence.gt(0)) currCards += addCard(formatNumber(essence) + ' Dark Essence',  '🌑', '#6622aa', '<div style="font-size:1.4em;">🌑</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;">' + formatNumber(essence) + '</div><div style="color:#555;font-size:0.5em;">Essence</div>');
+            if (shards  && shards.gt(0))  currCards += addCard(formatNumber(shards)  + ' Abyssal Shards','💎', '#4488ff', '<div style="font-size:1.4em;">💎</div><div style="color:#88aaff;font-size:0.58em;font-weight:bold;">' + formatNumber(shards)  + '</div><div style="color:#555;font-size:0.5em;">Shards</div>');
 
             var potCards = '';
             Object.keys(gameState.potions || {}).forEach(function(id) {
                 var cnt = gameState.potions[id];
                 if (!cnt || cnt < 1 || !potions[id]) return;
-                var p = potions[id]; var ico = p.icon || '[pot]';
+                var p = potions[id];
+                var ico = (typeof potionMeta !== 'undefined' && potionMeta[id] && potionMeta[id].icon) ? potionMeta[id].icon : '⚗️';
                 potCards += addCard(p.name + ' x' + cnt, ico, '#aa44ff', '<div style="font-size:1.4em;">' + ico + '</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHTML(p.name) + '</div><div style="color:#555;font-size:0.5em;">x' + cnt + '</div>');
             });
 
             var itemCards = '';
             (gameState.inventory || []).forEach(function(id) {
                 if (!items[id]) return;
-                var it = items[id]; var rc = RARITY_C[it.rarity] || '#888'; var ico = it.icon || '[item]';
+                var it = items[id];
+                var rc = RARITY_C[it.rarity] || '#888';
+                var ico = TYPE_ICON[it.type] || '🔮';
                 itemCards += addCard(it.name, ico, rc, '<div style="font-size:1.4em;">' + ico + '</div><div style="color:' + rc + ';font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHTML(it.name) + '</div><div style="color:#555;font-size:0.5em;">' + escapeHTML(it.rarity || '') + '</div>');
             });
 
-            var body = section('Currencies', currCards) + section('Potions', potCards) + section('Items', itemCards)
+            var body = section('💀 Currencies', currCards) + section('⚗️ Potions', potCards) + section('📦 Items', itemCards)
                 || '<div style="color:#444;font-size:0.78em;text-align:center;padding:20px;">Your inventory is empty.</div>';
 
             var ov = document.createElement('div');
             ov.id = 'trade-offer-overlay';
             ov.style.cssText = 'position:fixed;inset:0;background:#000000cc;z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
             ov.innerHTML = '<div style="background:linear-gradient(160deg,#06040f,#0e0a1a);border:1px solid #3a1a5a;border-top:3px solid #44cc88;border-radius:14px;max-width:460px;width:94%;padding:22px 18px;box-shadow:0 0 60px #00000099;max-height:85vh;display:flex;flex-direction:column;">'
-                + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;"><div><div style="color:#44cc88;font-size:0.72em;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">Trade Proposal</div>'
+                + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;"><div><div style="color:#44cc88;font-size:0.72em;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">🤝 Trade Proposal</div>'
                 + '<div style="color:#888;font-size:0.78em;">You want: <b style="color:#ddd;">' + escapeHTML(wantIcon) + ' ' + escapeHTML(wantName) + (wantAmt > 1 ? ' x' + wantAmt : '') + '</b> from <b style="color:#c8a800;">' + escapeHTML(targetName) + '</b></div></div>'
-                + '<button id="toc-close" style="background:none;border:none;color:#555;font-size:1.3em;cursor:pointer;padding:2px 6px;">X</button></div>'
+                + '<button id="toc-close" style="background:none;border:none;color:#555;font-size:1.3em;cursor:pointer;padding:2px 6px;">✕</button></div>'
                 + '<div style="color:#555;font-size:0.7em;margin-bottom:10px;">Click what you are offering, or type a custom offer below:</div>'
                 + '<div id="toc-cards" style="overflow-y:auto;flex:1;padding-right:4px;min-height:80px;">' + body + '</div>'
                 + '<div id="toc-selected" style="display:none;background:#0a180a;border:1px solid #44cc8833;border-radius:8px;padding:8px 12px;margin:10px 0 8px;font-size:0.78em;color:#44cc88;"></div>'
                 + '<div style="display:flex;gap:8px;margin-top:4px;"><input id="toc-custom" type="text" placeholder="Or type custom offer..." maxlength="80" style="flex:1;background:#0a0812;border:1px solid #2a1a3a;color:#ddd;padding:8px 10px;border-radius:8px;font-family:inherit;font-size:0.82em;outline:none;">'
-                + '<button id="toc-send" style="background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:8px;padding:8px 14px;color:#44cc88;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;white-space:nowrap;">Send</button></div></div>';
+                + '<button id="toc-send" style="background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:8px;padding:8px 14px;color:#44cc88;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;white-space:nowrap;">📨 Send</button></div></div>';
             document.body.appendChild(ov);
 
             var selectedLabel = '', selectedIcon = '';
@@ -14357,10 +14358,10 @@ function initializeChat() {
                 var uid2 = window._scFirebase.auth.currentUser.uid;
                 var myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
                 var color = localStorage.getItem('slitherChatNameColor') || '#c8a800';
-                var msgText = '[TRADE OFFER to ' + targetName + '] I want your ' + wantIcon + ' ' + wantName + (wantAmt > 1 ? ' x' + wantAmt : '') + ' -- offering: ' + offerText;
+                var msgText = '🤝 [TRADE OFFER to ' + targetName + '] I want your ' + wantIcon + ' ' + wantName + (wantAmt > 1 ? ' x' + wantAmt : '') + ' -- offering: ' + offerText;
                 db2.ref('slitherChat').push({ uid: uid2, name: myName, chatNameColor: color, time: firebase.database.ServerValue.TIMESTAMP, text: msgText });
                 ov.remove();
-                if (typeof Toastify !== 'undefined') { Toastify({ text: 'Trade offer sent to ' + targetName + '!', duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)' } }).showToast(); }
+                if (typeof Toastify !== 'undefined') { Toastify({ text: '📨 Trade offer sent to ' + targetName + '!', duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)' } }).showToast(); }
             });
         };
 
@@ -14655,8 +14656,9 @@ function initializeChat() {
                     });
                     if (!invPanel) return;
 
+                    var TYPE_ICON = { weapon:'⚔️', idol:'🗿', sigil:'✶', helm:'🧖', tome:'📖' };
                     var cardStyle = 'background:linear-gradient(135deg,#0e0a1a,#1a1020);border-radius:8px;padding:8px 6px;text-align:center;position:relative;cursor:pointer;transition:transform 0.1s;';
-                    var tradeBtn = '<div style="font-size:0.5em;color:#44cc8888;margin-top:4px;letter-spacing:0.5px;">Propose Trade</div>';
+                    var tradeBtn = '<div style="font-size:0.5em;color:#44cc8888;margin-top:4px;letter-spacing:0.5px;">💬 Propose Trade</div>';
 
                     invPanel._tradeItems = [];
                     function makeCard(payload, borderColor, topColor, innerHTML) {
@@ -14670,10 +14672,10 @@ function initializeChat() {
                         var h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.minions.forEach(function(m) {
                             var tc = TIER_COLORS2[Math.min(5, Math.floor((m.level || 0) / 25))];
-                            var stars = m.promoTier > 0 ? '<span style="color:#c8a800;font-size:0.55em;">' + ('*'.repeat(m.promoTier)) + '</span>' : '';
-                            var barter = m.barterLevels > 0 ? '<span style="position:absolute;top:3px;right:3px;font-size:0.5em;background:#aa44ff;border-radius:3px;padding:1px 3px;color:#fff;">swap</span>' : '';
-                            var micon = m.icon || '?';
-                            var inner = barter + '<div style="font-size:1.5em;">' + micon + '</div><div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHTML(m.name) + '</div><div style="color:' + tc + ';font-size:0.58em;">Lv' + m.level + stars + '</div>' + (m.hp != null ? '<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">HP:' + m.hp + '</span> <span style="color:#ff9944;">ATK:' + m.atk + '</span></div>' : '');
+                            var stars = m.promoTier > 0 ? '<span style="color:#c8a800;font-size:0.55em;">' + ('★'.repeat(m.promoTier)) + '</span>' : '';
+                            var barter = m.barterLevels > 0 ? '<span style="position:absolute;top:3px;right:3px;font-size:0.5em;background:#aa44ff;border-radius:3px;padding:1px 3px;color:#fff;">🔀</span>' : '';
+                            var micon = m.icon || '👿';
+                            var inner = barter + '<div style="font-size:1.5em;">' + micon + '</div><div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHTML(m.name) + '</div><div style="color:' + tc + ';font-size:0.58em;">Lv' + m.level + stars + '</div>' + (m.hp != null ? '<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">❤' + m.hp + '</span> <span style="color:#ff9944;">⚔' + m.atk + '</span></div>' : '');
                             h += makeCard(['minion:' + m.id, m.name, micon, m.level, targetName], tc, tc, inner);
                         });
                         invPanel.innerHTML = h + '</div>';
@@ -14682,7 +14684,7 @@ function initializeChat() {
                         var h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.inventory.forEach(function(it) {
                             var rc = RARITY_COLORS2[it.rarity] || '#888';
-                            var ico = it.icon || '[item]';
+                            var ico = TYPE_ICON[it.type] || '🔮';
                             var inner = '<div style="font-size:1.5em;">' + ico + '</div><div style="color:' + rc + ';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHTML(it.name) + '</div><div style="color:#555;font-size:0.52em;">' + escapeHTML(it.rarity || '') + '</div>';
                             h += makeCard(['item:' + it.id, it.name, ico, 1, targetName], rc, rc, inner);
                         });
@@ -14691,7 +14693,8 @@ function initializeChat() {
                         if (!st.potions || !st.potions.length) { invPanel.innerHTML = '<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No potions.</div>'; return; }
                         var h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.potions.forEach(function(p) {
-                            var col = p.color || '#888'; var ico = p.icon || '[pot]';
+                            var col = p.color || '#888';
+                            var ico = (typeof potionMeta !== 'undefined' && potionMeta[p.id] && potionMeta[p.id].icon) ? potionMeta[p.id].icon : '⚗️';
                             var inner = '<div style="font-size:1.5em;">' + ico + '</div><div style="color:' + col + ';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHTML(p.name) + '</div><div style="color:#555;font-size:0.52em;">x' + p.count + '</div>';
                             h += makeCard(['potion:' + p.id, p.name, ico, p.count, targetName], col, col, inner);
                         });

@@ -4283,19 +4283,17 @@ window.onload = function() {
             // Durability tick — runs once per minute (every 600 ticks at 10 ticks/sec)
             if (typeof tickItemDurability === 'function' && gameState.playTime % 600 === 0) tickItemDurability();
 
-            // Bank Interest: 0.5%/hr always, sigil boosts to its value
-            if (gameState.bankedSouls > 0) {
+            // Bank Interest — Decimal-safe
+            if (D(gameState.bankedSouls || 0).gt(0)) {
                 const sigilId = gameState.equipped.sigil;
                 const sigilBonus = (sigilId && items[sigilId]?.bonus.type === 'banked_soul_interest')
                     ? items[sigilId].bonus.value : 0;
-                const hourlyRate = Math.max(0.005, sigilBonus); // 0.5% floor
-                const perSecondInterest = gameState.bankedSouls * (hourlyRate / 3600);
-                gameState.bankedSouls += perSecondInterest;
+                const hourlyRate = Math.max(0.005, sigilBonus);
+                gameState.bankedSouls = D(gameState.bankedSouls).mul(1 + hourlyRate / 3600);
             }
             // Essence vault interest: 0.3%/hr
-            if ((gameState.bankedEssence || 0) > 0) {
-                const perSecEssence = gameState.bankedEssence * (0.003 / 3600);
-                gameState.bankedEssence += perSecEssence;
+            if (D(gameState.bankedEssence || 0).gt(0)) {
+                gameState.bankedEssence = D(gameState.bankedEssence).mul(1 + 0.003 / 3600);
             }
             // Shards vault interest: 0.2%/hr
             if (D(gameState.bankedShards || 0).gt(0)) {
@@ -8023,6 +8021,8 @@ async function saveGame() {
         abyssalShards: D(gameState.abyssalShards).toString(),
         aether:        D(gameState.aether).toString(),
         corruptedFragments: D(gameState.corruptedFragments).toString(),
+        bankedSouls:   D(gameState.bankedSouls || 0).toString(),
+        bankedEssence: D(gameState.bankedEssence || 0).toString(),
         'stats.sps':   undefined, // recomputed on load
     };
     // stats.sps is recomputed on load — no need to serialize it
@@ -8119,6 +8119,15 @@ function loadGame() {
                 console.warn('⚠ Corrupted localStorage save detected — Decimals were stored as objects. Recovering...');
                 window._saveWasCorrupted = true; // flag for onAuthStateChanged to force cloud reload
             }
+            // Check for corrupted lifetimeSouls in local save
+            if (loadedState.lifetimeSouls) {
+                const _lsStr = String(loadedState.lifetimeSouls);
+                const _lsExp = (_lsStr.match(/e[+\-](\d+)/i) || [])[1] || '0';
+                if (_lsExp.length > 7) {
+                    console.warn('[Save] Local save lifetimeSouls corrupted, resetting to souls value');
+                    loadedState.lifetimeSouls = loadedState.souls || '0';
+                }
+            }
             gameState = deepMerge(defaultState, loadedState);
             // Restore Decimal fields from serialized strings
             gameState.souls              = D(gameState.souls              || 0);
@@ -8136,6 +8145,8 @@ function loadGame() {
             gameState.abyssalShards      = D(gameState.abyssalShards      || 0);
             gameState.aether             = D(gameState.aether             || 0);
             gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
+            gameState.bankedSouls        = D(gameState.bankedSouls        || 0);
+            gameState.bankedEssence      = D(gameState.bankedEssence      || 0);
             // stats.sps is always recomputed by calculateStats() — no restore needed
             // Existing player — go straight into the game
             // If save was corrupted, onAuthStateChanged will force cloud reload once Firebase loads
@@ -11488,6 +11499,20 @@ async function loadGameFromCloud(uid, db) {
                 } catch(e) {}
             }
 
+            // Detect corrupted lifetimeSouls — check if the exponent is wildly wrong
+            // A legitimate exponent should match the Firebase soulsLog (within 2 orders)
+            const _fbSoulsLog = data.soulsLog || 0;
+            const _cloudSoulsStr = cloudState.lifetimeSouls ? String(cloudState.lifetimeSouls) : '0';
+            let _cloudSoulsLogActual = 0;
+            try { _cloudSoulsLogActual = D(_cloudSoulsStr).gt(0) ? D(_cloudSoulsStr).log10().toNumber() : 0; } catch(e) {}
+            const _cloudIsCorrupted = _fbSoulsLog > 0 && Math.abs(_cloudSoulsLogActual - _fbSoulsLog) > 100;
+            if (_cloudIsCorrupted) {
+                console.warn('[Save] Cloud lifetimeSouls is CORRUPTED — exponent mismatch:', _cloudSoulsLogActual, 'vs Firebase soulsLog:', _fbSoulsLog, '— reconstructing from soulsLog');
+                // Reconstruct lifetimeSouls from the trusted Firebase soulsLog
+                cloudState.lifetimeSouls = D(10).pow(_fbSoulsLog).toString();
+                cloudState.souls = cloudState.souls ? cloudState.souls : cloudState.lifetimeSouls;
+            }
+
             // Always use the MORE RECENT save — never rollback progress
             let chosenState;
             if (localState && localSavedAt > cloudSavedAt) {
@@ -11519,6 +11544,22 @@ async function loadGameFromCloud(uid, db) {
                 chosenState = cloudState;
             }
 
+            // Final corruption check on chosen state
+            if (chosenState.lifetimeSouls) {
+                const _chosenStr = String(chosenState.lifetimeSouls);
+                // Check for repeated digit corruption (e.g. "4.92e+3911111111112911")
+                const _expMatch = _chosenStr.match(/e[+\-](\d+)/i);
+                if (_expMatch) {
+                    const _expStr = _expMatch[1];
+                    // If exponent has 10+ digits it's almost certainly corrupted (real max ~400000)
+                    if (_expStr.length > 7) {
+                        console.warn('[Save] Corrupted exponent detected:', _expStr, '— using soulsLog reconstruction');
+                        const _safeLog = data.soulsLog || 0;
+                        chosenState.lifetimeSouls = _safeLog > 0 ? D(10).pow(_safeLog).toString() : '0';
+                    }
+                }
+            }
+
             gameState = deepMerge(defaultState, chosenState);
             gameState.firebaseUid = uid;
             // Restore ALL Decimal fields — D() now handles {m,e} objects from old corrupted saves
@@ -11529,6 +11570,8 @@ async function loadGameFromCloud(uid, db) {
             gameState.abyssalShards      = D(gameState.abyssalShards      || 0);
             gameState.aether             = D(gameState.aether             || 0);
             gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
+            gameState.bankedSouls        = D(gameState.bankedSouls        || 0);
+            gameState.bankedEssence      = D(gameState.bankedEssence      || 0);
             // Ensure playerName is valid — corruption sometimes resets to Unnamed
             if (!gameState.playerName || gameState.playerName === 'Unnamed') {
                 gameState.playerName = data.playerName || gameState.playerName || 'Unnamed';
@@ -13128,7 +13171,7 @@ function depositSouls() {
     }
     gameState.souls = D(gameState.souls).sub(D(depositAmt));
     gameState.darkEssence = D(gameState.darkEssence).sub(essenceCost);
-    gameState.bankedSouls += depositAmt;
+    gameState.bankedSouls = D(gameState.bankedSouls || 0).add(D(depositAmt));
     playSound('upgrade');
     Toastify({ text: `🏦 ${formatNumber(depositAmt)} souls secured in the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a1800,#c8a800)'} }).showToast();
     renderBank();

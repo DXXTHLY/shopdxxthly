@@ -8760,17 +8760,17 @@ function calculateStats() {
             if (meta_artifact_doubler > 1) value = 1 + ((value - 1) * meta_artifact_doubler);
         }
 
-        if (bonus.type === 'sps_multiplier') sps_multiplier *= Math.pow(value, level);
-        if (bonus.type === 'spc_multiplier') spc_multiplier *= Math.pow(value, level);
+        if (bonus.type === 'sps_multiplier') sps_multiplier *= (isFinite(Math.pow(value, level)) ? Math.pow(value, level) : 1);
+        if (bonus.type === 'spc_multiplier') spc_multiplier *= (isFinite(Math.pow(value, level)) ? Math.pow(value, level) : 1);
         if (bonus.type === 'minion_cost_reducer') minionCostFactor *= Math.pow(value, level);
         if (bonus.type === 'upgrade_cost_reducer' && bonus.target === 'click') clickUpgradeCostFactor *= Math.pow(value, level);
         if (bonus.type === 'essence_multiplier') essence_multiplier *= Math.pow(value, level);
         if (bonus.type === 'prestige_bonus_enhancer') prestigeBonusEnhancer *= Math.pow(value, level);
         // For per_world/per_artifact/per_ascension, always use raw bonus.value (not the enhanced value)
         // to prevent the meta_artifact_doubler from making the base rate negative
-        global_multiplier = global_multiplier.mul(D(Math.pow(1 + (bonus.value * meta_artifact_doubler * gameState.unlockedWorlds.length), level)));
-        global_multiplier = global_multiplier.mul(D(Math.pow(1 + (bonus.value * meta_artifact_doubler * Object.keys(gameState.ownedArtifacts).length), level)));
-        global_multiplier = global_multiplier.mul(D(Math.pow(1 + (bonus.value * meta_artifact_doubler * gameState.ascensions), level)));
+        global_multiplier = global_multiplier.mul(D(1 + bonus.value * meta_artifact_doubler * gameState.unlockedWorlds.length).pow(level));
+        global_multiplier = global_multiplier.mul(D(1 + bonus.value * meta_artifact_doubler * Object.keys(gameState.ownedArtifacts).length).pow(level));
+        global_multiplier = global_multiplier.mul(D(1 + bonus.value * meta_artifact_doubler * gameState.ascensions).pow(level));
         global_multiplier = global_multiplier.mul(D(Math.max(1, gameState.ascensions * level)));
         global_multiplier = global_multiplier.mul(D(Math.max(1, Math.pow(gameState.ascensions, 2) * level)));
 
@@ -8778,21 +8778,21 @@ function calculateStats() {
         // Paragon Soul: +10% global per 100 shards
         if (bonus.type === 'global_multiplier_per_100_shards') {
             const hundredsOfShards = Math.floor(D(gameState.abyssalShards || 0).toNumber() / 100);
-            global_multiplier = global_multiplier.mul(D(Math.pow(1 + (bonus.value * hundredsOfShards), level)));
+            global_multiplier = global_multiplier.mul(D(1 + bonus.value * hundredsOfShards).pow(level));
         }
         // Eye of Chaos / Singularity Engine: multiplier per unique minion owned
         if (bonus.type === 'global_multiplier_per_unique_minion') {
             const uniqueMinions = Object.values(gameState.minions).filter(m => m.level > 0).length;
-            global_multiplier = global_multiplier.mul(D(Math.pow(1 + (bonus.value * uniqueMinions), level)));
+            global_multiplier = global_multiplier.mul(D(1 + bonus.value * uniqueMinions).pow(level));
         }
         if (bonus.type === 'multiplier_per_unique_minion_owned') {
             const uniqueMinions = Object.values(gameState.minions).filter(m => m.level > 0).length;
-            global_multiplier = global_multiplier.mul(D(Math.pow(bonus.value, uniqueMinions * level)));
+            global_multiplier = global_multiplier.mul(D(bonus.value).pow(uniqueMinions * level));
         }
         // The God Paradox: multiplier by log10(shards)
         if (bonus.type === 'multiplier_by_log10_shards') {
             const logShards = Math.max(1, Math.log10(Math.max(1, D(gameState.abyssalShards).toNumber())));
-            global_multiplier = global_multiplier.mul(D(Math.pow(logShards, level)));
+            global_multiplier = global_multiplier.mul(D(logShards).pow(level));
         }
         // Möbius Script: essence gain +1% per ascension
         if (bonus.type === 'essence_per_ascension') {
@@ -8947,7 +8947,7 @@ function calculateStats() {
             if (effect.type === 'temp_minion_cost_reducer_flat')   tempMinionCostFactor *= effect.value;
             if (effect.type === 'resonance_bonus_enhancer_flat')   prestigeBonusEnhancer *= (1 + effect.value);
             global_multiplier = global_multiplier.mul(D(pb));
-            global_multiplier = D(Math.pow(global_multiplier, effect.value || 1.05));
+            global_multiplier = global_multiplier.pow(effect.value || 1.05);
             if (effect.type === 'add_sps_to_spc_flat')            { /* handled post-SPS calc */ }
         }
     }

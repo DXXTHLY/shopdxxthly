@@ -8368,14 +8368,17 @@ function buyArtifact(id) {
         return;
     }
 
-    // Fragment check
-    if (D(gameState.corruptedFragments || 0).lt(1)) {
-        Toastify({ text: '🔮 Upgrading an Artifact requires 1 Corrupted Fragment.', duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0a0a,#330033)'} }).showToast();
-        return;
-    }
-
     // Get the current level of the artifact, defaulting to 0 if not owned yet.
     const level = gameState.ownedArtifacts[id]?.level || 0;
+
+    // Fragment cost scales: 1 base + 1 per 5 levels already owned
+    const _fragCostArt = 1 + Math.floor(level / 5);
+
+    // Fragment check (before spending anything)
+    if (D(gameState.corruptedFragments || 0).lt(_fragCostArt)) {
+        Toastify({ text: `🔮 Need ${_fragCostArt} Corrupted Fragment${_fragCostArt>1?'s':''} to upgrade to Lv${level+1}. Cost scales +1 every 5 levels.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0a0a,#330033)'} }).showToast();
+        return;
+    }
     const costMultiplier = artifact.costMultiplier || 1.5;
 
     const baseCost = artifact.shardsCost || artifact.cost;
@@ -8392,8 +8395,8 @@ function buyArtifact(id) {
     }
 
     if (canAfford) {
-        // Deduct fragment
-        gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(1);
+        // Deduct scaled fragment cost
+        gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(_fragCostArt);
 
         if (!gameState.ownedArtifacts[id]) gameState.ownedArtifacts[id] = { level: 0 };
         gameState.ownedArtifacts[id].level++;
@@ -10185,15 +10188,16 @@ function renderArtifacts() {
                 <div style="font-size:0.8em; color:${canAfford ? costColor : '#555'}; font-weight:bold;">${costIcon} ${formatNumber(nextLevelCost)} ${costType === 'shards' ? 'Shards' : 'Dark Essence'} &nbsp;<span style="color:${D(gameState.corruptedFragments||0).gte(1)?'#22c55e':'#ff4444'}; font-size:0.9em;">🔮 1</span></div>
                 ${level > 0 ? `<div style="font-size:0.72em; color:#555;">Next: ${formatNumber(D(nextLevelCost).mul(costMultiplier).floor())}</div>` : ''}
             </div>
-            <button id="artifact-btn-${id}" class="upgrade-btn" onclick="buyArtifact('${id}')" ${(!canAfford || !D(gameState.corruptedFragments||0).gte(1) || (_artifactCooldowns[id] && Date.now() < _artifactCooldowns[id])) ? 'disabled' : ''}
-                style="width:100%; border-color:${costColor}66; ${(canAfford && D(gameState.corruptedFragments||0).gte(1)) ? `background:linear-gradient(135deg,${costColor}18,transparent);` : 'opacity:0.5;'}">
+            <button id="artifact-btn-${id}" class="upgrade-btn" onclick="buyArtifact('${id}')" ${(!canAfford || !D(gameState.corruptedFragments||0).gte(1+Math.floor(level/5)) || (_artifactCooldowns[id] && Date.now() < _artifactCooldowns[id])) ? 'disabled' : ''}
+                style="width:100%; border-color:${costColor}66; ${(canAfford && D(gameState.corruptedFragments||0).gte(1+Math.floor(level/5))) ? `background:linear-gradient(135deg,${costColor}18,transparent);` : 'opacity:0.5;'}">
                 ${(() => {
-                    const hasFrags = D(gameState.corruptedFragments||0).gte(1);
+                    const _fc = 1 + Math.floor(level/5);
+                    const hasFrags = D(gameState.corruptedFragments||0).gte(_fc);
                     const onCd = _artifactCooldowns[id] && Date.now() < _artifactCooldowns[id];
                     if (onCd) return `<span style="color:#555;">⏳ Cooldown</span>`;
-                    if (!hasFrags) return `<span style="color:#555;">🔮 Need Fragment</span>`;
+                    if (!hasFrags) return `<span style="color:#555;">🔮 Need ${_fc} Fragment${_fc>1?'s':''}</span>`;
                     if (!canAfford) return `<span style="color:#555;">⚠️ Need more ${costType === 'shards' ? 'Shards' : 'Essence'}</span>`;
-                    return `<span style="color:${costColor};">↑ Upgrade${level > 0 ? ' to Lv.'+(level+1) : ''}</span>`;
+                    return `<span style="color:${costColor};">↑ Upgrade${level > 0 ? ' to Lv.'+(level+1) : ''} · 🔮${_fc}</span>`;
                 })()}
             </button>
         </div>`;
@@ -13030,21 +13034,14 @@ function generateHourlyShopItems() {
             if (replacement.type === 'potion') itemData = potions[replacement.id];
         }
 
-        // Rarity-scaled pricing: epic/legendary require Dark Essence + Corrupted Fragments
         let finalPrice, fragmentCost = 0;
-        if (shopItem.id === 'mark_of_the_first') {
-            finalPrice = 150;
-        } else if (shopItem.type === 'market_potion') {
-            finalPrice = potions[shopItem.id]?.shopPrice || 50;
-        } else if (shopItem.type === 'item') {
+        if (shopItem.id === 'mark_of_the_first') { finalPrice = 150; }
+        else if (shopItem.type === 'market_potion') { finalPrice = potions[shopItem.id]?.shopPrice || 50; }
+        else if (shopItem.type === 'item') {
             const _r = itemData?.rarity || 'common';
-            const _essTable  = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400 };
-            const _fragTable = { common:0, uncommon:0, rare:0,  epic:5,  legendary:20,  forged:60  };
-            finalPrice  = _essTable[_r]  || 5;
-            fragmentCost = _fragTable[_r] || 0;
-        } else {
-            finalPrice = ((seed + index * 13) % 20) + 1;
-        }
+            finalPrice   = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400 }[_r] || 5;
+            fragmentCost = { common:0, uncommon:0, rare:0,  epic:5,  legendary:20,  forged:60  }[_r] || 0;
+        } else { finalPrice = ((seed + index * 13) % 20) + 1; }
         const canAfford  = !soldOut && D(gameState.darkEssence).gte(finalPrice) && (fragmentCost === 0 || D(gameState.corruptedFragments || 0).gte(fragmentCost));
         const theme      = typeTheme[shopItem.type] || typeTheme.item;
         const rc         = rarityColor[itemData?.rarity] || theme.color;
@@ -13075,7 +13072,7 @@ function generateHourlyShopItems() {
             <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #ffffff0a; padding-top:10px;">
                 <div>
                     <div style="color:#666; font-size:0.7em;">COST</div>
-                    <div style="color:${canAfford?'#9944cc':'#664466'}; font-weight:bold;">${formatNumber(finalPrice)} <span style="font-size:0.75em;">Dark Essence</span>${fragmentCost > 0 ? ` <span style="color:${D(gameState.corruptedFragments||0).gte(fragmentCost)?'#44cc88':'#cc4444'}">+ ${fragmentCost} 🔮 Fragments</span>` : ''}</div>
+                    <div style="color:${canAfford?'#9944cc':'#664466'}; font-weight:bold;">${formatNumber(finalPrice)} <span style="font-size:0.75em;">DE</span>${fragmentCost > 0 ? ` <span style="color:${D(gameState.corruptedFragments||0).gte(fragmentCost)?'#aa44ff':'#cc4444'}; font-size:0.85em;">+ ${fragmentCost} 🔮</span>` : ''}</div>
                     ${remainingHtml}
                 </div>
                 <div style="background:${soldOut?'#11111133':canAfford?theme.color+'33':'#33333333'}; border:1px solid ${soldOut?'#222':canAfford?theme.color+'66':'#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${soldOut?'#333':canAfford?theme.color:'#555'};">
@@ -13114,21 +13111,13 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     if (itemType === 'secret_minion') itemName = minions[itemId]?.name || itemId;
 
     const limitMsg = limit > 1 ? ` (${bought + 1}/${limit} this hour)` : '';
-    // Check fragment cost for epic/legendary items
-    const _buyFragCost = (itemType === 'item') ? (() => {
-        const _r = items[itemId]?.rarity || 'common';
-        return { common:0, uncommon:0, rare:0, epic:5, legendary:20, forged:60 }[_r] || 0;
-    })() : 0;
-    if (_buyFragCost > 0 && D(gameState.corruptedFragments || 0).lt(_buyFragCost)) {
-        Toastify({ text: `Need ${_buyFragCost} 🔮 Corrupted Fragments to buy this.`, duration:3000, gravity:'top', position:'center', style:{background:'#330033'} }).showToast();
-        return;
+    const _bfc = (itemType==='item') ? ({common:0,uncommon:0,rare:0,epic:5,legendary:20,forged:60}[items[itemId]?.rarity||'common']||0) : 0;
+    if (_bfc > 0 && D(gameState.corruptedFragments||0).lt(_bfc)) {
+        Toastify({text:`🔮 Need ${_bfc} Corrupted Fragments for this item.`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a001a,#440044)'}}).showToast(); return;
     }
-    const _fragLabel = _buyFragCost > 0 ? ` + ${_buyFragCost} 🔮 Fragments` : '';
-    if (!confirm(`Buy ${itemName} for ${formatNumber(price)} Dark Essence${_fragLabel}?${limitMsg}`)) return;
-
-    // Charge
+    if (!confirm(`Buy ${itemName} for ${formatNumber(price)} Dark Essence${_bfc>0?` + ${_bfc} 🔮 Fragments`:''}?${limitMsg}`)) return;
     gameState.darkEssence = D(gameState.darkEssence).sub(price);
-    if (_buyFragCost > 0) gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(_buyFragCost);
+    if (_bfc > 0) gameState.corruptedFragments = D(gameState.corruptedFragments||0).sub(_bfc);
 
     // Record purchase
     gameState.shopPurchases[purchaseKey] = bought + 1;
@@ -17135,14 +17124,15 @@ function getBarterTypeInfo(type, amt, listing) {
     if (type.startsWith('potion:')) {
         const id = type.slice(7);
         const p = potions[id];
+        const _pm = typeof potionMeta !== 'undefined' ? potionMeta[id] : null;
         if (p) return {
-            icon: '🧪',
+            icon: _pm?.icon || '⚗️',
             name: p.name,
-            color: '#9944cc',
+            color: _pm?.color || '#9944cc',
             subtitle: `x${formatNumber(amt)}`,
-            desc: p.desc ? p.desc.slice(0,60) + (p.desc.length>60?'…':'') : ''
+            desc: p.desc || ''
         };
-        return { icon:'🧪', name: id, color:'#9944cc', subtitle:`x${formatNumber(amt)}`, desc:'' };
+        return { icon:'⚗️', name: id, color:'#9944cc', subtitle:`x${formatNumber(amt)}`, desc:'' };
     }
 
     if (type.startsWith('item:')) {
@@ -17150,25 +17140,17 @@ function getBarterTypeInfo(type, amt, listing) {
         const it = items[id];
         const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
         if (it) {
-            // Parse durability from offer_note if present
-            let durStr = '', durColor = '#44cc88';
+            let durCur = undefined, durMax = undefined;
             if (listing?.offer_note && listing.offer_note.startsWith('{')) {
-                try {
-                    const _n = JSON.parse(listing.offer_note);
-                    if (_n.durMax) {
-                        const _pct = _n.durCur / _n.durMax;
-                        durColor = _pct > 0.6 ? '#44cc88' : _pct > 0.3 ? '#ffcc00' : '#ff4444';
-                        const _label = _pct > 0.75 ? 'Good' : _pct > 0.5 ? 'Worn' : _pct > 0.25 ? 'Damaged' : _pct > 0 ? 'Breaking' : 'Broken';
-                        durStr = `🔧 ${Math.floor(_n.durCur)}/${_n.durMax} — ${_label}`;
-                    }
-                } catch(e) {}
+                try { const _dn = JSON.parse(listing.offer_note); if (_dn.durMax) { durCur = Math.floor(_dn.durCur); durMax = _dn.durMax; } } catch(e) {}
             }
             return {
                 icon: { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' }[it.type] || '🎁',
                 name: it.name,
                 color: rarityColor[it.rarity] || '#aaa',
                 subtitle: it.rarity.toUpperCase(),
-                desc: (it.desc ? it.desc.slice(0,60) + (it.desc.length>60?'…':'') : '') + (durStr ? (it.desc ? '  ' : '') + `<span style="color:${durColor};font-size:0.9em;">${durStr}</span>` : '')
+                desc: it.desc || '',
+                durCur, durMax
             };
         }
         return { icon:'🎁', name: id, color:'#aaa', subtitle:'', desc:'' };
@@ -17500,6 +17482,10 @@ async function postBarterListing() {
     if (offerType === wantType) {
         if(statusEl) statusEl.textContent = 'You can\'t trade a resource for itself.'; return;
     }
+    if (offerType.startsWith('potion:')) {
+        const _potMax = gameState.potions[offerType.slice(7)] || 0;
+        if (offerAmtFinal > _potMax) { if(statusEl) statusEl.textContent = `You only have ${_potMax}x of that potion.`; return; }
+    }
     if (!hasEnough(offerType, offerAmtFinal)) {
         if(statusEl) statusEl.textContent = `You do not have enough ${BARTER_LABELS[offerType]}.`; return;
     }
@@ -17511,23 +17497,12 @@ async function postBarterListing() {
             _offerNote = gameState._barterHeldKeyId;
         } else if (offerType.startsWith('item:')) {
             const _iid = offerType.slice(5);
-            // Find which slot this item is equipped in (durability is tracked per slot)
-            let _itemDur = null;
-            for (const slot in gameState.equipped) {
-                if (gameState.equipped[slot] === _iid) {
-                    const _max = typeof getMaxDurability === 'function' ? getMaxDurability(_iid) : 100;
-                    const _cur = (gameState.itemDurability && gameState.itemDurability[slot] !== undefined)
-                        ? Math.floor(gameState.itemDurability[slot]) : _max;
-                    _itemDur = { cur: _cur, max: _max };
-                    break;
-                }
+            let _durCur = null, _durMax = typeof getMaxDurability==='function'?getMaxDurability(_iid):100;
+            for (const _slot in gameState.equipped) {
+                if (gameState.equipped[_slot]===_iid) { _durCur=(gameState.itemDurability&&gameState.itemDurability[_slot]!==undefined)?Math.floor(gameState.itemDurability[_slot]):_durMax; break; }
             }
-            if (!_itemDur) {
-                // Not equipped — full durability
-                const _max = typeof getMaxDurability === 'function' ? getMaxDurability(_iid) : 100;
-                _itemDur = { cur: _max, max: _max };
-            }
-            _offerNote = JSON.stringify({ durCur: _itemDur.cur, durMax: _itemDur.max });
+            if (_durCur===null) _durCur=_durMax;
+            _offerNote = JSON.stringify({durCur:_durCur,durMax:_durMax});
         } else if (offerType.startsWith('minion:')) {
             const _mid = offerType.slice(7);
             const _gm  = gameState.minions[_mid];
@@ -20336,8 +20311,7 @@ function updateBarterDropdowns() {
             const qty = gameState.potions[id] || 0;
             haveStr = `You have: ${qty}x — enter how many to sell (1 to ${qty})`;
             if (offerAmtInput) {
-                offerAmtInput.max = qty;
-                offerAmtInput.min = 1;
+                offerAmtInput.max = qty; offerAmtInput.min = 1;
                 const cur = parseInt(offerAmtInput.value) || 0;
                 if (cur < 1 || cur > qty) offerAmtInput.value = 1;
             }

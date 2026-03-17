@@ -13030,8 +13030,22 @@ function generateHourlyShopItems() {
             if (replacement.type === 'potion') itemData = potions[replacement.id];
         }
 
-        const finalPrice = shopItem.id === 'mark_of_the_first' ? 150 : shopItem.type === 'market_potion' ? (potions[shopItem.id]?.shopPrice || 50) : ((seed + index * 13) % 20) + 1;
-        const canAfford  = !soldOut && D(gameState.darkEssence).gte(finalPrice);
+        // Rarity-scaled pricing: epic/legendary require Dark Essence + Corrupted Fragments
+        let finalPrice, fragmentCost = 0;
+        if (shopItem.id === 'mark_of_the_first') {
+            finalPrice = 150;
+        } else if (shopItem.type === 'market_potion') {
+            finalPrice = potions[shopItem.id]?.shopPrice || 50;
+        } else if (shopItem.type === 'item') {
+            const _r = itemData?.rarity || 'common';
+            const _essTable  = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400 };
+            const _fragTable = { common:0, uncommon:0, rare:0,  epic:5,  legendary:20,  forged:60  };
+            finalPrice  = _essTable[_r]  || 5;
+            fragmentCost = _fragTable[_r] || 0;
+        } else {
+            finalPrice = ((seed + index * 13) % 20) + 1;
+        }
+        const canAfford  = !soldOut && D(gameState.darkEssence).gte(finalPrice) && (fragmentCost === 0 || D(gameState.corruptedFragments || 0).gte(fragmentCost));
         const theme      = typeTheme[shopItem.type] || typeTheme.item;
         const rc         = rarityColor[itemData?.rarity] || theme.color;
 
@@ -13061,7 +13075,7 @@ function generateHourlyShopItems() {
             <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #ffffff0a; padding-top:10px;">
                 <div>
                     <div style="color:#666; font-size:0.7em;">COST</div>
-                    <div style="color:${canAfford?'#9944cc':'#664466'}; font-weight:bold;">${formatNumber(finalPrice)} <span style="font-size:0.75em;">Dark Essence</span></div>
+                    <div style="color:${canAfford?'#9944cc':'#664466'}; font-weight:bold;">${formatNumber(finalPrice)} <span style="font-size:0.75em;">Dark Essence</span>${fragmentCost > 0 ? ` <span style="color:${D(gameState.corruptedFragments||0).gte(fragmentCost)?'#44cc88':'#cc4444'}">+ ${fragmentCost} 🔮 Fragments</span>` : ''}</div>
                     ${remainingHtml}
                 </div>
                 <div style="background:${soldOut?'#11111133':canAfford?theme.color+'33':'#33333333'}; border:1px solid ${soldOut?'#222':canAfford?theme.color+'66':'#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${soldOut?'#333':canAfford?theme.color:'#555'};">
@@ -13100,10 +13114,21 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     if (itemType === 'secret_minion') itemName = minions[itemId]?.name || itemId;
 
     const limitMsg = limit > 1 ? ` (${bought + 1}/${limit} this hour)` : '';
-    if (!confirm(`Buy ${itemName} for ${formatNumber(price)} Dark Essence?${limitMsg}`)) return;
+    // Check fragment cost for epic/legendary items
+    const _buyFragCost = (itemType === 'item') ? (() => {
+        const _r = items[itemId]?.rarity || 'common';
+        return { common:0, uncommon:0, rare:0, epic:5, legendary:20, forged:60 }[_r] || 0;
+    })() : 0;
+    if (_buyFragCost > 0 && D(gameState.corruptedFragments || 0).lt(_buyFragCost)) {
+        Toastify({ text: `Need ${_buyFragCost} 🔮 Corrupted Fragments to buy this.`, duration:3000, gravity:'top', position:'center', style:{background:'#330033'} }).showToast();
+        return;
+    }
+    const _fragLabel = _buyFragCost > 0 ? ` + ${_buyFragCost} 🔮 Fragments` : '';
+    if (!confirm(`Buy ${itemName} for ${formatNumber(price)} Dark Essence${_fragLabel}?${limitMsg}`)) return;
 
     // Charge
     gameState.darkEssence = D(gameState.darkEssence).sub(price);
+    if (_buyFragCost > 0) gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(_buyFragCost);
 
     // Record purchase
     gameState.shopPurchases[purchaseKey] = bought + 1;
@@ -14288,9 +14313,9 @@ function initializeChat() {
         if(ess&&ess.gt(0))cc+=aC(formatNumber(ess)+' Essence','🌑','#6622aa','darkEssence',ess.toNumber(),true,'<div style="font-size:1.4em;">🌑</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;">'+formatNumber(ess)+'</div><div style="color:#555;font-size:0.5em;">Essence</div>');
         if(sh&&sh.gt(0))cc+=aC(formatNumber(sh)+' Shards','💎','#4488ff','abyssalShards',sh.toNumber(),true,'<div style="font-size:1.4em;">💎</div><div style="color:#88aaff;font-size:0.58em;font-weight:bold;">'+formatNumber(sh)+'</div><div style="color:#555;font-size:0.5em;">Shards</div>');
         var pc='';Object.keys(gameState.potions||{}).forEach(function(id){var cnt=gameState.potions[id];if(!cnt||cnt<1||!potions[id])return;var p=potions[id];var ico=(typeof potionMeta!=='undefined'&&potionMeta[id]&&potionMeta[id].icon)?potionMeta[id].icon:'⚗️';pc+=aC(p.name+' x'+cnt,ico,'#aa44ff','potion:'+id,cnt,false,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div><div style="color:#555;font-size:0.5em;">x'+cnt+'</div>');});
-        var ic='';(gameState.inventory||[]).forEach(function(id){if(!items[id])return;var it=items[id];var rc=RC[it.rarity]||'#888';var ico=TI[it.type]||'🔮';ic+=aC(it.name,ico,rc,'item:'+id,1,false,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:'+rc+';font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.5em;">'+escapeHTML(it.rarity||'')+'</div>');});
+        var ic2='';(gameState.inventory||[]).forEach(function(id){if(!items[id])return;var it=items[id];var rc=RC[it.rarity]||'#888';var ico=TI[it.type]||'🔮';ic2+=aC(it.name,ico,rc,'item:'+id,1,false,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:'+rc+';font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.5em;">'+escapeHTML(it.rarity||'')+'</div>');});
         var mc='';Object.keys(gameState.minions||{}).forEach(function(id){var gm=gameState.minions[id];var bm=typeof battleMinions!=='undefined'?battleMinions[id]:null;var md=typeof minions!=='undefined'?minions[id]:null;if(!gm||!gm.level||gm.level<1)return;var lv=gm.level||0,pr=gm.promotionTier||0,ico=(bm&&bm.icon)||(md&&md.icon)||'👿',nm=(bm&&bm.name)||(md&&md.name)||id;var tc=TC[Math.min(5,Math.floor(lv/25))];var s2='?',sa='?';if(bm){var tot=(1+(Math.floor(lv/25)*0.05))*(1+(pr*0.20));s2=Math.ceil(bm.hp*tot);sa=Math.ceil(bm.atk*tot);}var sts=pr>0?'<span style="color:#c8a800;font-size:0.55em;">'+('★'.repeat(pr))+'</span>':'';var isL=md&&md.secret&&md.promotions&&!md.promotions.length;mc+=aC(nm+' Lv'+lv+(pr>0?' '+'★'.repeat(pr):''),ico,isL?'#ff44aa':tc,'minion:'+id,lv,false,'<div style="font-size:1.5em;">'+ico+'</div><div style="color:#ddd;font-size:0.6em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(isL?'<span style="color:#ff44aa">'+escapeHTML(nm)+'</span>':escapeHTML(nm))+'</div><div style="color:'+tc+';font-size:0.55em;">Lv'+lv+sts+'</div><div style="font-size:0.5em;color:#888;"><span style="color:#cc4444;">❤'+s2+'</span> <span style="color:#ff9944;">⚔'+sa+'</span></div>');});
-        var body=sec('💀 Currencies',cc)+sec('⚗️ Potions',pc)+sec('📦 Items',ic)+sec('👿 Minions',mc)||'<div style="color:#444;font-size:0.78em;text-align:center;padding:20px;">Your inventory is empty.</div>';
+        var body=sec('💀 Currencies',cc)+sec('⚗️ Potions',pc)+sec('📦 Items',ic2)+sec('👿 Minions',mc)||'<div style="color:#444;font-size:0.78em;text-align:center;padding:20px;">Your inventory is empty.</div>';
         var ov=document.createElement('div');ov.id='trade-offer-overlay';ov.style.cssText='position:fixed;inset:0;background:#000000cc;z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
         ov.innerHTML='<div style="background:linear-gradient(160deg,#06040f,#0e0a1a);border:1px solid #3a1a5a;border-top:3px solid #44cc88;border-radius:14px;max-width:460px;width:94%;padding:22px 18px;box-shadow:0 0 60px #00000099;max-height:85vh;display:flex;flex-direction:column;"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;"><div><div style="color:#44cc88;font-size:0.72em;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">🤝 Trade Proposal</div><div style="color:#888;font-size:0.78em;">You want: <b style="color:#ddd;">'+escapeHTML(wantIcon)+' '+escapeHTML(wantName)+(wantAmt>1?' x'+wantAmt:'')+'</b> from <b style="color:#c8a800;">'+escapeHTML(targetName)+'</b></div></div><button id="toc-close" style="background:none;border:none;color:#555;font-size:1.3em;cursor:pointer;padding:2px 6px;">✕</button></div><div style="color:#555;font-size:0.7em;margin-bottom:10px;">Pick what you are offering. On accept it auto-lists in the Market:</div><div id="toc-cards" style="overflow-y:auto;flex:1;padding-right:4px;min-height:80px;">'+body+'</div><div id="toc-amt-row" style="display:none;margin-top:10px;"><div style="color:#44cc88;font-size:0.72em;margin-bottom:5px;">How much? <span id="toc-amt-max" style="color:#555;"></span></div><input id="toc-amt" type="number" min="1" style="width:100%;box-sizing:border-box;background:#0a0812;border:1px solid #44cc8866;color:#ddd;padding:8px 10px;border-radius:8px;font-family:inherit;font-size:0.9em;outline:none;"></div><div id="toc-selected" style="display:none;background:#0a180a;border:1px solid #44cc8833;border-radius:8px;padding:8px 12px;margin:10px 0 4px;font-size:0.78em;color:#44cc88;"></div><button id="toc-send" style="margin-top:8px;width:100%;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:8px;padding:10px 14px;color:#44cc88;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;">📨 Send Trade Offer</button></div>';
         document.body.appendChild(ov);
@@ -17124,13 +17149,28 @@ function getBarterTypeInfo(type, amt, listing) {
         const id = type.slice(5);
         const it = items[id];
         const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
-        if (it) return {
-            icon: { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' }[it.type] || '🎁',
-            name: it.name,
-            color: rarityColor[it.rarity] || '#aaa',
-            subtitle: it.rarity.toUpperCase(),
-            desc: it.desc ? it.desc.slice(0,70) + (it.desc.length>70?'…':'') : ''
-        };
+        if (it) {
+            // Parse durability from offer_note if present
+            let durStr = '', durColor = '#44cc88';
+            if (listing?.offer_note && listing.offer_note.startsWith('{')) {
+                try {
+                    const _n = JSON.parse(listing.offer_note);
+                    if (_n.durMax) {
+                        const _pct = _n.durCur / _n.durMax;
+                        durColor = _pct > 0.6 ? '#44cc88' : _pct > 0.3 ? '#ffcc00' : '#ff4444';
+                        const _label = _pct > 0.75 ? 'Good' : _pct > 0.5 ? 'Worn' : _pct > 0.25 ? 'Damaged' : _pct > 0 ? 'Breaking' : 'Broken';
+                        durStr = `🔧 ${Math.floor(_n.durCur)}/${_n.durMax} — ${_label}`;
+                    }
+                } catch(e) {}
+            }
+            return {
+                icon: { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' }[it.type] || '🎁',
+                name: it.name,
+                color: rarityColor[it.rarity] || '#aaa',
+                subtitle: it.rarity.toUpperCase(),
+                desc: (it.desc ? it.desc.slice(0,60) + (it.desc.length>60?'…':'') : '') + (durStr ? (it.desc ? '  ' : '') + `<span style="color:${durColor};font-size:0.9em;">${durStr}</span>` : '')
+            };
+        }
         return { icon:'🎁', name: id, color:'#aaa', subtitle:'', desc:'' };
     }
 
@@ -17460,13 +17500,6 @@ async function postBarterListing() {
     if (offerType === wantType) {
         if(statusEl) statusEl.textContent = 'You can\'t trade a resource for itself.'; return;
     }
-    if (offerType.startsWith('potion:')) {
-        const _potId = offerType.slice(7);
-        const _potMax = gameState.potions[_potId] || 0;
-        if (offerAmtFinal > _potMax) {
-            if(statusEl) statusEl.textContent = `You only have ${_potMax}x of that potion.`; return;
-        }
-    }
     if (!hasEnough(offerType, offerAmtFinal)) {
         if(statusEl) statusEl.textContent = `You do not have enough ${BARTER_LABELS[offerType]}.`; return;
     }
@@ -17476,6 +17509,25 @@ async function postBarterListing() {
         let _offerNote = null;
         if (offerType === 'key' && gameState._barterHeldKeyId) {
             _offerNote = gameState._barterHeldKeyId;
+        } else if (offerType.startsWith('item:')) {
+            const _iid = offerType.slice(5);
+            // Find which slot this item is equipped in (durability is tracked per slot)
+            let _itemDur = null;
+            for (const slot in gameState.equipped) {
+                if (gameState.equipped[slot] === _iid) {
+                    const _max = typeof getMaxDurability === 'function' ? getMaxDurability(_iid) : 100;
+                    const _cur = (gameState.itemDurability && gameState.itemDurability[slot] !== undefined)
+                        ? Math.floor(gameState.itemDurability[slot]) : _max;
+                    _itemDur = { cur: _cur, max: _max };
+                    break;
+                }
+            }
+            if (!_itemDur) {
+                // Not equipped — full durability
+                const _max = typeof getMaxDurability === 'function' ? getMaxDurability(_iid) : 100;
+                _itemDur = { cur: _max, max: _max };
+            }
+            _offerNote = JSON.stringify({ durCur: _itemDur.cur, durMax: _itemDur.max });
         } else if (offerType.startsWith('minion:')) {
             const _mid = offerType.slice(7);
             const _gm  = gameState.minions[_mid];
@@ -20286,7 +20338,6 @@ function updateBarterDropdowns() {
             if (offerAmtInput) {
                 offerAmtInput.max = qty;
                 offerAmtInput.min = 1;
-                // Only reset to 1 if the current value is out of range or unset
                 const cur = parseInt(offerAmtInput.value) || 0;
                 if (cur < 1 || cur > qty) offerAmtInput.value = 1;
             }

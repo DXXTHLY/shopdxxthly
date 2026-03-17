@@ -14264,9 +14264,12 @@ function initializeChat() {
         // ── Trade Proposal System ────────────────────────────────────
         // Sends a chat trade-request message; target sees Accept/Decline buttons
 
-        var TRADE_PREFIX='\u0002TRADE\u0003', TRADE_SUFFIX='\u0002END\u0003';
+        // TRADE SYSTEM — payload stored in pact_buffs (no size limit), chat text has just the ID
+        var TRADE_PREFIX='\u0002T\u0003', TRADE_SUFFIX='\u0002E\u0003';
         function _getChatDb(){return(window._scFirebase&&window._scFirebase.chatDb)?window._scFirebase.chatDb:window._chatDb||null;}
         function _getChatUid(){return window._chatUid||window._scChatUid||null;}
+        // Cache fetched trade payloads so we don't re-fetch
+        var _tradeCache={};
 
         window._proposeItemTrade=function(itemType,itemName,itemIcon,itemAmt,targetPlayerName){
             if(!_getChatDb()||!_getChatUid()){alert('Chat not ready yet.');return;}
@@ -14281,16 +14284,12 @@ function initializeChat() {
             var RARITY_C={common:'#888',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00'};
             var TYPE_ICON={weapon:'⚔️',idol:'🗿',sigil:'✶',helm:'🧖',tome:'📖'};
             var offerChoices=[];
-            // isCurrency: true means user can type a custom amount
             function addCard(label,icon,topColor,barterType,maxAmt,isCurrency,bodyHtml){
                 var idx=offerChoices.length;
                 offerChoices.push({label:label,icon:icon,barterType:barterType,maxAmt:maxAmt,isCurrency:!!isCurrency});
-                return '<div class="toc-card" data-idx="'+idx+'" style="border-radius:8px;padding:7px 5px;text-align:center;cursor:pointer;transition:all 0.15s;border:1px solid #2a1a3a;background:linear-gradient(135deg,#0e0a1a,#1a1020);border-top:2px solid '+topColor+';">'+bodyHtml+'</div>';
+                return'<div class="toc-card" data-idx="'+idx+'" style="border-radius:8px;padding:7px 5px;text-align:center;cursor:pointer;transition:all 0.15s;border:1px solid #2a1a3a;background:linear-gradient(135deg,#0e0a1a,#1a1020);border-top:2px solid '+topColor+';">'+bodyHtml+'</div>';
             }
-            function section(title,cards){
-                if(!cards)return'';
-                return'<div style="margin-bottom:12px;"><div style="color:#555;font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">'+title+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:6px;">'+cards+'</div></div>';
-            }
+            function section(title,cards){if(!cards)return'';return'<div style="margin-bottom:12px;"><div style="color:#555;font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">'+title+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:6px;">'+cards+'</div></div>';}
             var currCards='';
             var souls=typeof D!=='undefined'?D(gameState.souls||0):null;
             var essence=typeof D!=='undefined'?D(gameState.darkEssence||0):null;
@@ -14299,19 +14298,10 @@ function initializeChat() {
             if(essence&&essence.gt(0))currCards+=addCard(formatNumber(essence)+' Essence','🌑','#6622aa','darkEssence',essence.toNumber(),true,'<div style="font-size:1.4em;">🌑</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;">'+formatNumber(essence)+'</div><div style="color:#555;font-size:0.5em;">Essence</div>');
             if(shards&&shards.gt(0)) currCards+=addCard(formatNumber(shards)+' Shards','💎','#4488ff','abyssalShards',shards.toNumber(),true,'<div style="font-size:1.4em;">💎</div><div style="color:#88aaff;font-size:0.58em;font-weight:bold;">'+formatNumber(shards)+'</div><div style="color:#555;font-size:0.5em;">Shards</div>');
             var potCards='';
-            Object.keys(gameState.potions||{}).forEach(function(id){
-                var cnt=gameState.potions[id];if(!cnt||cnt<1||!potions[id])return;
-                var p=potions[id];var ico=(typeof potionMeta!=='undefined'&&potionMeta[id]&&potionMeta[id].icon)?potionMeta[id].icon:'⚗️';
-                potCards+=addCard(p.name+' x'+cnt,ico,'#aa44ff','potion:'+id,cnt,false,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div><div style="color:#555;font-size:0.5em;">x'+cnt+'</div>');
-            });
+            Object.keys(gameState.potions||{}).forEach(function(id){var cnt=gameState.potions[id];if(!cnt||cnt<1||!potions[id])return;var p=potions[id];var ico=(typeof potionMeta!=='undefined'&&potionMeta[id]&&potionMeta[id].icon)?potionMeta[id].icon:'⚗️';potCards+=addCard(p.name+' x'+cnt,ico,'#aa44ff','potion:'+id,cnt,false,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div><div style="color:#555;font-size:0.5em;">x'+cnt+'</div>');});
             var itemCards='';
-            (gameState.inventory||[]).forEach(function(id){
-                if(!items[id])return;
-                var it=items[id];var rc=RARITY_C[it.rarity]||'#888';var ico=TYPE_ICON[it.type]||'🔮';
-                itemCards+=addCard(it.name,ico,rc,'item:'+id,1,false,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:'+rc+';font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.5em;">'+escapeHTML(it.rarity||'')+'</div>');
-            });
-            var body=section('💀 Currencies',currCards)+section('⚗️ Potions',potCards)+section('📦 Items',itemCards)
-                ||'<div style="color:#444;font-size:0.78em;text-align:center;padding:20px;">Your inventory is empty.</div>';
+            (gameState.inventory||[]).forEach(function(id){if(!items[id])return;var it=items[id];var rc=RARITY_C[it.rarity]||'#888';var ico=TYPE_ICON[it.type]||'🔮';itemCards+=addCard(it.name,ico,rc,'item:'+id,1,false,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:'+rc+';font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.5em;">'+escapeHTML(it.rarity||'')+'</div>');});
+            var body=section('💀 Currencies',currCards)+section('⚗️ Potions',potCards)+section('📦 Items',itemCards)||'<div style="color:#444;font-size:0.78em;text-align:center;padding:20px;">Your inventory is empty.</div>';
             var ov=document.createElement('div');
             ov.id='trade-offer-overlay';
             ov.style.cssText='position:fixed;inset:0;background:#000000cc;z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
@@ -14323,8 +14313,8 @@ function initializeChat() {
                 +'<div style="color:#555;font-size:0.7em;margin-bottom:10px;">Pick what you are offering. On accept it auto-lists in the Market:</div>'
                 +'<div id="toc-cards" style="overflow-y:auto;flex:1;padding-right:4px;min-height:80px;">'+body+'</div>'
                 +'<div id="toc-amt-row" style="display:none;margin-top:10px;">'
-                +'  <div style="color:#44cc88;font-size:0.72em;margin-bottom:5px;">How much? <span id="toc-amt-max" style="color:#555;"></span></div>'
-                +'  <input id="toc-amt" type="number" min="1" style="width:100%;box-sizing:border-box;background:#0a0812;border:1px solid #44cc8866;color:#ddd;padding:8px 10px;border-radius:8px;font-family:inherit;font-size:0.9em;outline:none;">'
+                +'<div style="color:#44cc88;font-size:0.72em;margin-bottom:5px;">How much? <span id="toc-amt-max" style="color:#555;"></span></div>'
+                +'<input id="toc-amt" type="number" min="1" style="width:100%;box-sizing:border-box;background:#0a0812;border:1px solid #44cc8866;color:#ddd;padding:8px 10px;border-radius:8px;font-family:inherit;font-size:0.9em;outline:none;">'
                 +'</div>'
                 +'<div id="toc-selected" style="display:none;background:#0a180a;border:1px solid #44cc8833;border-radius:8px;padding:8px 12px;margin:10px 0 4px;font-size:0.78em;color:#44cc88;"></div>'
                 +'<button id="toc-send" style="margin-top:8px;width:100%;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:8px;padding:10px 14px;color:#44cc88;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;">📨 Send Trade Offer</button>'
@@ -14337,74 +14327,41 @@ function initializeChat() {
                 ov.querySelectorAll('.toc-card').forEach(function(c){c.style.boxShadow='';});
                 card.style.boxShadow='0 0 0 2px #44cc88';
                 selectedChoice=choice;
-                // Show amount input only for currencies
                 var amtRow=document.getElementById('toc-amt-row');
                 var amtInput=document.getElementById('toc-amt');
-                var amtMax=document.getElementById('toc-amt-max');
-                if(choice.isCurrency){
-                    amtRow.style.display='block';
-                    amtInput.max=choice.maxAmt;
-                    amtInput.value=Math.floor(choice.maxAmt);
-                    amtMax.textContent='(max: '+formatNumber(choice.maxAmt)+')';
-                    amtInput.focus();
-                } else {
-                    amtRow.style.display='none';
-                    amtInput.value=choice.maxAmt;
-                }
-                var sel=document.getElementById('toc-selected');
-                sel.style.display='block';
-                sel.style.color='#44cc88';
+                if(choice.isCurrency){amtRow.style.display='block';amtInput.max=choice.maxAmt;amtInput.value=Math.floor(choice.maxAmt);document.getElementById('toc-amt-max').textContent='(max: '+formatNumber(choice.maxAmt)+')';amtInput.focus();}
+                else{amtRow.style.display='none';amtInput.value=choice.maxAmt;}
+                var sel=document.getElementById('toc-selected');sel.style.display='block';sel.style.color='#44cc88';
                 sel.textContent='Offering: '+choice.icon+' '+choice.label;
             });
-            // Live-update the selected label when amount changes
             document.getElementById('toc-amt').addEventListener('input',function(){
                 if(!selectedChoice||!selectedChoice.isCurrency)return;
                 var v=parseFloat(this.value)||0;
-                var sel=document.getElementById('toc-selected');
-                sel.style.display='block';
+                var sel=document.getElementById('toc-selected');sel.style.display='block';
                 sel.textContent='Offering: '+selectedChoice.icon+' '+formatNumber(v)+' '+selectedChoice.label.split(' ').slice(1).join(' ');
             });
             document.getElementById('toc-close').addEventListener('click',function(){ov.remove();});
             ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
             document.getElementById('toc-send').addEventListener('click',function(){
-                if(!selectedChoice){
-                    var sel=document.getElementById('toc-selected');
-                    sel.style.display='block';sel.style.color='#ff4444';
-                    sel.textContent='Please select what you are offering first.';
-                    setTimeout(function(){sel.style.color='#44cc88';},1500);return;
-                }
-                // Get amount: use input for currencies, max for items/potions
+                if(!selectedChoice){var sel=document.getElementById('toc-selected');sel.style.display='block';sel.style.color='#ff4444';sel.textContent='Please select what you are offering first.';setTimeout(function(){sel.style.color='#44cc88';},1500);return;}
                 var offerBarterAmt;
                 if(selectedChoice.isCurrency){
                     var inputVal=parseFloat(document.getElementById('toc-amt').value)||0;
-                    if(inputVal<1||inputVal>selectedChoice.maxAmt){
-                        var amtInput=document.getElementById('toc-amt');
-                        amtInput.style.borderColor='#ff4444';
-                        setTimeout(function(){amtInput.style.borderColor='#44cc8866';},1500);return;
-                    }
+                    if(inputVal<1||inputVal>selectedChoice.maxAmt){var ai=document.getElementById('toc-amt');ai.style.borderColor='#ff4444';setTimeout(function(){ai.style.borderColor='#44cc8866';},1500);return;}
                     offerBarterAmt=inputVal;
-                } else {
-                    offerBarterAmt=selectedChoice.maxAmt;
-                }
-                var offerLabel=selectedChoice.isCurrency
-                    ?(selectedChoice.icon+' '+formatNumber(offerBarterAmt)+' '+selectedChoice.label.split(' ').slice(1).join(' '))
-                    :(selectedChoice.icon+' '+selectedChoice.label);
+                } else {offerBarterAmt=selectedChoice.maxAmt;}
+                var offerLabel=selectedChoice.isCurrency?(selectedChoice.icon+' '+formatNumber(offerBarterAmt)+' '+selectedChoice.label.split(' ').slice(1).join(' ')):(selectedChoice.icon+' '+selectedChoice.label);
                 var chatDb=_getChatDb();var uid=_getChatUid();
                 if(!chatDb||!uid){alert('Chat not connected.');return;}
                 var myName=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';
                 var color=localStorage.getItem('slitherChatNameColor')||'#c8a800';
                 var tradeId='tr_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-                var payload=JSON.stringify({
-                    id:tradeId,from:myName,fromUid:uid,to:targetName,
-                    wantType:wantType,wantName:wantName,wantIcon:wantIcon,wantAmt:wantAmt,
-                    offerText:offerLabel,offerIcon:selectedChoice.icon,
-                    offerBarterType:selectedChoice.barterType,offerBarterAmt:offerBarterAmt
-                });
-                chatDb.ref('slitherChat').push({
-                    uid:uid,name:myName,chatNameColor:color,
-                    time:firebase.database.ServerValue.TIMESTAMP,
-                    text:TRADE_PREFIX+payload+TRADE_SUFFIX
-                });
+                // Store full payload in pact_buffs (no 300-char limit) under trade_ prefix
+                var fullPayload={id:tradeId,from:myName,fromUid:uid,to:targetName,wantType:wantType,wantName:wantName,wantIcon:wantIcon,wantAmt:wantAmt,offerText:offerLabel,offerIcon:selectedChoice.icon,offerBarterType:selectedChoice.barterType,offerBarterAmt:offerBarterAmt};
+                _tradeCache[tradeId]=fullPayload;
+                chatDb.ref('pact_buffs/trade_'+tradeId).set(fullPayload);
+                // Post only the ID in chat text — well under 300 chars
+                chatDb.ref('slitherChat').push({uid:uid,name:myName,chatNameColor:color,time:firebase.database.ServerValue.TIMESTAMP,text:TRADE_PREFIX+tradeId+TRADE_SUFFIX});
                 ov.remove();
                 if(typeof Toastify!=='undefined'){Toastify({text:'📨 Trade offer sent to '+targetName+'!',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();}
             });
@@ -14414,10 +14371,7 @@ function initializeChat() {
             var chatDb=_getChatDb();var uid=_getChatUid();
             if(!chatDb||!uid)return;
             var myName=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';
-            if(!accepted){
-                chatDb.ref('slitherChat').push({uid:uid,name:'Trade System',chatNameColor:'#ff4444',time:firebase.database.ServerValue.TIMESTAMP,text:'❌ '+myName+' declined the trade from '+fromName+'.'});
-                return;
-            }
+            if(!accepted){chatDb.ref('slitherChat').push({uid:uid,name:'Trade System',chatNameColor:'#ff4444',time:firebase.database.ServerValue.TIMESTAMP,text:'❌ '+myName+' declined the trade from '+fromName+'.'});return;}
             var autoPosted=false;
             if(typeof supabaseClient!=='undefined'&&supabaseClient&&wantType&&offerBarterType){
                 try{
@@ -14425,23 +14379,13 @@ function initializeChat() {
                     var wantAmt2=Math.max(1,Math.round(Number(offerBarterAmt)||1));
                     if(typeof hasEnough==='function'&&hasEnough(wantType,listAmt)){
                         deductCurrency(wantType,listAmt);calculateStats();renderAll();
-                        var res=await supabaseClient.from('barter_listings').insert({
-                            poster_name:myName,offer_type:wantType,offer_amt:listAmt,
-                            want_type:offerBarterType,want_amt:wantAmt2,is_complete:false,
-                            offer_note:JSON.stringify({tradeId:tradeId,reservedFor:fromName,autoTrade:true})
-                        });
-                        if(!res.error){
-                            autoPosted=true;
-                            if(typeof fetchBarterListings==='function')fetchBarterListings();
-                            if(typeof refreshMarketTicker==='function')refreshMarketTicker();
-                            saveGame();
-                        } else {addCurrency(wantType,listAmt);calculateStats();renderAll();console.warn('Auto-list:',res.error);}
+                        var res=await supabaseClient.from('barter_listings').insert({poster_name:myName,offer_type:wantType,offer_amt:listAmt,want_type:offerBarterType,want_amt:wantAmt2,is_complete:false,offer_note:JSON.stringify({tradeId:tradeId,reservedFor:fromName,autoTrade:true})});
+                        if(!res.error){autoPosted=true;if(typeof fetchBarterListings==='function')fetchBarterListings();if(typeof refreshMarketTicker==='function')refreshMarketTicker();saveGame();chatDb.ref('pact_buffs/trade_'+tradeId).remove();}
+                        else{addCurrency(wantType,listAmt);calculateStats();renderAll();console.warn('Auto-list:',res.error);}
                     }
                 }catch(e){console.warn('Auto-list failed:',e);}
             }
-            var statusText=autoPosted
-                ?'✅ '+myName+' accepted! Listed in Market: '+wantIcon+' '+wantName+' asking for '+offerText+' — '+fromName+', check the Market tab!'
-                :'✅ '+myName+' accepted the trade from '+fromName+'! ('+wantIcon+' '+wantName+' ⇄ '+offerText+') — coordinate directly.';
+            var statusText=autoPosted?'✅ '+myName+' accepted! Listed in Market: '+wantIcon+' '+wantName+' for '+offerText+' — '+fromName+', check the Market tab!':'✅ '+myName+' accepted from '+fromName+'! ('+wantIcon+' '+wantName+' ⇄ '+offerText+') — coordinate directly.';
             chatDb.ref('slitherChat').push({uid:uid,name:'Trade System',chatNameColor:'#44cc88',time:firebase.database.ServerValue.TIMESTAMP,text:statusText});
             if(typeof Toastify!=='undefined'){Toastify({text:autoPosted?'✅ Listed in Market!':'✅ Accepted!',duration:8000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();}
         };
@@ -14486,37 +14430,54 @@ function initializeChat() {
             if (window.standaloneState && window.standaloneState.ignoredUsers && window.standaloneState.ignoredUsers[msg.uid]) return;
             if (!msg || !msg.uid) return;
 
-            var _tr=(function(){var pfx='\u0002TRADE\u0003',sfx='\u0002END\u0003';if(!msg.text||msg.text.indexOf(pfx)===-1)return null;try{var s=msg.text.indexOf(pfx)+pfx.length,e=msg.text.indexOf(sfx,s);return JSON.parse(msg.text.slice(s,e));}catch(x){return null;}})();
-            if(_tr){
-                var mn2=gameState.playerName||localStorage.getItem('slitherChatNickname')||'';
-                var isTgt=mn2===_tr.to,isFrm=mn2===_tr.from;
-                var abtns='';
-                if(isTgt){
-                    var da='data-tradeid="'+escapeHTML(_tr.id||'')+'" data-from="'+escapeHTML(_tr.from||'')+'" data-wanticon="'+escapeHTML(_tr.wantIcon||'')+'" data-wantname="'+escapeHTML(_tr.wantName||'')+'" data-offertext="'+escapeHTML(_tr.offerText||'')+'" data-wanttype="'+escapeHTML(_tr.wantType||'')+'" data-wantamt="'+escapeHTML(String(_tr.wantAmt||1))+'" data-offerbartertype="'+escapeHTML(_tr.offerBarterType||'')+'" data-offerbarteramt="'+escapeHTML(String(_tr.offerBarterAmt||1))+'"';
-                    abtns='<div style="display:flex;gap:8px;margin-top:10px;">'
-                        +'<button class="trb" '+da+' data-accepted="false" style="flex:1;background:#ff444422;border:1px solid #ff444466;border-radius:7px;padding:8px;color:#ff8888;cursor:pointer;font-family:inherit;font-size:0.82em;">❌ Decline</button>'
-                        +'<button class="trb" '+da+' data-accepted="true" style="flex:2;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:7px;padding:8px;color:#44cc88;cursor:pointer;font-family:inherit;font-size:0.85em;font-weight:bold;">✅ Accept — auto-posts to Market</button>'
-                        +'</div>';
-                } else if(isFrm){
-                    abtns='<div style="color:#555;font-size:0.72em;text-align:center;margin-top:8px;font-style:italic;">Awaiting response from '+escapeHTML(_tr.to||'')+'...</div>';
-                }
-                var tel=document.createElement('div');
-                tel.style.cssText='margin:8px 0;padding:14px 16px;background:linear-gradient(135deg,#0a1a0a,#0e1a0e);border:1px solid #44cc8844;border-left:3px solid #44cc88;border-radius:10px;';
-                tel.innerHTML='<div style="color:#44cc88;font-size:0.7em;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">🤝 Trade Proposal — <span style="color:#888;">'+escapeHTML(_tr.from||'')+'</span> → <span style="color:#c8a800;">'+escapeHTML(_tr.to||'')+'</span></div>'
-                    +'<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;">'
-                    +'<div style="background:#ffffff08;border-radius:8px;padding:10px;text-align:center;"><div style="color:#555;font-size:0.6em;text-transform:uppercase;margin-bottom:4px;">Wants</div><div style="font-size:1.8em;">'+escapeHTML(_tr.wantIcon||'❓')+'</div><div style="color:#ddd;font-size:0.72em;font-weight:bold;margin-top:3px;">'+escapeHTML(_tr.wantName||'')+'</div>'+(_tr.wantAmt>1?'<div style="color:#888;font-size:0.62em;">×'+_tr.wantAmt+'</div>':'')+'</div>'
-                    +'<div style="color:#555;font-size:1.2em;text-align:center;">⇄</div>'
-                    +'<div style="background:#ffffff08;border-radius:8px;padding:10px;text-align:center;"><div style="color:#555;font-size:0.6em;text-transform:uppercase;margin-bottom:4px;">Offers</div><div style="font-size:1.8em;">'+escapeHTML(_tr.offerIcon||'💰')+'</div><div style="color:#c8a800;font-size:0.72em;font-weight:bold;margin-top:3px;">'+escapeHTML(_tr.offerText||'')+'</div></div>'
-                    +'</div>'+abtns;
-                tel.addEventListener('click',function(e){
-                    var btn=e.target.closest('.trb');if(!btn)return;
-                    btn.closest('div').querySelectorAll('button').forEach(function(b){b.disabled=true;b.style.opacity='0.5';});
-                    var acc=btn.dataset.accepted==='true';
-                    window._respondToTrade(btn.dataset.tradeid,acc,btn.dataset.from,btn.dataset.wanticon,btn.dataset.wantname,btn.dataset.offertext,btn.dataset.wanttype,btn.dataset.wantamt,btn.dataset.offerbartertype,btn.dataset.offerbarteramt);
-                    btn.parentElement.innerHTML='<div style="color:#44cc88;font-size:0.72em;text-align:center;padding:6px;font-style:italic;">'+(acc?'✅ Accepted! Posting to Market...':'❌ Declined')+'</div>';
-                });
-                chatBodyElement.appendChild(tel);
+            // ── Trade card: ID in text, full payload in pact_buffs ──
+            var _trId=(function(){var pfx='\u0002T\u0003',sfx='\u0002E\u0003';if(!msg.text||msg.text.indexOf(pfx)===-1)return null;var s=msg.text.indexOf(pfx)+pfx.length,e=msg.text.indexOf(sfx,s);return s<e?msg.text.slice(s,e):null;})();
+            if(_trId){
+                // Render placeholder immediately, then fetch+populate
+                var tradeEl=document.createElement('div');
+                tradeEl.style.cssText='margin:8px 0;padding:14px 16px;background:linear-gradient(135deg,#0a1a0a,#0e1a0e);border:1px solid #44cc8844;border-left:3px solid #44cc88;border-radius:10px;';
+                tradeEl.dataset.tradeid=_trId;
+                tradeEl.innerHTML='<div style="color:#44cc88;font-size:0.7em;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">🤝 Trade Proposal</div><div style="color:#555;font-size:0.75em;">Loading...</div>';
+                chatBodyElement.appendChild(tradeEl);
                 if(shouldScroll)chatBodyElement.scrollTop=chatBodyElement.scrollHeight;
+                // Fetch payload (from cache or pact_buffs)
+                var _renderTrade=function(tr){
+                    if(!tr||!tradeEl.parentNode)return;
+                    var mn2=gameState.playerName||localStorage.getItem('slitherChatNickname')||'';
+                    var isTgt=mn2===tr.to,isFrm=mn2===tr.from;
+                    var abtns='';
+                    if(isTgt){
+                        var da='data-tradeid="'+escapeHTML(tr.id||'')+'" data-from="'+escapeHTML(tr.from||'')+'" data-wanticon="'+escapeHTML(tr.wantIcon||'')+'" data-wantname="'+escapeHTML(tr.wantName||'')+'" data-offertext="'+escapeHTML(tr.offerText||'')+'" data-wanttype="'+escapeHTML(tr.wantType||'')+'" data-wantamt="'+escapeHTML(String(tr.wantAmt||1))+'" data-offerbartertype="'+escapeHTML(tr.offerBarterType||'')+'" data-offerbarteramt="'+escapeHTML(String(tr.offerBarterAmt||1))+'"';
+                        abtns='<div style="display:flex;gap:8px;margin-top:10px;"><button class="trb" '+da+' data-accepted="false" style="flex:1;background:#ff444422;border:1px solid #ff444466;border-radius:7px;padding:8px;color:#ff8888;cursor:pointer;font-family:inherit;font-size:0.82em;">❌ Decline</button><button class="trb" '+da+' data-accepted="true" style="flex:2;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:7px;padding:8px;color:#44cc88;cursor:pointer;font-family:inherit;font-size:0.85em;font-weight:bold;">✅ Accept — auto-posts to Market</button></div>';
+                    }else if(isFrm){
+                        abtns='<div style="color:#555;font-size:0.72em;text-align:center;margin-top:8px;font-style:italic;">Awaiting response from '+escapeHTML(tr.to||'')+'...</div>';
+                    }
+                    tradeEl.innerHTML='<div style="color:#44cc88;font-size:0.7em;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">🤝 Trade Proposal — <span style="color:#888;">'+escapeHTML(tr.from||'')+'</span> → <span style="color:#c8a800;">'+escapeHTML(tr.to||'')+'</span></div>'
+                        +'<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;">'
+                        +'<div style="background:#ffffff08;border-radius:8px;padding:10px;text-align:center;"><div style="color:#555;font-size:0.6em;text-transform:uppercase;margin-bottom:4px;">Wants</div><div style="font-size:1.8em;">'+escapeHTML(tr.wantIcon||'❓')+'</div><div style="color:#ddd;font-size:0.72em;font-weight:bold;margin-top:3px;">'+escapeHTML(tr.wantName||'')+'</div>'+(tr.wantAmt>1?'<div style="color:#888;font-size:0.62em;">×'+tr.wantAmt+'</div>':'')+'</div>'
+                        +'<div style="color:#555;font-size:1.2em;text-align:center;">⇄</div>'
+                        +'<div style="background:#ffffff08;border-radius:8px;padding:10px;text-align:center;"><div style="color:#555;font-size:0.6em;text-transform:uppercase;margin-bottom:4px;">Offers</div><div style="font-size:1.8em;">'+escapeHTML(tr.offerIcon||'💰')+'</div><div style="color:#c8a800;font-size:0.72em;font-weight:bold;margin-top:3px;">'+escapeHTML(tr.offerText||'')+'</div></div>'
+                        +'</div>'+abtns;
+                    tradeEl.addEventListener('click',function(e){
+                        var btn=e.target.closest('.trb');if(!btn)return;
+                        btn.closest('div').querySelectorAll('button').forEach(function(b){b.disabled=true;b.style.opacity='0.5';});
+                        var acc=btn.dataset.accepted==='true';
+                        window._respondToTrade(btn.dataset.tradeid,acc,btn.dataset.from,btn.dataset.wanticon,btn.dataset.wantname,btn.dataset.offertext,btn.dataset.wanttype,btn.dataset.wantamt,btn.dataset.offerbartertype,btn.dataset.offerbarteramt);
+                        btn.parentElement.innerHTML='<div style="color:#44cc88;font-size:0.72em;text-align:center;padding:6px;font-style:italic;">'+(acc?'✅ Accepted! Posting to Market...':'❌ Declined')+'</div>';
+                    });
+                };
+                if(_tradeCache[_trId]){
+                    _renderTrade(_tradeCache[_trId]);
+                } else {
+                    var _chatDb2=_getChatDb();
+                    if(_chatDb2){
+                        _chatDb2.ref('pact_buffs/trade_'+_trId).once('value',function(snap){
+                            var data=snap.val();
+                            if(data){_tradeCache[_trId]=data;_renderTrade(data);}
+                            else{tradeEl.innerHTML='<div style="color:#555;font-size:0.72em;padding:6px;">Trade offer unavailable.</div>';}
+                        });
+                    }
+                }
                 return;
             }
             if(msg.tradeRequest&&!msg.text)return;
@@ -14774,12 +14735,12 @@ function initializeChat() {
                         var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.minions.forEach(function(m){var tc2=TIER_COLORS2[Math.min(5,Math.floor((m.level||0)/25))];var stars=m.promoTier>0?'<span style="color:#c8a800;font-size:0.55em;">'+('★'.repeat(m.promoTier))+'</span>':'';var barter=m.barterLevels>0?'<span style="position:absolute;top:3px;right:3px;font-size:0.5em;background:#aa44ff;border-radius:3px;padding:1px 3px;color:#fff;">🔀</span>':'';var mi=m.icon||'👿';var inner=barter+'<div style="font-size:1.5em;">'+mi+'</div><div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(m.name)+'</div><div style="color:'+tc2+';font-size:0.58em;">Lv'+m.level+stars+'</div>'+(m.hp!=null?'<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">❤'+m.hp+'</span> <span style="color:#ff9944;">⚔'+m.atk+'</span></div>':'');h+=mk(['minion:'+m.id,m.name,mi,m.level,targetName],tc2,tc2,inner);});
                         invPanel.innerHTML=h+'</div>';
-                    } else if(tab==='items'){
+                    }else if(tab==='items'){
                         if(!st.inventory||!st.inventory.length){invPanel.innerHTML='<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No items.</div>';return;}
                         var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.inventory.forEach(function(it){var rc=RARITY_COLORS2[it.rarity]||'#888';var ico=TYPE_ICON[it.type]||'🔮';var inner='<div style="font-size:1.5em;">'+ico+'</div><div style="color:'+rc+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.52em;">'+escapeHTML(it.rarity||'')+'</div>';h+=mk(['item:'+it.id,it.name,ico,1,targetName],rc,rc,inner);});
                         invPanel.innerHTML=h+'</div>';
-                    } else if(tab==='potions'){
+                    }else if(tab==='potions'){
                         if(!st.potions||!st.potions.length){invPanel.innerHTML='<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No potions.</div>';return;}
                         var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';
                         st.potions.forEach(function(p){var col=p.color||'#888';var ico=(typeof potionMeta!=='undefined'&&potionMeta[p.id]&&potionMeta[p.id].icon)?potionMeta[p.id].icon:'⚗️';var inner='<div style="font-size:1.5em;">'+ico+'</div><div style="color:'+col+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div><div style="color:#555;font-size:0.52em;">x'+p.count+'</div>';h+=mk(['potion:'+p.id,p.name,ico,p.count,targetName],col,col,inner);});

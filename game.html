@@ -15539,7 +15539,7 @@ const GG_BUFF_MS      = 10 * 60 * 1000;   // 10 min divine favor on win
 const GG_MERCY_CD_MS  = 24 * 60 * 60 * 1000; // 24h mercy cooldown
 const GG_COLS = 9, GG_ROWS = 5;
 const GG_ALTAR_COL = GG_COLS - 1; // altar is rightmost column
-const GG_BUDGET_BASE = 12; // deploy points per wave
+const GG_BUDGET_BASE = 30; // deploy points per wave — generous starting budget
 
 // Wave definitions — 5 waves, escalating
 const GG_WAVES = [
@@ -15590,7 +15590,24 @@ function checkGodsGauntletTrigger() {
             gg._announced = true;
             gg.lastTriggered = now;
             saveGame();
-            setTimeout(showGgAnnouncement, 500);
+            // Only show full takeover if on altar/idle screens — otherwise show a toast notification
+            const activeScreen = document.querySelector('.screen.active');
+            const safeScreens = ['altar-screen','minions-screen','bestiary-screen','stats-screen','leaderboard-screen'];
+            const isSafeScreen = activeScreen && safeScreens.some(s => activeScreen.id === s);
+            if (isSafeScreen) {
+                setTimeout(showGgAnnouncement, 500);
+            } else {
+                // Just notify with a toast — player can go to God's Trial when ready
+                Toastify({
+                    text: '⚡ THE ABYSS GOD AWAKENS — Go to God\'s Trial when ready to accept the challenge!',
+                    duration: 15000, gravity: 'top', position: 'center',
+                    style: { background: 'linear-gradient(135deg,#1a0005,#cc111166)', cursor: 'pointer' },
+                    onClick: () => { showScreen('godsgauntlet'); showGgAnnouncement(); }
+                }).showToast();
+                // Flash the nav button
+                const navBtn = document.getElementById('gg-nav-btn');
+                if (navBtn) { navBtn.style.animation = 'runeRotate 1s ease-in-out 3'; navBtn.style.color = '#ff4444'; }
+            }
         }
     }
 }
@@ -15852,11 +15869,14 @@ function placeGgMinion(col, row) {
     const scale = 1 + Math.floor(lv / 25) * 0.05;
     const hp  = Math.ceil(bm.hp  * scale);
     const atk = Math.ceil(bm.atk * scale);
-    const speed = Math.max(1, bm.range); // range repurposed as attack cooldown divisor
-    ggState.placedMinions.push({ id: 'pm_' + Date.now() + '_' + col + '_' + row, minionId: ggState.selectedMinionId, x: col, y: row, hp, maxHp: hp, atk, range: bm.range, cooldown: 0, cooldownMax: Math.max(2, 8 - bm.range) });
+    // Attack cooldown: fast attackers (high range) attack more frequently
+    const cooldownMax = Math.max(1, 6 - Math.floor(bm.range / 2));
+    ggState.placedMinions.push({ id: 'pm_' + Date.now() + '_' + col + '_' + row, minionId: ggState.selectedMinionId, x: col, y: row, hp, maxHp: hp, atk, range: bm.range, cooldown: 0, cooldownMax });
     ggState.budgetSpent += bm.cost;
-    ggLog(`Placed ${bm.name} at (${col},${row}).`, '#88cc88');
+    ggLog(`Placed ${bm.name} at (${col},${row}). ${remaining - bm.cost} pts remaining.`, '#88cc88');
+    // Keep selection sticky — don't deselect, so player can place multiples easily
     renderGgGrid();
+    renderGgMinionPalette();
 }
 
 function removeGgMinion(pmId) {
@@ -15874,7 +15894,7 @@ window.ggStartWave = function() {
     const wave = GG_WAVES[ggState.waveIndex];
     ggLog(`--- ${wave.label} ---`, '#ff6644');
 
-    // Spawn enemies staggered along column 0
+    // Spawn enemies staggered — moveCooldown controls speed (lower = faster)
     const scaleFactor = 1 + ggState.waveIndex * 0.4;
     wave.enemies.forEach((minionId, i) => {
         const bm = battleMinions[minionId];
@@ -15882,22 +15902,22 @@ window.ggStartWave = function() {
         const row = i % GG_ROWS;
         const hp  = Math.ceil(bm.hp  * scaleFactor);
         const atk = Math.ceil(bm.atk * scaleFactor);
+        // Wave 1 = 3 ticks per move, Wave 5 = 1 tick per move
+        const moveCooldown = Math.max(1, 3 - Math.floor(ggState.waveIndex * 0.5));
         setTimeout(() => {
-            ggState.enemies.push({ id: 'e_' + (++ggState.enemyIdCounter), minionId, x: 0, y: row, hp, maxHp: hp, atk, moveTimer: 0, moveCooldown: Math.max(2, 12 - ggState.waveIndex * 1.5), dead: false });
-        }, i * 600);
+            ggState.enemies.push({ id: 'e_' + (++ggState.enemyIdCounter), minionId, x: 0, y: row, hp, maxHp: hp, atk, moveTimer: 0, moveCooldown, dead: false });
+        }, i * 500);
     });
 
     ggState.waveInProgress = true;
     document.getElementById('gg-start-btn').disabled = true;
     document.getElementById('gg-wave-label').textContent = `${wave.label}`;
 
-    // Update enemy queue display
     const queueEl = document.getElementById('gg-enemy-queue');
     if (queueEl) queueEl.textContent = `Incoming: ${wave.enemies.map(id => battleMinions[id]?.icon || '👹').join(' ')}`;
 
-    // Start tick
     if (ggState.intervalId) clearInterval(ggState.intervalId);
-    ggState.intervalId = setInterval(ggTick, 300);
+    ggState.intervalId = setInterval(ggTick, 200); // 200ms tick = snappier combat
 };
 
 window.ggMercy = function() {
@@ -15951,20 +15971,20 @@ function ggTick() {
         }
     });
 
-    // 2. Placed minions attack nearest enemy in range
+    // 2. Placed minions attack any enemy within column range (no row restriction)
     ggState.placedMinions.forEach(pm => {
         pm.cooldown = (pm.cooldown || 0) + 1;
         if (pm.cooldown < pm.cooldownMax) return;
         pm.cooldown = 0;
-        // Find nearest living enemy within range columns
-        const targets = ggState.enemies.filter(e => !e.dead && Math.abs(e.x - pm.x) <= pm.range && e.y === pm.y);
-        if (targets.length === 0) {
-            // Try any row within 1
-            const nearby = ggState.enemies.filter(e => !e.dead && Math.abs(e.x - pm.x) <= pm.range && Math.abs(e.y - pm.y) <= 1);
-            if (nearby.length === 0) return;
-            targets.push(nearby.reduce((a, b) => b.x > a.x ? b : a));
-        }
-        const target = targets.reduce((a, b) => b.x > a.x ? b : a); // closest to altar
+        // Range 1 = adjacent columns only, Range 5+ = sniper across the board
+        const inRange = ggState.enemies.filter(e => !e.dead && Math.abs(e.x - pm.x) <= pm.range);
+        if (inRange.length === 0) return;
+        // Target closest to altar (highest x), tiebreak on lowest hp
+        const target = inRange.reduce((best, e) => {
+            if (e.x > best.x) return e;
+            if (e.x === best.x && e.hp < best.hp) return e;
+            return best;
+        });
         target.hp -= pm.atk;
         if (target.hp <= 0) {
             target.dead = true;
@@ -15990,7 +16010,7 @@ function ggTick() {
             setTimeout(ggVictory, 500);
         } else {
             // Next wave — bump budget slightly
-            ggState.budget += 3;
+            ggState.budget += 5;
             document.getElementById('gg-start-btn').disabled = false;
             document.getElementById('gg-start-btn').textContent = `▶ WAVE ${ggState.waveIndex + 1}`;
             document.getElementById('gg-wave-label').textContent = `Wave ${ggState.waveIndex + 1} / 5`;

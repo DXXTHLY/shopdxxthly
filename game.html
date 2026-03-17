@@ -3558,7 +3558,6 @@ text-decoration: underline; /* Adds an underline on hover */
                                 <div><span style="color:#44cc88;">✔</span> Brewed Potions (shelf inventory)</div>
                                 <div><span style="color:#44cc88;">✔</span> Aether &amp; Aether Upgrades</div>
                                 <div><span style="color:#44cc88;">✔</span> PvP Wins &amp; Losses</div>
-                                <div><span style="color:#44cc88;">✔</span> Proving Grounds completions</div>
                                 <div><span style="color:#44cc88;">✔</span> Banked Souls &amp; Banked Fragments</div>
                                 <div><span style="color:#44cc88;">✔</span> Pact membership</div>
                                 <div><span style="color:#44cc88;">✔</span> Lifetime stats (never reset)</div>
@@ -3622,6 +3621,7 @@ text-decoration: underline; /* Adds an underline on hover */
                                 <div><span style="color:#cc3333;">✗</span> Active Rituals</div>
                                 <div><span style="color:#cc3333;">✗</span> Corrupted Fragments</div>
                                 <div><span style="color:#cc3333;">✗</span> Banked Souls &amp; Fragments</div>
+                                <div><span style="color:#cc3333;">✗</span> Proving Grounds completions</div>
                             </div>
                         </div>
 
@@ -3632,7 +3632,6 @@ text-decoration: underline; /* Adds an underline on hover */
                                 <div><span style="color:#00e5ff;">✔</span> Aether (+ new Aether gained)</div>
                                 <div><span style="color:#00e5ff;">✔</span> Aether Upgrades</div>
                                 <div><span style="color:#00e5ff;">✔</span> PvP Wins &amp; Losses</div>
-                                <div><span style="color:#00e5ff;">✔</span> Proving Grounds completions</div>
                                 <div><span style="color:#00e5ff;">✔</span> Pact membership</div>
                                 <div><span style="color:#00e5ff;">✔</span> Lifetime stats (never reset)</div>
                                 <div><span style="color:#555; font-size:0.9em; margin-top:4px; font-style:italic;">Everything else is gone.<br>Collapse is a true reset.</span></div>
@@ -8380,12 +8379,8 @@ function buyArtifact(id) {
         return;
     }
 
-    const level = gameState.ownedArtifacts[id]?.level || 0;
-    const _fragCostArt = 1 + Math.floor(level / 5);
-    if (D(gameState.corruptedFragments || 0).lt(_fragCostArt)) {
-        Toastify({ text: `🔮 Need ${_fragCostArt} Fragment${_fragCostArt>1?'s':''} to upgrade to Lv${level+1}.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0a0a,#330033)'} }).showToast();
-        return;
-    }
+    const level=gameState.ownedArtifacts[id]?.level||0;const _fCA=1+Math.floor(level/5);
+    if(D(gameState.corruptedFragments||0).lt(_fCA)){Toastify({text:`🔮 Need ${_fCA} Fragment${_fCA>1?'s':''} to upgrade to Lv${level+1}.`,duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a0a0a,#330033)'}}).showToast();return;}
     const costMultiplier = artifact.costMultiplier || 1.5;
 
     const baseCost = artifact.shardsCost || artifact.cost;
@@ -8402,7 +8397,7 @@ function buyArtifact(id) {
     }
 
     if (canAfford) {
-        gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(_fragCostArt);
+        gameState.corruptedFragments=D(gameState.corruptedFragments||0).sub(_fCA);
 
         if (!gameState.ownedArtifacts[id]) gameState.ownedArtifacts[id] = { level: 0 };
         gameState.ownedArtifacts[id].level++;
@@ -10194,17 +10189,9 @@ function renderArtifacts() {
                 <div style="font-size:0.8em; color:${canAfford ? costColor : '#555'}; font-weight:bold;">${costIcon} ${formatNumber(nextLevelCost)} ${costType === 'shards' ? 'Shards' : 'Dark Essence'} &nbsp;<span style="color:${D(gameState.corruptedFragments||0).gte(1)?'#22c55e':'#ff4444'}; font-size:0.9em;">🔮 1</span></div>
                 ${level > 0 ? `<div style="font-size:0.72em; color:#555;">Next: ${formatNumber(D(nextLevelCost).mul(costMultiplier).floor())}</div>` : ''}
             </div>
-            <button id="artifact-btn-${id}" class="upgrade-btn" onclick="buyArtifact('${id}')" ${(!canAfford || !D(gameState.corruptedFragments||0).gte(1+Math.floor(level/5)) || (_artifactCooldowns[id] && Date.now() < _artifactCooldowns[id])) ? 'disabled' : ''}
-                style="width:100%; border-color:${costColor}66; ${(canAfford && D(gameState.corruptedFragments||0).gte(1+Math.floor(level/5))) ? `background:linear-gradient(135deg,${costColor}18,transparent);` : 'opacity:0.5;'}">
-                ${(() => {
-                    const _fc = 1 + Math.floor(level/5);
-                    const hasFrags = D(gameState.corruptedFragments||0).gte(_fc);
-                    const onCd = _artifactCooldowns[id] && Date.now() < _artifactCooldowns[id];
-                    if (onCd) return `<span style="color:#555;">⏳ Cooldown</span>`;
-                    if (!hasFrags) return `<span style="color:#555;">🔮 Need ${_fc} Fragment${_fc>1?'s':''}</span>`;
-                    if (!canAfford) return `<span style="color:#555;">⚠️ Need more ${costType === 'shards' ? 'Shards' : 'Essence'}</span>`;
-                    return `<span style="color:${costColor};">↑ Upgrade${level > 0 ? ' to Lv.'+(level+1) : ''} · 🔮${_fc}</span>`;
-                })()}
+            <button id="artifact-btn-${id}" class="upgrade-btn" onclick="buyArtifact('${id}')" ${(!canAfford||!D(gameState.corruptedFragments||0).gte(1+Math.floor(level/5))||(_artifactCooldowns[id]&&Date.now()<_artifactCooldowns[id]))?'disabled':''}
+                style="width:100%;border-color:${costColor}66;${(canAfford&&D(gameState.corruptedFragments||0).gte(1+Math.floor(level/5)))?`background:linear-gradient(135deg,${costColor}18,transparent);`:'opacity:0.5;'}">
+                ${(()=>{const _fc=1+Math.floor(level/5);const hF=D(gameState.corruptedFragments||0).gte(_fc);const onCd=_artifactCooldowns[id]&&Date.now()<_artifactCooldowns[id];if(onCd)return`<span style="color:#555;">⏳ Cooldown</span>`;if(!hF)return`<span style="color:#555;">🔮 Need ${_fc} Fragment${_fc>1?'s':''}</span>`;if(!canAfford)return`<span style="color:#555;">⚠️ Need more ${costType==='shards'?'Shards':'Essence'}</span>`;return`<span style="color:${costColor};">↑ Upgrade${level>0?' to Lv.'+(level+1):''} · 🔮${_fc}</span>`;})()}
             </button>
         </div>`;
     }
@@ -13117,13 +13104,11 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     if (itemType === 'secret_minion') itemName = minions[itemId]?.name || itemId;
 
     const limitMsg = limit > 1 ? ` (${bought + 1}/${limit} this hour)` : '';
-    const _bfc = (itemType==='item') ? ({common:0,uncommon:0,rare:0,epic:5,legendary:20,forged:60}[items[itemId]?.rarity||'common']||0) : 0;
-    if (_bfc > 0 && D(gameState.corruptedFragments||0).lt(_bfc)) {
-        Toastify({text:`🔮 Need ${_bfc} Corrupted Fragments for this item.`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a001a,#440044)'}}).showToast(); return;
-    }
-    if (!confirm(`Buy ${itemName} for ${formatNumber(price)} Dark Essence${_bfc>0?` + ${_bfc} 🔮 Fragments`:''}?${limitMsg}`)) return;
-    gameState.darkEssence = D(gameState.darkEssence).sub(price);
-    if (_bfc > 0) gameState.corruptedFragments = D(gameState.corruptedFragments||0).sub(_bfc);
+    const _bfc=(itemType==='item')?({common:0,uncommon:0,rare:0,epic:5,legendary:20,forged:60}[items[itemId]?.rarity||'common']||0):0;
+    if(_bfc>0&&D(gameState.corruptedFragments||0).lt(_bfc)){Toastify({text:`🔮 Need ${_bfc} Corrupted Fragments.`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a001a,#440044)'}}).showToast();return;}
+    if(!confirm(`Buy ${itemName} for ${formatNumber(price)} Dark Essence${_bfc>0?` + ${_bfc} 🔮 Fragments`:''}?${limitMsg}`))return;
+    gameState.darkEssence=D(gameState.darkEssence).sub(price);
+    if(_bfc>0)gameState.corruptedFragments=D(gameState.corruptedFragments||0).sub(_bfc);
 
     // Record purchase
     gameState.shopPurchases[purchaseKey] = bought + 1;
@@ -13201,19 +13186,12 @@ function depositEssence() {
         Toastify({ text: `Need more than ${cost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    const _essCap = 100000;
-    const _currentEss = gameState.bankedEssence || 0;
-    if (_currentEss >= _essCap) {
-        Toastify({ text: `🌑 Essence Vault is full! Max ${formatNumber(_essCap)}. Withdraw first.`, duration:3500, gravity:'top', position:'center', style:{background:'#1a0a00'} }).showToast();
-        return;
-    }
-    const rawDeposit = Math.floor(available * 0.5);
-    const depositAmt = Math.min(rawDeposit, _essCap - _currentEss);
-    gameState.darkEssence = D(gameState.darkEssence).sub(depositAmt + cost);
-    gameState.bankedEssence = _currentEss + depositAmt;
+    const _essCap=100000,_curE=gameState.bankedEssence||0;
+    if(_curE>=_essCap){Toastify({text:`🌑 Essence Vault full! Max ${formatNumber(_essCap)}. Withdraw first.`,duration:3500,gravity:'top',position:'center',style:{background:'#1a0a00'}}).showToast();return;}
+    const rawDep=Math.floor(available*0.5),depositAmt=Math.min(rawDep,_essCap-_curE);
+    gameState.darkEssence=D(gameState.darkEssence).sub(depositAmt+cost);gameState.bankedEssence=_curE+depositAmt;
     playSound('upgrade');
-    const _essNote = depositAmt < rawDeposit ? ` (capped at ${formatNumber(_essCap)})` : '';
-    Toastify({ text: `🌑 ${formatNumber(depositAmt)} Dark Essence secured in the vault!${_essNote}`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0a00,#c8a800)'} }).showToast();
+    Toastify({text:`🌑 ${formatNumber(depositAmt)} Essence secured!${depositAmt<rawDep?' (capped at 100k)':''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a0a00,#c8a800)'}}).showToast();
     renderBank(); updateDynamicDisplays(); saveGame();
 }
 
@@ -13242,23 +13220,14 @@ function depositShards() {
     if (D(gameState.darkEssence).lt(cost)) {
         Toastify({ text: `Need ${cost} Dark Essence to deposit shards.`, duration:2500, gravity:'top', position:'center' }).showToast(); return;
     }
-    const _shardCap = 100000;
-    const _curShards = D(gameState.bankedShards || 0);
-    if (_curShards.gte(_shardCap)) {
-        Toastify({ text: `💎 Shard Vault is full! Max ${formatNumber(_shardCap)}. Withdraw first.`, duration:3500, gravity:'top', position:'center', style:{background:'#001a2a'} }).showToast(); return;
-    }
-    const rawShard = D(gameState.abyssalShards).mul(0.5);
-    if (rawShard.lte(0)) {
-        Toastify({ text: `You have no Abyssal Shards to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast(); return;
-    }
-    const _shardRoom = D(_shardCap).sub(_curShards);
-    const depositAmt = rawShard.gt(_shardRoom) ? _shardRoom : rawShard;
-    gameState.darkEssence = D(gameState.darkEssence).sub(cost);
-    gameState.abyssalShards = D(gameState.abyssalShards).sub(depositAmt);
-    gameState.bankedShards = _curShards.add(depositAmt);
+    const _shCap=100000,_curSh=D(gameState.bankedShards||0);
+    if(_curSh.gte(_shCap)){Toastify({text:`💎 Shard Vault full! Max ${formatNumber(_shCap)}. Withdraw first.`,duration:3500,gravity:'top',position:'center',style:{background:'#001a2a'}}).showToast();return;}
+    const rawSh=D(gameState.abyssalShards).mul(0.5);
+    if(rawSh.lte(0)){Toastify({text:`You have no Abyssal Shards to deposit.`,duration:2500,gravity:'top',position:'center'}).showToast();return;}
+    const _shRoom=D(_shCap).sub(_curSh),depositAmt=rawSh.gt(_shRoom)?_shRoom:rawSh;
+    gameState.darkEssence=D(gameState.darkEssence).sub(cost);gameState.abyssalShards=D(gameState.abyssalShards).sub(depositAmt);gameState.bankedShards=_curSh.add(depositAmt);
     playSound('upgrade');
-    const _shNote = depositAmt.lt(rawShard) ? ` (capped at ${formatNumber(_shardCap)})` : '';
-    Toastify({ text: `💎 ${formatNumber(depositAmt)} Abyssal Shards secured in the vault!${_shNote}`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#001a2a,#4488ff)'} }).showToast();
+    Toastify({text:`💎 ${formatNumber(depositAmt)} Shards secured!${depositAmt.lt(rawSh)?' (capped at 100k)':''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#001a2a,#4488ff)'}}).showToast();
     renderBank(); updateDynamicDisplays(); saveGame();
 }
 
@@ -13296,20 +13265,12 @@ function depositSouls() {
         Toastify({ text: `Need ${essenceCost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    const _soulCap = 100000;
-    const _currentBanked = D(gameState.bankedSouls || 0);
-    if (_currentBanked.gte(_soulCap)) {
-        Toastify({ text: `🏦 Soul Vault is full! Max ${formatNumber(_soulCap)} souls. Withdraw first.`, duration:3500, gravity:'top', position:'center', style:{background:'#3a1800'} }).showToast();
-        return;
-    }
-    const _room = D(_soulCap).sub(_currentBanked);
-    const _actualDeposit = depositAmt.gt(_room) ? _room : depositAmt;
-    gameState.souls = D(gameState.souls).sub(_actualDeposit);
-    gameState.darkEssence = D(gameState.darkEssence).sub(essenceCost);
-    gameState.bankedSouls = _currentBanked.add(_actualDeposit);
+    const _soulCap=100000,_curB=D(gameState.bankedSouls||0);
+    if(_curB.gte(_soulCap)){Toastify({text:`🏦 Soul Vault full! Max ${formatNumber(_soulCap)}. Withdraw first.`,duration:3500,gravity:'top',position:'center',style:{background:'#3a1800'}}).showToast();return;}
+    const _room=D(_soulCap).sub(_curB),_actDep=depositAmt.gt(_room)?_room:depositAmt;
+    gameState.souls=D(gameState.souls).sub(_actDep);gameState.darkEssence=D(gameState.darkEssence).sub(essenceCost);gameState.bankedSouls=_curB.add(_actDep);
     playSound('upgrade');
-    const _capNote = _actualDeposit.lt(depositAmt) ? ` (capped at ${formatNumber(_soulCap)})` : '';
-    Toastify({ text: `🏦 ${formatNumber(_actualDeposit)} souls secured in the vault!${_capNote}`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a1800,#c8a800)'} }).showToast();
+    Toastify({text:`🏦 ${formatNumber(_actDep)} souls secured!${_actDep.lt(depositAmt)?' (capped at 100k)':''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#2a1800,#c8a800)'}}).showToast();
     renderBank();
     updateDynamicDisplays();
     saveGame();
@@ -13326,21 +13287,12 @@ function depositFragments() {
         Toastify({ text: `Need ${essenceCost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    const _fragCap = 100000;
-    const _curFrags = parseFloat(gameState.bankedFragments || 0);
-    if (_curFrags >= _fragCap) {
-        Toastify({ text: `🔮 Fragment Vault is full! Max ${formatNumber(_fragCap)}. Withdraw first.`, duration:3500, gravity:'top', position:'center', style:{background:'#0a0a1a'} }).showToast();
-        return;
-    }
-    const rawFrags = parseFloat(depositAmt.toString());
-    const _actualFrags = Math.min(rawFrags, _fragCap - _curFrags);
-    const _leftover = rawFrags - _actualFrags;
-    gameState.darkEssence = D(gameState.darkEssence).sub(essenceCost);
-    gameState.corruptedFragments = D(_leftover);
-    gameState.bankedFragments = _curFrags + _actualFrags;
+    const _fCap=100000,_curF=parseFloat(gameState.bankedFragments||0);
+    if(_curF>=_fCap){Toastify({text:`🔮 Fragment Vault full! Max ${formatNumber(_fCap)}. Withdraw first.`,duration:3500,gravity:'top',position:'center',style:{background:'#0a0a1a'}}).showToast();return;}
+    const rawF=parseFloat(depositAmt.toString()),_actF=Math.min(rawF,_fCap-_curF),_leftF=rawF-_actF;
+    gameState.darkEssence=D(gameState.darkEssence).sub(essenceCost);gameState.corruptedFragments=D(_leftF);gameState.bankedFragments=_curF+_actF;
     playSound('upgrade');
-    const _fragNote = _actualFrags < rawFrags ? ` (capped at ${formatNumber(_fragCap)} — ${formatNumber(_leftover)} returned)` : '';
-    Toastify({ text: `🔮 ${formatNumber(_actualFrags)} fragments secured in the vault!${_fragNote}`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
+    Toastify({text:`🔮 ${formatNumber(_actF)} fragments secured!${_actF<rawF?` (capped at ${formatNumber(_fCap)} — ${formatNumber(_leftF)} returned)`:''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'}}).showToast();
     renderBank();
     updateDynamicDisplays();
     saveGame();
@@ -13669,31 +13621,15 @@ async function fetchMarketListings() {
 }
 
 async function refreshMarketTicker() {
-    const inner = document.getElementById('market-ticker-inner');
-    if (!inner) return;
-    if (!supabaseClient) { setTimeout(refreshMarketTicker, 2000); return; }
-    try {
-        const bRes = await supabaseClient.from('barter_listings').select('*').eq('is_complete', false).order('created_at', { ascending: false }).limit(25);
-        const barterData = (!bRes.error && bRes.data) ? bRes.data : [];
-        const cIcon = { souls:'👻', darkEssence:'🌑', abyssalShards:'💎', corruptedFragments:'🔮', aether:'⚡', key:'🗝️' };
-        function _tickerLabel(type, amt) {
-            if (!type) return '?';
-            if (cIcon[type]) return cIcon[type] + ' ' + formatNumber(amt);
-            if (type.startsWith('potion:')) { const pid=type.slice(7); const _pm=(typeof potionMeta!=='undefined')?potionMeta[pid]:null; return (_pm?.icon||'⚗️')+' '+(potions[pid]?.name||pid)+' x'+amt; }
-            if (type.startsWith('item:')) { const iid=type.slice(5); const it=items[iid]; return it?.name||iid; }
-            if (type.startsWith('minion:')) { const mid=type.slice(7); const bm=(typeof battleMinions!=='undefined')?battleMinions[mid]:null; const mn=(typeof minions!=='undefined')?minions[mid]:null; return (bm?.icon||mn?.icon||'👹')+' '+(mn?.name||mid)+' Lv'+amt; }
-            return type;
-        }
-        const sep = '<span style="color:#2a1a44; padding:0 10px;">◆</span>';
-        let chips = '';
-        barterData.forEach(l => {
-            chips += '<span style="padding:0 18px; font-size:0.78em; white-space:nowrap;"><span style="color:#aa44ff; font-size:0.72em; letter-spacing:1px; text-transform:uppercase;">Trade</span> <span style="color:#c8a800; font-weight:bold;">' + _tickerLabel(l.offer_type, l.offer_amt) + '</span> <span style="color:#444;">⇄</span> <span style="color:#88aaff; font-weight:bold;">' + _tickerLabel(l.want_type, l.want_amt) + '</span> <span style="color:#444; font-size:0.85em;">by</span> <span style="color:#bbb;">' + (l.poster_name||'?') + '</span></span>' + sep;
-        });
-        if (!chips) { inner.innerHTML = Array(5).fill('<span style="padding:0 40px; font-size:0.78em; color:#3a2a55; letter-spacing:2px;">✦ NO ACTIVE LISTINGS — POST A TRADE IN THE MARKET ✦</span>').join(''); inner.style.animationDuration = '30s'; return; }
-        inner.innerHTML = chips.repeat(4);
-        const refineSpeed = (n) => requestAnimationFrame(() => { const w = inner.scrollWidth / 4; if (w > 0) inner.style.animationDuration = Math.max(8, w / 160) + 's'; else if (n > 0) setTimeout(() => refineSpeed(n - 1), 400); });
-        refineSpeed(20);
-    } catch(e) { console.warn('Ticker error:', e); }
+    const inner=document.getElementById('market-ticker-inner');if(!inner)return;if(!supabaseClient){setTimeout(refreshMarketTicker,2000);return;}
+    try{const bRes=await supabaseClient.from('barter_listings').select('*').eq('is_complete',false).order('created_at',{ascending:false}).limit(25);const bd=(!bRes.error&&bRes.data)?bRes.data:[];
+    const cI={souls:'👻',darkEssence:'🌑',abyssalShards:'💎',corruptedFragments:'🔮',aether:'⚡',key:'🗝️'};
+    function _tl(type,amt){if(!type)return'?';if(cI[type])return cI[type]+' '+formatNumber(amt);if(type.startsWith('potion:')){const pid=type.slice(7);const _pm=(typeof potionMeta!=='undefined')?potionMeta[pid]:null;return(_pm?.icon||'⚗️')+' '+(potions[pid]?.name||pid)+' x'+amt;}if(type.startsWith('item:')){const iid=type.slice(5);return items[iid]?.name||iid;}if(type.startsWith('minion:')){const mid=type.slice(7);const bm=(typeof battleMinions!=='undefined')?battleMinions[mid]:null;const mn=(typeof minions!=='undefined')?minions[mid]:null;return(bm?.icon||mn?.icon||'👹')+' '+(mn?.name||mid)+' Lv'+amt;}return type;}
+    const sep='<span style="color:#2a1a44;padding:0 10px;">◆</span>';let chips='';
+    bd.forEach(l=>{chips+='<span style="padding:0 18px;font-size:0.78em;white-space:nowrap;"><span style="color:#aa44ff;font-size:0.72em;letter-spacing:1px;text-transform:uppercase;">Trade</span> <span style="color:#c8a800;font-weight:bold;">'+_tl(l.offer_type,l.offer_amt)+'</span> <span style="color:#444;">⇄</span> <span style="color:#88aaff;font-weight:bold;">'+_tl(l.want_type,l.want_amt)+'</span> <span style="color:#444;font-size:0.85em;">by</span> <span style="color:#bbb;">'+(l.poster_name||'?')+'</span></span>'+sep;});
+    if(!chips){inner.innerHTML=Array(5).fill('<span style="padding:0 40px;font-size:0.78em;color:#3a2a55;letter-spacing:2px;">✦ NO ACTIVE LISTINGS — POST A TRADE IN THE MARKET ✦</span>').join('');inner.style.animationDuration='30s';return;}
+    inner.innerHTML=chips.repeat(4);const rS=(n)=>requestAnimationFrame(()=>{const w=inner.scrollWidth/4;if(w>0)inner.style.animationDuration=Math.max(8,w/160)+'s';else if(n>0)setTimeout(()=>rS(n-1),400);});rS(20);
+    }catch(e){console.warn('Ticker error:',e);}
 }
 async function cancelMarketListing(listingId) {
     if (!confirm('Cancel this listing? The item will be returned to your inventory.')) return;
@@ -14343,7 +14279,6 @@ function initializeChat() {
             const isSystemMessage = systemAccounts.includes(msg.uid);
             const isDiscordBot = msg.uid === 'discord_bot'; // <-- This is the check for Discord messages
             const displayName = escapeHTML(msg.name || 'Anon');
-            if (!msg.text && !isDiscordBot) return;
 
             let nameHtml;
             let roleTagHTML = '';
@@ -14585,7 +14520,7 @@ function initializeChat() {
                 const RARITY_COLORS2 = { common:'#888', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00' };
 
                 function renderProfileTab(tab){profTabs.forEach(function(b){var a=b.dataset.tab===tab;b.style.background=a?'#ff664422':'#0d0a18';b.style.color=a?'#ff8866':'#555';b.style.borderColor=a?'#ff664455':'#1a1030';});if(!invPanel)return;
-                    var TI={weapon:'⚔️',idol:'🗿',sigil:'✶',helm:'🧖',tome:'📖'};var cs='background:linear-gradient(135deg,#0e0a1a,#1a1020);border-radius:8px;padding:8px 6pb;text-align:center;position:relative;cursor:pointer;transition:transform 0.1s;';var tb='<div style="font-size:0.5em;color:#44cc8888;margin-top:4px;">💬 Propose Trade</div>';
+                    var TI={weapon:'⚔️',idol:'🗿',sigil:'✶',helm:'🧖',tome:'📖'};var cs='background:linear-gradient(135deg,#0e0a1a,#1a1020);border-radius:8px;padding:8px 6px;text-align:center;position:relative;cursor:pointer;transition:transform 0.1s;';var tb='<div style="font-size:0.5em;color:#44cc8888;margin-top:4px;">💬 Propose Trade</div>';
                     invPanel._tradeItems=[];function mk(p,bc,tc,inner){var idx=invPanel._tradeItems.length;invPanel._tradeItems.push(p);return'<div class="ptc" data-idx="'+idx+'" style="'+cs+'border:1px solid '+bc+'33;border-top:2px solid '+tc+'">'+inner+tb+'</div>';}
                     if(tab==='minions'){if(!st.minions||!st.minions.length){invPanel.innerHTML='<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No minion data.</div>';return;}var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';st.minions.forEach(function(m){var tc2=TIER_COLORS2[Math.min(5,Math.floor((m.level||0)/25))];var stars=m.promoTier>0?'<span style="color:#c8a800;font-size:0.55em;">'+('★'.repeat(m.promoTier))+'</span>':'';var barter=m.barterLevels>0?'<span style="position:absolute;top:3px;right:3px;font-size:0.5em;background:#aa44ff;border-radius:3px;padding:1px 3px;color:#fff;">🔀</span>':'';var mi=m.icon||'👿';var inner=barter+'<div style="font-size:1.5em;">'+mi+'</div><div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(m.name)+'</div><div style="color:'+tc2+';font-size:0.58em;">Lv'+m.level+stars+'</div>'+(m.hp!=null?'<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">❤'+m.hp+'</span> <span style="color:#ff9944;">⚔'+m.atk+'</span></div>':'');h+=mk(['minion:'+m.id,m.name,mi,m.level,targetName],tc2,tc2,inner);});invPanel.innerHTML=h+'</div>';
                     }else if(tab==='items'){if(!st.inventory||!st.inventory.length){invPanel.innerHTML='<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No items.</div>';return;}var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';st.inventory.forEach(function(it){var rc=RARITY_COLORS2[it.rarity]||'#888';var ico=TI[it.type]||'🔮';var inner='<div style="font-size:1.5em;">'+ico+'</div><div style="color:'+rc+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.52em;">'+escapeHTML(it.rarity||'')+'</div>';h+=mk(['item:'+it.id,it.name,ico,1,targetName],rc,rc,inner);});invPanel.innerHTML=h+'</div>';
@@ -15772,22 +15707,12 @@ function renderPuzzleList() {
 }
 
 // Sets up the arena when a player clicks on a puzzle
-function selectPuzzle(puzzleId) {
-    currentPuzzleId = puzzleId;
-    const puzzle = puzzles.find(p => p.id === puzzleId);
-    const _owned = Object.entries(gameState.minions||{}).filter(([id,m])=>(m.level||0)>0&&battleMinions[id]).map(([id,m])=>{const lv=m.level||0,pr=m.promotionTier||0,bm=battleMinions[id],tot=(1+Math.floor(lv/25)*0.05)*(1+pr*0.20);return bm.hp*tot+bm.atk*tot*2;});
-    let _scaleMult = 1.0;
-    if (_owned.length > 0) {
-        const _sorted = _owned.slice().sort((a,b)=>a-b);
-        const _median = _sorted[Math.floor(_sorted.length/2)];
-        _scaleMult = Math.min(5.0, Math.max(1.0, Math.sqrt(_median/16)*1.2));
-        _scaleMult = Math.round(_scaleMult*10)/10;
-    }
-    battleState = { puzzle, playerUnits:[], enemyUnits:[], isCombatActive:false, pointsSpent:0, intervalId:null, enemyScale:_scaleMult };
-    puzzle.enemies.forEach((enemy,i) => {
-        const baseStats = battleMinions[enemy.id];
-        battleState.enemyUnits.push({...baseStats, hp:Math.ceil(baseStats.hp*_scaleMult), atk:Math.ceil(baseStats.atk*_scaleMult), id:`enemy_${i}`, x:enemy.x, y:enemy.y, currentHp:Math.ceil(baseStats.hp*_scaleMult), isPlayer:false});
-    });
+function selectPuzzle(puzzleId){
+    currentPuzzleId=puzzleId;const puzzle=puzzles.find(p=>p.id===puzzleId);
+    const _ow=Object.entries(gameState.minions||{}).filter(([id,m])=>(m.level||0)>0&&battleMinions[id]).map(([id,m])=>{const lv=m.level||0,pr=m.promotionTier||0,bm=battleMinions[id],tot=(1+Math.floor(lv/25)*0.05)*(1+pr*0.20);return bm.hp*tot+bm.atk*tot*2;});
+    let _sm=1.0;if(_ow.length>0){const _s=_ow.slice().sort((a,b)=>a-b);const _med=_s[Math.floor(_s.length/2)];_sm=Math.min(5.0,Math.max(1.0,Math.sqrt(_med/16)*1.2));_sm=Math.round(_sm*10)/10;}
+    battleState={puzzle,playerUnits:[],enemyUnits:[],isCombatActive:false,pointsSpent:0,intervalId:null,enemyScale:_sm};
+    puzzle.enemies.forEach((enemy,i)=>{const bs=battleMinions[enemy.id];battleState.enemyUnits.push({...bs,hp:Math.ceil(bs.hp*_sm),atk:Math.ceil(bs.atk*_sm),id:`enemy_${i}`,x:enemy.x,y:enemy.y,currentHp:Math.ceil(bs.hp*_sm),isPlayer:false});});
 
     // Highlight active puzzle in list
     document.querySelectorAll('#puzzle-list li').forEach(li => li.classList.remove('active-puzzle'));
@@ -15878,13 +15803,7 @@ function updateBattleStatus() {
     const bar = document.getElementById('battle-status-bar');
     if (!bar || !battleState.puzzle) return;
     const enemies = battleState.enemyUnits.filter(u => u.currentHp > 0).length;
-    if (battleState.isCombatActive) {
-        bar.innerHTML = `<span style="color:#ff8844; animation:breach-pulse 1s infinite;">⚔ COMBAT ACTIVE</span> — <span style="color:#ff6666;">${enemies}</span> <span style="color:#aaa;">enemies remaining</span>`;
-    } else {
-        const _sc = battleState.enemyScale || 1;
-        const _scLabel = _sc > 1.5 ? `<span style="color:#ff6644; font-size:0.8em; margin-left:8px;">⚠ Enemies scaled ×${_sc} to your roster</span>` : '';
-        bar.innerHTML = `🛡 <span style="color:#aaa;">${battleState.puzzle.name}</span> — <span style="color:#888; font-size:0.88em;">${battleState.puzzle.desc}</span>${_scLabel}`;
-    }
+    if(battleState.isCombatActive){bar.innerHTML=`<span style="color:#ff8844;animation:breach-pulse 1s infinite;">⚔ COMBAT ACTIVE</span> — <span style="color:#ff6666;">${enemies}</span> <span style="color:#aaa;">enemies remaining</span>`;}else{const _sc=battleState.enemyScale||1;const _scL=_sc>1.5?`<span style="color:#ff6644;font-size:0.8em;margin-left:8px;">⚠ Enemies scaled ×${_sc} to your roster</span>`:'';bar.innerHTML=`🛡 <span style="color:#aaa;">${battleState.puzzle.name}</span> — <span style="color:#888;font-size:0.88em;">${battleState.puzzle.desc}</span>${_scL}`;}
     updatePgBudget();
 }
 
@@ -15950,21 +15869,14 @@ function openMinionSelectModal() {
 }
 
 // This function runs when a minion button inside the modal is clicked.
-function placeMinionFromModal(minionId) {
-    if (!selectedTileForSummon) return;
-    const minionData = battleMinions[minionId];
-    if (battleState.playerUnits.some(u => u.name === minionData.name)) {
-        Toastify({ text: `⚔ Only 1 ${minionData.name} allowed per formation.`, duration:2500, gravity:'top', position:'center', style:{background:'#330000'} }).showToast();
-        closeMinionSelectModal(); return;
-    }
-    const gameMinion = gameState.minions[minionId];
-    const level = gameMinion?.level || 0, promotionTier = gameMinion?.promotionTier || 0;
-    const rawBonus = (1+Math.floor(level/25)*0.05)*(1+promotionTier*0.20);
-    const capBonus = Math.min(rawBonus, (battleState.enemyScale||1)*3);
-    const scaledHp = Math.ceil(minionData.hp*capBonus), scaledAtk = Math.ceil(minionData.atk*capBonus);
-    battleState.playerUnits.push({...minionData, hp:scaledHp, atk:scaledAtk, id:`player_${Date.now()}`, x:selectedTileForSummon.x, y:selectedTileForSummon.y, currentHp:scaledHp, isPlayer:true, _scaledLabel:level>0?`Lv${level}`:null, _minionId:minionId});
-    battleState.pointsSpent += minionData.cost;
-    playSound('upgrade'); closeMinionSelectModal(); renderBattleGrid(); updateBattleStatus();
+function placeMinionFromModal(minionId){
+    if(!selectedTileForSummon)return;const mD=battleMinions[minionId];
+    if(battleState.playerUnits.some(u=>u.name===mD.name)){Toastify({text:`⚔ Only 1 ${mD.name} allowed per formation.`,duration:2500,gravity:'top',position:'center',style:{background:'#330000'}}).showToast();closeMinionSelectModal();return;}
+    const gM=gameState.minions[minionId];const lv=gM?.level||0,pt=gM?.promotionTier||0;
+    const rB=(1+Math.floor(lv/25)*0.05)*(1+pt*0.20),cB=Math.min(rB,(battleState.enemyScale||1)*3);
+    const sH=Math.ceil(mD.hp*cB),sA=Math.ceil(mD.atk*cB);
+    battleState.playerUnits.push({...mD,hp:sH,atk:sA,id:`player_${Date.now()}`,x:selectedTileForSummon.x,y:selectedTileForSummon.y,currentHp:sH,isPlayer:true,_scaledLabel:lv>0?`Lv${lv}`:null,_minionId:minionId});
+    battleState.pointsSpent+=mD.cost;playSound('upgrade');closeMinionSelectModal();renderBattleGrid();updateBattleStatus();
 }
 
 // A simple function to hide the modal.
@@ -16342,7 +16254,7 @@ function renderPactScreen() {
 
         document.getElementById('pact-name-display').textContent = window.playerPact.pact_name || window.playerPact.name || '';
 
-        (function(){var _pip=document.getElementById('pact-identity-panel'),_idn=document.getElementById('pact-identity-name'),_idm=document.getElementById('pact-identity-members'),_idb=document.getElementById('pact-identity-badge');if(!_pip||!_idn)return;var _pName=window.playerPact.pact_name||window.playerPact.name||'';var _pMembers=(window.playerPact.members||[]).length+' member'+((window.playerPact.members||[]).length!==1?'s':'');var _pEmb=window.playerPact.emblem||'⚔️';_idn.textContent=_pName;_idm.textContent=_pMembers;_idb.textContent=_pEmb;_pip.style.display='block';})();
+        (function(){var _pip=document.getElementById('pact-identity-panel'),_idn=document.getElementById('pact-identity-name'),_idm=document.getElementById('pact-identity-members'),_idb=document.getElementById('pact-identity-badge');if(!_pip||!_idn)return;var _pN=window.playerPact.pact_name||window.playerPact.name||'';var _pM=(window.playerPact.members||[]).length+' member'+((window.playerPact.members||[]).length!==1?'s':'');_idn.textContent=_pN;_idm.textContent=_pM;_idb.textContent=window.playerPact.emblem||'⚔️';_pip.style.display='block';})();
 
         const members      = window.playerPact.members || [];
         const isLeader     = members[0] === gameState.playerName;
@@ -17070,26 +16982,13 @@ function getBarterTypeInfo(type, amt, listing) {
     };
     if (currMap[type]) return { ...currMap[type], subtitle: formatNumber(amt), desc: '' };
 
-    if (type.startsWith('potion:')) {
-        const id = type.slice(7);
-        const p = potions[id];
-        const _pm = typeof potionMeta !== 'undefined' ? potionMeta[id] : null;
-        if (p) return { icon: _pm?.icon || '⚗️', name: p.name, color: _pm?.color || '#9944cc', subtitle: `x${formatNumber(amt)}`, desc: p.desc || '' };
-        return { icon:'⚗️', name: id, color:'#9944cc', subtitle:`x${formatNumber(amt)}`, desc:'' };
-    }
+    if(type.startsWith('potion:')){const id=type.slice(7);const p=potions[id];const _pm=typeof potionMeta!=='undefined'?potionMeta[id]:null;if(p)return{icon:_pm?.icon||'⚗️',name:p.name,color:_pm?.color||'#9944cc',subtitle:`x${formatNumber(amt)}`,desc:p.desc||''};return{icon:'⚗️',name:id,color:'#9944cc',subtitle:`x${formatNumber(amt)}`,desc:''};}
 
     if (type.startsWith('item:')) {
-        const id = type.slice(5);
-        const it = items[id];
-        const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
-        if (it) {
-            let durCur = undefined, durMax = undefined;
-            if (listing?.offer_note && listing.offer_note.startsWith('{')) {
-                try { const _dn = JSON.parse(listing.offer_note); if (_dn.durMax) { durCur = Math.floor(_dn.durCur); durMax = _dn.durMax; } } catch(e) {}
-            }
-            return { icon: { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' }[it.type] || '🎁', name: it.name, color: rarityColor[it.rarity] || '#aaa', subtitle: it.rarity.toUpperCase(), desc: it.desc || '', durCur, durMax };
-        }
-        return { icon:'🎁', name: id, color:'#aaa', subtitle:'', desc:'' };
+        const id=type.slice(5);const it=items[id];const rarityColor={common:'#aaa',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00',forged:'#ff4444'};
+        if(it){let durCur=undefined,durMax=undefined;if(listing?.offer_note&&listing.offer_note.startsWith('{')){try{const _dn=JSON.parse(listing.offer_note);if(_dn.durMax){durCur=Math.floor(_dn.durCur);durMax=_dn.durMax;}}catch(e){}}
+        return{icon:{weapon:'⚔️',idol:'🗿',sigil:'✦',helm:'🪖',tome:'📖'}[it.type]||'🎁',name:it.name,color:rarityColor[it.rarity]||'#aaa',subtitle:it.rarity.toUpperCase(),desc:it.desc||'',durCur,durMax};}
+        return{icon:'🎁',name:id,color:'#aaa',subtitle:'',desc:''};
     }
 
     if (type.startsWith('minion:')) {
@@ -17195,19 +17094,14 @@ async function fetchBarterListings(page) {
             const wantInfo  = getBarterTypeInfo(listing.want_type,  listing.want_amt, null);
 
             function tradeCard(info, side) {
-                let durBarHtml = '';
-                if (info.durCur !== undefined && info.durMax) {
-                    const pct = Math.max(0, Math.min(100, Math.round((info.durCur / info.durMax) * 100)));
-                    const dc = pct > 60 ? '#44cc88' : pct > 30 ? '#ffcc00' : '#ff4444';
-                    const dl = pct > 75 ? 'Good' : pct > 50 ? 'Worn' : pct > 25 ? 'Damaged' : pct > 0 ? 'Breaking' : 'Broken';
-                    durBarHtml = `<div style="margin-top:7px;"><div style="display:flex;justify-content:space-between;font-size:0.62em;color:#555;margin-bottom:2px;"><span>🔧 Durability</span><span style="color:${dc};">${info.durCur}/${info.durMax} — ${dl}</span></div><div style="background:#0a0a0a;border-radius:3px;height:5px;overflow:hidden;border:1px solid #1a1a1a;"><div style="height:100%;width:${pct}%;background:linear-gradient(to right,${dc}88,${dc});border-radius:3px;"></div></div></div>`;
-                }
+                let dBH='';
+                if(info.durCur!==undefined&&info.durMax){const pct=Math.max(0,Math.min(100,Math.round((info.durCur/info.durMax)*100)));const dc=pct>60?'#44cc88':pct>30?'#ffcc00':'#ff4444';const dl=pct>75?'Good':pct>50?'Worn':pct>25?'Damaged':pct>0?'Breaking':'Broken';dBH=`<div style="margin-top:7px;"><div style="display:flex;justify-content:space-between;font-size:0.62em;color:#555;margin-bottom:2px;"><span>🔧 Durability</span><span style="color:${dc};">${info.durCur}/${info.durMax} — ${dl}</span></div><div style="background:#0a0a0a;border-radius:3px;height:5px;overflow:hidden;border:1px solid #1a1a1a;"><div style="height:100%;width:${pct}%;background:linear-gradient(to right,${dc}88,${dc});border-radius:3px;"></div></div></div>`;}
                 return `<div style="background:linear-gradient(135deg,${info.color}18,${info.color}08);border:1px solid ${info.color}55;border-top:3px solid ${info.color};border-radius:12px;padding:14px 16px;text-align:center;min-width:140px;max-width:220px;flex:1;box-shadow:0 4px 20px ${info.color}18;">
                     <div style="font-size:2.2em;line-height:1;margin-bottom:6px;filter:drop-shadow(0 0 8px ${info.color}88);">${info.icon}</div>
                     <div style="color:${info.color};font-weight:bold;font-size:0.92em;margin-bottom:3px;">${info.name}</div>
-                    <div style="color:#fff;font-size:1em;font-weight:bold;margin-bottom:${(info.desc||durBarHtml)?'6px':'0'};">${info.subtitle}</div>
-                    ${info.desc ? `<div style="color:${info.color}cc;font-size:0.7em;line-height:1.55;background:${info.color}0a;border-radius:6px;padding:5px 7px;text-align:left;">${info.desc}</div>` : ''}
-                    ${durBarHtml}
+                    <div style="color:#fff;font-size:1em;font-weight:bold;margin-bottom:${(info.desc||dBH)?'6px':'0'};">${info.subtitle}</div>
+                    ${info.desc?`<div style="color:${info.color}cc;font-size:0.7em;line-height:1.55;background:${info.color}0a;border-radius:6px;padding:5px 7px;text-align:left;">${info.desc}</div>`:''}
+                    ${dBH}
                 </div>`;
             }
 
@@ -17428,13 +17322,9 @@ async function postBarterListing() {
         if (offerType === 'key' && gameState._barterHeldKeyId) {
             _offerNote = gameState._barterHeldKeyId;
         } else if (offerType.startsWith('item:')) {
-            const _iid = offerType.slice(5);
-            let _durCur = null, _durMax = typeof getMaxDurability==='function'?getMaxDurability(_iid):100;
-            for (const _slot in gameState.equipped) {
-                if (gameState.equipped[_slot]===_iid) { _durCur=(gameState.itemDurability&&gameState.itemDurability[_slot]!==undefined)?Math.floor(gameState.itemDurability[_slot]):_durMax; break; }
-            }
-            if (_durCur===null) _durCur=_durMax;
-            _offerNote = JSON.stringify({durCur:_durCur,durMax:_durMax});
+            const _iid=offerType.slice(5);let _dc=null,_dm=typeof getMaxDurability==='function'?getMaxDurability(_iid):100;
+            for(const _sl in gameState.equipped){if(gameState.equipped[_sl]===_iid){_dc=(gameState.itemDurability&&gameState.itemDurability[_sl]!==undefined)?Math.floor(gameState.itemDurability[_sl]):_dm;break;}}
+            if(_dc===null)_dc=_dm;_offerNote=JSON.stringify({durCur:_dc,durMax:_dm});
         } else if (offerType.startsWith('minion:')) {
             const _mid = offerType.slice(7);
             const _gm  = gameState.minions[_mid];
@@ -19288,7 +19178,6 @@ const CODEX_CHAPTERS = [
                         <span style="color:#44cc88;">✔</span> Brewed Potions (shelf inventory)<br>
                         <span style="color:#44cc88;">✔</span> Aether &amp; Aether Upgrades<br>
                         <span style="color:#44cc88;">✔</span> PvP Wins &amp; Losses<br>
-                        <span style="color:#44cc88;">✔</span> Proving Grounds completions<br>
                         <span style="color:#44cc88;">✔</span> Banked Souls &amp; Banked Fragments<br>
                         <span style="color:#44cc88;">✔</span> Pact membership<br>
                         <span style="color:#44cc88;">✔</span> Lifetime stats (never reset)

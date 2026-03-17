@@ -2437,6 +2437,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     <button onclick="showScreen('map')">Worlds</button>
                     <button onclick="showScreen('pvp')">Raids</button>
                     <button onclick="showScreen('crashgame')">Gauntlet</button>
+                    <button id="gg-nav-btn" onclick="showScreen('godsgauntlet')" style="display:none;">⚡ God's Trial</button>
                     <button class="nav-market" onclick="showScreen('market'); setTimeout(()=>{updateBarterDropdowns(); fetchBarterListings();}, 100)">Market</button>
                     <button onclick="showScreen('provinggrounds')">Proving Grounds</button>
                     <button onclick="showScreen('pactwars')" style="color:#ff6644;">⚔ Pact Wars</button>
@@ -3852,6 +3853,71 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- ================================================================= -->
             <!-- INFERNAL PROVING GROUNDS SCREEN (NEW!) -->
             <!-- ================================================================= -->
+            <!-- GOD'S GAUNTLET SCREEN -->
+            <div id="godsgauntlet-screen" class="screen">
+                <h2 style="letter-spacing:3px; color:#ff4444; text-shadow:0 0 20px #ff444488;">⚡ THE GOD'S GAUNTLET ⚡</h2>
+                <p style="color:var(--dim-color); max-width:540px; margin:0 auto 8px;">The Abyss God has issued a trial. Defend your altar from void waves using your minions. Survive all 5 waves to earn Divine Favor. Fail and your equipped items will be cursed for 30 minutes.</p>
+                <div id="gg-status-bar" style="max-width:700px; margin:0 auto 16px; background:#0a0812; border:1px solid #ff444433; border-radius:10px; padding:12px 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <div id="gg-status-text" style="color:#ff4444; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px;">AWAITING THE GOD'S CALL</div>
+                    <div id="gg-curse-timer" style="display:none; color:#aa44ff; font-size:0.8em;"></div>
+                    <div id="gg-buff-timer" style="display:none; color:#ffcc00; font-size:0.8em;"></div>
+                </div>
+                <!-- Main gauntlet layout -->
+                <div style="max-width:900px; margin:0 auto; display:flex; gap:16px; flex-wrap:wrap;">
+                    <!-- Left: minion palette -->
+                    <div style="flex:0 0 200px; background:#0a0812; border:1px solid #2a1a3a; border-radius:10px; padding:12px;">
+                        <div style="color:#888; font-size:0.7em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;">Your Minions</div>
+                        <div id="gg-minion-palette" style="display:flex; flex-direction:column; gap:6px; max-height:420px; overflow-y:auto;"></div>
+                        <div style="margin-top:12px; border-top:1px solid #1a1030; padding-top:10px;">
+                            <div style="color:#888; font-size:0.7em; text-transform:uppercase; letter-spacing:2px; margin-bottom:6px;">Deploy Budget</div>
+                            <div id="gg-budget-display" style="color:#c8a800; font-family:monospace; font-size:1.1em;">— / —</div>
+                        </div>
+                        <div style="margin-top:10px;">
+                            <div style="color:#888; font-size:0.7em; text-transform:uppercase; letter-spacing:2px; margin-bottom:6px;">Altar HP</div>
+                            <div style="background:#1a1030; border-radius:4px; height:8px; overflow:hidden; margin-bottom:4px;">
+                                <div id="gg-altar-bar" style="height:100%; width:100%; background:linear-gradient(90deg,#cc3333,#ff6644); border-radius:4px; transition:width 0.3s;"></div>
+                            </div>
+                            <div id="gg-altar-hp-text" style="color:#ff6644; font-size:0.8em; font-family:monospace;">100 / 100</div>
+                        </div>
+                    </div>
+                    <!-- Centre: grid + wave info -->
+                    <div style="flex:1; min-width:300px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <div id="gg-wave-label" style="color:#ff4444; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px;">Wave 0 / 5</div>
+                            <div style="display:flex; gap:8px;">
+                                <button id="gg-start-btn" onclick="ggStartWave()" style="background:linear-gradient(135deg,#cc1111,#440000); border:1px solid #ff444466; border-radius:8px; padding:8px 20px; color:#ff9988; font-family:var(--font-title); font-size:0.8em; letter-spacing:1px; cursor:pointer;">▶ SEND WAVE</button>
+                                <button id="gg-mercy-btn" onclick="ggMercy()" style="background:transparent; border:1px solid #44448866; border-radius:8px; padding:8px 16px; color:#666; font-family:var(--font-title); font-size:0.75em; letter-spacing:1px; cursor:pointer;" title="Forfeit without penalty (once per 24h)">🕊 Mercy</button>
+                            </div>
+                        </div>
+                        <!-- The battle grid -->
+                        <div id="gg-grid-wrap" style="position:relative; background:#06040e; border:2px solid #2a1a3a; border-radius:8px; overflow:hidden;">
+                            <div id="gg-grid" style="display:grid; grid-template-columns:repeat(9,1fr); grid-template-rows:repeat(5,1fr); width:100%; aspect-ratio:9/5;"></div>
+                            <div id="gg-projectiles" style="position:absolute; inset:0; pointer-events:none;"></div>
+                        </div>
+                        <!-- Enemy incoming indicator -->
+                        <div id="gg-enemy-queue" style="margin-top:8px; color:#ff6644; font-size:0.78em; min-height:20px;"></div>
+                        <!-- Log -->
+                        <div id="gg-log" style="margin-top:10px; background:#06040e; border:1px solid #1a1030; border-radius:6px; padding:8px 10px; height:80px; overflow-y:auto; font-size:0.75em; color:#666;"></div>
+                    </div>
+                </div>
+                <!-- Start / reset controls shown before gauntlet begins -->
+                <div id="gg-pregame" style="max-width:700px; margin:20px auto 0; text-align:center;">
+                    <div id="gg-locked-msg" style="display:none; background:linear-gradient(135deg,#1a0008,#2a0018); border:1px solid #aa44ff44; border-top:3px solid #aa44ff; border-radius:12px; padding:20px; margin-bottom:16px;">
+                        <div style="font-size:1.5em; margin-bottom:8px;">🔮</div>
+                        <div style="color:#aa44ff; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; margin-bottom:6px;">EQUIPPED ITEMS CURSED</div>
+                        <div id="gg-locked-items-list" style="color:#666; font-size:0.82em; margin-bottom:10px;"></div>
+                        <div id="gg-curse-countdown" style="color:#aa44ff; font-family:monospace; font-size:1.1em;"></div>
+                    </div>
+                    <div id="gg-divine-msg" style="display:none; background:linear-gradient(135deg,#1a1000,#2a2000); border:1px solid #ffcc0044; border-top:3px solid #ffcc00; border-radius:12px; padding:20px; margin-bottom:16px;">
+                        <div style="font-size:1.5em; margin-bottom:8px;">✨</div>
+                        <div style="color:#ffcc00; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; margin-bottom:6px;">DIVINE FAVOR ACTIVE</div>
+                        <div style="color:#888; font-size:0.82em; margin-bottom:6px;">All equipped items are blessed. SPS doubled.</div>
+                        <div id="gg-divine-countdown" style="color:#ffcc00; font-family:monospace; font-size:1.1em;"></div>
+                    </div>
+                    <div id="gg-not-ready-msg" style="color:#444; font-size:0.82em; font-style:italic; padding:20px;">The God's Gauntlet activates when you reach 1e200 lifetime souls. Only the mightiest collectors face this trial.</div>
+                </div>
+            </div>
+
             <div id="provinggrounds-screen" class="screen">
                 <h2 style="letter-spacing:3px; color:#c8a800;">⚔️ INFERNAL PROVING GROUNDS ⚔️</h2>
                 <p style="color:var(--dim-color); max-width:540px; margin:0 auto 8px;">Place your minions to defeat enemy formations. Each victory grants a permanent bonus that persists through Ascensions.</p>
@@ -4318,6 +4384,9 @@ window.onload = function() {
             updateCacheTimer();
             updateRaidCooldownDisplay();
             updateExpeditions();
+
+            // ── GOD'S GAUNTLET TRIGGER CHECK ──
+            if (typeof checkGodsGauntletTrigger === 'function') checkGodsGauntletTrigger();
 
             if (document.getElementById('rituals-screen').classList.contains('active')) {
                 renderRituals();
@@ -7818,6 +7887,15 @@ function getDefaultGameState() {
         attackLog: [],
         raidCooldownEnd: 0,
         heldKey: null, // { id, obtainedAt, lastUsed } — one key at a time, expires 24h after obtaining, usable once per 24h
+        godsGauntlet: {
+            triggered: false,
+            lastTriggered: 0,
+            cursedUntil: 0,
+            cursedSlots: {},
+            divineBuffUntil: 0,
+            mercyUsedAt: 0,
+            gauntletCount: 0,
+        },
         itemDurability: {}, // { itemId: currentDurability } — tracked per item instance
         completedPuzzles: [],
         activeExpeditions: {}, 
@@ -9387,6 +9465,15 @@ function calculateStats() {
         final_sps_D = final_sps_D.mul(_warMult);
         final_spc_D = final_spc_D.mul(_warMult);
     }
+    // ── GOD'S GAUNTLET: divine favor buff (+100% SPS) and curse (-60% SPS) ──
+    if (gameState.godsGauntlet) {
+        if (Date.now() < (gameState.godsGauntlet.divineBuffUntil || 0)) {
+            final_sps_D = final_sps_D.mul(2); // divine favor: double SPS
+        }
+        if (Date.now() < (gameState.godsGauntlet.cursedUntil || 0)) {
+            final_sps_D = final_sps_D.mul(0.4); // curse: -60% SPS
+        }
+    }
     // Store as Decimal — unbounded, same as souls/essence/shards
     gameState.stats.sps = final_sps_D.gt(0) ? final_sps_D : D(0);
     gameState.stats.spc = final_spc_D.gt(0) ? final_spc_D : D(1);
@@ -10183,10 +10270,33 @@ function renderInventory() {
 
     // Equipped
     const equippedItems = Object.values(gameState.equipped).filter(Boolean);
-    if (equippedItems.length === 0) {
+    const cursedSlots = gameState.godsGauntlet?.cursedSlots || {};
+    const isCursed = Date.now() < (gameState.godsGauntlet?.cursedUntil || 0);
+    const cursedCards = isCursed ? Object.entries(cursedSlots).map(([slot, id]) => {
+        const item = items[id];
+        if (!item) return '';
+        const secsLeft = Math.ceil(((gameState.godsGauntlet?.cursedUntil || 0) - Date.now()) / 1000);
+        const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
+        return `<div style="background:linear-gradient(135deg,#1a0008,#2a0018); border:1px solid #aa44ff55; border-top:3px solid #aa44ff; border-radius:12px; padding:16px; opacity:0.8;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.6em; filter:grayscale(1);">🔮</span>
+                <div>
+                    <div style="color:#aa44ff; font-weight:bold; font-size:0.95em;">${item.name}</div>
+                    <div style="display:flex; gap:4px; margin-top:2px;">
+                        <span style="background:#aa44ff22; border:1px solid #aa44ff44; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aa44ff; text-transform:uppercase;">CURSED</span>
+                        <span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#666; text-transform:capitalize;">${slot}</span>
+                    </div>
+                </div>
+            </div>
+            <p style="color:#555; font-size:0.78em; margin:8px 0 4px; font-style:italic;">Stripped by the Abyss God. Returns in ${m}m ${s}s.</p>
+        </div>`;
+    }).join('') : '';
+
+    if (equippedItems.length === 0 && !cursedCards) {
         equippedGrid.innerHTML = `<div style="color:var(--dim-color); padding:20px; grid-column:1/-1;">No items equipped. Open Abyssal Caches from the main altar!</div>`;
     } else {
-        equippedGrid.innerHTML = equippedItems.map(id => itemCard(id, true)).join('');
+        equippedGrid.innerHTML = (cursedCards || '') + equippedItems.map(id => itemCard(id, true)).join('');
+        if (!equippedItems.length && !cursedCards) equippedGrid.innerHTML = `<div style="color:var(--dim-color); padding:20px; grid-column:1/-1;">No items equipped. Open Abyssal Caches from the main altar!</div>`;
     }
 
     // Inventory
@@ -15418,6 +15528,518 @@ const breachMinionAbilities = {
                        }
     }
 };
+// =================================================================
+// GOD'S GAUNTLET — Tower Defense Trial
+// =================================================================
+
+const GG_THRESHOLD    = '1e200'; // lifetime souls required
+const GG_COOLDOWN_MS  = 6 * 60 * 60 * 1000;   // 6 hours between gauntlets
+const GG_CURSE_MS     = 30 * 60 * 1000;   // 30 min curse on failure
+const GG_BUFF_MS      = 10 * 60 * 1000;   // 10 min divine favor on win
+const GG_MERCY_CD_MS  = 24 * 60 * 60 * 1000; // 24h mercy cooldown
+const GG_COLS = 9, GG_ROWS = 5;
+const GG_ALTAR_COL = GG_COLS - 1; // altar is rightmost column
+const GG_BUDGET_BASE = 12; // deploy points per wave
+
+// Wave definitions — 5 waves, escalating
+const GG_WAVES = [
+    { label:'Wave 1 — The Vanguard',    enemies: ['imp','imp','imp','ghoul','ghoul'] },
+    { label:'Wave 2 — Assault',         enemies: ['demon','demon','ash_golem','cinder_wraith','abyssal_stalker'] },
+    { label:'Wave 3 — The Tide',        enemies: ['frost_lich','hellhound','hellhound','balrog','corrupted_cherub'] },
+    { label:'Wave 4 — Void Onslaught',  enemies: ['shoggoth','river_hydra','fallen_angel','spacetime_ghast','pit_lord'] },
+    { label:'Wave 5 — God\'s Wrath',    enemies: ['god_eater','alpha_omega','the_final_observer','reality_warper','void_spawn'] },
+];
+
+let ggState = {
+    active: false,
+    waveIndex: 0,
+    altarHp: 100,
+    altarMaxHp: 100,
+    budget: GG_BUDGET_BASE,
+    budgetSpent: 0,
+    placedMinions: [],   // { id, minionId, x, y, hp, maxHp, atk, range, cooldown, cooldownMax }
+    enemies: [],         // { id, minionId, x, y, hp, maxHp, atk, speed, progress, dead }
+    selectedMinionId: null,
+    intervalId: null,
+    waveInProgress: false,
+    enemyIdCounter: 0,
+};
+
+function checkGodsGauntletTrigger() {
+    if (!gameState.godsGauntlet) return;
+    const gg = gameState.godsGauntlet;
+
+    // Show / hide nav button
+    const navBtn = document.getElementById('gg-nav-btn');
+    if (navBtn) {
+        const qualified = D(gameState.lifetimeSouls).gte(D(GG_THRESHOLD));
+        navBtn.style.display = qualified ? 'inline-block' : 'none';
+        if (qualified) navBtn.style.color = Date.now() < gg.cursedUntil ? '#aa44ff' : (Date.now() < gg.divineBuffUntil ? '#ffcc00' : '#ff6644');
+    }
+
+    // Update gauntlet screen timers if open
+    if (document.getElementById('godsgauntlet-screen')?.classList.contains('active')) {
+        renderGgStatusBar();
+    }
+
+    // Fire the announcement if threshold just crossed and cooldown passed
+    if (D(gameState.lifetimeSouls).gte(D(GG_THRESHOLD))) {
+        const now = Date.now();
+        const cooldownPassed = (now - (gg.lastTriggered || 0)) > GG_COOLDOWN_MS;
+        if (cooldownPassed && !ggState.active && !gg._announced) {
+            gg._announced = true;
+            gg.lastTriggered = now;
+            saveGame();
+            setTimeout(showGgAnnouncement, 500);
+        }
+    }
+}
+
+function showGgAnnouncement() {
+    let el = document.getElementById('gg-announcement-overlay');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'gg-announcement-overlay';
+        el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(10px);animation:fadeIn 0.8s;';
+        document.body.appendChild(el);
+    }
+    const now = Date.now();
+    const mercyReady = (now - (gameState.godsGauntlet.mercyUsedAt || 0)) > GG_MERCY_CD_MS;
+    el.innerHTML = `
+        <div style="text-align:center; max-width:500px; padding:40px;">
+            <div style="font-size:3em; margin-bottom:16px; animation:runeRotate 3s linear infinite;">⚡</div>
+            <div style="color:#ff4444; font-family:var(--font-title); font-size:1.4em; letter-spacing:4px; margin-bottom:12px; text-shadow:0 0 30px #ff4444;">THE GOD AWAKENS</div>
+            <div style="color:#888; font-size:0.9em; line-height:1.7; margin-bottom:28px;">The Abyss God has taken notice of your power. It demands proof of your worth.<br><br>Defend your altar from <strong style="color:#ff6644;">5 waves</strong> of void creatures using your minions.<br><br><strong style="color:#ffcc00;">Succeed:</strong> All equipped items blessed for 10 minutes — SPS doubled.<br><strong style="color:#aa44ff;">Fail:</strong> Equipped items cursed and stripped for 30 minutes.</div>
+            <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                <button onclick="acceptGgTrial()" style="background:linear-gradient(135deg,#cc1111,#440000); border:2px solid #ff444466; border-radius:10px; padding:14px 32px; color:#ff9988; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:pointer;">⚡ ACCEPT THE TRIAL</button>
+                <button onclick="fleeGgTrial()" style="background:transparent; border:1px solid #44334466; border-radius:10px; padding:14px 24px; color:#555; font-family:var(--font-title); font-size:0.8em; letter-spacing:1px; cursor:pointer;" title="${mercyReady ? 'Flee without penalty (Mercy available)' : 'Fleeing will curse your items!'}">
+                    ${mercyReady ? '🕊 Flee (Mercy)' : '💀 Flee (Cursed)'}
+                </button>
+            </div>
+            ${!mercyReady ? '<div style="color:#555; font-size:0.72em; margin-top:12px;">Divine Mercy not available — fleeing will strip your equipped items.</div>' : ''}
+        </div>`;
+    el.style.display = 'flex';
+}
+
+window.acceptGgTrial = function() {
+    const el = document.getElementById('gg-announcement-overlay');
+    if (el) el.style.display = 'none';
+    showScreen('godsgauntlet');
+    initGgGame();
+};
+
+window.fleeGgTrial = function() {
+    const el = document.getElementById('gg-announcement-overlay');
+    if (el) el.style.display = 'none';
+    const now = Date.now();
+    const mercyReady = (now - (gameState.godsGauntlet.mercyUsedAt || 0)) > GG_MERCY_CD_MS;
+    if (mercyReady) {
+        gameState.godsGauntlet.mercyUsedAt = now;
+        Toastify({ text: '🕊 Divine Mercy used — the God lets you pass. Next mercy available in 24h.', duration: 6000, style: { background: 'linear-gradient(135deg,#0a0a2a,#2a2a4a)' } }).showToast();
+    } else {
+        applyGgCurse();
+        Toastify({ text: '💀 Cowardice! The God strips your equipped items for 30 minutes.', duration: 6000, style: { background: 'linear-gradient(135deg,#1a0008,#3a0018)' } }).showToast();
+    }
+    gameState.godsGauntlet._announced = false;
+    saveGame();
+    renderGgStatusBar();
+};
+
+function applyGgCurse() {
+    const gg = gameState.godsGauntlet;
+    gg.cursedUntil = Date.now() + GG_CURSE_MS;
+    gg.cursedSlots = {};
+    // Strip all equipped items
+    for (const slot in gameState.equipped) {
+        if (gameState.equipped[slot]) {
+            gg.cursedSlots[slot] = gameState.equipped[slot];
+            gameState.equipped[slot] = null;
+        }
+    }
+    calculateStats();
+    renderInventory();
+    saveGame();
+}
+
+function applyGgDivineBuff() {
+    gameState.godsGauntlet.divineBuffUntil = Date.now() + GG_BUFF_MS;
+    // Double the bonus of all currently equipped items conceptually — handled in calculateStats
+    calculateStats();
+    saveGame();
+}
+
+function restoreCursedItems() {
+    const gg = gameState.godsGauntlet;
+    if (!gg.cursedSlots) return;
+    for (const slot in gg.cursedSlots) {
+        if (!gameState.equipped[slot]) {
+            gameState.equipped[slot] = gg.cursedSlots[slot];
+        }
+    }
+    gg.cursedSlots = {};
+    gg.cursedUntil = 0;
+    calculateStats();
+    renderInventory();
+    saveGame();
+    Toastify({ text: '🔮 The curse lifts — your equipped items have been restored.', duration: 5000, style: { background: 'linear-gradient(135deg,#0a0814,#aa44ff44)' } }).showToast();
+}
+
+function renderGgStatusBar() {
+    const gg = gameState.godsGauntlet;
+    const now = Date.now();
+    const statusEl = document.getElementById('gg-status-text');
+    const curseEl = document.getElementById('gg-curse-timer');
+    const buffEl = document.getElementById('gg-buff-timer');
+    const lockedMsg = document.getElementById('gg-locked-msg');
+    const divineMsg = document.getElementById('gg-divine-msg');
+    const notReadyMsg = document.getElementById('gg-not-ready-msg');
+
+    const qualified = D(gameState.lifetimeSouls).gte(D(GG_THRESHOLD));
+
+    if (notReadyMsg) notReadyMsg.style.display = qualified ? 'none' : 'block';
+
+    // Check if curse expired
+    if (gg.cursedUntil > 0 && now > gg.cursedUntil) restoreCursedItems();
+
+    if (now < gg.cursedUntil) {
+        const secsLeft = Math.ceil((gg.cursedUntil - now) / 1000);
+        const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
+        if (statusEl) { statusEl.textContent = '💀 CURSED'; statusEl.style.color = '#aa44ff'; }
+        if (curseEl)  { curseEl.style.display = 'block'; curseEl.textContent = `Curse lifts in ${m}m ${s}s`; }
+        if (lockedMsg) {
+            lockedMsg.style.display = 'block';
+            const listEl = document.getElementById('gg-locked-items-list');
+            if (listEl) {
+                listEl.innerHTML = Object.entries(gg.cursedSlots || {}).map(([slot, id]) =>
+                    `<div>${slot}: <span style="color:#aa44ff;">${items[id]?.name || id}</span></div>`).join('') || '<div style="color:#555;">No items were equipped.</div>';
+            }
+            const cdEl = document.getElementById('gg-curse-countdown');
+            if (cdEl) cdEl.textContent = `${m}m ${s}s remaining`;
+        }
+    } else {
+        if (curseEl) curseEl.style.display = 'none';
+        if (lockedMsg) lockedMsg.style.display = 'none';
+    }
+
+    if (now < gg.divineBuffUntil) {
+        const secsLeft = Math.ceil((gg.divineBuffUntil - now) / 1000);
+        const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
+        if (statusEl) { statusEl.textContent = '✨ DIVINE FAVOR ACTIVE'; statusEl.style.color = '#ffcc00'; }
+        if (buffEl)   { buffEl.style.display = 'block'; buffEl.textContent = `Divine favor: ${m}m ${s}s remaining`; }
+        if (divineMsg) {
+            divineMsg.style.display = 'block';
+            const cdEl = document.getElementById('gg-divine-countdown');
+            if (cdEl) cdEl.textContent = `${m}m ${s}s remaining`;
+        }
+    } else {
+        if (buffEl) buffEl.style.display = 'none';
+        if (divineMsg) divineMsg.style.display = 'none';
+        if (now >= gg.divineBuffUntil && gg.divineBuffUntil > 0) gg.divineBuffUntil = 0;
+    }
+
+    if (now >= gg.cursedUntil && now >= gg.divineBuffUntil) {
+        if (statusEl) { statusEl.textContent = qualified ? 'READY FOR TRIAL' : 'AWAITING THE GOD\'S CALL'; statusEl.style.color = '#ff4444'; }
+    }
+}
+
+// ── GAME INIT ─────────────────────────────────────────────────────
+function initGgGame() {
+    ggState = {
+        active: true,
+        waveIndex: 0,
+        altarHp: 100,
+        altarMaxHp: 100,
+        budget: GG_BUDGET_BASE,
+        budgetSpent: 0,
+        placedMinions: [],
+        enemies: [],
+        selectedMinionId: null,
+        intervalId: null,
+        waveInProgress: false,
+        enemyIdCounter: 0,
+    };
+    renderGgMinionPalette();
+    renderGgGrid();
+    renderGgHud();
+    ggLog('The trial begins. Place your minions and send the first wave.', '#ff6644');
+    document.getElementById('gg-start-btn').disabled = false;
+    document.getElementById('gg-start-btn').textContent = '▶ SEND WAVE';
+    document.getElementById('gg-wave-label').textContent = 'Wave 1 / 5';
+}
+
+function renderGgMinionPalette() {
+    const palette = document.getElementById('gg-minion-palette');
+    if (!palette) return;
+    palette.innerHTML = '';
+    const owned = Object.entries(gameState.minions)
+        .filter(([id, m]) => (m.level || 0) > 0 && battleMinions[id] && !minions[id]?.secret)
+        .sort((a, b) => (battleMinions[a[0]].cost || 0) - (battleMinions[b[0]].cost || 0));
+    if (owned.length === 0) {
+        palette.innerHTML = '<div style="color:#444; font-size:0.78em; font-style:italic;">No minions owned yet.</div>';
+        return;
+    }
+    owned.forEach(([id, m]) => {
+        const bm = battleMinions[id];
+        const lv = m.level || 0;
+        const scale = 1 + Math.floor(lv / 25) * 0.05;
+        const hp  = Math.ceil(bm.hp  * scale);
+        const atk = Math.ceil(bm.atk * scale);
+        const isSelected = ggState.selectedMinionId === id;
+        const btn = document.createElement('div');
+        btn.style.cssText = `background:${isSelected ? 'linear-gradient(135deg,#cc111122,#440000)' : 'transparent'};border:1px solid ${isSelected ? '#ff4444' : '#2a1a3a'};border-radius:8px;padding:8px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.2s;`;
+        btn.innerHTML = `<span style="font-size:1.4em;">${bm.icon}</span><div style="flex:1;overflow:hidden;"><div style="color:#ddd;font-size:0.72em;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${bm.name}</div><div style="color:#666;font-size:0.62em;">⚔${atk} ❤${hp} 🎯${bm.range} · ${bm.cost}pt</div></div>`;
+        btn.onclick = () => { ggState.selectedMinionId = ggState.selectedMinionId === id ? null : id; renderGgMinionPalette(); };
+        palette.appendChild(btn);
+    });
+}
+
+function renderGgGrid() {
+    const grid = document.getElementById('gg-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (let row = 0; row < GG_ROWS; row++) {
+        for (let col = 0; col < GG_COLS; col++) {
+            const cell = document.createElement('div');
+            const isAltarCol  = col === GG_ALTAR_COL;
+            const isSpawnCol  = col === 0;
+            const placedMinion = ggState.placedMinions.find(m => m.x === col && m.y === row);
+            const enemy = ggState.enemies.find(e => Math.round(e.x) === col && e.y === row && !e.dead);
+
+            cell.style.cssText = `aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(10px,2vw,18px);cursor:${!isAltarCol && !isSpawnCol && !ggState.waveInProgress ? 'pointer' : 'default'};border:1px solid #0d0920;position:relative;background:${isAltarCol ? 'rgba(255,100,50,0.12)' : isSpawnCol ? 'rgba(100,0,0,0.12)' : 'transparent'};transition:background 0.2s;`;
+
+            if (isAltarCol) {
+                cell.innerHTML = row === 2 ? `<span title="Your Altar">🏛️</span>` : '';
+            } else if (placedMinion) {
+                const hpPct = Math.max(0, placedMinion.hp / placedMinion.maxHp * 100);
+                cell.innerHTML = `<span style="position:relative;">${battleMinions[placedMinion.minionId]?.icon || '👿'}<div style="position:absolute;bottom:-4px;left:0;right:0;height:3px;background:#1a1030;border-radius:2px;"><div style="height:100%;width:${hpPct}%;background:#44cc88;border-radius:2px;"></div></div></span>`;
+                cell.title = `${battleMinions[placedMinion.minionId]?.name} — click to remove`;
+                cell.onclick = () => { if (!ggState.waveInProgress) removeGgMinion(placedMinion.id); };
+            } else if (enemy) {
+                const hpPct = Math.max(0, enemy.hp / enemy.maxHp * 100);
+                cell.innerHTML = `<span style="position:relative;">${battleMinions[enemy.minionId]?.icon || '👹'}<div style="position:absolute;bottom:-4px;left:0;right:0;height:3px;background:#1a1030;border-radius:2px;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:2px;"></div></div></span>`;
+            } else if (!isSpawnCol && !isAltarCol && !ggState.waveInProgress) {
+                cell.onmouseenter = () => { cell.style.background = 'rgba(255,68,68,0.08)'; };
+                cell.onmouseleave = () => { cell.style.background = 'transparent'; };
+                cell.onclick = () => placeGgMinion(col, row);
+            }
+            grid.appendChild(cell);
+        }
+    }
+    // Update HUD
+    renderGgHud();
+}
+
+function renderGgHud() {
+    const budgetEl = document.getElementById('gg-budget-display');
+    if (budgetEl) budgetEl.textContent = `${ggState.budgetSpent} / ${ggState.budget} pts used`;
+    const altarBar = document.getElementById('gg-altar-bar');
+    const altarText = document.getElementById('gg-altar-hp-text');
+    const pct = Math.max(0, ggState.altarHp / ggState.altarMaxHp * 100);
+    if (altarBar) { altarBar.style.width = pct + '%'; altarBar.style.background = pct > 50 ? 'linear-gradient(90deg,#cc3333,#ff6644)' : pct > 25 ? 'linear-gradient(90deg,#cc6600,#ffaa00)' : 'linear-gradient(90deg,#880000,#cc2222)'; }
+    if (altarText) altarText.textContent = `${ggState.altarHp} / ${ggState.altarMaxHp}`;
+}
+
+function placeGgMinion(col, row) {
+    if (!ggState.selectedMinionId) return;
+    if (ggState.waveInProgress) return;
+    if (col === GG_ALTAR_COL || col === 0) return;
+    if (ggState.placedMinions.find(m => m.x === col && m.y === row)) return;
+    const bm = battleMinions[ggState.selectedMinionId];
+    if (!bm) return;
+    const remaining = ggState.budget - ggState.budgetSpent;
+    if (bm.cost > remaining) { ggLog(`Not enough deploy points for ${bm.name} (costs ${bm.cost}, have ${remaining}).`, '#ff4444'); return; }
+    const lv = gameState.minions[ggState.selectedMinionId]?.level || 1;
+    const scale = 1 + Math.floor(lv / 25) * 0.05;
+    const hp  = Math.ceil(bm.hp  * scale);
+    const atk = Math.ceil(bm.atk * scale);
+    const speed = Math.max(1, bm.range); // range repurposed as attack cooldown divisor
+    ggState.placedMinions.push({ id: 'pm_' + Date.now() + '_' + col + '_' + row, minionId: ggState.selectedMinionId, x: col, y: row, hp, maxHp: hp, atk, range: bm.range, cooldown: 0, cooldownMax: Math.max(2, 8 - bm.range) });
+    ggState.budgetSpent += bm.cost;
+    ggLog(`Placed ${bm.name} at (${col},${row}).`, '#88cc88');
+    renderGgGrid();
+}
+
+function removeGgMinion(pmId) {
+    const idx = ggState.placedMinions.findIndex(m => m.id === pmId);
+    if (idx === -1) return;
+    const pm = ggState.placedMinions[idx];
+    ggState.budgetSpent -= battleMinions[pm.minionId]?.cost || 0;
+    ggState.placedMinions.splice(idx, 1);
+    renderGgGrid();
+}
+
+window.ggStartWave = function() {
+    if (ggState.waveInProgress) return;
+    if (ggState.waveIndex >= GG_WAVES.length) return;
+    const wave = GG_WAVES[ggState.waveIndex];
+    ggLog(`--- ${wave.label} ---`, '#ff6644');
+
+    // Spawn enemies staggered along column 0
+    const scaleFactor = 1 + ggState.waveIndex * 0.4;
+    wave.enemies.forEach((minionId, i) => {
+        const bm = battleMinions[minionId];
+        if (!bm) return;
+        const row = i % GG_ROWS;
+        const hp  = Math.ceil(bm.hp  * scaleFactor);
+        const atk = Math.ceil(bm.atk * scaleFactor);
+        setTimeout(() => {
+            ggState.enemies.push({ id: 'e_' + (++ggState.enemyIdCounter), minionId, x: 0, y: row, hp, maxHp: hp, atk, moveTimer: 0, moveCooldown: Math.max(2, 12 - ggState.waveIndex * 1.5), dead: false });
+        }, i * 600);
+    });
+
+    ggState.waveInProgress = true;
+    document.getElementById('gg-start-btn').disabled = true;
+    document.getElementById('gg-wave-label').textContent = `${wave.label}`;
+
+    // Update enemy queue display
+    const queueEl = document.getElementById('gg-enemy-queue');
+    if (queueEl) queueEl.textContent = `Incoming: ${wave.enemies.map(id => battleMinions[id]?.icon || '👹').join(' ')}`;
+
+    // Start tick
+    if (ggState.intervalId) clearInterval(ggState.intervalId);
+    ggState.intervalId = setInterval(ggTick, 300);
+};
+
+window.ggMercy = function() {
+    const now = Date.now();
+    const mercyReady = (now - (gameState.godsGauntlet.mercyUsedAt || 0)) > GG_MERCY_CD_MS;
+    if (!mercyReady) {
+        ggLog('Divine Mercy not ready — available once every 24 hours.', '#ff4444');
+        return;
+    }
+    if (ggState.intervalId) clearInterval(ggState.intervalId);
+    ggState.active = false;
+    gameState.godsGauntlet.mercyUsedAt = now;
+    gameState.godsGauntlet._announced = false;
+    saveGame();
+    ggLog('🕊 Divine Mercy granted. The God withdraws... for now.', '#888');
+    Toastify({ text: '🕊 Divine Mercy used. The Gauntlet has been forgiven.', duration: 5000, style: { background: 'linear-gradient(135deg,#0a0a2a,#2a2a4a)' } }).showToast();
+    document.getElementById('gg-start-btn').disabled = true;
+    renderGgStatusBar();
+};
+
+function ggTick() {
+    if (!ggState.waveInProgress) return;
+
+    // 1. Move enemies toward altar
+    ggState.enemies.forEach(enemy => {
+        if (enemy.dead) return;
+        enemy.moveTimer = (enemy.moveTimer || 0) + 1;
+        if (enemy.moveTimer >= enemy.moveCooldown) {
+            enemy.moveTimer = 0;
+            // Check if a placed minion is blocking this row
+            const blocker = ggState.placedMinions.find(pm => pm.x === enemy.x + 1 && pm.y === enemy.y);
+            if (blocker) {
+                // Attack the blocker instead of moving
+                blocker.hp -= enemy.atk;
+                ggLog(`${battleMinions[enemy.minionId]?.icon || '👹'} attacks ${battleMinions[blocker.minionId]?.icon || '👿'} for ${enemy.atk}!`, '#ff8844');
+                if (blocker.hp <= 0) {
+                    ggState.placedMinions = ggState.placedMinions.filter(pm => pm.id !== blocker.id);
+                    ggLog(`${battleMinions[blocker.minionId]?.name} was destroyed!`, '#ff4444');
+                }
+            } else {
+                enemy.x++;
+                if (enemy.x >= GG_ALTAR_COL) {
+                    // Reached altar
+                    ggState.altarHp -= enemy.atk;
+                    enemy.dead = true;
+                    ggLog(`💥 ${battleMinions[enemy.minionId]?.name} reached the altar! -${enemy.atk} HP.`, '#ff2222');
+                    renderGgHud();
+                    if (ggState.altarHp <= 0) { ggDefeat(); return; }
+                }
+            }
+        }
+    });
+
+    // 2. Placed minions attack nearest enemy in range
+    ggState.placedMinions.forEach(pm => {
+        pm.cooldown = (pm.cooldown || 0) + 1;
+        if (pm.cooldown < pm.cooldownMax) return;
+        pm.cooldown = 0;
+        // Find nearest living enemy within range columns
+        const targets = ggState.enemies.filter(e => !e.dead && Math.abs(e.x - pm.x) <= pm.range && e.y === pm.y);
+        if (targets.length === 0) {
+            // Try any row within 1
+            const nearby = ggState.enemies.filter(e => !e.dead && Math.abs(e.x - pm.x) <= pm.range && Math.abs(e.y - pm.y) <= 1);
+            if (nearby.length === 0) return;
+            targets.push(nearby.reduce((a, b) => b.x > a.x ? b : a));
+        }
+        const target = targets.reduce((a, b) => b.x > a.x ? b : a); // closest to altar
+        target.hp -= pm.atk;
+        if (target.hp <= 0) {
+            target.dead = true;
+            ggLog(`${battleMinions[pm.minionId]?.icon || '👿'} slays ${battleMinions[target.minionId]?.name}!`, '#44cc88');
+        }
+    });
+
+    // 3. Remove dead enemies
+    ggState.enemies = ggState.enemies.filter(e => !e.dead);
+
+    // 4. Re-render grid
+    renderGgGrid();
+
+    // 5. Check wave clear
+    if (ggState.enemies.length === 0) {
+        clearInterval(ggState.intervalId);
+        ggState.waveInProgress = false;
+        ggState.waveIndex++;
+        ggLog(`✓ Wave cleared!`, '#44cc88');
+
+        if (ggState.waveIndex >= GG_WAVES.length) {
+            // All waves done — victory
+            setTimeout(ggVictory, 500);
+        } else {
+            // Next wave — bump budget slightly
+            ggState.budget += 3;
+            document.getElementById('gg-start-btn').disabled = false;
+            document.getElementById('gg-start-btn').textContent = `▶ WAVE ${ggState.waveIndex + 1}`;
+            document.getElementById('gg-wave-label').textContent = `Wave ${ggState.waveIndex + 1} / 5`;
+            ggLog(`Prepare for ${GG_WAVES[ggState.waveIndex].label}. Deploy budget increased to ${ggState.budget} pts.`, '#ffcc00');
+            renderGgMinionPalette();
+            renderGgGrid();
+            const queueEl = document.getElementById('gg-enemy-queue');
+            if (queueEl) queueEl.textContent = `Next: ${GG_WAVES[ggState.waveIndex].enemies.map(id => battleMinions[id]?.icon || '👹').join(' ')}`;
+        }
+    }
+}
+
+function ggVictory() {
+    ggState.active = false;
+    gameState.godsGauntlet._announced = false;
+    gameState.godsGauntlet.gauntletCount = (gameState.godsGauntlet.gauntletCount || 0) + 1;
+    applyGgDivineBuff();
+    ggLog('⚡ THE GOD IS PLEASED. DIVINE FAVOR GRANTED.', '#ffcc00');
+    Toastify({ text: '⚡ GOD\'S GAUNTLET CLEARED! Divine Favor active — SPS doubled for 10 minutes!', duration: 9000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a1000,#ffcc0033)' } }).showToast();
+    document.getElementById('gg-start-btn').disabled = true;
+    document.getElementById('gg-start-btn').textContent = '✓ TRIAL COMPLETE';
+    document.getElementById('gg-wave-label').textContent = 'CLEARED ✓';
+    renderGgStatusBar();
+    saveGame();
+}
+
+function ggDefeat() {
+    clearInterval(ggState.intervalId);
+    ggState.active = false;
+    gameState.godsGauntlet._announced = false;
+    applyGgCurse();
+    ggLog('💀 YOUR ALTAR FALLS. THE GOD TAKES WHAT IS HIS.', '#ff2222');
+    Toastify({ text: '💀 GAUNTLET FAILED — Equipped items cursed and stripped for 30 minutes!', duration: 9000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0008,#3a0018)' } }).showToast();
+    document.getElementById('gg-start-btn').disabled = true;
+    document.getElementById('gg-start-btn').textContent = '💀 DEFEATED';
+    renderGgStatusBar();
+    saveGame();
+}
+
+function ggLog(msg, color) {
+    const log = document.getElementById('gg-log');
+    if (!log) return;
+    const entry = document.createElement('div');
+    entry.style.cssText = `color:${color || '#666'}; padding:1px 0; border-bottom:1px solid #0d0920;`;
+    entry.textContent = msg;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+}
+
 // =================================================================
 // ABYSSAL BREACH CHEST — CS:GO-style reel reveal
 // =================================================================

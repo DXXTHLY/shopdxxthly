@@ -5342,41 +5342,6 @@ const minions = {
             { level: 30, desc: "The Accord's terms: double the SPS of all secret minions you own.", bonus: { type: 'secret_minion_sps_doubler', value: 2 } }
         ]
     },
-
-    // ── ABYSSAL LEGENDARIES ──────────────────────────────────────────────────
-    soul_render: {
-        name: "Soul Render", baseSps: 1e20, cost: 0, multiplier: 0, secret: true,
-        lore: "A blade given consciousness by the screams of a billion devoured souls. It doesn't fight — it unmakes. Every swing tears not just flesh but memory, identity, existence itself. Players who face it in the arena report forgetting their own names.",
-        icon: '🩸',
-        promotions: [],
-        researchTiers: [
-            { level: 5,  desc: "Soul Render devours enemy SPS in PvP — opponent gains 10% less passive damage.", bonus: { type: 'pvp_defense', value: 0.90 } },
-            { level: 15, desc: "Soul Render's hunger spreads — global SPS +25%.", bonus: { type: 'global_sps_multiplier', value: 1.25 } },
-            { level: 30, desc: "Your click damage in PvP is tripled.", bonus: { type: 'pvp_offense', value: 3.0 } },
-        ]
-    },
-    the_void_herald: {
-        name: "The Void Herald", baseSps: 5e20, cost: 0, multiplier: 0, secret: true,
-        lore: "It arrives three seconds before it should be possible. A herald of the space between spaces, it fires bolts of compressed nothingness across any distance. Witnesses describe the sensation of being aimed at as 'hearing a sound that hasn't happened yet'.",
-        icon: '🌑',
-        promotions: [],
-        researchTiers: [
-            { level: 5,  desc: "The Void Herald fires across time — your PvP click damage is doubled.", bonus: { type: 'pvp_offense', value: 2.0 } },
-            { level: 15, desc: "Void resonance — +15% Abyssal Shards on ascension.", bonus: { type: 'ascension_shard_bonus', value: 0.15 } },
-            { level: 30, desc: "Tears in reality — opponent's passive damage reduced by 50%.", bonus: { type: 'pvp_defense', value: 0.50 } },
-        ]
-    },
-    abyssal_sovereign: {
-        name: "Abyssal Sovereign", baseSps: 2e21, cost: 0, multiplier: 0, secret: true,
-        lore: "Not a creature — a title. The Abyssal Sovereign is whatever stands at the top of the hierarchy of the damned at any given moment. It has worn a thousand faces. Currently it has chosen yours. You didn't summon it. It nominated itself.",
-        icon: '👑',
-        promotions: [],
-        researchTiers: [
-            { level: 5,  desc: "Sovereign authority — you begin PvP with a 4-second head start.", bonus: { type: 'pvp_headstart', value: 4 } },
-            { level: 15, desc: "Dark dominion — global SPS and SPC both +20%.", bonus: { type: 'global_all_multiplier', value: 1.20 } },
-            { level: 30, desc: "Absolute rule — all PvP stats doubled.", bonus: { type: 'pvp_offense', value: 2.0 } },
-        ]
-    },
 };
 
 // =================================================================
@@ -5456,11 +5421,6 @@ const battleMinions = {
     wraith_of_avarice:  { name: "Wraith of Avarice",  hp: 60,  atk: 30, range: 4, cost: 16, icon: '💰', secret: true },
     hollow_sovereign:   { name: "Hollow Sovereign",   hp: 180, atk: 22, range: 1, cost: 20, icon: '👻', secret: true },
     the_pale_accord:    { name: "The Pale Accord",    hp: 95,  atk: 38, range: 3, cost: 24, icon: '📋', secret: true },
-    // ── ABYSSAL LEGENDARIES (0.1% cache drop, secret:true) ─────────────
-    soul_render:       { name: "Soul Render",       hp: 800, atk: 120, range: 1, cost: 50, icon: '🩸', secret: true },
-    the_void_herald:   { name: "The Void Herald",   hp: 300, atk: 200, range: 6, cost: 55, icon: '🌑', secret: true },
-    abyssal_sovereign: { name: "Abyssal Sovereign", hp: 600, atk: 150, range: 3, cost: 52, icon: '👑', secret: true },
-
 };
 
 
@@ -6460,6 +6420,38 @@ const items = {
     diadem_of_omniscience:{ name:"Diadem of Omniscience", type:"helm",  rarity:"legendary", desc:"SPS ×2, SPC ×2, minion costs -20%, and potions last 25% longer.", bonus:{type:'sps_multiplier',value:2.0,and:{type:'buff_duration_multiplier',value:1.25}} },
     skull_of_the_abyss:   { name:"Skull of the Abyss",   type:"helm",   rarity:"legendary", desc:"For every unique minion you own, all minions gain +15% SPS. PvP offense doubled.", bonus:{type:'sps_multiplier_per_unique_minion',value:1.15,and:{type:'pvp_offense',value:2.0}} },
 
+
+    // ── NEW ITEMS (added for shop variety) ─────────────────────────────────
+
+    // WEAPONS
+    shard_splitter:        { name: "Shard Splitter",        type: "weapon", rarity: "uncommon",  desc: "+15% SPC. Each click has a 2% chance to grant 1 Abyssal Shard.",       bonus: { type: 'spc_multiplier', value: 1.15, and: { type: 'spc_shard_chance', value: 0.02 } } },
+    void_razor:            { name: "Void Razor",            type: "weapon", rarity: "rare",      desc: "+40% SPC. Your click damage also adds 0.005% to your SPS.",            bonus: { type: 'spc_multiplier', value: 1.40, and: { type: 'spc_to_sps', value: 0.00005 } } },
+    essence_harvester:     { name: "Essence Harvester",     type: "weapon", rarity: "epic",      desc: "+60% SPC. Sacrifices yield 8% more Dark Essence.",                     bonus: { type: 'spc_multiplier', value: 1.60, and: { type: 'essence_multiplier', value: 1.08 } } },
+    obliterator:           { name: "The Obliterator",       type: "weapon", rarity: "legendary", desc: "Triples SPC. In PvP your click damage is +75%.",                        bonus: { type: 'spc_multiplier', value: 3.0, and: { type: 'pvp_offense', value: 1.75 } } },
+
+    // IDOLS
+    idol_of_greed:         { name: "Idol of Greed",         type: "idol",   rarity: "uncommon",  desc: "+20% SPS. Gain 3% more Abyssal Shards on Ascension.",                  bonus: { type: 'sps_multiplier', value: 1.20, and: { type: 'ascension_shard_bonus', value: 0.03 } } },
+    chaos_totem:           { name: "Chaos Totem",           type: "idol",   rarity: "rare",      desc: "+45% SPS. Minion costs reduced by 8%.",                                bonus: { type: 'sps_multiplier', value: 1.45, and: { type: 'minion_cost_reducer', value: 0.92 } } },
+    abyssal_heart:         { name: "Abyssal Heart",         type: "idol",   rarity: "epic",      desc: "+70% SPS. Your SPS also contributes 0.002% to your SPC.",               bonus: { type: 'sps_multiplier', value: 1.70, and: { type: 'sps_to_spc', value: 0.00002 } } },
+    idol_of_annihilation:  { name: "Idol of Annihilation",  type: "idol",   rarity: "legendary", desc: "+150% SPS. All minion costs reduced by 15%.",                           bonus: { type: 'sps_multiplier', value: 2.50, and: { type: 'minion_cost_reducer', value: 0.85 } } },
+
+    // SIGILS
+    sigil_of_the_hunt:     { name: "Sigil of the Hunt",     type: "sigil",  rarity: "uncommon",  desc: "+7% Dark Essence from sacrifices. +5% Abyssal Shards on Ascension.",   bonus: { type: 'essence_multiplier', value: 1.07, and: { type: 'ascension_shard_bonus', value: 0.05 } } },
+    mark_of_void:          { name: "Mark of Void",          type: "sigil",  rarity: "rare",      desc: "Soul Resonance is 25% more effective. +5% SPS.",                       bonus: { type: 'resonance_bonus_enhancer', value: 0.25, and: { type: 'sps_multiplier', value: 1.05 } } },
+    fracture_seal:         { name: "Fracture Seal",         type: "sigil",  rarity: "epic",      desc: "+12% Dark Essence. Soul Resonance 30% more effective.",                 bonus: { type: 'essence_multiplier', value: 1.12, and: { type: 'resonance_bonus_enhancer', value: 0.30 } } },
+    omega_sigil:           { name: "Omega Sigil",           type: "sigil",  rarity: "legendary", desc: "+20% Dark Essence. +20% Shards. Soul Resonance 50% more effective.",   bonus: { type: 'essence_multiplier', value: 1.20, and: { type: 'ascension_shard_bonus', value: 0.20 } } },
+
+    // HELMS
+    crown_of_spite:        { name: "Crown of Spite",        type: "helm",   rarity: "uncommon",  desc: "In PvP, opponent takes 20% more passive damage.",                       bonus: { type: 'pvp_offense', value: 1.20 } },
+    warhelm_of_ruin:       { name: "Warhelm of Ruin",       type: "helm",   rarity: "rare",      desc: "In PvP, your click damage +40%. Opponent passive -15%.",                bonus: { type: 'pvp_offense', value: 1.40, and: { type: 'pvp_defense', value: 0.85 } } },
+    helm_of_the_fallen:    { name: "Helm of the Fallen",    type: "helm",   rarity: "epic",      desc: "You deal double click damage in PvP and take 30% less passive damage.", bonus: { type: 'pvp_offense', value: 2.0, and: { type: 'pvp_defense', value: 0.70 } } },
+    crown_of_godslaying:   { name: "Crown of Godslaying",   type: "helm",   rarity: "legendary", desc: "PvP click ×3. Opponent passive -40%. 3-second PvP head start.",         bonus: { type: 'pvp_offense', value: 3.0, and: { type: 'pvp_defense', value: 0.60 } } },
+
+    // TOMES
+    tome_of_alacrity:      { name: "Tome of Alacrity",      type: "tome",   rarity: "uncommon",  desc: "All minions cost 5% less. Potions last 15% longer.",                   bonus: { type: 'minion_cost_reducer', value: 0.95, and: { type: 'buff_duration_multiplier', value: 1.15 } } },
+    codex_of_the_deep:     { name: "Codex of the Deep",     type: "tome",   rarity: "rare",      desc: "Worlds cost 5% fewer Souls. +10% SPS.",                                bonus: { type: 'world_cost_reducer', value: 0.95, and: { type: 'sps_multiplier', value: 1.10 } } },
+    grimoire_of_dominion:  { name: "Grimoire of Dominion",  type: "tome",   rarity: "epic",      desc: "Potions last 30% longer. Minion costs -10%. +8% SPS.",                  bonus: { type: 'buff_duration_multiplier', value: 1.30, and: { type: 'minion_cost_reducer', value: 0.90 } } },
+    tome_of_the_architect: { name: "Tome of the Architect", type: "tome",   rarity: "legendary", desc: "Potions last 50% longer. Minion costs -20%. Worlds cost 8% less.",      bonus: { type: 'buff_duration_multiplier', value: 1.50, and: { type: 'minion_cost_reducer', value: 0.80 } } },
 };
 
 const potions = {
@@ -11030,36 +11022,7 @@ function openAbyssalCache() {
     if (Date.now() < gameState.nextCacheTime) return;
     gameState.cachesOpened++;
 
-    // ── ABYSSAL LEGENDARY DROP (0.1% chance — ultra rare) ─────────────
-    const legendRoll = Math.random();
-    if (legendRoll < 0.001) {
-        const legendPool = ['soul_render', 'the_void_herald', 'abyssal_sovereign'];
-        const legendId = legendPool[Math.floor(Math.random() * legendPool.length)];
-        if ((gameState.minions[legendId]?.level || 0) === 0) {
-            if (!gameState.minions[legendId]) gameState.minions[legendId] = { level: 0, cost: 0, promotionTier: 0 };
-            gameState.minions[legendId].level = 1;
-            const lm = minions[legendId];
-            const modal = document.getElementById('item-modal-overlay');
-            const rewardDiv = document.getElementById('item-modal-reward');
-            rewardDiv.innerHTML = `
-                <div style="font-size:2.5em; margin-bottom:8px;">${lm.icon}</div>
-                <div style="color:#ff44aa; font-family:var(--font-title); font-size:1.1em; letter-spacing:3px; margin-bottom:6px;">${lm.name}</div>
-                <div style="color:#ff44aa; font-size:0.78em; text-transform:uppercase; letter-spacing:3px; margin-bottom:12px;">✦ ABYSSAL LEGENDARY ✦</div>
-                <div style="background:linear-gradient(135deg,#1a001a,#0a0012); border:1px solid #ff44aa33; border-radius:8px; padding:12px 14px; color:#888; font-size:0.82em; line-height:1.6; font-style:italic;">${lm.lore}</div>
-                <div style="margin-top:12px; color:#ff44aa88; font-size:0.72em;">0.1% drop from Abyssal Cache · Dominates PvP · Check your Bestiary</div>`;
-            rewardDiv.style.textAlign = 'center';
-            modal.style.display = 'flex';
-            calculateStats(); renderAll(); saveGame();
-            if (typeof Toastify !== 'undefined') Toastify({
-                text: '🩸 ABYSSAL LEGENDARY: ' + lm.name + ' has chosen you!',
-                duration: 10000, gravity: 'top', position: 'center',
-                style: { background: 'linear-gradient(135deg,#1a001a,#ff44aa44)', color:'#ff44aa', fontWeight:'bold', fontSize:'1.1em' }
-            }).showToast();
-            return;
-        }
-    }
-
-    // ── SECRET MINION DROP (0.75% chance) ──────────────────────────────────
+    // ── SECRET MINION DROP (2% chance) ──────────────────────────
     const secretRoll = Math.random();
     if (secretRoll < 0.0075) {
         // Weighted drop: wraith_of_avarice 40%, hollow_sovereign 40%, the_pale_accord 20%
@@ -13201,8 +13164,12 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     } else if (itemType === 'potion') {
         gameState.potions[itemId] = (gameState.potions[itemId] || 0) + 1;
         Toastify({ text: `✔ ${itemName} added to your brewery.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a14,#44cc88)' } }).showToast();
+        if (typeof renderPotions === 'function') renderPotions();
     } else if (itemType === 'market_potion') {
         gameState.potions[itemId] = (gameState.potions[itemId] || 0) + 1;
+        const _mpName = potions[itemId]?.name || itemId;
+        Toastify({ text: `🔥 ${_mpName} added to your Brewery!`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0a00,#ff664488)' } }).showToast();
+        if (typeof renderPotions === 'function') renderPotions();
     } else if (itemType === 'key') {
         if (typeof presentKey === 'function') presentKey(itemId, 'shop');
         Toastify({ text: `🔥 ${itemName} secured! Check your Brewery.`, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0a00,#ff6644)' } }).showToast();
@@ -14327,18 +14294,15 @@ function initializeChat() {
                 listenForOnlineUsers(db);
                 setupEventListeners(db, uid);
                 window._chatDb = db; window._chatUid = uid;
-
                 var REP_TIERS=[{min:0,title:'Newcomer',color:'#555555',icon:'👤'},{min:10,title:'Soul Lurker',color:'#888888',icon:'👻'},{min:50,title:'Void Whisperer',color:'#44cc88',icon:'🌿'},{min:150,title:'Shade Walker',color:'#4488ff',icon:'💧'},{min:400,title:'Rift Crawler',color:'#aa44ff',icon:'🔮'},{min:900,title:'Abyss Warden',color:'#c8a800',icon:'⚡'},{min:2000,title:'Demon Lord',color:'#ff6644',icon:'👹'},{min:5000,title:'Soul Sovereign',color:'#ff44aa',icon:'💀'}];
                 window._getRepTier=function(r){var t=REP_TIERS[0];for(var i=0;i<REP_TIERS.length;i++){if(r>=REP_TIERS[i].min)t=REP_TIERS[i];}return t;};
                 window._getNextRepTier=function(r){for(var i=0;i<REP_TIERS.length;i++){if(REP_TIERS[i].min>r)return REP_TIERS[i];}return null;};
-                window._buildRepBar=function(repVal,isSelf,targetUid,targetName){var tier=window._getRepTier(repVal),next=window._getNextRepTier(repVal);var pct=next?Math.min(100,Math.round(((repVal-tier.min)/(next.min-tier.min))*100)):100;var today=new Date().toISOString().slice(0,10);var gave=!!localStorage.getItem('repGiven_'+today+'_'+targetUid);var btnHtml=isSelf?'':'<button id="give-rep-btn" data-uid="'+escapeHTML(targetUid)+'" data-name="'+escapeHTML(targetName)+'" style="font-size:0.72em;padding:4px 12px;border-radius:6px;font-family:inherit;white-space:nowrap;'+(gave?'background:#0a0a0a;border:1px solid #1a1a1a;color:#333;cursor:not-allowed;">⭐ Gave today':'background:linear-gradient(135deg,#3a3a00,#c8a80022);border:1px solid #c8a80066;color:#c8a800;cursor:pointer;">⭐ Give +5 Rep')+'</button>';return'<div style="padding:12px 20px 10px;border-bottom:1px solid #1a1030;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:1.1em;">'+tier.icon+'</span><span style="color:'+tier.color+';font-family:var(--font-title);font-size:0.78em;letter-spacing:1px;">'+tier.title+'</span><span id="rep-count" style="color:#444;font-size:0.68em;">• '+repVal+' rep</span></div>'+btnHtml+'</div><div style="background:#0a0a0a;border-radius:4px;height:6px;overflow:hidden;border:1px solid #1a1030;"><div id="rep-bar-fill" style="height:100%;width:'+pct+'%;background:linear-gradient(to right,'+tier.color+'88,'+tier.color+');border-radius:4px;transition:width 0.6s;"></div></div>'+(next?'<div style="color:#333;font-size:0.6em;text-align:right;margin-top:3px;">'+repVal+'/'+next.min+' → '+next.icon+' '+next.title+'</div>':'<div style="color:#c8a800;font-size:0.6em;text-align:right;margin-top:3px;">✦ Max Rank</div>')+'</div>';};
-                window._myRep=0;
-                db.ref('playerData/'+uid+'/rep').on('value',function(snap){window._myRep=snap.val()||0;});
-                var _repDayKey=new Date().toISOString().slice(0,10);
-                var _repTodayCount=parseInt(localStorage.getItem('repToday_'+_repDayKey)||'0');
-                window._addPassiveRep=function(amount){if(_repTodayCount>=50)return;_repTodayCount=Math.min(50,_repTodayCount+amount);localStorage.setItem('repToday_'+_repDayKey,_repTodayCount);db.ref('playerData/'+uid+'/rep').transaction(function(cur){return(cur||0)+amount;});};
+                window._buildRepBar=function(rv,isSelf,tuid,tname){var t=window._getRepTier(rv),n=window._getNextRepTier(rv);var pct=n?Math.min(100,Math.round(((rv-t.min)/(n.min-t.min))*100)):100;var today=new Date().toISOString().slice(0,10);var gave=!!localStorage.getItem('repGiven_'+today+'_'+tuid);var btn=isSelf?'':'<button id="give-rep-btn" data-uid="'+escapeHTML(tuid)+'" data-name="'+escapeHTML(tname)+'" style="font-size:0.72em;padding:4px 12px;border-radius:6px;font-family:inherit;white-space:nowrap;'+(gave?'background:#0a0a0a;border:1px solid #1a1a1a;color:#333;cursor:not-allowed;">⭐ Gave today':'background:linear-gradient(135deg,#3a3a00,#c8a80022);border:1px solid #c8a80066;color:#c8a800;cursor:pointer;">⭐ Give +5 Rep')+'</button>';return'<div style="padding:12px 20px 10px;border-bottom:1px solid #1a1030;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:1.1em;">'+t.icon+'</span><span style="color:'+t.color+';font-family:var(--font-title);font-size:0.78em;letter-spacing:1px;">'+t.title+'</span><span id="rep-count" style="color:#444;font-size:0.68em;">• '+rv+' rep</span></div>'+btn+'</div><div style="background:#0a0a0a;border-radius:4px;height:6px;overflow:hidden;border:1px solid #1a1030;"><div id="rep-bar-fill" style="height:100%;width:'+pct+'%;background:linear-gradient(to right,'+t.color+'88,'+t.color+');border-radius:4px;transition:width 0.6s;"></div></div>'+(n?'<div style="color:#333;font-size:0.6em;text-align:right;margin-top:3px;">'+rv+'/'+n.min+' → '+n.icon+' '+n.title+'</div>':'<div style="color:#c8a800;font-size:0.6em;text-align:right;margin-top:3px;">✦ Max Rank</div>')+'</div>';};
+                window._myRep=0;db.ref('playerData/'+uid+'/rep').on('value',function(snap){window._myRep=snap.val()||0;});
+                var _rdk=new Date().toISOString().slice(0,10);var _rtc=parseInt(localStorage.getItem('repToday_'+_rdk)||'0');
+                window._addPassiveRep=function(a){if(_rtc>=50)return;_rtc=Math.min(50,_rtc+a);localStorage.setItem('repToday_'+_rdk,_rtc);db.ref('playerData/'+uid+'/rep').transaction(function(c){return(c||0)+a;});};
                 setInterval(function(){window._addPassiveRep&&window._addPassiveRep(1);},5*60*1000);
-                window._giveRep=function(targetUid,targetName){if(!uid||!targetUid||targetUid===uid)return;var today=new Date().toISOString().slice(0,10);var coolKey='repGiven_'+today+'_'+targetUid;if(localStorage.getItem(coolKey)){if(typeof Toastify!=='undefined')Toastify({text:'⭐ Already gave rep to '+targetName+' today!',duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a0a,#3a3a00)'}}).showToast();return;}db.ref('playerData/'+targetUid+'/rep').transaction(function(cur){return(cur||0)+5;},function(err,committed,snap){if(!committed||err)return;var newRep=snap.val()||0;localStorage.setItem(coolKey,'1');db.ref('repTransfers').push({from:gameState.playerName||'Unknown',fromUid:uid,to:targetName,toUid:targetUid,amount:5,time:firebase.database.ServerValue.TIMESTAMP});var chatName=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';db.ref('slitherChat').push({uid:uid,name:chatName,chatNameColor:localStorage.getItem('slitherChatNameColor')||'#c8a800',time:firebase.database.ServerValue.TIMESTAMP,text:'⭐ '+chatName+' gave +5 Rep to '+targetName+'!'});var popup=document.querySelector('.profile-popup');if(popup){var tier=window._getRepTier(newRep),next=window._getNextRepTier(newRep),pct=next?Math.min(100,Math.round(((newRep-tier.min)/(next.min-tier.min))*100)):100;var fill=popup.querySelector('#rep-bar-fill');if(fill)fill.style.width=pct+'%';var rc=popup.querySelector('#rep-count');if(rc)rc.textContent='• '+newRep+' rep';var btn=popup.querySelector('#give-rep-btn');if(btn){btn.textContent='⭐ Gave today';btn.style.cursor='not-allowed';btn.style.color='#333';btn.style.borderColor='#1a1a1a';btn.style.background='#0a0a0a';}}if(typeof Toastify!=='undefined')Toastify({text:'⭐ +5 Rep given to '+targetName+'! They now have '+newRep+' rep.',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();});};
+                window._giveRep=function(tuid,tname){if(!uid||!tuid||tuid===uid)return;var today=new Date().toISOString().slice(0,10);var ck='repGiven_'+today+'_'+tuid;if(localStorage.getItem(ck)){if(typeof Toastify!=='undefined')Toastify({text:'⭐ Already gave rep to '+tname+' today!',duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a0a,#3a3a00)'}}).showToast();return;}db.ref('playerData/'+tuid+'/rep').transaction(function(cur){return(cur||0)+5;},function(err,committed,snap){if(!committed||err)return;var nr=snap.val()||0;localStorage.setItem(ck,'1');db.ref('repTransfers').push({from:gameState.playerName||'Unknown',fromUid:uid,to:tname,toUid:tuid,amount:5,time:firebase.database.ServerValue.TIMESTAMP});db.ref('slitherChat').push({uid:uid,name:gameState.playerName||'Unknown',chatNameColor:localStorage.getItem('slitherChatNameColor')||'#c8a800',time:firebase.database.ServerValue.TIMESTAMP,text:'⭐ '+(gameState.playerName||'Unknown')+' gave +5 Rep to '+tname+'!'});var popup=document.querySelector('.profile-popup');if(popup){var t=window._getRepTier(nr),n=window._getNextRepTier(nr),pct=n?Math.min(100,Math.round(((nr-t.min)/(n.min-t.min))*100)):100;var fill=popup.querySelector('#rep-bar-fill');if(fill)fill.style.width=pct+'%';var rc=popup.querySelector('#rep-count');if(rc)rc.textContent='• '+nr+' rep';var btn=popup.querySelector('#give-rep-btn');if(btn){btn.textContent='⭐ Gave today';btn.style.cursor='not-allowed';btn.style.color='#333';btn.style.borderColor='#1a1a1a';btn.style.background='#0a0a0a';}}if(typeof Toastify!=='undefined')Toastify({text:'⭐ +5 Rep to '+tname+'! They now have '+nr+' rep.',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();});};
             });
         }
 
@@ -14358,7 +14322,7 @@ function initializeChat() {
         if(sh&&sh.gt(0))cc+=aC(formatNumber(sh)+' Shards','💎','#4488ff','abyssalShards',sh.toNumber(),true,'<div style="font-size:1.4em;">💎</div><div style="color:#88aaff;font-size:0.58em;font-weight:bold;">'+formatNumber(sh)+'</div><div style="color:#555;font-size:0.5em;">Shards</div>');
         var pc='';Object.keys(gameState.potions||{}).forEach(function(id){var cnt=gameState.potions[id];if(!cnt||cnt<1||!potions[id])return;var p=potions[id];var ico=(typeof potionMeta!=='undefined'&&potionMeta[id]&&potionMeta[id].icon)?potionMeta[id].icon:'⚗️';pc+=aC(p.name+' x'+cnt,ico,'#aa44ff','potion:'+id,cnt,false,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(p.name)+'</div><div style="color:#555;font-size:0.5em;">x'+cnt+'</div>');});
         var ic='';(gameState.inventory||[]).forEach(function(id){if(!items[id])return;var it=items[id];var rc=RC[it.rarity]||'#888';var ico=TI[it.type]||'🔮';ic+=aC(it.name,ico,rc,'item:'+id,1,false,'<div style="font-size:1.4em;">'+ico+'</div><div style="color:'+rc+';font-size:0.58em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.5em;">'+escapeHTML(it.rarity||'')+'</div>');});
-        var mc='';Object.keys(gameState.minions||{}).forEach(function(id){var gm=gameState.minions[id];var bm=typeof battleMinions!=='undefined'?battleMinions[id]:null;var md=typeof minions!=='undefined'?minions[id]:null;if(!gm||!gm.level||gm.level<1)return;var lv=gm.level||0,pr=gm.promotionTier||0,ico=(bm&&bm.icon)||(md&&md.icon)||'👿',nm=(bm&&bm.name)||(md&&md.name)||id;var tc=TC[Math.min(5,Math.floor(lv/25))];var sh2='?',sa='?';if(bm){var tot=(1+(Math.floor(lv/25)*0.05))*(1+(pr*0.20));sh2=Math.ceil(bm.hp*tot);sa=Math.ceil(bm.atk*tot);}var sts=pr>0?'<span style="color:#c8a800;font-size:0.55em;">'+('★'.repeat(pr))+'</span>':'';var isL=md&&md.secret&&!md.promotions.length;var border=isL?'#ff44aa':''+tc;mc+=aC(nm+' Lv'+lv+(pr>0?' '+'★'.repeat(pr):''),ico,border,'minion:'+id,lv,false,'<div style="font-size:1.5em;">'+ico+'</div><div style="color:#ddd;font-size:0.6em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(isL?'<span style="color:#ff44aa">'+escapeHTML(nm)+'</span>':escapeHTML(nm))+'</div><div style="color:'+tc+';font-size:0.55em;">Lv'+lv+sts+'</div><div style="font-size:0.5em;color:#888;"><span style="color:#cc4444;">❤'+sh2+'</span> <span style="color:#ff9944;">⚔'+sa+'</span></div>');});
+        var mc='';Object.keys(gameState.minions||{}).forEach(function(id){var gm=gameState.minions[id];var bm=typeof battleMinions!=='undefined'?battleMinions[id]:null;var md=typeof minions!=='undefined'?minions[id]:null;if(!gm||!gm.level||gm.level<1)return;var lv=gm.level||0,pr=gm.promotionTier||0,ico=(bm&&bm.icon)||(md&&md.icon)||'👿',nm=(bm&&bm.name)||(md&&md.name)||id;var tc=TC[Math.min(5,Math.floor(lv/25))];var s2='?',sa='?';if(bm){var tot=(1+(Math.floor(lv/25)*0.05))*(1+(pr*0.20));s2=Math.ceil(bm.hp*tot);sa=Math.ceil(bm.atk*tot);}var sts=pr>0?'<span style="color:#c8a800;font-size:0.55em;">'+('★'.repeat(pr))+'</span>':'';var isL=md&&md.secret&&md.promotions&&!md.promotions.length;mc+=aC(nm+' Lv'+lv+(pr>0?' '+'★'.repeat(pr):''),ico,isL?'#ff44aa':tc,'minion:'+id,lv,false,'<div style="font-size:1.5em;">'+ico+'</div><div style="color:#ddd;font-size:0.6em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(isL?'<span style="color:#ff44aa">'+escapeHTML(nm)+'</span>':escapeHTML(nm))+'</div><div style="color:'+tc+';font-size:0.55em;">Lv'+lv+sts+'</div><div style="font-size:0.5em;color:#888;"><span style="color:#cc4444;">❤'+s2+'</span> <span style="color:#ff9944;">⚔'+sa+'</span></div>');});
         var body=sec('💀 Currencies',cc)+sec('⚗️ Potions',pc)+sec('📦 Items',ic)+sec('👿 Minions',mc)||'<div style="color:#444;font-size:0.78em;text-align:center;padding:20px;">Your inventory is empty.</div>';
         var ov=document.createElement('div');ov.id='trade-offer-overlay';ov.style.cssText='position:fixed;inset:0;background:#000000cc;z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
         ov.innerHTML='<div style="background:linear-gradient(160deg,#06040f,#0e0a1a);border:1px solid #3a1a5a;border-top:3px solid #44cc88;border-radius:14px;max-width:460px;width:94%;padding:22px 18px;box-shadow:0 0 60px #00000099;max-height:85vh;display:flex;flex-direction:column;"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;"><div><div style="color:#44cc88;font-size:0.72em;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;">🤝 Trade Proposal</div><div style="color:#888;font-size:0.78em;">You want: <b style="color:#ddd;">'+escapeHTML(wantIcon)+' '+escapeHTML(wantName)+(wantAmt>1?' x'+wantAmt:'')+'</b> from <b style="color:#c8a800;">'+escapeHTML(targetName)+'</b></div></div><button id="toc-close" style="background:none;border:none;color:#555;font-size:1.3em;cursor:pointer;padding:2px 6px;">✕</button></div><div style="color:#555;font-size:0.7em;margin-bottom:10px;">Pick what you are offering. On accept it auto-lists in the Market:</div><div id="toc-cards" style="overflow-y:auto;flex:1;padding-right:4px;min-height:80px;">'+body+'</div><div id="toc-amt-row" style="display:none;margin-top:10px;"><div style="color:#44cc88;font-size:0.72em;margin-bottom:5px;">How much? <span id="toc-amt-max" style="color:#555;"></span></div><input id="toc-amt" type="number" min="1" style="width:100%;box-sizing:border-box;background:#0a0812;border:1px solid #44cc8866;color:#ddd;padding:8px 10px;border-radius:8px;font-family:inherit;font-size:0.9em;outline:none;"></div><div id="toc-selected" style="display:none;background:#0a180a;border:1px solid #44cc8833;border-radius:8px;padding:8px 12px;margin:10px 0 4px;font-size:0.78em;color:#44cc88;"></div><button id="toc-send" style="margin-top:8px;width:100%;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:8px;padding:10px 14px;color:#44cc88;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;">📨 Send Trade Offer</button></div>';
@@ -14367,8 +14331,8 @@ function initializeChat() {
         document.getElementById('toc-cards').addEventListener('click',function(e){var card=e.target.closest('.toc-card');if(!card)return;var ch=oc[+card.dataset.idx];if(!ch)return;ov.querySelectorAll('.toc-card').forEach(function(c){c.style.boxShadow='';});card.style.boxShadow='0 0 0 2px #44cc88';sc=ch;var ar=document.getElementById('toc-amt-row'),ai=document.getElementById('toc-amt');if(ch.isCurrency){ar.style.display='block';ai.max=ch.maxAmt;ai.value=Math.floor(ch.maxAmt);document.getElementById('toc-amt-max').textContent='(max: '+formatNumber(ch.maxAmt)+')';ai.focus();}else{ar.style.display='none';ai.value=ch.maxAmt;}var sel=document.getElementById('toc-selected');sel.style.display='block';sel.style.color='#44cc88';sel.textContent='Offering: '+ch.icon+' '+ch.label;});
         document.getElementById('toc-amt').addEventListener('input',function(){if(!sc||!sc.isCurrency)return;var v=parseFloat(this.value)||0,pts=sc.label.split(' ');var sel=document.getElementById('toc-selected');sel.style.display='block';sel.textContent='Offering: '+sc.icon+' '+formatNumber(v)+' '+pts.slice(1).join(' ');});
         document.getElementById('toc-close').addEventListener('click',function(){ov.remove();});ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
-        document.getElementById('toc-send').addEventListener('click',function(){if(!sc){var sel=document.getElementById('toc-selected');sel.style.display='block';sel.style.color='#ff4444';sel.textContent='Please select what you are offering first.';setTimeout(function(){sel.style.color='#44cc88';},1500);return;}var oba;if(sc.isCurrency){var iv=parseFloat(document.getElementById('toc-amt').value)||0;if(iv<1||iv>sc.maxAmt){var ai=document.getElementById('toc-amt');ai.style.borderColor='#ff4444';setTimeout(function(){ai.style.borderColor='#44cc8866';},1500);return;}oba=iv;}else{oba=sc.maxAmt;}var ol=sc.isCurrency?(sc.icon+' '+formatNumber(oba)+' '+sc.label.split(' ').slice(1).join(' ')):(sc.icon+' '+sc.label);var cd=_getChatDb();var uid2=_getChatUid();if(!cd||!uid2){alert('Chat not connected.');return;}var myName=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';var col=localStorage.getItem('slitherChatNameColor')||'#c8a800';var tid='tr_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);var mn2=null;if(sc.barterType&&sc.barterType.startsWith('minion:')){var mid=sc.barterType.slice(7);var gm2=gameState.minions[mid];var bm2=typeof battleMinions!=='undefined'?battleMinions[mid]:null;if(gm2&&bm2){var lv2=gm2.level||0,pr2=gm2.promotionTier||0,tot2=(1+(Math.floor(lv2/25)*0.05))*(1+(pr2*0.20));mn2={level:lv2,promoTier:pr2,scaledHp:Math.ceil(bm2.hp*tot2),scaledAtk:Math.ceil(bm2.atk*tot2)};}}var fp={id:tid,from:myName,fromUid:uid2,to:targetName,wantType:wantType,wantName:wantName,wantIcon:wantIcon,wantAmt:wantAmt,offerText:ol,offerIcon:sc.icon,offerBarterType:sc.barterType,offerBarterAmt:oba};if(mn2)fp.minionNote=mn2;_tradeCache[tid]=fp;cd.ref('pact_buffs/trade_'+tid).set(fp);cd.ref('slitherChat').push({uid:uid2,name:myName,chatNameColor:col,time:firebase.database.ServerValue.TIMESTAMP,text:TRADE_PREFIX+tid+TRADE_SUFFIX});ov.remove();if(typeof Toastify!=='undefined'){Toastify({text:'📨 Trade offer sent to '+targetName+'!',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();}});};
-        window._respondToTrade=async function(tid,acc,fromName,wi,wn,ot,wt,wa,obt,oba){var cd=_getChatDb();var uid2=_getChatUid();if(!cd||!uid2)return;var mn=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';if(!acc){cd.ref('slitherChat').push({uid:uid2,name:'Trade System',chatNameColor:'#ff4444',time:firebase.database.ServerValue.TIMESTAMP,text:'❌ '+mn+' declined the trade from '+fromName+'.'});return;}var ap=false;if(typeof supabaseClient!=='undefined'&&supabaseClient&&wt&&obt){try{var la=Math.max(1,Math.round(Number(wa)||1));var wa2=Math.max(1,Math.round(Number(oba)||1));if(typeof hasEnough==='function'&&hasEnough(wt,la)){deductCurrency(wt,la);calculateStats();renderAll();var res=await supabaseClient.from('barter_listings').insert({poster_name:mn,offer_type:wt,offer_amt:la,want_type:obt,want_amt:wa2,is_complete:false,offer_note:JSON.stringify({tradeId:tid,reservedFor:fromName,autoTrade:true})});if(!res.error){ap=true;if(typeof fetchBarterListings==='function')fetchBarterListings();if(typeof refreshMarketTicker==='function')refreshMarketTicker();saveGame();cd.ref('pact_buffs/trade_'+tid).remove();}else{addCurrency(wt,la);calculateStats();renderAll();}}}catch(e){console.warn('Auto-list failed:',e);}}var st=ap?'✅ '+mn+' accepted! Listed in Market: '+wi+' '+wn+' for '+ot+' — '+fromName+', check the Market tab!':'✅ '+mn+' accepted from '+fromName+'! ('+wi+' '+wn+' ⇄ '+ot+') — coordinate directly.';cd.ref('slitherChat').push({uid:uid2,name:'Trade System',chatNameColor:'#44cc88',time:firebase.database.ServerValue.TIMESTAMP,text:st});if(typeof Toastify!=='undefined'){Toastify({text:ap?'✅ Listed in Market!':'✅ Accepted!',duration:8000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();}};
+        document.getElementById('toc-send').addEventListener('click',function(){if(!sc){var sel=document.getElementById('toc-selected');sel.style.display='block';sel.style.color='#ff4444';sel.textContent='Please select what you are offering first.';setTimeout(function(){sel.style.color='#44cc88';},1500);return;}var oba;if(sc.isCurrency){var iv=parseFloat(document.getElementById('toc-amt').value)||0;if(iv<1||iv>sc.maxAmt){var ai=document.getElementById('toc-amt');ai.style.borderColor='#ff4444';setTimeout(function(){ai.style.borderColor='#44cc8866';},1500);return;}oba=iv;}else{oba=sc.maxAmt;}var ol=sc.isCurrency?(sc.icon+' '+formatNumber(oba)+' '+sc.label.split(' ').slice(1).join(' ')):(sc.icon+' '+sc.label);var cd=_getChatDb();var u2=_getChatUid();if(!cd||!u2){alert('Chat not connected.');return;}var myName=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';var col=localStorage.getItem('slitherChatNameColor')||'#c8a800';var tid='tr_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);var mn2=null;if(sc.barterType&&sc.barterType.startsWith('minion:')){var mid=sc.barterType.slice(7);var gm2=gameState.minions[mid];var bm2=typeof battleMinions!=='undefined'?battleMinions[mid]:null;if(gm2&&bm2){var lv2=gm2.level||0,pr2=gm2.promotionTier||0,t2=(1+(Math.floor(lv2/25)*0.05))*(1+(pr2*0.20));mn2={level:lv2,promoTier:pr2,scaledHp:Math.ceil(bm2.hp*t2),scaledAtk:Math.ceil(bm2.atk*t2)};}}var fp={id:tid,from:myName,fromUid:u2,to:targetName,wantType:wantType,wantName:wantName,wantIcon:wantIcon,wantAmt:wantAmt,offerText:ol,offerIcon:sc.icon,offerBarterType:sc.barterType,offerBarterAmt:oba};if(mn2)fp.minionNote=mn2;_tradeCache[tid]=fp;cd.ref('pact_buffs/trade_'+tid).set(fp);cd.ref('slitherChat').push({uid:u2,name:myName,chatNameColor:col,time:firebase.database.ServerValue.TIMESTAMP,text:TRADE_PREFIX+tid+TRADE_SUFFIX});ov.remove();if(typeof Toastify!=='undefined'){Toastify({text:'📨 Trade offer sent to '+targetName+'!',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();}});};
+        window._respondToTrade=async function(tid,acc,fromName,wi,wn,ot,wt,wa,obt,oba){var cd=_getChatDb();var u2=_getChatUid();if(!cd||!u2)return;var mn=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';if(!acc){cd.ref('slitherChat').push({uid:u2,name:'Trade System',chatNameColor:'#ff4444',time:firebase.database.ServerValue.TIMESTAMP,text:'❌ '+mn+' declined the trade from '+fromName+'.'});return;}var ap=false;if(typeof supabaseClient!=='undefined'&&supabaseClient&&wt&&obt){try{var la=Math.max(1,Math.round(Number(wa)||1));var wa2=Math.max(1,Math.round(Number(oba)||1));if(typeof hasEnough==='function'&&hasEnough(wt,la)){deductCurrency(wt,la);calculateStats();renderAll();var res=await supabaseClient.from('barter_listings').insert({poster_name:mn,offer_type:wt,offer_amt:la,want_type:obt,want_amt:wa2,is_complete:false,offer_note:JSON.stringify({tradeId:tid,reservedFor:fromName,autoTrade:true})});if(!res.error){ap=true;if(typeof fetchBarterListings==='function')fetchBarterListings();if(typeof refreshMarketTicker==='function')refreshMarketTicker();saveGame();cd.ref('pact_buffs/trade_'+tid).remove();}else{addCurrency(wt,la);calculateStats();renderAll();}}}catch(e){console.warn('Auto-list failed:',e);}}var st=ap?'✅ '+mn+' accepted! Listed in Market: '+wi+' '+wn+' for '+ot+' — '+fromName+', check the Market tab!':'✅ '+mn+' accepted from '+fromName+'! ('+wi+' '+wn+' ⇄ '+ot+') — coordinate directly.';cd.ref('slitherChat').push({uid:u2,name:'Trade System',chatNameColor:'#44cc88',time:firebase.database.ServerValue.TIMESTAMP,text:st});if(typeof Toastify!=='undefined'){Toastify({text:ap?'✅ Listed in Market!':'✅ Accepted!',duration:8000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();}};
 
                 function listenForChatMessages(db, currentUid) {
             const chatBody = document.getElementById('chat-body');
@@ -14390,7 +14354,7 @@ function initializeChat() {
                     while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); }
                     renderChatMessage(newMsg, chatBody, currentUid, true);
                 });
-            }).catch(function(e){ console.error('Profile load error:', e); });
+            }).catch(function(e){console.error('Profile load error:',e);});
         }
         
        
@@ -14544,7 +14508,7 @@ function initializeChat() {
             const isCurrentUserDev = isDev(currentUserId);
             const isSelf = uid === currentUserId || uid === (window._scFirebase && window._scFirebase.auth.currentUser?.uid);
 
-            Promise.all([db.ref(`onlineUsers/${uid}`).once('value'), db.ref(`playerData/${uid}/rep`).once('value')]).then(([snapshot, repSnap]) => {
+            Promise.all([db.ref(`onlineUsers/${uid}`).once('value'),db.ref(`playerData/${uid}/rep`).once('value')]).then(([snapshot,repSnap])=>{
                 if (!snapshot.exists()) { alert("User is no longer online."); return; }
                 const userData = snapshot.val();
                 const st = userData.stats || {};
@@ -14553,7 +14517,7 @@ function initializeChat() {
                 const avatarUrl = (userData.profileAvatar || '').trim() || 'https://i.imgur.com/M6NYjjO.jpeg';
                 const motto = escapeHTML(userData.profileMotto || 'No motto set.');
                 const name = escapeHTML(userData.name || 'Unknown');
-                const repBarHTML = typeof window._buildRepBar === 'function' ? window._buildRepBar(liveRep, isSelf, uid, userData.name || '') : '';
+                const repBarHTML = typeof window._buildRepBar==='function'?window._buildRepBar(liveRep,isSelf,uid,userData.name||''):'';
 
                 // ── Stat cards ──────────────────────────────────────────
                 const statCards = [
@@ -14655,8 +14619,8 @@ function initializeChat() {
                 document.body.appendChild(popup);
 
                 popup.querySelector('.close-btn').addEventListener('click', () => popup.remove());
-                const giveRepBtn = popup.querySelector('#give-rep-btn');
-                if (giveRepBtn) { giveRepBtn.addEventListener('click', () => window._giveRep(giveRepBtn.dataset.uid, giveRepBtn.dataset.name)); }
+                const _grb=popup.querySelector('#give-rep-btn');
+                if(_grb){_grb.addEventListener('click',()=>window._giveRep(_grb.dataset.uid,_grb.dataset.name));}
 
                 // ── Tab system + trade proposals ─────────────────────────
                 const invPanel = popup.querySelector('#profile-inv-panel');

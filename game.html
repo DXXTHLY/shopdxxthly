@@ -19949,33 +19949,41 @@ const CODEX_CHAPTERS = [
         unlockCondition: () => Object.values(gameState.minions || {}).some(m => m.level > 0),
         content: () => {
             const owned = Object.entries(gameState.minions || {}).filter(([,m]) => m.level > 0);
+            const secretOwned = owned.filter(([id]) => minions[id]?.secret);
             const totalLevels = owned.reduce((s,[,m]) => s + m.level, 0);
+            const secretSection = secretOwned.length > 0 ? `
+            <div style="background:#0a0508; border:1px solid #ff44cc33; border-left:3px solid #ff44cc; border-radius:8px; padding:12px 16px; margin-bottom:10px;">
+                <div style="color:#ff44cc; font-size:0.78em; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">✦ Your Secret Minions</div>
+                ${secretOwned.map(([id]) => `<div style="color:#cc88aa; font-size:0.82em; margin-bottom:2px;">${minions[id].icon} ${minions[id].name} — ${minions[id].lore.slice(0,80)}...</div>`).join('')}
+                <div style="color:#555; font-size:0.75em; margin-top:8px; font-style:italic;">How you find them is yours to discover.</div>
+            </div>` : '';
             return `
             <div style="color:#ff6644; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">YOUR DEMONIC ARMY</div>
             <p style="color:#aaa; margin-bottom:14px;">As your hunger grew, lesser beings were drawn to you. They do not serve out of loyalty — they serve because they have no choice. Each minion works endlessly, pulling souls so you do not have to.</p>
-            <p style="color:#aaa; margin-bottom:18px;">You currently command <strong style="color:#ff6644;">${owned.length}</strong> type${owned.length !== 1?'s':''} of minion at a combined <strong style="color:#ff6644;">${totalLevels}</strong> levels.</p>
+            <p style="color:#aaa; margin-bottom:18px;">You currently command <strong style="color:#ff6644;">${owned.length}</strong> type${owned.length !== 1?'s':''} of minion at a combined <strong style="color:#ff6644;">${totalLevels}</strong> total levels.</p>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;">
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px;">
                     <div style="color:#ff6644; font-size:0.78em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Leveling Up</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Each level costs souls and scales exponentially. Higher levels = more SPS, but each level costs more than the last.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Each level costs souls and scales exponentially. Higher levels = more SPS, but each level costs more than the last. You can buy in bulk using the quantity buttons.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px;">
                     <div style="color:#ff6644; font-size:0.78em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Promotions</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">At levels 25, 50, and 100 you can <strong style="color:#ddd;">Promote</strong> a minion — a massive one-time multiplier to their SPS. Promotions <strong style="color:#ff6644;">reset on Ascension</strong>, but the power spike while active is enormous.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">At level 25, 50, and 100 you can <strong style="color:#ddd;">Promote</strong> a minion — each promotion tier gives a +20% multiplicative SPS bonus that stacks. Promotions <strong style="color:#ff6644;">reset on Ascension</strong>.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px;">
                     <div style="color:#ff6644; font-size:0.78em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Research Tiers</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Every 25 levels unlocks a <strong style="color:#ddd;">Research Bonus</strong> — a permanent passive buff that <strong style="color:#44cc88;">survives Ascension</strong>. The only minion investment that does.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">At levels 5, 15, and 30 each minion unlocks a <strong style="color:#ddd;">Research Bonus</strong> — a permanent passive buff that <strong style="color:#44cc88;">survives every Ascension and Collapse</strong>. The most durable investment in the game.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px;">
                     <div style="color:#ff6644; font-size:0.78em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Secret Minions</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Three hidden minions exist that cannot be bought normally. They appear only in the <strong style="color:#ddd;">Hourly Shop</strong> and from <strong style="color:#ddd;">Abyssal Caches</strong> — at very low odds.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">There are <strong style="color:#ff44cc;">9 hidden minions</strong> in the game that cannot be purchased from the Minions screen. They appear in the Bestiary as ??? until discovered. Each has unique research bonuses.</div>
                 </div>
             </div>
+            ${secretSection}
             <div style="background:#0d0508; border:1px solid #ff664433; border-left:3px solid #ff6644; border-radius:8px; padding:12px 16px;">
                 <div style="color:#ff6644; font-size:0.78em; margin-bottom:4px;">💀 What survives Ascension?</div>
-                <div style="color:#666; font-size:0.82em;">Minions, their levels, Promotions, and world unlocks all <strong style="color:#ff6644;">reset</strong> on Ascension. Only <strong style="color:#ddd;">Research Bonuses</strong> (every 25 levels), <strong style="color:#ddd;">Artifacts</strong>, and <strong style="color:#ddd;">Inventory items</strong> carry over.</div>
+                <div style="color:#666; font-size:0.82em;">Minion levels, Promotions, and world unlocks all <strong style="color:#ff6644;">reset</strong> on Ascension. Only <strong style="color:#ddd;">Research Bonuses</strong> (at levels 5, 15, 30), <strong style="color:#ddd;">Artifacts</strong>, and <strong style="color:#ddd;">Inventory items</strong> carry over.</div>
             </div>`;
         }
     },
@@ -20019,38 +20027,39 @@ const CODEX_CHAPTERS = [
             <div style="display:grid; gap:10px; margin-bottom:18px;">
                 <div style="background:#0a0812; border:1px solid #4488ff22; border-radius:8px; padding:12px 16px;">
                     <div style="color:#4488ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">💎 What you gain — Abyssal Shards</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Shards are a permanent prestige currency. Your Shard count provides a <strong style="color:#ddd;">flat % bonus to all soul gain</strong> that compounds with everything else. More Shards = more powerful every run.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Shards are a permanent prestige currency. Your total Shard count provides a flat bonus to all soul gain that stacks with everything else. More Shards = faster every run.</div>
                 </div>
-                <div style="background:#0a0812; border:1px solid #4488ff22; border-radius:8px; padding:12px 16px;">
+                <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
                     <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">✗ Lost on Ascension</div>
                     <div style="color:#888; font-size:0.8em; line-height:1.9;">
-                        <span style="color:#ff4444;">✗</span> All Souls (current run)<br>
-                        <span style="color:#ff4444;">✗</span> Dark Essence (unless artifacts save some)<br>
+                        <span style="color:#ff4444;">✗</span> All current Souls<br>
+                        <span style="color:#ff4444;">✗</span> Dark Essence (unless artifacts or bonuses retain some)<br>
                         <span style="color:#ff4444;">✗</span> All Minion Levels &amp; Promotions<br>
                         <span style="color:#ff4444;">✗</span> Click &amp; Resonance Upgrades<br>
-                        <span style="color:#ff4444;">✗</span> World Progress (re-unlock required)<br>
-                        <span style="color:#ff4444;">✗</span> Active Rituals &amp; Ritual Progress<br>
-                        <span style="color:#ff4444;">✗</span> Active Potions<br>
-                        <span style="color:#ff4444;">✗</span> Corrupted Fragments (unless banked)
+                        <span style="color:#ff4444;">✗</span> World Unlocks (must re-purchase each run)<br>
+                        <span style="color:#ff4444;">✗</span> Active Rituals &amp; Ritual progress<br>
+                        <span style="color:#ff4444;">✗</span> Active Potions &amp; Potion cooldowns<br>
+                        <span style="color:#ff4444;">✗</span> Corrupted Fragments (unless banked in the Vault)
                     </div>
                 </div>
                 <div style="background:#0a1a0a; border:1px solid #44cc8822; border-radius:8px; padding:12px 16px;">
                     <div style="color:#44cc88; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">✔ Kept After Ascension</div>
                     <div style="color:#888; font-size:0.8em; line-height:1.9;">
-                        <span style="color:#44cc88;">✔</span> Abyssal Shards (+ new ones gained)<br>
-                        <span style="color:#44cc88;">✔</span> All Artifacts &amp; levels<br>
-                        <span style="color:#44cc88;">✔</span> All Inventory Items &amp; equipped gear<br>
-                        <span style="color:#44cc88;">✔</span> Brewed Potions (shelf inventory)<br>
+                        <span style="color:#44cc88;">✔</span> Abyssal Shards (plus new ones earned)<br>
+                        <span style="color:#44cc88;">✔</span> All Artifacts &amp; their levels<br>
+                        <span style="color:#44cc88;">✔</span> All Inventory items &amp; equipped gear<br>
+                        <span style="color:#44cc88;">✔</span> Brewed Potions (shelf stock)<br>
                         <span style="color:#44cc88;">✔</span> Aether &amp; Aether Upgrades<br>
-                        <span style="color:#44cc88;">✔</span> PvP Wins &amp; Losses<br>
-                        <span style="color:#44cc88;">✔</span> Banked Souls &amp; Banked Fragments<br>
-                        <span style="color:#44cc88;">✔</span> Pact membership<br>
+                        <span style="color:#44cc88;">✔</span> Minion Research Bonuses (levels 5, 15, 30)<br>
+                        <span style="color:#44cc88;">✔</span> PvP record, Pact membership<br>
+                        <span style="color:#44cc88;">✔</span> Banked Souls, Banked Fragments, Banked Essence<br>
+                        <span style="color:#44cc88;">✔</span> Secret Minions you've discovered<br>
                         <span style="color:#44cc88;">✔</span> Lifetime stats (never reset)
                     </div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #4488ff22; border-radius:8px; padding:12px 16px;">
                     <div style="color:#4488ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">📈 Shard formula</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Shards earned = √(lifetimeSouls ÷ 10M). The more souls you accumulate before ascending, the more Shards you earn. Wait longer between Ascensions to maximise your Shard gain.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Shards earned = √(lifetimeSouls ÷ 10M). The more souls you accumulate before ascending, the more Shards you earn. Waiting longer between Ascensions maximises your Shard gain — but only up to a point. Find your own rhythm.</div>
                 </div>
             </div>
             <div style="color:#333; font-size:0.78em; text-align:center; font-style:italic;">You currently hold ${formatNumber(gameState.abyssalShards||0)} Abyssal Shards.</div>
@@ -20154,16 +20163,20 @@ const CODEX_CHAPTERS = [
 
             <div style="display:grid; gap:10px; margin-bottom:18px;">
                 <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
-                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔️ PvP Duels</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Challenge real players from the Abyssal Arena. Victories earn <strong style="color:#ddd;">Dark Essence</strong> and climb the leaderboard. Defeats cost nothing — but your pride. Each player can only be challenged once per day.</div>
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔️ Soul Siege (PvP Duels)</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Challenge real players from the PvP screen. You build a team from your owned minions and fight their defensive lineup. Victories earn <strong style="color:#ddd;">Dark Essence</strong>. Each player can only be challenged once per day. Win 3 in a day for a bonus reward.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
                     <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🎯 Raids</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Raid other players' soul caches to steal a percentage of their wealth. Success gives you souls; failure means you walk away empty. Your own cache can be raided while you are away.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Raid other players' soul caches to steal a percentage of their current souls. Success pays out immediately. Your own cache can be raided while you're away — use the <strong style="color:#ddd;">Soul Vault (Bank)</strong> to protect your wealth before logging off.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
-                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔️ Gauntlet</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">The Abyssal Gauntlet is a solo wave-based challenge. Deploy your minions, bet your currencies, and survive as many waves as possible. Cash out between waves or risk it all for a larger multiplier. Once a wave starts — there is no retreat.</div>
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🎰 Abyssal Gauntlet</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">A solo high-stakes gambling mode. You bet souls, Dark Essence, or Shards, then choose a multiplier target. A rift crashes at a random point — cash out before it crashes to win. Wait too long and you lose everything you bet. The multiplier can reach enormous values — but the crash is always coming.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔️ Pact Wars</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">An organised PvP mode between Pacts (guilds). Join or form a Pact to participate in coordinated battles against rival groups. Pact War rewards are distributed to all contributing members.</div>
                 </div>
             </div>
         `
@@ -20181,17 +20194,27 @@ const CODEX_CHAPTERS = [
             <div style="display:grid; gap:10px; margin-bottom:18px;">
                 <div style="background:#0a0812; border:1px solid #ff884422; border-radius:8px; padding:12px 16px;">
                     <div style="color:#ff8844; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🗺️ Expeditions</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Send your minions out on time-based missions. They return with items, Essence, Shards, and lore fragments. Higher-tier expeditions require stronger minion configurations and offer better rewards.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Send your minions out on timed missions — Explore the Depths, Delve the Void, or Breach the Celestial. They return with Corrupted Fragments, items, and lore. Equip a Sigil or Tome to boost expedition speed and rewards. Three expeditions can run simultaneously.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff884422; border-radius:8px; padding:12px 16px;">
                     <div style="color:#ff8844; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🌀 Abyssal Breach</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">A rogue-like exploration mini-game. Navigate a grid, fight guardians, collect clusters, and complete your objective. Each breach is unique. The right minion loadout grants special abilities inside the breach.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">While an expedition runs, an Anomaly can trigger — a rogue-like breach mini-game. Navigate a 5×5 grid using 20 energy. Encounter treasures, traps, fountains, hostiles, and lore tiles. Complete your objective (Stabilizer, Guardian, or 3 Clusters) to earn bonus Corrupted Fragments. Run out of energy and you retreat.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff884422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff8844; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">📦 Abyssal Chest</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Rarely, a breach tile will contain a sealed Abyssal Chest. Stepping on it triggers a CS:GO-style spinning reel — the reward is revealed as it decelerates and lands. The loot pool includes all potions, common through legendary items, Corrupted Fragments, and at extremely low odds, a secret minion.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff884422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff8844; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔑 Breach Abilities</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Certain minions grant special abilities inside a breach if they're part of your expedition team. Imps reveal tiles. Ash Golems absorb traps. Abyssal Stalkers reveal the nearest hostile or chest. Choose your loadout carefully.</div>
                 </div>
             </div>
         `
     },
 
     // ── CHAPTER 9: Unlocks after visiting market ──────────────────
+    {
+    // ── CHAPTER 9: Always visible — economy ───────────────────────
     {
         id: 'economy',
         title: '💰 Currencies & Economy',
@@ -20202,11 +20225,11 @@ const CODEX_CHAPTERS = [
 
             <div style="display:grid; gap:8px; margin-bottom:18px;">
                 ${[
-                    ['👻','Souls','#ff6644','The primary currency. Used to buy minion levels, upgrades, rituals, and world unlocks. Resets on Ascension.'],
-                    ['🌑','Dark Essence','#9944cc','Earned from clicking, artifacts, potions, and shop sales. Spent on artifacts and the Hourly Shop. Partially retained on Ascension (with bonuses).'],
-                    ['💎','Abyssal Shards','#44aaff','Earned on Ascension. Provide a permanent soul gain bonus and buy powerful Shard Artifacts. Reset on Collapse.'],
-                    ['⚡','Aether','#00e5ff','The deepest currency — earned on Collapse. Spent on permanent Aether Upgrades that permanently change how the game works. Never lost.'],
-                    ['🔮','Corrupted Fragments','#aa44ff','Rare currency from expeditions and the shop. Used in the Soul Forge to create powerful infused gear.'],
+                    ['👻','Souls','#ff6644','The primary currency. Gained passively (SPS) and by clicking (SPC). Spent on minion levels, upgrades, rituals, and world unlocks. Resets on Ascension.'],
+                    ['🌑','Dark Essence','#9944cc','Earned from clicking milestones, artifacts, and potions. Spent on Shard Artifacts, the Hourly Shop, and the Market. A portion can survive Ascension with the right bonuses.'],
+                    ['💎','Abyssal Shards','#44aaff','Earned on Ascension based on lifetime souls. Provide a permanent soul gain bonus and purchase Shard Artifacts. Reset on Collapse.'],
+                    ['⚡','Aether','#00e5ff','The deepest currency — earned on Collapse. Spent on permanent Aether Upgrades. Never lost under any circumstances.'],
+                    ['🔮','Corrupted Fragments','#aa44ff','Earned from expeditions, breaches, and the Hourly Shop. Used in the Soul Forge to craft powerful infused gear. Can be banked in the Vault to survive Ascension.'],
                 ].map(([icon,name,color,desc]) => `
                     <div style="display:flex; gap:12px; align-items:flex-start; background:#0a0812; border:1px solid ${color}22; border-left:3px solid ${color}; border-radius:8px; padding:10px 14px;">
                         <span style="font-size:1.4em; flex-shrink:0;">${icon}</span>
@@ -20218,13 +20241,114 @@ const CODEX_CHAPTERS = [
             </div>
 
             <div style="background:#0a0812; border:1px solid #c8a80022; border-left:3px solid #c8a800; border-radius:8px; padding:12px 16px;">
-                <div style="color:#c8a800; font-size:0.78em; margin-bottom:4px;">🏪 The Marketplace</div>
-                <div style="color:#666; font-size:0.82em; line-height:1.5;">A live server-wide player economy. Veterans sell rare items from their caches; newcomers buy them for Essence. Prices fluctuate based on supply and demand. Post your own items to earn passive Essence while you play.</div>
+                <div style="color:#c8a800; font-size:0.78em; margin-bottom:4px;">🏪 The Marketplace & Hourly Shop</div>
+                <div style="color:#666; font-size:0.82em; line-height:1.5;">The Marketplace is a live player economy — list your items for Essence, buy rare gear from other collectors. The Hourly Shop refreshes every hour with exclusive potions, items, and occasionally secret minions that cannot be obtained anywhere else (at very low chance).</div>
             </div>
         `
     },
 
-    // ── CHAPTER 10: Always visible at end — tips ──────────────────
+    // ── CHAPTER 10: Unlocks after first item equipped ─────────────
+    {
+        id: 'items',
+        title: '📿 Items, Gear & Soul Forge',
+        unlockCondition: () => gameState.inventory.length > 0 || Object.values(gameState.equipped).some(Boolean),
+        content: () => {
+            const equippedCount = Object.values(gameState.equipped).filter(Boolean).length;
+            return `
+            <div style="color:#aa44ff; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">RELICS OF THE VOID</div>
+            <p style="color:#aaa; margin-bottom:14px;">Beyond minions and rituals lie physical relics — items you equip to your character that provide always-on passive bonuses. You have <strong style="color:#aa44ff;">${equippedCount}</strong> item${equippedCount !== 1 ? 's' : ''} equipped right now.</p>
+
+            <div style="display:grid; gap:10px; margin-bottom:18px;">
+                <div style="background:#0a0812; border:1px solid #aa44ff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#aa44ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔️ Equipment Slots</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Five slots: <strong style="color:#ddd;">Weapon</strong>, <strong style="color:#ddd;">Idol</strong>, <strong style="color:#ddd;">Sigil</strong>, <strong style="color:#ddd;">Helm</strong>, and <strong style="color:#ddd;">Tome</strong>. Each slot type has different specialisations — Tomes boost expedition rewards, Sigils affect banking and raids, Weapons boost SPC, and so on. Items survive all resets.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #aa44ff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#aa44ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">✨ Rarities</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Items come in Common, Uncommon, Rare, Epic, and Legendary rarity tiers. Higher rarity = stronger bonuses. Legendary items often have unique activatable abilities with cooldowns. Forged items (from the Soul Forge) are their own tier entirely.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #aa44ff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#aa44ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔨 Soul Forge</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">The Soul Forge lets you spend Corrupted Fragments to craft powerful Forged items that cannot be found in caches. Some recipes require specific items as ingredients — check the Forge screen for available recipes. Forged items are permanent and persist through all resets.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #aa44ff22; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#aa44ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔧 Durability</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Equipped items slowly lose durability over time. When an item breaks (0 durability), it stops providing its bonus until repaired. You can repair items from the Inventory screen using Corrupted Fragments. Unequipped items do not lose durability.</div>
+                </div>
+            </div>`;
+        }
+    },
+
+    // ── CHAPTER 11: Unlocks after first proving grounds win ───────
+    {
+        id: 'provinggrounds',
+        title: '⚔️ Proving Grounds',
+        unlockCondition: () => (gameState.completedPuzzles || []).length > 0,
+        content: () => {
+            const completed = (gameState.completedPuzzles || []).length;
+            return `
+            <div style="color:#c8a800; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">THE INFERNAL PROVING GROUNDS</div>
+            <p style="color:#aaa; margin-bottom:14px;">Power must be tested. The Proving Grounds is a tactical mini-game — 65 challenges across 6 tiers, each with a unique enemy formation you must defeat by placing your minions strategically.</p>
+            <p style="color:#aaa; margin-bottom:18px;">You've completed <strong style="color:#c8a800;">${completed}</strong> of 65 challenges.</p>
+
+            <div style="display:grid; gap:10px; margin-bottom:18px;">
+                <div style="background:#0a0812; border:1px solid #c8a80022; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#c8a800; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">How it works</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Each challenge gives you a <strong style="color:#ddd;">point budget</strong> to spend placing your owned minions on a grid. Enemy units walk from one side — your minions must stop them. A battle's outcome is calculated from HP, ATK, and range stats. Higher minion levels = stronger fighters.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #c8a80022; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#c8a800; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Rewards</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Every challenge rewards a <strong style="color:#ddd;">permanent bonus</strong> — SPS multipliers, SPC multipliers, essence gains, minion cost reductions, and more. These stack and <strong style="color:#44cc88;">persist through every Ascension and Collapse</strong>. One of the best long-term investments in the game.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #c8a80022; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#c8a800; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Tiers</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Tier I–V unlock progressively. Tier VI (Ascended) challenges require Ascensions to unlock. Later tiers demand powerful minions at high levels — invest in your army before tackling them.</div>
+                </div>
+            </div>`;
+        }
+    },
+
+    // ── CHAPTER 12: Unlocks when gauntlet triggers ────────────────
+    {
+        id: 'godsgauntlet',
+        title: '⚡ The God\'s Gauntlet',
+        unlockCondition: () => D(gameState.lifetimeSouls).gte(D('1e200')) || (gameState.godsGauntlet?.gauntletCount || 0) > 0,
+        content: () => {
+            const gg = gameState.godsGauntlet || {};
+            const completed = gg.gauntletCount || 0;
+            const isCursed = Date.now() < (gg.cursedUntil || 0);
+            const isBlessed = Date.now() < (gg.divineBuffUntil || 0);
+            return `
+            <div style="color:#ff4444; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">TRIAL OF THE ABYSS GOD</div>
+            <p style="color:#aaa; margin-bottom:14px;">You have accumulated enough power to draw the attention of something ancient. The Abyss God does not ask. It demands proof.</p>
+            <p style="color:#aaa; margin-bottom:18px;">You have survived the Gauntlet <strong style="color:#ff4444;">${completed}</strong> time${completed !== 1 ? 's' : ''}. ${isCursed ? '<strong style="color:#aa44ff;">Your items are currently cursed.</strong>' : isBlessed ? '<strong style="color:#ffcc00;">Divine Favor is active.</strong>' : ''}</p>
+
+            <div style="display:grid; gap:10px; margin-bottom:18px;">
+                <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">When it triggers</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Once you reach <strong style="color:#ddd;">1e200 lifetime souls</strong>, the God can call upon you every <strong style="color:#ddd;">6 hours</strong> while the tab is active. A dramatic announcement fires — you have 60 seconds to accept or flee.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">The Tower Defense</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Place your owned minions on a 9×5 grid to defend your altar. Five waves of void creatures march toward it — each wave stronger than the last. You get a point budget to spend on deployment, which grows slightly each wave.</div>
+                </div>
+                <div style="background:#0a1a0a; border:1px solid #44cc8822; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#44cc88; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">✔ Victory — Divine Favor</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Survive all 5 waves and the God is pleased. All equipped items are blessed for <strong style="color:#ddd;">10 minutes</strong> — your SPS is <strong style="color:#ddd;">doubled</strong> for the duration.</div>
+                </div>
+                <div style="background:#1a0008; border:1px solid #aa44ff44; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#aa44ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">✗ Defeat — The Curse</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">If your altar falls, all equipped items are stripped and locked for <strong style="color:#ddd;">30 minutes</strong>. Your SPS drops by 60% during this time. Items return automatically when the curse expires.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🕊 Divine Mercy</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Once every 24 hours you can forfeit the trial without penalty using Divine Mercy. Use it wisely — fleeing without Mercy available applies the curse immediately as punishment for cowardice.</div>
+                </div>
+            </div>`;
+        }
+    },
+
+    // ── CHAPTER 13: Always visible — tips ────────────────────────
     {
         id: 'tips',
         title: '💡 Strategies',
@@ -20234,14 +20358,16 @@ const CODEX_CHAPTERS = [
 
             <div style="display:grid; gap:8px;">
                 ${[
-                    ["🔁","Ascend often early","The first few Ascensions are fast. Each one multiplies your next run speed. Do not wait too long to Ascend the first few times."],
-                    ["💎","Prioritise Shard Artifacts","Artifacts persist forever. Every Shard spent on artifacts compounds across every future run."],
-                    ["⬆️","Promote strategically","Promotion costs are massive but permanent. Promote your highest-SPS minions first for maximum impact."],
-                    ["⚗️","Stack potions before key moments","Brew potions in advance and use them together just before ascending for a massive Shard bonus."],
-                    ["🔮","Fuse market potions","Two market potions fused together create results far more powerful than using them separately."],
-                    ["📦","Check the Hourly Shop","It refreshes every hour and may contain secret minions, market-only potions, and rare items you cannot get anywhere else."],
-                    ["⚔️","Gauntlet = free multiplied currency","If your minions are strong, the Gauntlet can return 25-50x your bet in a single run. Risk nothing you cannot afford to lose."],
-                    ["🏦","Bank your souls","The Soul Vault locks souls away safely so raids cannot steal them. Use it when you are about to log off."],
+                    ["🔁","Ascend often early","The first few Ascensions are fast. Each one multiplies your next run speed dramatically. Don't wait too long the first few times."],
+                    ["💎","Prioritise Shard Artifacts","Artifacts persist forever. Every Shard spent on them compounds across every future run — they are the backbone of long-term power."],
+                    ["📖","Research Bonuses are forever","Minion Research Bonuses (unlocked at levels 5, 15, and 30) survive every reset including Collapse. They are the only minion investment that does."],
+                    ["⚗️","Stack potions before ascending","Brew potions in advance and fire them just before ascending for a massive Shard bonus. The Ichor of Wealth is especially powerful here."],
+                    ["🔮","Fuse market potions","Two potions fused in the Brewery Cauldron create something far more powerful than using them separately. Market-only potions fuse into legendary effects."],
+                    ["🏦","Bank before you log off","The Soul Vault (Bank screen) locks your souls, fragments, and essence away safely so raids can't steal them. Use it every time you go idle."],
+                    ["⚔️","Build your Proving Grounds rewards early","Proving Grounds rewards are permanent and stack from day one. Even Tier I bonuses add up significantly over many Ascensions."],
+                    ["🌀","Breaches reward preparation","Bring an Imp to reveal tiles and an Ash Golem to absorb traps. A well-prepared breach team makes completion far more consistent."],
+                    ["⚡","The God's Gauntlet — have strong minions ready","When the Gauntlet fires, your deployed minions fight with their actual leveled stats. High-level ranged units like Void Spawn and The Final Observer are devastating defenders."],
+                    ["📦","Hourly Shop resets every hour exactly","Set a reminder if you want to catch rare stock. Secret minions and market potions appear at very low chance — checking consistently pays off over time."],
                 ].map(([icon,title,tip]) => `
                     <div style="display:flex; gap:12px; align-items:flex-start; background:#0a0812; border:1px solid #44cc8811; border-radius:8px; padding:10px 14px;">
                         <span style="font-size:1.2em; flex-shrink:0;">${icon}</span>

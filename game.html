@@ -3834,6 +3834,29 @@ text-decoration: underline; /* Adds an underline on hover */
                         </button>
                     </div>
 
+                    <!-- Support the Game / Donation -->
+                    <div style="background:linear-gradient(135deg,#0e0a00,#1a1200); border:1px solid #c8a80055; border-top:3px solid #c8a800; border-radius:14px; padding:20px 24px;">
+                        <h3 style="margin:0 0 6px; color:#c8a800; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">💛 Support Soul Collector</h3>
+                        <p style="color:#777; font-size:0.82em; margin:0 0 16px; line-height:1.6;">Every donation directly funds game development — new features, updates, balance improvements, and keeping the servers running. Thank you for keeping the Abyss alive.</p>
+                        <div style="background:#0a0800; border:1px solid #c8a80033; border-radius:10px; padding:14px 16px; margin-bottom:16px;">
+                            <div style="color:#c8a800; font-size:0.8em; font-weight:bold; margin-bottom:6px;">🎁 Donate $4.99 or more and receive:</div>
+                            <div style="color:#aaa; font-size:0.82em; line-height:1.8;">
+                                🔮 <strong style="color:#aa44ff;">10,000 Corrupted Fragments</strong><br>
+                                👿 <strong style="color:#ff44cc;">2 random Secret Minions</strong> — exclusive, can't be bought anywhere<br>
+                                🩸 <strong style="color:#ff6644;">Soul Supporter</strong> title displayed in chat
+                            </div>
+                            <div style="color:#555; font-size:0.72em; margin-top:10px; font-style:italic;">⚠ Put your exact in-game name in the PayPal note/message field so the system knows who to reward.</div>
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <a href="https://www.paypal.biz/dxxthlydev" target="_blank" style="flex:1; min-width:160px; background:linear-gradient(135deg,#c8a80022,#c8a80011); border:2px solid #c8a80066; border-radius:10px; padding:12px 18px; color:#c8a800; font-family:var(--font-title); font-size:0.82em; letter-spacing:1px; cursor:pointer; text-align:center; text-decoration:none; display:block; transition:all 0.2s;" onmouseover="this.style.borderColor='#c8a800cc'" onmouseout="this.style.borderColor='#c8a80066'">
+                                💛 DONATE VIA PAYPAL
+                            </a>
+                            <button onclick="openDonationClaim()" style="flex:1; min-width:160px; background:linear-gradient(135deg,#aa44ff22,transparent); border:1px solid #aa44ff44; border-radius:10px; padding:12px 18px; color:#aa44ff; font-family:var(--font-title); font-size:0.82em; letter-spacing:1px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='#aa44ff88'" onmouseout="this.style.borderColor='#aa44ff44'">
+                                🎁 CLAIM REWARD
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Danger Zone -->
                     <div style="background:linear-gradient(135deg,#0e0a1a,#1a0a0a); border:1px solid #cc333322; border-top:3px solid #cc3333; border-radius:14px; padding:20px 24px;">
                         <h3 style="margin:0 0 6px; color:#cc3333; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">⚠ Danger Zone</h3>
@@ -5525,6 +5548,121 @@ const minions = {
             { level: 30, desc: "Inversion: all secret minion SPS tripled.", bonus: { type: 'secret_minion_sps_doubler', value: 3 } }
         ]
     },
+
+    // ── 6 NEW SECRET MINIONS ────────────────────────────────────────
+    // Found extremely rarely via Hourly Shop, Abyssal Cache, or Breach Chests.
+    // Also obtainable via donation rewards. NOT donor-exclusive.
+
+    the_forgotten_god: {
+        name: "The Forgotten God", baseSps: 4e18, cost: 0, multiplier: 0, secret: true,
+        lore: "Worshipped for a thousand years, then unmade when its last believer died. It has been drifting ever since — not dead, not alive, collecting the residue of prayers that were never answered.",
+        icon: '🗿',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "The Forgotten God grants +18% global SPS and SPC.", bonus: { type: 'global_all_multiplier', value: 1.18 } },
+            { level: 15, desc: "Forgotten prayer: Dark Essence gains +22%.", bonus: { type: 'essence_multiplier', value: 1.22 } },
+            { level: 30, desc: "Divine remnant: Abyssal Shard gains +25%.", bonus: { type: 'ascension_shard_bonus', value: 1.25 } }
+        ]
+    },
+
+    the_wound_between: {
+        name: "The Wound Between", baseSps: 6e18, cost: 0, multiplier: 0, secret: true,
+        lore: "Every reality has a scar where something tried to tear through from the other side. This is what lives inside that scar. It does not want to be here. It cannot leave. It works for you now.",
+        icon: '🌌',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "The Wound Between grants +20% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.20 } },
+            { level: 15, desc: "Scar tissue: all minion costs reduced by 6%.", bonus: { type: 'minion_cost_reducer', value: 0.94 } },
+            { level: 30, desc: "The wound widens: Expedition fragment rewards +35%.", bonus: { type: 'expedition_fragment_multiplier', value: 1.35 } }
+        ]
+    },
+
+    echo_of_the_first: {
+        name: "Echo of the First", baseSps: 9e18, cost: 0, multiplier: 0, secret: true,
+        lore: "A sound that predates sound. A thought older than thinking. The very first thing the void produced when it became aware of itself — it has been reverberating through existence ever since, and somehow it has found you.",
+        icon: '🔔',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "Echo of the First grants +22% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.22 } },
+            { level: 15, desc: "First resonance: ritual durations +20%.", bonus: { type: 'ritual_duration', value: 1.20 } },
+            { level: 30, desc: "Primordial echo: all secret minion SPS multiplied by 2.5.", bonus: { type: 'secret_minion_sps_doubler', value: 2.5 } }
+        ]
+    },
+
+    the_last_dream: {
+        name: "The Last Dream", baseSps: 1.5e19, cost: 0, multiplier: 0, secret: true,
+        lore: "When the final conscious mind in the universe eventually closes its eyes, this is what it will dream. It arrived early. It has been waiting for the ending it was created for. In the meantime, it serves.",
+        icon: '😴',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "The Last Dream grants +25% global SPS and SPC.", bonus: { type: 'global_all_multiplier', value: 1.25 } },
+            { level: 15, desc: "Dream logic: Abyssal Cache has a 10% higher chance of rare rewards.", bonus: { type: 'cache_rare_chance', value: 0.10 } },
+            { level: 30, desc: "The final sleep: double all Dark Essence gains permanently.", bonus: { type: 'essence_multiplier', value: 2.0 } }
+        ]
+    },
+
+    the_starving_dark: {
+        name: "The Starving Dark", baseSps: 2.5e19, cost: 0, multiplier: 0, secret: true,
+        lore: "Darkness that developed hunger. It consumed its own nature first, then reached outward. The fact that it serves you is either your greatest achievement or the universe's last joke. Possibly both.",
+        icon: '🕳️',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "The Starving Dark grants +28% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.28 } },
+            { level: 15, desc: "Endless hunger: all soul gains +18%.", bonus: { type: 'global_all_multiplier', value: 1.18 } },
+            { level: 30, desc: "Devour everything: +40% Abyssal Shard gains.", bonus: { type: 'ascension_shard_bonus', value: 1.40 } }
+        ]
+    },
+
+    terminus: {
+        name: "Terminus", baseSps: 4e19, cost: 0, multiplier: 0, secret: true,
+        lore: "The last word of every dying language. The final coordinate in every map ever made. The end of every road. It has no purpose beyond conclusion — but in your service, it concludes things in your favour.",
+        icon: '🚩',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "Terminus grants +30% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.30 } },
+            { level: 15, desc: "End of all things: +28% Dark Essence gain.", bonus: { type: 'essence_multiplier', value: 1.28 } },
+            { level: 30, desc: "Final destination: all secret minion SPS multiplied by 5.", bonus: { type: 'secret_minion_sps_doubler', value: 5 } }
+        ]
+    },
+
+    // ── DONOR-EXCLUSIVE SECRET MINIONS ─────────────────────────────
+    // Obtained only through the donation reward system.
+
+    the_void_author: {
+        name: "The Void Author", baseSps: 5e18, cost: 0, multiplier: 0, secret: true, donorOnly: true,
+        lore: "It wrote the laws of your universe as a rough draft and never came back to edit them. It watches your harvest with the detached curiosity of someone reading their own old work. You are a sentence it almost deleted.",
+        icon: '🖋️',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "The Void Author grants +20% global SPS and SPC.", bonus: { type: 'global_all_multiplier', value: 1.20 } },
+            { level: 15, desc: "The Author rewrites fate — Abyssal Shard gains +20%.", bonus: { type: 'ascension_shard_bonus', value: 1.20 } },
+            { level: 30, desc: "First draft power: +30% global SPS permanently.", bonus: { type: 'global_sps_multiplier', value: 1.30 } }
+        ]
+    },
+
+    the_bleeding_throne: {
+        name: "The Bleeding Throne", baseSps: 1.2e19, cost: 0, multiplier: 0, secret: true, donorOnly: true,
+        lore: "Every empire that ever fell left a wound in reality. This entity is the sum of all of them — a seat of power built entirely from collapsed dynasties and betrayed kings. It chose you because you smell like ambition.",
+        icon: '🩸',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "The Bleeding Throne grants +25% Dark Essence gain.", bonus: { type: 'essence_multiplier', value: 1.25 } },
+            { level: 15, desc: "The Throne's dominion: +22% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.22 } },
+            { level: 30, desc: "Sovereign decree: all minion costs reduced by 8%.", bonus: { type: 'minion_cost_reducer', value: 0.92 } }
+        ]
+    },
+
+    the_unmaker: {
+        name: "The Unmaker", baseSps: 3e19, cost: 0, multiplier: 0, secret: true, donorOnly: true,
+        lore: "Before creation there was something that decided what would not exist. That decision became this. It has been patiently waiting for someone powerful enough to put it to work. You are, apparently, almost enough.",
+        icon: '🌑',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "The Unmaker grants +30% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.30 } },
+            { level: 15, desc: "Unmade potential: Expedition fragment rewards +30%.", bonus: { type: 'expedition_fragment_multiplier', value: 1.30 } },
+            { level: 30, desc: "Total erasure: all secret minion SPS multiplied by 4.", bonus: { type: 'secret_minion_sps_doubler', value: 4 } }
+        ]
+    },
 };
 
 // =================================================================
@@ -5610,6 +5748,19 @@ const battleMinions = {
     the_last_hymn:          { name: "The Last Hymn",          hp: 85,  atk: 45, range: 4, cost: 30, icon: '🎵', secret: true },
     null_shepherd:          { name: "Null Shepherd",          hp: 150, atk: 38, range: 2, cost: 29, icon: '🌑', secret: true },
     the_inverse:            { name: "The Inverse",            hp: 130, atk: 50, range: 3, cost: 32, icon: '🪞', secret: true },
+
+    // DONOR/RARE SECRET MINIONS — same pool as donation rewards
+    the_forgotten_god:   { name: "The Forgotten God",   hp: 170, atk: 54, range: 3, cost: 34, icon: '🗿',  secret: true },
+    the_wound_between:   { name: "The Wound Between",   hp: 200, atk: 60, range: 2, cost: 36, icon: '🌌',  secret: true },
+    echo_of_the_first:   { name: "Echo of the First",   hp: 140, atk: 62, range: 5, cost: 37, icon: '🔔',  secret: true },
+    the_last_dream:      { name: "The Last Dream",      hp: 220, atk: 58, range: 2, cost: 38, icon: '😴',  secret: true },
+    the_starving_dark:   { name: "The Starving Dark",   hp: 190, atk: 66, range: 3, cost: 40, icon: '🕳️', secret: true },
+    terminus:            { name: "Terminus",            hp: 250, atk: 70, range: 4, cost: 42, icon: '🚩',  secret: true },
+
+    // DONOR-EXCLUSIVE SECRET MINIONS — obtainable only via donation rewards
+    the_void_author:        { name: "The Void Author",        hp: 160, atk: 58, range: 4, cost: 36, icon: '🖋️', secret: true, donorOnly: true },
+    the_bleeding_throne:    { name: "The Bleeding Throne",    hp: 280, atk: 52, range: 2, cost: 38, icon: '🩸', secret: true, donorOnly: true },
+    the_unmaker:            { name: "The Unmaker",            hp: 200, atk: 65, range: 3, cost: 42, icon: '🌑', secret: true, donorOnly: true },
 };
 
 
@@ -10139,6 +10290,9 @@ function renderBestiary() {
 
     // ── SECRET MINIONS SECTION ────────────────────────────────────
     if (secretIds.length > 0) {
+        const regularSecretIds = secretIds.filter(id => !minions[id].donorOnly);
+        const donorSecretIds   = secretIds.filter(id =>  minions[id].donorOnly);
+
         const secretUnlocked = secretIds.filter(id => gameState.minions[id]?.level > 0).length;
         const secretHeader = document.createElement('div');
         secretHeader.style.cssText = `display:flex; align-items:center; gap:10px; margin:24px 0 12px; padding:10px 16px; background:linear-gradient(135deg,#1a003322,transparent); border:1px solid #33003322; border-left:4px solid #aa44ff; border-radius:10px;`;
@@ -10155,6 +10309,7 @@ function renderBestiary() {
         secretGrid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; margin-bottom:8px;';
 
         secretIds.forEach(id => {
+            if (minions[id].donorOnly) return; // handled in donor section below
             const m = minions[id];
             const pm = gameState.minions[id];
             const isUnlocked = pm && pm.level > 0;
@@ -10239,6 +10394,109 @@ function renderBestiary() {
             secretGrid.appendChild(card);
         });
         grid.appendChild(secretGrid);
+
+        // ── DONOR-EXCLUSIVE SECRET MINIONS ────────────────────────
+        if (donorSecretIds.length > 0) {
+            const donorUnlocked = donorSecretIds.filter(id => gameState.minions[id]?.level > 0).length;
+            const donorHeader = document.createElement('div');
+            donorHeader.style.cssText = `display:flex; align-items:center; gap:10px; margin:20px 0 12px; padding:10px 16px; background:linear-gradient(135deg,#1a100022,transparent); border:1px solid #c8a80033; border-left:4px solid #c8a800; border-radius:10px;`;
+            donorHeader.innerHTML = `
+                <span style="font-size:1.4em;">💛</span>
+                <div style="flex:1;">
+                    <div style="color:#c8a800; font-weight:bold; font-size:0.9em; letter-spacing:1px;">💛 Soul Supporter Exclusive</div>
+                    <div style="color:#444; font-size:0.7em;">${donorUnlocked} / ${donorSecretIds.length} unlocked · Obtained by supporting the game</div>
+                </div>
+                <div style="background:#c8a80015; border:1px solid #c8a80033; border-radius:20px; padding:2px 10px; font-size:0.7em; color:#c8a800;">${donorUnlocked > 0 ? `${donorUnlocked}/${donorSecretIds.length}` : '🩸'}</div>`;
+            grid.appendChild(donorHeader);
+
+            const donorGrid = document.createElement('div');
+            donorGrid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; margin-bottom:8px;';
+
+            donorSecretIds.forEach(id => {
+                const m = minions[id];
+                const pm = gameState.minions[id];
+                const isUnlocked = pm && pm.level > 0;
+                const card = document.createElement('div');
+
+                if (!isUnlocked) {
+                    card.style.cssText = `background:linear-gradient(135deg,#0e0900,#1a1200); border:1px solid #c8a80022; border-top:3px solid #c8a80044; border-radius:12px; padding:16px; opacity:0.6; display:flex; align-items:center; gap:12px;`;
+                    card.innerHTML = `
+                        <div style="font-size:2.2em; filter:grayscale(1) brightness(0.3);">💛</div>
+                        <div>
+                            <div style="color:#4a3800; font-weight:bold; font-size:0.88em; letter-spacing:1px;">Soul Supporter Exclusive</div>
+                            <div style="color:#2a2000; font-size:0.72em; margin-top:4px; font-style:italic;">Support the game to unlock. Donate $4.99+ and claim your reward in Settings.</div>
+                        </div>`;
+                } else {
+                    const tc = '#c8a800';
+                    const currentTier = Math.floor(pm.level / 5);
+                    const maxTier = m.researchTiers?.length || 3;
+                    const nextTierLevel = currentTier * 5 + 5;
+                    const progressPct = Math.min(100, (pm.level % 5) / 5 * 100);
+                    const tierDots = m.researchTiers?.map((t, i) => {
+                        const done = i < currentTier;
+                        return `<div title="${t.desc}" style="width:10px; height:10px; border-radius:50%; background:${done ? tc : '#1a1030'}; border:1px solid ${done ? tc : '#2a1a3a'};"></div>`;
+                    }).join('') || '';
+                    const researchRows = m.researchTiers?.map((t, i) => {
+                        const done = i < currentTier;
+                        return `<div style="display:flex; align-items:flex-start; gap:8px; padding:5px 0; border-bottom:1px solid #0d0a18; opacity:${done ? 1 : 0.4};">
+                            <span style="color:${done ? tc : '#333'}; font-size:0.8em; flex-shrink:0;">◈ Lv${t.level}</span>
+                            <span style="color:${done ? '#aaa' : '#444'}; font-size:0.75em; line-height:1.3;">${t.desc}</span>
+                            ${done ? `<span style="color:${tc}; font-size:0.7em; flex-shrink:0; margin-left:auto;">✔</span>` : ''}
+                        </div>`;
+                    }).join('') || '';
+
+                    const bm = battleMinions[id];
+                    const battleBlock = bm ? (() => {
+                        const lvlBonus  = 1 + (Math.floor(pm.level / 5) * 0.05);
+                        const scaledHp  = Math.ceil(bm.hp  * lvlBonus);
+                        const scaledAtk = Math.ceil(bm.atk * lvlBonus);
+                        return `<div style="background:#08060e; border:1px solid ${tc}22; border-radius:8px; padding:8px 10px; margin-bottom:8px;">
+                            <div style="color:#444; font-size:0.65em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔ PvP / Proving Grounds</div>
+                            <div style="display:flex; gap:16px; align-items:center;">
+                                <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#cc4444; font-size:1em; font-weight:bold;">${scaledHp}</span><span style="color:#555; font-size:0.62em;">HP</span></div>
+                                <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#ff9944; font-size:1em; font-weight:bold;">${scaledAtk}</span><span style="color:#555; font-size:0.62em;">ATK</span></div>
+                                <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#44aaff; font-size:1em; font-weight:bold;">${bm.range}</span><span style="color:#555; font-size:0.62em;">RANGE</span></div>
+                                <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#aaa; font-size:1em; font-weight:bold;">${bm.cost}</span><span style="color:#555; font-size:0.62em;">COST</span></div>
+                            </div>
+                        </div>`;
+                    })() : '';
+
+                    card.style.cssText = `background:linear-gradient(135deg,#1a1000,#2a1a00); border:1px solid ${tc}33; border-top:3px solid ${tc}; border-radius:12px; padding:16px; position:relative;`;
+                    card.innerHTML = `
+                        <div style="position:absolute; top:8px; right:10px; background:#c8a80022; border:1px solid #c8a80055; border-radius:10px; padding:1px 8px; font-size:0.62em; color:#c8a800; letter-spacing:1px;">💛 DONOR</div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <div style="font-size:2em; filter:drop-shadow(0 0 8px ${tc}88);">${m.icon}</div>
+                            <div style="flex:1;">
+                                <div style="color:#ddd; font-weight:bold; font-size:0.88em;">${m.name}</div>
+                                <div style="color:#555; font-size:0.7em;">Lv ${pm.level}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="color:${tc}; font-size:0.7em; text-transform:uppercase; letter-spacing:1px;">Tier</div>
+                                <div style="color:${tc}; font-weight:bold; font-size:1.1em;">${currentTier}/${maxTier}</div>
+                            </div>
+                        </div>
+                        <p style="color:#4a3800; font-size:0.72em; font-style:italic; line-height:1.4; margin:0 0 10px;">${m.lore}</p>
+                        ${currentTier < maxTier ? `
+                        <div style="margin-bottom:10px;">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                <span style="color:#555; font-size:0.68em;">Progress to Lv ${nextTierLevel}</span>
+                                <span style="color:${tc}; font-size:0.68em;">${pm.level % 5}/5</span>
+                            </div>
+                            <div style="background:#0a0812; border-radius:4px; height:5px; overflow:hidden;">
+                                <div style="height:100%; width:${progressPct}%; background:linear-gradient(90deg,${tc}88,${tc}); border-radius:4px;"></div>
+                            </div>
+                        </div>` : `<div style="color:${tc}; font-size:0.72em; text-align:center; margin-bottom:10px;">✦ All research unlocked ✦</div>`}
+                        <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+                            <span style="color:#444; font-size:0.68em; text-transform:uppercase; letter-spacing:1px;">Research</span>
+                            <div style="display:flex; gap:4px;">${tierDots}</div>
+                        </div>
+                        ${battleBlock}
+                        <div style="border-top:1px solid #1a1030; padding-top:8px;">${researchRows}</div>`;
+                }
+                donorGrid.appendChild(card);
+            });
+            grid.appendChild(donorGrid);
+        }
     }
 }
 
@@ -11286,6 +11544,12 @@ function openAbyssalCache() {
             'the_last_hymn',
             'null_shepherd',
             'the_inverse',
+            'the_forgotten_god',
+            'the_wound_between',
+            'echo_of_the_first',
+            'the_last_dream',
+            'the_starving_dark',
+            'terminus',
         ];
         const chosenId  = secretPool[Math.floor(Math.random() * secretPool.length)];
         const sm = minions[chosenId];
@@ -11389,6 +11653,12 @@ function openAbyssalCacheSilent() {
             'the_devouring_silence','the_devouring_silence',
             'eyeless_prophet','eyeless_prophet',
             'marrow_king','the_last_hymn','null_shepherd','the_inverse',
+            'the_forgotten_god',
+            'the_wound_between',
+            'echo_of_the_first',
+            'the_last_dream',
+            'the_starving_dark',
+            'terminus',
         ];
         const chosenId = secretPool[Math.floor(Math.random() * secretPool.length)];
         const undiscovered = secretPool.filter((s,i,a) => a.indexOf(s)===i && (gameState.minions[s]?.level||0)===0);
@@ -13281,6 +13551,12 @@ function generateHourlyShopItems() {
             'the_last_hymn',
             'null_shepherd',
             'the_inverse',
+            'the_forgotten_god',
+            'the_wound_between',
+            'echo_of_the_first',
+            'the_last_dream',
+            'the_starving_dark',
+            'terminus',
         ];
         shopItems[1] = { id: secretPool[(seed * 3 + 7) % secretPool.length], type: 'secret_minion' };
     }
@@ -14672,6 +14948,9 @@ function initializeChat() {
             } else if (isVip(msg.uid, msg.name)) {
                 nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="cursor:pointer;">${vipGlowStyle(displayName, userColor)}</span>`;
                 roleTagHTML = ` <span style="background: #9C27B0; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">VIP</span>`;
+            } else if (msg.isDonor) {
+                nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="color:${userColor};font-weight:bold;cursor:pointer;">${displayName}</span>`;
+                roleTagHTML = ` <span style="background: linear-gradient(135deg,#8B6914,#c8a800); color: #000; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">🩸 SUPPORTER</span>`;
             } else if (isSystemMessage) {
                 nameHtml = `<span style="color:${userColor};font-weight:bold;">System</span>`;
                 roleTagHTML = ` <span style="background: #e74c3c; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">SYSTEM</span>`;
@@ -14998,9 +15277,10 @@ function initializeChat() {
                     return;
                 }
                     const name = localStorage.getItem("slitherChatNickname"); 
-                    const color = localStorage.getItem("slitherChatNameColor") || "#FFD700"; 
-                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color }); 
-                    db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP }); 
+                    const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
+                    const msgObj = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
+                    if (gameState.donorTitle) msgObj.isDonor = true;
+                    db.ref("slitherChat").push(msgObj);
                     e.target.value = '';
                     window._addPassiveRep && window._addPassiveRep(1); 
                 } 
@@ -15048,8 +15328,9 @@ function initializeChat() {
                     }
                     const name = localStorage.getItem("slitherChatNickname");
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
-                    db.ref("slitherChat").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color });
-                    db.ref("discordBridge").push({ uid, name, text, time: firebase.database.ServerValue.TIMESTAMP });
+                    const msgObj2 = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
+                    if (gameState.donorTitle) msgObj2.isDonor = true;
+                    db.ref("slitherChat").push(msgObj2);
                     input.value = '';
                     window._addPassiveRep && window._addPassiveRep(1);
                     input.focus();
@@ -23697,5 +23978,179 @@ async function repairPlayerSave(uid) {
         </div>
     </div>
 </div>
+<!-- ══════════════════════════════════════════════════════ -->
+<!-- DONATION CLAIM MODAL                                  -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="donation-claim-overlay" style="display:none; position:fixed; inset:0; background:#000000dd; z-index:900; align-items:center; justify-content:center; backdrop-filter:blur(6px);">
+    <div style="background:linear-gradient(160deg,#0e0a00,#1a1200); border:1px solid #c8a80055; border-top:3px solid #c8a800; border-radius:16px; max-width:440px; width:92%; padding:28px; box-shadow:0 0 60px #c8a80022;">
+        <div style="color:#c8a800; font-family:var(--font-title); font-size:0.95em; letter-spacing:2px; margin-bottom:6px;">🎁 CLAIM DONATION REWARD</div>
+        <div style="color:#555; font-size:0.78em; margin-bottom:20px; line-height:1.5;">Your reward is automatically linked to your in-game name. Make sure you entered your exact name in the PayPal note when donating.</div>
+        <div id="donation-claim-status" style="min-height:18px; font-size:0.82em; text-align:center; margin-bottom:16px; color:#c8a800;"></div>
+        <div style="display:flex; gap:10px;">
+            <button onclick="closeDonationClaim()" style="flex:1; background:transparent; border:1px solid #2a1a0a; border-radius:8px; padding:11px; color:#555; font-family:var(--font-title); font-size:0.8em; letter-spacing:1px; cursor:pointer;">CANCEL</button>
+            <button id="donation-claim-btn" onclick="confirmDonationClaim()" style="flex:2; background:linear-gradient(135deg,#c8a80022,transparent); border:1px solid #c8a80066; border-radius:8px; padding:11px; color:#c8a800; font-family:var(--font-title); font-size:0.8em; letter-spacing:1px; cursor:pointer;">CHECK & CLAIM REWARD</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// DONATION REWARD CLAIM SYSTEM
+// ══════════════════════════════════════════════════════════
+
+function openDonationClaim() {
+    const overlay = document.getElementById('donation-claim-overlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        document.getElementById('donation-claim-status').textContent = '';
+        const btn = document.getElementById('donation-claim-btn');
+        if (btn) { btn.disabled = false; btn.textContent = 'CHECK & CLAIM REWARD'; }
+    }
+}
+
+function closeDonationClaim() {
+    const overlay = document.getElementById('donation-claim-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+async function confirmDonationClaim() {
+    const btn = document.getElementById('donation-claim-btn');
+    const statusEl = document.getElementById('donation-claim-status');
+    const setStatus = (msg, color) => { if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color || '#c8a800'; } };
+
+    const playerName = gameState.playerName;
+    if (!playerName || playerName === 'Unnamed') {
+        setStatus('⚠ You need to be logged in with a player name to claim.', '#ff4444');
+        return;
+    }
+
+    // Must be authenticated - get the actual Firebase UID
+    const uid = window._scFirebase?.auth?.currentUser?.uid;
+    if (!uid) {
+        setStatus('⚠ You must be logged into your account to claim a donation reward.', '#ff4444');
+        return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Checking...'; }
+    setStatus('🔍 Searching for your reward...', '#888');
+
+    try {
+        const db = window._scFirebase?.db;
+        if (!db) throw new Error('Database not connected.');
+
+        // Search by player name first
+        const snap = await db.ref('donationRewards')
+            .orderByChild('playerName')
+            .equalTo(playerName)
+            .once('value');
+
+        if (!snap.exists()) {
+            setStatus('❌ No reward found for "' + playerName + '". Make sure you typed your exact in-game name in the PayPal notes.', '#ff4444');
+            if (btn) { btn.disabled = false; btn.textContent = 'CHECK & CLAIM REWARD'; }
+            return;
+        }
+
+        // Find first unclaimed token
+        let tokenId = null, reward = null;
+        snap.forEach(child => {
+            if (!child.val().claimed && !tokenId) {
+                tokenId = child.key;
+                reward = child.val();
+            }
+        });
+
+        if (!tokenId || !reward) {
+            setStatus('✅ All your rewards have already been claimed!', '#44cc88');
+            if (btn) { btn.disabled = false; btn.textContent = 'CHECK & CLAIM REWARD'; }
+            return;
+        }
+
+        // Security: if token has a claimerUID already set, it must match THIS user's UID
+        // This prevents someone renaming to another player's name to steal their reward
+        if (reward.claimerUID && reward.claimerUID !== uid) {
+            setStatus('❌ This reward is locked to a different account.', '#ff4444');
+            if (btn) { btn.disabled = false; btn.textContent = 'CHECK & CLAIM REWARD'; }
+            return;
+        }
+
+        // Atomic claim: set claimed=true AND claimerUID in one update
+        // If two people somehow try simultaneously, only the first write wins
+        await db.ref('donationRewards/' + tokenId).update({
+            claimed: true,
+            claimedAt: Date.now(),
+            claimerUID: uid,
+            claimerName: playerName
+        });
+
+        // Re-read to confirm WE actually claimed it (race condition protection)
+        const confirmSnap = await db.ref('donationRewards/' + tokenId).once('value');
+        const confirmed = confirmSnap.val();
+        if (!confirmed || confirmed.claimerUID !== uid) {
+            setStatus('❌ Claim failed — this reward may have already been taken.', '#ff4444');
+            if (btn) { btn.disabled = false; btn.textContent = 'CHECK & CLAIM REWARD'; }
+            return;
+        }
+
+        // ── Grant rewards ──────────────────────────────────────
+        const frags = reward.fragments || 10000;
+        _safeAddCur('corruptedFragments', frags);
+
+        // Secret Minions — prioritise donor-exclusive ones, fall back to regular secrets
+        const donorMinionIds = Object.entries(minions || {})
+            .filter(([id, m]) => m.secret && m.donorOnly && !(gameState.minions[id]?.level > 0))
+            .map(([id]) => id);
+        const regularSecretMinionIds = Object.entries(minions || {})
+            .filter(([id, m]) => m.secret && !m.donorOnly && !(gameState.minions[id]?.level > 0))
+            .map(([id]) => id);
+        // Fill from donor pool first, then regular secrets if donor pool exhausted
+        const secretMinionIds = [...donorMinionIds, ...regularSecretMinionIds];
+
+        const granted = [];
+        const count = reward.secretMinions || 2;
+        const shuffled = secretMinionIds.sort(() => Math.random() - 0.5);
+        for (let i = 0; i < Math.min(count, shuffled.length); i++) {
+            const id = shuffled[i];
+            if (!gameState.minions[id]) gameState.minions[id] = { level: 0 };
+            gameState.minions[id].level = Math.max(1, gameState.minions[id].level || 0);
+            gameState.minions[id].unlocked = true;
+            granted.push(minions[id]?.name || id);
+        }
+
+        // Donor title badge for chat
+        if (reward.chatTitle) {
+            gameState.donorTitle = reward.chatTitle;
+        }
+
+        // Mark on player's save so they can't claim again even if token is deleted
+        gameState.donationClaimed = (gameState.donationClaimed || 0) + 1;
+
+        calculateStats(); renderAll(); saveGame();
+
+        const minionNames = granted.length > 0 ? granted.join(', ') : 'none available';
+        setStatus(`✅ Reward claimed! +${frags.toLocaleString()} Fragments · ${minionNames}`, '#44cc88');
+        if (btn) { btn.textContent = '✅ CLAIMED'; }
+
+        Toastify({
+            text: `🎁 Donation reward claimed! +${frags.toLocaleString()} Fragments + ${granted.length} secret minion${granted.length !== 1 ? 's' : ''}!`,
+            duration: 8000, gravity: 'top', position: 'center',
+            style: { background: 'linear-gradient(135deg,#1a1000,#c8a80033)' }
+        }).showToast();
+
+        setTimeout(closeDonationClaim, 4000);
+
+    } catch(e) {
+        console.error('Donation claim error:', e);
+        setStatus('Something went wrong. Try again.', '#ff4444');
+        if (btn) { btn.disabled = false; btn.textContent = 'CHECK & CLAIM REWARD'; }
+    }
+}
+
+// Close on overlay click
+document.addEventListener('click', e => {
+    const overlay = document.getElementById('donation-claim-overlay');
+    if (overlay && e.target === overlay) closeDonationClaim();
+});
+</script>
+
 </body>
 </html>

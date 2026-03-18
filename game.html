@@ -14538,6 +14538,8 @@ function initializeChat() {
                         fragments: D(gs.corruptedFragments).toFixed(0),
                         ascensions: gs.ascensions || 0,
                         hasKey: !!(gs.heldKey && (Date.now() - gs.heldKey.obtainedAt) < 86400000),
+                        keyName: (gs.heldKey && (Date.now() - gs.heldKey.obtainedAt) < 86400000) ? (KEYS[gs.heldKey.id]?.name || 'A Key of the Abyss') : null,
+                        keyIcon: (gs.heldKey && (Date.now() - gs.heldKey.obtainedAt) < 86400000) ? (KEYS[gs.heldKey.id]?.icon || '🗝️') : null,
                         equippedSlots: Object.entries(gs.equipped || {})
                             .filter(([,v]) => v)
                             .map(([slot, itemId]) => ({ slot, rarity: items[itemId]?.rarity || 'common', name: items[itemId]?.name || itemId }))
@@ -14818,8 +14820,8 @@ function initializeChat() {
                     <div class="profile-items-section" style="border-top:1px solid #1a0820;">
                         <div class="profile-items-label" style="color:#c8a80066;">🗝️ Keys of the Abyss</div>
                         <div style="background:#0a0812; border:1px solid #c8a80044; border-radius:8px; padding:10px 12px; text-align:center;">
-                            <div style="font-size:1.4em; margin-bottom:4px;">🗝️</div>
-                            <div style="color:#c8a800; font-size:0.8em; font-weight:bold;">Holds a Key of the Abyss</div>
+                            <div style="font-size:1.4em; margin-bottom:4px;">${st.keyIcon || '🗝️'}</div>
+                            <div style="color:#c8a800; font-size:0.8em; font-weight:bold;">${escapeHTML(st.keyName || 'A Key of the Abyss')}</div>
                             <div style="color:#555; font-size:0.68em; margin-top:3px; font-style:italic;">Ask them in chat to trade</div>
                         </div>
                     </div>` : '';

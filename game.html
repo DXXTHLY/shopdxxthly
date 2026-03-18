@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Soul Collector - Abyssal Ascension</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -2200,6 +2200,143 @@ text-decoration: none; /* Removes the underline */
 text-decoration: underline; /* Adds an underline on hover */
 }
 
+/* ================================================================= */
+/* MOBILE RESPONSIVE STYLES                                           */
+/* ================================================================= */
+@media (max-width: 600px) {
+
+    /* Base adjustments */
+    body { padding: 0; font-size: 14px; }
+    :root {
+        --font-size-base: 14px;
+        --font-size-large: 1rem;
+        --font-size-xl: 1.3rem;
+        --font-size-xxl: 1.6rem;
+    }
+
+    /* Game container — full width, no margin */
+    #game-container { margin: 0; border-left: none; border-right: none; min-height: 100vh; }
+
+    /* Player stats — more compact, smaller font */
+    #player-stats-container { padding: 6px 8px; font-size: 0.8rem; }
+    .player-stats-row div { margin: 2px 10px; }
+    #player-stats-top { margin-bottom: 4px; }
+
+    /* Nav — collapse labels, smaller buttons */
+    .nav-group-label { min-width: 36px; font-size: 0.5rem; padding: 4px 6px; letter-spacing: 1px; }
+    nav button { font-size: 0.72rem; padding: 8px 4px; letter-spacing: 0; }
+
+    /* Screens — less padding */
+    .screen { padding: 12px 10px; }
+    h1 { font-size: 1.4rem; letter-spacing: 2px; }
+    h2 { font-size: 1.2rem; letter-spacing: 2px; }
+    h3 { font-size: 1rem; letter-spacing: 1px; }
+
+    /* Altar / rift button */
+    button.action-btn { padding: 18px 32px; font-size: 1.1rem; }
+    #rift-container { width: 260px; height: 110px; }
+
+    /* Upgrade buttons — single column on mobile */
+    .upgrade-section, .minion-grid, .artifact-grid {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    button.upgrade-btn { width: 100%; max-width: 340px; }
+
+    /* Chat — full width bottom sheet on mobile */
+    #chat-container {
+        position: fixed !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        top: auto !important;
+        width: 100% !important;
+        height: 55vh !important;
+        max-height: 55vh !important;
+        min-width: unset !important;
+        border-radius: 14px 14px 0 0 !important;
+        resize: none !important;
+        z-index: 1000 !important;
+    }
+    #chat-header { cursor: default; }
+
+    /* Modals — full width */
+    .chat-modal-content { min-width: unset; width: 96%; }
+
+    /* Grids — single column */
+    #minion-grid,
+    #artifact-grid,
+    #expedition-board,
+    #active-expeditions-container,
+    #hourly-shop-grid,
+    #gnt-location-cards {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Arena — stack columns */
+    #arena-main-container { flex-direction: column !important; }
+    #arena-lobby-panel, #arena-battle-panel { width: 100% !important; min-width: unset !important; }
+
+    /* Soul Raids — stack columns */
+    #raid-main { flex-direction: column !important; }
+    #raid-party-panel { flex: unset !important; width: 100% !important; }
+
+    /* Bestiary cards — single column */
+    #bestiary-grid > div[style*="grid"] { grid-template-columns: 1fr !important; }
+
+    /* Tooltips — show below on mobile to avoid going off screen */
+    [data-tooltip]::after { left: 0; transform: none; bottom: auto; top: 110%; }
+
+    /* Settings screen */
+    .upgrade-section { gap: 10px; }
+
+    /* Leaderboard */
+    #leaderboard-list { max-width: 100%; }
+    #leaderboard-list li { font-size: 0.85rem; padding: 10px 12px; }
+
+    /* Pact war map */
+    #pw-map-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+    /* Soul raids dungeon grid — make cells bigger on mobile */
+    #raid-room-display { overflow-x: auto; }
+
+    /* Gauntlet */
+    #gnt-container { padding: 0 !important; }
+    #gnt-grid-wrap { padding: 6px; }
+
+    /* Fusion cauldron */
+    #fusion-cauldron { padding: 14px 12px; }
+
+    /* Hide drag handle hint on mobile */
+    #chat-header { touch-action: none; }
+
+    /* Larger tap targets for all buttons */
+    button { min-height: 36px; }
+
+    /* Brewery / potions */
+    #potions-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+    /* Worlds grid */
+    #worlds-grid { grid-template-columns: 1fr !important; }
+
+    /* Codex tabs — scrollable */
+    #codex-tabs { flex-wrap: nowrap !important; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #codex-tabs > * { flex-shrink: 0; }
+}
+
+/* Slightly larger screens (tablets) */
+@media (max-width: 768px) and (min-width: 601px) {
+    body { padding: 5px; }
+    #game-container { margin: 0 auto; }
+    nav button { font-size: 0.78rem; padding: 9px 5px; }
+    .upgrade-section, .minion-grid { gap: 12px; }
+    button.upgrade-btn { width: 240px; }
+    #chat-container {
+        width: 320px !important;
+        height: 420px !important;
+    }
+}
         </style>
 
         <!-- Toastify CSS -->
@@ -8058,7 +8195,7 @@ const _gameStateHandler = {
             console.warn(
                 '%c⛔ Soul Collector — Cheat Blocked',
                 'color:#ff4444;font-weight:bold;font-size:15px;background:#1a0000;padding:4px 8px;border-radius:4px;',
-                `\nAccess to gameState.${prop} is protected. Nice try. How about your just donate, bud. Help us out.`
+                `\nAccess to gameState.${prop} is protected. Nice try.`
             );
             return true; // block silently
         }
@@ -15315,7 +15452,22 @@ function initializeChat() {
             makeDraggable(document.getElementById('chat-container'), document.getElementById('chat-header'));
         }
 
-        function makeDraggable(el, handle) { let p1=0, p2=0, p3=0, p4=0; handle.onmousedown = (e) => { e.preventDefault(); p3 = e.clientX; p4 = e.clientY; document.onmouseup = () => {document.onmouseup=null; document.onmousemove=null;}; document.onmousemove = (e) => { e.preventDefault(); p1=p3-e.clientX; p2=p4-e.clientY; p3=e.clientX; p4=e.clientY; el.style.top=(el.offsetTop-p2)+"px"; el.style.left=(el.offsetLeft-p1)+"px"; }; }; }
+        function makeDraggable(el, handle) {
+            // Skip drag on mobile — chat is a bottom sheet there
+            if (window.innerWidth <= 600) return;
+            let p1=0, p2=0, p3=0, p4=0;
+            handle.onmousedown = (e) => {
+                e.preventDefault();
+                p3 = e.clientX; p4 = e.clientY;
+                document.onmouseup = () => { document.onmouseup=null; document.onmousemove=null; };
+                document.onmousemove = (e) => {
+                    e.preventDefault();
+                    p1=p3-e.clientX; p2=p4-e.clientY; p3=e.clientX; p4=e.clientY;
+                    el.style.top=(el.offsetTop-p2)+"px";
+                    el.style.left=(el.offsetLeft-p1)+"px";
+                };
+            };
+        }
 
         loadFirebaseAndInit();
     }

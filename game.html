@@ -14935,6 +14935,38 @@ function initializeChat() {
             if (e.key === 'Enter') { 
                 const text = e.target.value.trim(); 
                 if (text) {
+                    // Dev command: !test — cuts all cooldowns/timers to 0 for fast testing
+                    if (text === '!test') {
+                        if (window._scIsDev && window._scIsDev(uid)) {
+                            // Raid cooldown
+                            if (gameState.soulRaids) gameState.soulRaids.cooldownUntil = 0;
+                            // Minion raid cooldowns
+                            if (gameState.soulRaids?.minionCooldowns) gameState.soulRaids.minionCooldowns = {};
+                            // Potion cooldowns
+                            if (gameState.potionCooldowns) Object.keys(gameState.potionCooldowns).forEach(k => { gameState.potionCooldowns[k] = 0; });
+                            // Active potions — expire them so they don't linger weirdly (or keep if you want)
+                            // Ritual buff timers
+                            if (gameState.activePotions) Object.keys(gameState.activePotions).forEach(k => { gameState.activePotions[k] = 0; });
+                            // Shop timer
+                            if (gameState.lastShopRefresh) gameState.lastShopRefresh = 0;
+                            // PvP raid cooldown
+                            if (gameState.raidCooldownEnd) gameState.raidCooldownEnd = 0;
+                            // Pact buff cooldown
+                            if (gameState.pactBuffCooldown) gameState.pactBuffCooldown = 0;
+                            // Rename cooldown
+                            if (gameState.lastRenameAt) gameState.lastRenameAt = 0;
+                            // Gauntlet cooldown
+                            if (gameState.gauntletCooldownEnd) gameState.gauntletCooldownEnd = 0;
+                            calculateStats(); renderAll(); saveGame();
+                            renderRaidStatusBar && renderRaidStatusBar();
+                            updateRaidEnterBtn && updateRaidEnterBtn();
+                            Toastify({ text: '🔧 DEV: All timers & cooldowns cleared!', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
+                        } else {
+                            Toastify({ text: '⛔ Dev-only command.', duration: 2000, gravity: 'top', position: 'center' }).showToast();
+                        }
+                        e.target.value = '';
+                        return;
+                    }
                     // Dev command: /clear — wipes slitherChat
                     if (text === '/clear') {
                     if (window._scIsDev && window._scIsDev(uid)) {
@@ -14975,6 +15007,29 @@ function initializeChat() {
                 const input = document.getElementById('chat-input');
                 const text = input.value.trim();
                 if (text) {
+                    // Dev command: !test — cuts all cooldowns/timers to 0
+                    if (text === '!test') {
+                        if (window._scIsDev && window._scIsDev(uid)) {
+                            if (gameState.soulRaids) gameState.soulRaids.cooldownUntil = 0;
+                            if (gameState.soulRaids?.minionCooldowns) gameState.soulRaids.minionCooldowns = {};
+                            if (gameState.potionCooldowns) Object.keys(gameState.potionCooldowns).forEach(k => { gameState.potionCooldowns[k] = 0; });
+                            if (gameState.activePotions) Object.keys(gameState.activePotions).forEach(k => { gameState.activePotions[k] = 0; });
+                            if (gameState.lastShopRefresh) gameState.lastShopRefresh = 0;
+                            if (gameState.raidCooldownEnd) gameState.raidCooldownEnd = 0;
+                            if (gameState.pactBuffCooldown) gameState.pactBuffCooldown = 0;
+                            if (gameState.lastRenameAt) gameState.lastRenameAt = 0;
+                            if (gameState.gauntletCooldownEnd) gameState.gauntletCooldownEnd = 0;
+                            calculateStats(); renderAll(); saveGame();
+                            if (typeof renderRaidStatusBar === 'function') renderRaidStatusBar();
+                            if (typeof updateRaidEnterBtn === 'function') updateRaidEnterBtn();
+                            Toastify({ text: '🔧 DEV: All timers & cooldowns cleared!', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
+                        } else {
+                            Toastify({ text: '⛔ Dev-only command.', duration: 2000, gravity: 'top', position: 'center' }).showToast();
+                        }
+                        input.value = '';
+                        input.focus();
+                        return;
+                    }
                     // Dev command: /clear
                     if (text === '/clear') {
                         if (window._scIsDev && window._scIsDev(uid)) {
@@ -15724,7 +15779,7 @@ const breachMinionAbilities = {
 // SOUL RAIDS — PVE Dungeon Grid
 // =================================================================
 
-const RAID_COOLDOWN_MS = 4 * 60 * 60 * 1000;
+const RAID_COOLDOWN_MS = () => (3 + Math.random() * 3) * 60 * 60 * 1000; // Random 3–6 hours
 const RAID_GRID_SIZE   = 7;
 const RAID_MAX_ENERGY  = 20;
 const RAID_PARTY_SIZE  = 3;
@@ -15885,6 +15940,17 @@ function generateRaidGrid(floor) {
     // Chest (1, rare 40% chance)
     if (Math.random() < 0.40) placeRaidTiles(grid, RTILE.CHEST, 1);
 
+    // ── Player-power scaling ──────────────────────────────────────
+    // Base scale on how strong the player's party actually is.
+    // We compare enemy base stats to the average party ATK, aiming for
+    // a meaningful fight (enemies take ~4-8 hits to kill, deal ~10-25% HP per hit).
+    const partyAtk = raidState.party.length
+        ? raidState.party.reduce((s,p) => s + (p.atk || battleMinions[p.minionId]?.atk || 10), 0) / raidState.party.length
+        : 10;
+    const partyHp = raidState.party.length
+        ? raidState.party.reduce((s,p) => s + (p.maxHp || battleMinions[p.minionId]?.hp || 50), 0) / raidState.party.length
+        : 50;
+
     // Place enemies (8-10) with patrol paths
     const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
     const pool = RAID_ENEMY_POOLS[raidState.tier];
@@ -15901,7 +15967,11 @@ function generateRaidGrid(floor) {
         const minionId = pool[Math.floor(Math.random()*pool.length)];
         const bm = battleMinions[minionId];
         if (!bm) continue;
-        const scale = tierData.enemyScale * (1 + floor*0.3) * (0.8+Math.random()*0.4);
+        // Base tier scale, then multiply so enemies scale WITH the player's actual power.
+        // Target: enemy HP ≈ 5-10× party ATK, enemy ATK ≈ 8-20% of party HP per hit.
+        const tierMult  = tierData.enemyScale * (1 + floor * 0.3) * (0.8 + Math.random() * 0.4);
+        const playerMult = Math.max(1, (partyAtk / Math.max(1, bm.atk)) * 0.65); // scale to player ATK
+        const scale = tierMult * playerMult;
         // Patrol: horizontal or vertical, 2-3 tiles
         const dir = Math.random()<0.5?'h':'v';
         const patrolLen = 2 + Math.floor(Math.random()*2);
@@ -15999,7 +16069,7 @@ function renderRaidDungeon() {
                 border = '2px solid #ff6644';
                 icon = `<span style="font-size:${CELL*.4}px;">👤</span>`;
             } else if (!explored && !adjacent) {
-                // Fog
+                // Fog — show nothing, not even enemies
                 bg = '#03020a';
                 icon = '';
             } else if (explored || adjacent) {
@@ -16008,10 +16078,15 @@ function renderRaidDungeon() {
                     bg = 'rgba(255,102,68,0.05)';
                     border = '1px solid rgba(255,102,68,0.2)';
                 }
-                if (enemy) {
+                // Only reveal enemy icon if the tile is explored (player has been there or walked past)
+                // Adjacent but unexplored tiles show the tile type hint but NOT the enemy — prevents scouting without risk
+                if (enemy && explored) {
                     const hpPct = Math.max(0, enemy.hp/enemy.maxHp*100);
                     icon = `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-size:${CELL*.32}px;">${battleMinions[enemy.minionId]?.icon||'👹'}</span><div style="width:${CELL*.6}px;height:3px;background:#1a1030;border-radius:2px;overflow:hidden;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:2px;"></div></div></div>`;
-                } else if (tile.type !== RTILE.EMPTY && tile.type !== RTILE.ENEMY) {
+                } else if (enemy && adjacent && !explored) {
+                    // Hint that something dangerous is there — but don't show what
+                    icon = `<span style="font-size:${CELL*.3}px;opacity:0.5;">⚠</span>`;
+                } else if (!enemy && tile.type !== RTILE.EMPTY && tile.type !== RTILE.ENEMY) {
                     const ico = tileIcons[tile.type];
                     if (ico) icon = `<span style="font-size:${CELL*.4}px;">${ico}</span>`;
                 }
@@ -16097,7 +16172,9 @@ window.moveRaidPlayer = function(x, y) {
         const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
         const bossId = pool[pool.length-1];
         const bm = battleMinions[bossId];
-        const scale = tierData.enemyScale * (1+raidState.floor*.4) * 3;
+        const partyAtk = raidState.party.reduce((s,p)=>s+(p.atk||1),0)/Math.max(1,raidState.party.length);
+        const playerMult = Math.max(1, (partyAtk / Math.max(1, bm.atk)) * 0.65);
+        const scale = tierData.enemyScale * (1+raidState.floor*.4) * 3 * playerMult;
         const boss = { id:'boss', minionId:bossId, x, y, hp:Math.ceil(bm.hp*scale), maxHp:Math.ceil(bm.hp*scale), atk:Math.ceil(bm.atk*scale), isBoss:true };
         raidState.inCombat = true;
         raidState.combatEnemy = boss;
@@ -16284,7 +16361,10 @@ function endRaid(survived) {
     raidState.active = false; raidState.inCombat = false;
     const now = Date.now();
     if (!gameState.soulRaids) gameState.soulRaids = {cooldownUntil:0,completedRaids:0,minionCooldowns:{}};
-    gameState.soulRaids.cooldownUntil = now + RAID_COOLDOWN_MS;
+    const cooldownDuration = RAID_COOLDOWN_MS();
+    gameState.soulRaids.cooldownUntil = now + cooldownDuration;
+    const cdHours = (cooldownDuration / 3600000).toFixed(1);
+    raidLog(`⏳ Next raid available in ${cdHours}h.`, '#555');
     if (survived) gameState.soulRaids.completedRaids = (gameState.soulRaids.completedRaids||0)+1;
 
     // Cooldowns for dead minions

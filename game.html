@@ -3845,7 +3845,16 @@ text-decoration: underline; /* Adds an underline on hover */
                                 👿 <strong style="color:#ff44cc;">2 random Secret Minions</strong> — exclusive, can't be bought anywhere<br>
                                 🩸 <strong style="color:#ff6644;">Soul Supporter</strong> title displayed in chat
                             </div>
-                            <div style="color:#555; font-size:0.72em; margin-top:10px; font-style:italic;">⚠ Put your exact in-game name in the PayPal note/message field so the system knows who to reward.</div>
+                            <div style="color:#555; font-size:0.72em; margin-top:10px; line-height:1.6; background:#0a0800; border:1px solid #c8a80022; border-radius:8px; padding:10px 14px;">
+                            <div style="color:#c8a800; font-size:0.8em; font-weight:bold; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">📋 How to claim your reward</div>
+                            <div style="color:#666; line-height:1.8;">
+                                1️⃣ Click <strong style="color:#ddd;">DONATE VIA PAYPAL</strong> and send $4.99+<br>
+                                2️⃣ In the <strong style="color:#ddd;">PayPal note/message field</strong> type your <strong style="color:#ff6644;">exact in-game name</strong> — this is how the system knows who donated. It is case-sensitive.<br>
+                                3️⃣ Come back here and click <strong style="color:#ddd;">CLAIM REWARD</strong><br>
+                                4️⃣ The system automatically checks and grants your 2 secret minions + fragments
+                            </div>
+                            <div style="color:#444; font-size:0.85em; margin-top:8px; font-style:italic;">⚠ Wrong name = reward gets stuck. Double-check before sending.</div>
+                        </div>
                         </div>
                         <div style="display:flex; gap:10px; flex-wrap:wrap;">
                             <a href="https://www.paypal.biz/dxxthlydev" target="_blank" style="flex:1; min-width:160px; background:linear-gradient(135deg,#c8a80022,#c8a80011); border:2px solid #c8a80066; border-radius:10px; padding:12px 18px; color:#c8a800; font-family:var(--font-title); font-size:0.82em; letter-spacing:1px; cursor:pointer; text-align:center; text-decoration:none; display:block; transition:all 0.2s;" onmouseover="this.style.borderColor='#c8a800cc'" onmouseout="this.style.borderColor='#c8a80066'">
@@ -10290,9 +10299,6 @@ function renderBestiary() {
 
     // ── SECRET MINIONS SECTION ────────────────────────────────────
     if (secretIds.length > 0) {
-        const regularSecretIds = secretIds.filter(id => !minions[id].donorOnly);
-        const donorSecretIds   = secretIds.filter(id =>  minions[id].donorOnly);
-
         const secretUnlocked = secretIds.filter(id => gameState.minions[id]?.level > 0).length;
         const secretHeader = document.createElement('div');
         secretHeader.style.cssText = `display:flex; align-items:center; gap:10px; margin:24px 0 12px; padding:10px 16px; background:linear-gradient(135deg,#1a003322,transparent); border:1px solid #33003322; border-left:4px solid #aa44ff; border-radius:10px;`;
@@ -10309,7 +10315,6 @@ function renderBestiary() {
         secretGrid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; margin-bottom:8px;';
 
         secretIds.forEach(id => {
-            if (minions[id].donorOnly) return; // handled in donor section below
             const m = minions[id];
             const pm = gameState.minions[id];
             const isUnlocked = pm && pm.level > 0;
@@ -10394,109 +10399,6 @@ function renderBestiary() {
             secretGrid.appendChild(card);
         });
         grid.appendChild(secretGrid);
-
-        // ── DONOR-EXCLUSIVE SECRET MINIONS ────────────────────────
-        if (donorSecretIds.length > 0) {
-            const donorUnlocked = donorSecretIds.filter(id => gameState.minions[id]?.level > 0).length;
-            const donorHeader = document.createElement('div');
-            donorHeader.style.cssText = `display:flex; align-items:center; gap:10px; margin:20px 0 12px; padding:10px 16px; background:linear-gradient(135deg,#1a100022,transparent); border:1px solid #c8a80033; border-left:4px solid #c8a800; border-radius:10px;`;
-            donorHeader.innerHTML = `
-                <span style="font-size:1.4em;">💛</span>
-                <div style="flex:1;">
-                    <div style="color:#c8a800; font-weight:bold; font-size:0.9em; letter-spacing:1px;">💛 Soul Supporter Exclusive</div>
-                    <div style="color:#444; font-size:0.7em;">${donorUnlocked} / ${donorSecretIds.length} unlocked · Obtained by supporting the game</div>
-                </div>
-                <div style="background:#c8a80015; border:1px solid #c8a80033; border-radius:20px; padding:2px 10px; font-size:0.7em; color:#c8a800;">${donorUnlocked > 0 ? `${donorUnlocked}/${donorSecretIds.length}` : '🩸'}</div>`;
-            grid.appendChild(donorHeader);
-
-            const donorGrid = document.createElement('div');
-            donorGrid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; margin-bottom:8px;';
-
-            donorSecretIds.forEach(id => {
-                const m = minions[id];
-                const pm = gameState.minions[id];
-                const isUnlocked = pm && pm.level > 0;
-                const card = document.createElement('div');
-
-                if (!isUnlocked) {
-                    card.style.cssText = `background:linear-gradient(135deg,#0e0900,#1a1200); border:1px solid #c8a80022; border-top:3px solid #c8a80044; border-radius:12px; padding:16px; opacity:0.6; display:flex; align-items:center; gap:12px;`;
-                    card.innerHTML = `
-                        <div style="font-size:2.2em; filter:grayscale(1) brightness(0.3);">💛</div>
-                        <div>
-                            <div style="color:#4a3800; font-weight:bold; font-size:0.88em; letter-spacing:1px;">Soul Supporter Exclusive</div>
-                            <div style="color:#2a2000; font-size:0.72em; margin-top:4px; font-style:italic;">Support the game to unlock. Donate $4.99+ and claim your reward in Settings.</div>
-                        </div>`;
-                } else {
-                    const tc = '#c8a800';
-                    const currentTier = Math.floor(pm.level / 5);
-                    const maxTier = m.researchTiers?.length || 3;
-                    const nextTierLevel = currentTier * 5 + 5;
-                    const progressPct = Math.min(100, (pm.level % 5) / 5 * 100);
-                    const tierDots = m.researchTiers?.map((t, i) => {
-                        const done = i < currentTier;
-                        return `<div title="${t.desc}" style="width:10px; height:10px; border-radius:50%; background:${done ? tc : '#1a1030'}; border:1px solid ${done ? tc : '#2a1a3a'};"></div>`;
-                    }).join('') || '';
-                    const researchRows = m.researchTiers?.map((t, i) => {
-                        const done = i < currentTier;
-                        return `<div style="display:flex; align-items:flex-start; gap:8px; padding:5px 0; border-bottom:1px solid #0d0a18; opacity:${done ? 1 : 0.4};">
-                            <span style="color:${done ? tc : '#333'}; font-size:0.8em; flex-shrink:0;">◈ Lv${t.level}</span>
-                            <span style="color:${done ? '#aaa' : '#444'}; font-size:0.75em; line-height:1.3;">${t.desc}</span>
-                            ${done ? `<span style="color:${tc}; font-size:0.7em; flex-shrink:0; margin-left:auto;">✔</span>` : ''}
-                        </div>`;
-                    }).join('') || '';
-
-                    const bm = battleMinions[id];
-                    const battleBlock = bm ? (() => {
-                        const lvlBonus  = 1 + (Math.floor(pm.level / 5) * 0.05);
-                        const scaledHp  = Math.ceil(bm.hp  * lvlBonus);
-                        const scaledAtk = Math.ceil(bm.atk * lvlBonus);
-                        return `<div style="background:#08060e; border:1px solid ${tc}22; border-radius:8px; padding:8px 10px; margin-bottom:8px;">
-                            <div style="color:#444; font-size:0.65em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔ PvP / Proving Grounds</div>
-                            <div style="display:flex; gap:16px; align-items:center;">
-                                <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#cc4444; font-size:1em; font-weight:bold;">${scaledHp}</span><span style="color:#555; font-size:0.62em;">HP</span></div>
-                                <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#ff9944; font-size:1em; font-weight:bold;">${scaledAtk}</span><span style="color:#555; font-size:0.62em;">ATK</span></div>
-                                <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#44aaff; font-size:1em; font-weight:bold;">${bm.range}</span><span style="color:#555; font-size:0.62em;">RANGE</span></div>
-                                <div style="display:flex; flex-direction:column; align-items:center; gap:1px;"><span style="color:#aaa; font-size:1em; font-weight:bold;">${bm.cost}</span><span style="color:#555; font-size:0.62em;">COST</span></div>
-                            </div>
-                        </div>`;
-                    })() : '';
-
-                    card.style.cssText = `background:linear-gradient(135deg,#1a1000,#2a1a00); border:1px solid ${tc}33; border-top:3px solid ${tc}; border-radius:12px; padding:16px; position:relative;`;
-                    card.innerHTML = `
-                        <div style="position:absolute; top:8px; right:10px; background:#c8a80022; border:1px solid #c8a80055; border-radius:10px; padding:1px 8px; font-size:0.62em; color:#c8a800; letter-spacing:1px;">💛 DONOR</div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                            <div style="font-size:2em; filter:drop-shadow(0 0 8px ${tc}88);">${m.icon}</div>
-                            <div style="flex:1;">
-                                <div style="color:#ddd; font-weight:bold; font-size:0.88em;">${m.name}</div>
-                                <div style="color:#555; font-size:0.7em;">Lv ${pm.level}</div>
-                            </div>
-                            <div style="text-align:right;">
-                                <div style="color:${tc}; font-size:0.7em; text-transform:uppercase; letter-spacing:1px;">Tier</div>
-                                <div style="color:${tc}; font-weight:bold; font-size:1.1em;">${currentTier}/${maxTier}</div>
-                            </div>
-                        </div>
-                        <p style="color:#4a3800; font-size:0.72em; font-style:italic; line-height:1.4; margin:0 0 10px;">${m.lore}</p>
-                        ${currentTier < maxTier ? `
-                        <div style="margin-bottom:10px;">
-                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                                <span style="color:#555; font-size:0.68em;">Progress to Lv ${nextTierLevel}</span>
-                                <span style="color:${tc}; font-size:0.68em;">${pm.level % 5}/5</span>
-                            </div>
-                            <div style="background:#0a0812; border-radius:4px; height:5px; overflow:hidden;">
-                                <div style="height:100%; width:${progressPct}%; background:linear-gradient(90deg,${tc}88,${tc}); border-radius:4px;"></div>
-                            </div>
-                        </div>` : `<div style="color:${tc}; font-size:0.72em; text-align:center; margin-bottom:10px;">✦ All research unlocked ✦</div>`}
-                        <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
-                            <span style="color:#444; font-size:0.68em; text-transform:uppercase; letter-spacing:1px;">Research</span>
-                            <div style="display:flex; gap:4px;">${tierDots}</div>
-                        </div>
-                        ${battleBlock}
-                        <div style="border-top:1px solid #1a1030; padding-top:8px;">${researchRows}</div>`;
-                }
-                donorGrid.appendChild(card);
-            });
-            grid.appendChild(donorGrid);
-        }
     }
 }
 
@@ -24095,21 +23997,14 @@ async function confirmDonationClaim() {
         const frags = reward.fragments || 10000;
         _safeAddCur('corruptedFragments', frags);
 
-        // Secret Minions — prioritise donor-exclusive ones, fall back to regular secrets
-        const donorMinionIds = Object.entries(minions || {})
-            .filter(([id, m]) => m.secret && m.donorOnly && !(gameState.minions[id]?.level > 0))
-            .map(([id]) => id);
-        const regularSecretMinionIds = Object.entries(minions || {})
-            .filter(([id, m]) => m.secret && !m.donorOnly && !(gameState.minions[id]?.level > 0))
-            .map(([id]) => id);
-        // Fill from donor pool first, then regular secrets if donor pool exhausted
-        const secretMinionIds = [...donorMinionIds, ...regularSecretMinionIds];
+        // Secret Minions — 2 completely random picks from ALL secret minions, repeats possible
+        const allSecretIds = Object.keys(minions || {}).filter(id => minions[id]?.secret);
 
         const granted = [];
         const count = reward.secretMinions || 2;
-        const shuffled = secretMinionIds.sort(() => Math.random() - 0.5);
-        for (let i = 0; i < Math.min(count, shuffled.length); i++) {
-            const id = shuffled[i];
+        for (let i = 0; i < count; i++) {
+            const id = allSecretIds[Math.floor(Math.random() * allSecretIds.length)];
+            if (!id) continue;
             if (!gameState.minions[id]) gameState.minions[id] = { level: 0 };
             gameState.minions[id].level = Math.max(1, gameState.minions[id].level || 0);
             gameState.minions[id].unlocked = true;

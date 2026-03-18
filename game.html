@@ -12756,15 +12756,9 @@ function renderPvpLog() {
 }
 
 function updateRaidCooldownDisplay() {
-    const timerEl = document.getElementById('raid-cooldown-display');
-    if (!timerEl) return;
-    const now = Date.now();
-    if (now < gameState.raidCooldownEnd) {
-        const timeLeft = Math.ceil((gameState.raidCooldownEnd - now) / 1000);
-        timerEl.innerText = `Raid Cooldown: ${timeLeft}s`;
-    } else {
-        timerEl.innerText = 'Raid Ready!';
-    }
+    // Update soul raids status bar (runs every tick to keep countdown live)
+    if (typeof renderRaidStatusBar === 'function') renderRaidStatusBar();
+    if (typeof updateRaidEnterBtn === 'function') updateRaidEnterBtn();
 }
 
 // =================================================================

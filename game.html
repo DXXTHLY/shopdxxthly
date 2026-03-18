@@ -885,13 +885,23 @@
         }
         #chat-send-btn:hover { color: var(--primary-color); background: rgba(196,24,24,0.1); }
         .chat-username { font-weight: bold; cursor: pointer; text-decoration: underline dotted; }
-        .chat-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 400; backdrop-filter: blur(5px); }
-        .chat-modal-content { padding: 30px; background: var(--dark-panel-color); border: 2px solid var(--accent-color); text-align: left; box-shadow: 0 0 30px var(--accent-glow); min-width: 400px; }
-        .chat-modal-content h2 { text-align: center; }
-        .settings-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 15px; }
-        .color-input-wrapper { background: #111; padding: 5px; border: 1px solid var(--border-color); }
-        .color-input-wrapper input[type="color"] { width: 100%; height: 30px; border: none; background: none; }
-        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .chat-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); display: flex; justify-content: center; align-items: center; z-index: 400; backdrop-filter: blur(8px); }
+        .chat-modal-content { padding: 0; background: linear-gradient(160deg, #06040f, #0e0a1a); border: 1px solid #3a1a5a; border-top: 3px solid #c41818; border-radius: 16px; text-align: left; box-shadow: 0 0 60px rgba(196,24,24,0.2), 0 0 30px rgba(80,0,140,0.3); min-width: 420px; max-width: 460px; width: 92%; overflow: hidden; }
+        .chat-modal-content h2 { text-align: center; margin: 0; padding: 22px 28px 18px; font-family: var(--font-title); font-size: 0.95em; letter-spacing: 3px; color: var(--primary-color); text-transform: uppercase; border-bottom: 1px solid #1a0d26; text-shadow: 0 0 20px rgba(196,24,24,0.5); }
+        .chat-modal-body { padding: 24px 28px; }
+        .settings-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+        .settings-field label { font-size: 0.72em; text-transform: uppercase; letter-spacing: 2px; color: #555; font-family: var(--font-title); }
+        .settings-field input[type="text"] { background: #08050f; border: 1px solid #2a1a3a; border-radius: 8px; color: #ddd; padding: 10px 14px; font-family: var(--font-body); font-size: 0.9em; outline: none; transition: border-color 0.2s; }
+        .settings-field input[type="text"]:focus { border-color: #c4181866; }
+        .color-input-wrapper { background: #08050f; border: 1px solid #2a1a3a; border-radius: 8px; overflow: hidden; height: 44px; position: relative; }
+        .color-input-wrapper input[type="color"] { width: 100%; height: 100%; border: none; background: none; cursor: pointer; padding: 0; }
+        .color-preview-label { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 0.7em; color: #555; letter-spacing: 1px; pointer-events: none; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 6px; padding: 18px 28px; border-top: 1px solid #1a0d26; background: #06040f88; }
+        .modal-buttons button { flex: 1; padding: 11px; border-radius: 8px; font-family: var(--font-title); font-size: 0.82em; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; }
+        #settings-cancel-btn { background: transparent; border: 1px solid #2a1a3a; color: #555; }
+        #settings-cancel-btn:hover { border-color: #444; color: #888; }
+        #settings-save-btn { background: linear-gradient(135deg, #7a0f0f, var(--primary-color)); border: 1px solid #ff444466; color: #ffe8e8; font-weight: bold; }
+        #settings-save-btn:hover { box-shadow: 0 0 16px rgba(196,24,24,0.4); }
         /* Profile popup */
         .profile-popup {
             position: fixed;
@@ -4319,19 +4329,24 @@ window.onload = function() {
             let timeToPass = 1000; // Normally, 1 second (1000ms) passes
             const hasteBuff = gameState.activeItemBuffs['eon_catalyst_haste'];
             if (hasteBuff && Date.now() < hasteBuff.buffEndTime) {
-                timeToPass *= hasteBuff.effect.value; // Pass 10 seconds worth of cooldown time instead of 1
+                timeToPass *= hasteBuff.effect.value;
             }
-            
-            // Update Ritual Cooldowns
-            for (const id in gameState.activeRituals) {
-                if (gameState.activeRituals[id].cooldownEndTime > Date.now()) {
-                    gameState.activeRituals[id].cooldownEndTime -= (timeToPass - 1000);
+
+            // Time Key freeze — while active, cooldowns don't tick at all
+            const timeKeyActive = gameState.activePotions?.['time_key_buff'] && Date.now() < gameState.activePotions['time_key_buff'];
+
+            if (!timeKeyActive) {
+                // Update Ritual Cooldowns
+                for (const id in gameState.activeRituals) {
+                    if (gameState.activeRituals[id].cooldownEndTime > Date.now()) {
+                        gameState.activeRituals[id].cooldownEndTime -= (timeToPass - 1000);
+                    }
                 }
-            }
-            // Update Item Cooldowns
-            for (const id in gameState.itemCooldowns) {
-                if (gameState.itemCooldowns[id] > Date.now()) {
-                    gameState.itemCooldowns[id] -= (timeToPass - 1000);
+                // Update Item Cooldowns
+                for (const id in gameState.itemCooldowns) {
+                    if (gameState.itemCooldowns[id] > Date.now()) {
+                        gameState.itemCooldowns[id] -= (timeToPass - 1000);
+                    }
                 }
             }
             // --- END OF NEW LOGIC ---
@@ -9396,6 +9411,9 @@ function calculateStats() {
     const now_potions = Date.now();
     for (const potionId in gameState.activePotions) {
         if (now_potions < gameState.activePotions[potionId]) {
+            // ── Special key buffs (not real potions, handled here directly) ──
+            if (potionId === 'blood_key_buff') { global_multiplier = _gm_mul(D(5)); continue; }
+            if (potionId === 'omega_key_buff') { global_multiplier = global_multiplier.pow(1.05); continue; }
             const effect = potions[potionId]?.effect;
             if (!effect) continue;
             if (effect.type === 'sps_multiplier_flat')             sps_multiplier = sps_multiplier.mul(D(effect.value));
@@ -11188,11 +11206,40 @@ function activateItemAbility(itemId) {
 }
 
 
-function updateCacheTimer() { const now = Date.now(); const btn = document.getElementById('abyssal-cache-btn'); if (!btn) return; const timerText = document.getElementById('cache-timer-text'); const readyText = document.getElementById('cache-ready-text'); if (now < gameState.nextCacheTime) { btn.disabled = true; const timeLeft = gameState.nextCacheTime - now; const hours = Math.floor(timeLeft / 3600000); const minutes = Math.floor((timeLeft % 3600000) / 60000); const seconds = Math.floor((timeLeft % 60000) / 1000); timerText.textContent = `${hours}h ${minutes}m ${seconds}s`; readyText.textContent = "ABYSSAL CACHE"; } else { btn.disabled = false; readyText.textContent = "CACHE READY"; timerText.textContent = "Click to Open!"; } }
+function updateCacheTimer() {
+    const now = Date.now();
+    const btn = document.getElementById('abyssal-cache-btn');
+    if (!btn) return;
+    const timerText = document.getElementById('cache-timer-text');
+    const readyText = document.getElementById('cache-ready-text');
+    const timeKeyActive = gameState.activePotions?.['time_key_buff'] && now < gameState.activePotions['time_key_buff'];
+    if (timeKeyActive) {
+        // Time Key is active — cache is always ready, timer frozen
+        btn.disabled = false;
+        if (readyText) readyText.textContent = 'CACHE READY';
+        if (timerText) timerText.textContent = '⏳ Frozen by Time Key';
+        return;
+    }
+    if (now < gameState.nextCacheTime) {
+        btn.disabled = true;
+        const timeLeft = gameState.nextCacheTime - now;
+        const hours   = Math.floor(timeLeft / 3600000);
+        const minutes = Math.floor((timeLeft % 3600000) / 60000);
+        const seconds = Math.floor((timeLeft % 60000) / 1000);
+        if (timerText) timerText.textContent = `${hours}h ${minutes}m ${seconds}s`;
+        if (readyText) readyText.textContent = 'ABYSSAL CACHE';
+    } else {
+        btn.disabled = false;
+        if (readyText) readyText.textContent = 'CACHE READY';
+        if (timerText) timerText.textContent = 'Click to Open!';
+    }
+}
 // NEW, UPGRADED openAbyssalCache FUNCTION
 // NEW, RARITY-AWARE openAbyssalCache FUNCTION
 function openAbyssalCache() {
-    if (Date.now() < gameState.nextCacheTime) return;
+    const now = Date.now();
+    const timeKeyActive = gameState.activePotions?.['time_key_buff'] && now < gameState.activePotions['time_key_buff'];
+    if (!timeKeyActive && now < gameState.nextCacheTime) return;
     gameState.cachesOpened++;
 
     // ── SECRET MINION DROP (2% chance) ──────────────────────────
@@ -11296,6 +11343,56 @@ function openAbyssalCache() {
 }
 
 function closeItemModal() { document.getElementById('item-modal-overlay').style.display = 'none'; renderInventory(); }
+
+// Silent version — grants reward and returns it without opening any modal. Used by cache_key.
+function openAbyssalCacheSilent() {
+    if (Date.now() < gameState.nextCacheTime) return null;
+    gameState.cachesOpened++;
+
+    // Secret minion roll
+    const secretRoll = Math.random();
+    if (secretRoll < 0.0075) {
+        const secretPool = [
+            'wraith_of_avarice','wraith_of_avarice','wraith_of_avarice','wraith_of_avarice',
+            'hollow_sovereign','hollow_sovereign','hollow_sovereign','hollow_sovereign',
+            'the_pale_accord','the_pale_accord',
+            'the_devouring_silence','the_devouring_silence',
+            'eyeless_prophet','eyeless_prophet',
+            'marrow_king','the_last_hymn','null_shepherd','the_inverse',
+        ];
+        const chosenId = secretPool[Math.floor(Math.random() * secretPool.length)];
+        const undiscovered = secretPool.filter((s,i,a) => a.indexOf(s)===i && (gameState.minions[s]?.level||0)===0);
+        const grantId = undiscovered.length > 0 ? undiscovered[Math.floor(Math.random() * undiscovered.length)] : null;
+        if (grantId) {
+            if (!gameState.minions[grantId]) gameState.minions[grantId] = { level:0, cost:0, promotionTier:0 };
+            gameState.minions[grantId].level = 1;
+            return { name: minions[grantId].name, rarity: 'secret', type: 'secret_minion' };
+        }
+    }
+
+    // Normal item roll
+    const allItemKeys = Object.keys(items);
+    const chance = Math.random();
+    let randomItemId;
+    if (chance < 0.005) {
+        const pool = allItemKeys.filter(id => items[id].rarity === 'legendary');
+        randomItemId = pool[Math.floor(Math.random() * pool.length)];
+    } else if (chance < 0.10) {
+        const pool = allItemKeys.filter(id => items[id].rarity === 'epic');
+        randomItemId = pool[Math.floor(Math.random() * pool.length)];
+    } else if (chance < 0.35) {
+        const pool = allItemKeys.filter(id => items[id].rarity === 'uncommon');
+        randomItemId = pool[Math.floor(Math.random() * pool.length)];
+    } else {
+        const pool = allItemKeys.filter(id => items[id].rarity === 'common');
+        randomItemId = pool[Math.floor(Math.random() * pool.length)];
+    }
+    if (randomItemId) {
+        gameState.inventory.push(randomItemId);
+        return { name: items[randomItemId].name, rarity: items[randomItemId].rarity || 'common', type: 'item' };
+    }
+    return { name: 'Unknown', rarity: 'common', type: 'item' };
+}
 
 function openItemModal(itemId) {
     const item = items[itemId];
@@ -18739,16 +18836,31 @@ Your listing will remain until someone accepts it or it expires.`;
 
 <div id="settings-modal-overlay" class="chat-modal-overlay" style="display: none;">
     <div id="settings-modal" class="chat-modal-content">
-        <h2>Chat & Profile Settings</h2>
-        <div class="settings-field"><label>Nickname</label><input type="text" id="settings-nickname" maxlength="20"></div>
-        <div class="settings-field"><label>Chat Name Color</label>
-            <div class="color-input-wrapper"><input type="color" id="settings-name-color"></div>
+        <h2>⚙ Chat &amp; Profile</h2>
+        <div class="chat-modal-body">
+            <div class="settings-field">
+                <label>Nickname</label>
+                <input type="text" id="settings-nickname" maxlength="20" placeholder="Your name in chat...">
+            </div>
+            <div class="settings-field">
+                <label>Name Color</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="settings-name-color">
+                    <span class="color-preview-label">PICK COLOR</span>
+                </div>
+            </div>
+            <div class="settings-field">
+                <label>Profile Avatar URL</label>
+                <input type="text" id="settings-avatar" placeholder="https://... (image link)">
+            </div>
+            <div class="settings-field">
+                <label>Profile Motto</label>
+                <input type="text" id="settings-motto" maxlength="60" placeholder="Something memorable...">
+            </div>
         </div>
-        <div class="settings-field"><label>Profile Avatar URL</label><input type="text" id="settings-avatar"></div>
-        <div class="settings-field"><label>Profile Motto</label><input type="text" id="settings-motto" maxlength="60"></div>
         <div class="modal-buttons">
-            <button id="settings-cancel-btn" class="upgrade-btn">Cancel</button>
-            <button id="settings-save-btn" class="upgrade-btn" style="background:var(--primary-color)">Save</button>
+            <button id="settings-cancel-btn">✕ Cancel</button>
+            <button id="settings-save-btn">✓ Save Profile</button>
         </div>
     </div>
 </div>
@@ -19414,17 +19526,18 @@ async function arenaEndBattle(playerWon) {
 
 // Wave multiplier table
 const GNT_WAVES = [
-    { wave:1,  mult:1.0,  label:'1.00x (break-even)',  color:'#666666' },
-    { wave:2,  mult:1.5,  label:'1.50x',  color:'#44cc88' },
-    { wave:3,  mult:2.5,  label:'2.50x',  color:'#44cc88' },
-    { wave:4,  mult:4.0,  label:'4.00x',  color:'#c8a800' },
-    { wave:5,  mult:6.0,  label:'6.00x',  color:'#c8a800' },
-    { wave:6,  mult:9.0,  label:'9.00x',  color:'#ff9944' },
-    { wave:7,  mult:13.0, label:'13.00x', color:'#ff9944' },
-    { wave:8,  mult:18.0, label:'18.00x', color:'#ff6644' },
-    { wave:9,  mult:25.0, label:'25.00x', color:'#ff4444' },
-    { wave:10, mult:35.0, label:'35.00x', color:'#ff4444' },
-    { wave:11, mult:50.0, label:'50.00x', color:'#aa44ff' },
+    { wave:1,  mult:0.1,  label:'0.10x (almost nothing)',  color:'#444444' },
+    { wave:2,  mult:0.5,  label:'0.50x (half your bet)',   color:'#666666' },
+    { wave:3,  mult:1.5,  label:'1.50x',  color:'#44cc88' },
+    { wave:4,  mult:2.5,  label:'2.50x',  color:'#44cc88' },
+    { wave:5,  mult:4.0,  label:'4.00x',  color:'#c8a800' },
+    { wave:6,  mult:6.0,  label:'6.00x',  color:'#c8a800' },
+    { wave:7,  mult:9.0,  label:'9.00x',  color:'#ff9944' },
+    { wave:8,  mult:13.0, label:'13.00x', color:'#ff9944' },
+    { wave:9,  mult:18.0, label:'18.00x', color:'#ff6644' },
+    { wave:10, mult:25.0, label:'25.00x', color:'#ff4444' },
+    { wave:11, mult:35.0, label:'35.00x', color:'#ff4444' },
+    { wave:12, mult:50.0, label:'50.00x', color:'#aa44ff' },
 ];
 // Waves beyond 10: multiplier = previous * 1.5
 function gntGetWaveData(waveNum) {
@@ -19693,14 +19806,6 @@ function gntWaveLost(){
 }
 function gntCashOut(){
     const wd = gntGetWaveData(gntState.wave);
-    const now = Date.now();
-    // ANTI-EXPLOIT: 2-minute cooldown between all runs
-    if (!gameState._gntCooldownUntil) gameState._gntCooldownUntil = 0;
-    if (now < gameState._gntCooldownUntil) {
-        const secsLeft = Math.ceil((gameState._gntCooldownUntil - now) / 1000);
-        Toastify({ text: `Next run available in ${secsLeft}s.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#1a0000,#440000)' } }).showToast();
-        return;
-    }
     const winD = D(gntState.betAmount).mul(D(wd.mult));
     const winDisplay = formatNumber(winD);
     if (gntState.betCurrency === 'souls') {
@@ -19708,17 +19813,16 @@ function gntCashOut(){
     } else {
         gameState[gntState.betCurrency] = D(gameState[gntState.betCurrency] || 0).add(winD);
     }
-    gameState._gntCooldownUntil = now + 2 * 60 * 1000;
     updateDynamicDisplays(); saveGame(); playSound('upgrade');
-    const isBreakEven = gntState.wave === 1;
-    gntLog(`Cashed out at ${wd.label} -- +${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)}!${isBreakEven ? ' (break-even -- no profit on wave 1)' : ''}`, '#c8a800');
+    const isWeak = gntState.wave <= 2;
+    gntLog('Cashed out at ' + wd.label + ' -- +' + winDisplay + ' ' + gntCurrencyLabel(gntState.betCurrency) + (isWeak ? ' (survive more waves for real rewards)' : ''), '#c8a800');
     const box = document.getElementById('gnt-result-box');
     if (box) {
         box.style.borderTopColor = '#44cc88';
-        box.innerHTML = `<div style="font-size:2em;margin-bottom:8px;">&#x1F4B0;</div><div style="color:#44cc88;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:8px;">CASHED OUT</div><div style="color:#aaa;font-size:0.82em;line-height:1.6;">Survived ${gntState.wave} wave${gntState.wave>1?'s':''}.<br>Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>Winnings: <strong style="color:#44cc88;">+${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)}</strong>${isBreakEven ? '<br><span style="color:#555;font-size:0.85em;">Wave 1 = break-even. Profit starts at Wave 2 (1.5x).</span>' : ''}</div><div style="color:#555;font-size:0.75em;margin-top:10px;">Next run in 2 minutes.</div>`;
+        box.innerHTML = '<div style="font-size:2em;margin-bottom:8px;">&#x1F4B0;</div><div style="color:#44cc88;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:8px;">CASHED OUT</div><div style="color:#aaa;font-size:0.82em;line-height:1.6;">Survived ' + gntState.wave + ' wave' + (gntState.wave>1?'s':'') + '.<br>Multiplier: <strong style="color:' + wd.color + ';">' + wd.label + '</strong><br>Winnings: <strong style="color:#44cc88;">+' + winDisplay + ' ' + gntCurrencyLabel(gntState.betCurrency) + '</strong>' + (isWeak ? '<br><span style="color:#555;font-size:0.85em;">Reach Wave 3+ for real multipliers.</span>' : '') + '</div>';
     }
     const sb = document.getElementById('gnt-status-bar');
-    if (sb) { sb.textContent = `Cashed out -- ${winDisplay} collected! (2min cooldown)`; sb.style.borderLeftColor = '#44cc88'; sb.style.color = '#44cc88'; }
+    if (sb) { sb.textContent = 'Cashed out -- ' + winDisplay + ' collected!'; sb.style.borderLeftColor = '#44cc88'; sb.style.color = '#44cc88'; }
     gntSetPhase('RESULT');
 }
 function gntNextWave(){
@@ -20960,11 +21064,52 @@ const KEYS = {
         desc: "Instantly opens 5 Abyssal Caches back-to-back, ignoring all timers.",
         lore: "Every lock yields. Every chest opens. Five times.",
         effect: () => {
+            // Open 5 caches silently, collect all rewards
+            const rewards = [];
             for (let i = 0; i < 5; i++) {
-                gameState.nextCacheTime = 0;
-                openAbyssalCache();
+                gameState.nextCacheTime = 0; // bypass timer for each
+                const reward = openAbyssalCacheSilent();
+                if (reward) rewards.push(reward);
             }
-            return "5 Abyssal Caches opened instantly.";
+            // Set timer after all 5
+            gameState.nextCacheTime = Date.now() + 4 * 3600000;
+
+            const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', secret:'#ff44cc' };
+
+            // Show all 5 results in the modal
+            const modal = document.getElementById('item-modal-overlay');
+            const rewardDiv = document.getElementById('item-modal-reward');
+            if (modal && rewardDiv) {
+                rewardDiv.innerHTML = `
+                    <div style="color:#44cc88; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; margin-bottom:14px; text-align:center;">✦ ${rewards.length} / 5 CACHES OPENED ✦</div>
+                    ${rewards.map((r, i) => `
+                        <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:#0a0812; border:1px solid ${rarityColor[r.rarity]||'#333'}33; border-left:3px solid ${rarityColor[r.rarity]||'#333'}; border-radius:6px; margin-bottom:6px;">
+                            <span style="font-size:0.75em; color:#555; min-width:20px;">#${i+1}</span>
+                            <div>
+                                <div style="color:${rarityColor[r.rarity]||'#aaa'}; font-weight:bold; font-size:0.88em;">${r.name}</div>
+                                <div style="color:#555; font-size:0.72em; text-transform:uppercase; letter-spacing:1px;">${r.rarity} ${r.type === 'secret_minion' ? '— check Bestiary!' : '— added to Inventory'}</div>
+                            </div>
+                        </div>`).join('')}
+                    <div style="color:#555; font-size:0.75em; text-align:center; margin-top:10px; border-top:1px solid #1a1030; padding-top:8px;">All items added to your Inventory. Cache timer reset to 4 hours.</div>
+                `;
+                modal.style.display = 'flex';
+            }
+
+            // Fire individual toasts for rare+ items so nothing feels missed
+            rewards.forEach((r, i) => {
+                if (r.rarity === 'epic' || r.rarity === 'legendary' || r.rarity === 'secret') {
+                    setTimeout(() => {
+                        Toastify({ text: `Cache #${i+1}: ${r.name} (${r.rarity})!`, duration: 5000, gravity:'top', position:'center',
+                            style: { background: `linear-gradient(135deg,#0a0812,${rarityColor[r.rarity]}44)` } }).showToast();
+                    }, i * 400);
+                }
+            });
+
+            updateCacheTimer();
+            calculateStats();
+            renderAll();
+            saveGame();
+            return `${rewards.length} Abyssal Caches opened instantly.`;
         }
     },
     time_key: {

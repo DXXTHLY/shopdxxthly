@@ -9979,16 +9979,18 @@ function renderBestiary() {
         cardGrid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; margin-bottom:8px;';
 
         ids.forEach(id => {
+            try {
             const m = minions[id];
             const pm = gameState.minions[id];
             const isUnlocked = pm && pm.level > 0;
-            const tierLevels = m.researchTiers?.map(t => t.level) || [5, 15, 30];
+            const tierLevels = (m.researchTiers?.map(t => t.level) || [5, 15, 30]).filter(l => typeof l === 'number');
             const currentTier = isUnlocked ? tierLevels.filter(lv => pm.level >= lv).length : 0;
-            const nextTierLevel = tierLevels[currentTier] || tierLevels[tierLevels.length - 1];
-            const prevTierLevel = currentTier > 0 ? tierLevels[currentTier - 1] : 0;
-            const progressPct = isUnlocked && currentTier < tierLevels.length
-                ? Math.min(100, (pm.level - prevTierLevel) / (nextTierLevel - prevTierLevel) * 100)
-                : 100;
+            const nextTierLevel = tierLevels[currentTier] ?? tierLevels[tierLevels.length - 1] ?? 999;
+            const prevTierLevel = currentTier > 0 ? (tierLevels[currentTier - 1] ?? 0) : 0;
+            const span = nextTierLevel - prevTierLevel;
+            const progressPct = isUnlocked && currentTier < tierLevels.length && span > 0
+                ? Math.min(100, (pm.level - prevTierLevel) / span * 100)
+                : (currentTier >= tierLevels.length ? 100 : 0);
             const maxTier = m.researchTiers?.length || 3;
             const tc = theme.color;
 
@@ -10118,6 +10120,9 @@ function renderBestiary() {
             }
 
             cardGrid.appendChild(card);
+            } catch(e) {
+                console.warn('[Bestiary] Error rendering minion card for', id, e);
+            }
         });
 
         grid.appendChild(cardGrid);

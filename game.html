@@ -15533,13 +15533,13 @@ const breachMinionAbilities = {
 // =================================================================
 
 const GG_THRESHOLD    = '1e200'; // lifetime souls required
-const GG_COOLDOWN_MS  = 6 * 60 * 60 * 1000;   // 6 hours between gauntlets
+const GG_COOLDOWN_MS  = 5 * 60 * 1000;    // 5 MINUTES — testing mode (change back to 6 * 60 * 60 * 1000 for live)
 const GG_CURSE_MS     = 30 * 60 * 1000;   // 30 min curse on failure
 const GG_BUFF_MS      = 10 * 60 * 1000;   // 10 min divine favor on win
 const GG_MERCY_CD_MS  = 24 * 60 * 60 * 1000; // 24h mercy cooldown
 const GG_COLS = 9, GG_ROWS = 5;
-const GG_ALTAR_COL = GG_COLS - 1; // altar is rightmost column
-const GG_BUDGET_BASE = 30; // deploy points per wave — generous starting budget
+const GG_ALTAR_COL = GG_COLS - 1;
+const GG_BUDGET_BASE = 30; // base points — scales up with player's total minion levels
 
 // Wave definitions — 5 waves, escalating
 const GG_WAVES = [
@@ -15886,12 +15886,19 @@ function renderGgStatusBar() {
 
 // ── GAME INIT ─────────────────────────────────────────────────────
 function initGgGame() {
+    // Budget scales with player power — sum of all owned minion costs (capped sensibly)
+    // This means a stronger player with more minions gets more deploy points to work with
+    const totalLevels  = Object.values(gameState.minions || {}).reduce((s, m) => s + (m.level || 0), 0);
+    const ownedCount   = Object.values(gameState.minions || {}).filter(m => (m.level||0) > 0).length;
+    // Budget = base 30 + 2 per owned minion type + 1 per 50 total levels, capped at 120
+    const scaledBudget = Math.min(120, GG_BUDGET_BASE + (ownedCount * 2) + Math.floor(totalLevels / 50));
+
     ggState = {
         active: true,
         waveIndex: 0,
         altarHp: 100,
         altarMaxHp: 100,
-        budget: GG_BUDGET_BASE,
+        budget: scaledBudget,
         budgetSpent: 0,
         placedMinions: [],
         enemies: [],
@@ -15900,10 +15907,10 @@ function initGgGame() {
         waveInProgress: false,
         enemyIdCounter: 0,
     };
+    ggLog(`Trial begins. Deploy budget: ${scaledBudget} pts. Place your minions and send the first wave.`, '#ff6644');
     renderGgMinionPalette();
     renderGgGrid();
     renderGgHud();
-    ggLog('The trial begins. Place your minions and send the first wave.', '#ff6644');
     document.getElementById('gg-start-btn').disabled = false;
     document.getElementById('gg-start-btn').textContent = '▶ SEND WAVE';
     document.getElementById('gg-wave-label').textContent = 'Wave 1 / 5';
@@ -15939,35 +15946,52 @@ function renderGgGrid() {
     const grid = document.getElementById('gg-grid');
     if (!grid) return;
     grid.innerHTML = '';
+    const hasSelected = !!ggState.selectedMinionId;
+
     for (let row = 0; row < GG_ROWS; row++) {
         for (let col = 0; col < GG_COLS; col++) {
             const cell = document.createElement('div');
-            const isAltarCol  = col === GG_ALTAR_COL;
-            const isSpawnCol  = col === 0;
+            const isAltarCol   = col === GG_ALTAR_COL;
+            const isSpawnCol   = col === 0;
+            const isPlaceable  = !isAltarCol && !isSpawnCol;
             const placedMinion = ggState.placedMinions.find(m => m.x === col && m.y === row);
-            const enemy = ggState.enemies.find(e => Math.round(e.x) === col && e.y === row && !e.dead);
+            const enemy        = ggState.enemies.find(e => Math.round(e.x) === col && e.y === row && !e.dead);
 
-            cell.style.cssText = `aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(10px,2vw,18px);cursor:${!isAltarCol && !isSpawnCol && !ggState.waveInProgress ? 'pointer' : 'default'};border:1px solid #0d0920;position:relative;background:${isAltarCol ? 'rgba(255,100,50,0.12)' : isSpawnCol ? 'rgba(100,0,0,0.12)' : 'transparent'};transition:background 0.2s;`;
+            // Background: altar = orange tint, spawn = red tint, placeable zone = subtle green tint when minion selected
+            let bg = 'transparent';
+            if (isAltarCol)  bg = 'rgba(255,100,50,0.10)';
+            else if (isSpawnCol) bg = 'rgba(150,0,0,0.10)';
+            else if (isPlaceable && hasSelected && !placedMinion && !enemy) bg = 'rgba(68,204,136,0.06)';
+
+            // Border: highlight placeable cells with a faint green border when a minion is selected
+            let border = '1px solid #0d0920';
+            if (isPlaceable && hasSelected && !placedMinion && !enemy) border = '1px solid rgba(68,204,136,0.25)';
+
+            cell.style.cssText = `aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(10px,2vw,18px);cursor:${isPlaceable && hasSelected ? 'pointer' : 'default'};border:${border};position:relative;background:${bg};transition:background 0.15s;`;
 
             if (isAltarCol) {
                 cell.innerHTML = row === 2 ? `<span title="Your Altar">🏛️</span>` : '';
             } else if (placedMinion) {
                 const hpPct = Math.max(0, placedMinion.hp / placedMinion.maxHp * 100);
-                cell.innerHTML = `<span style="position:relative;">${battleMinions[placedMinion.minionId]?.icon || '👿'}<div style="position:absolute;bottom:-4px;left:0;right:0;height:3px;background:#1a1030;border-radius:2px;"><div style="height:100%;width:${hpPct}%;background:#44cc88;border-radius:2px;"></div></div></span>`;
-                cell.title = `${battleMinions[placedMinion.minionId]?.name} — click to remove`;
-                cell.onclick = () => { if (!ggState.waveInProgress) removeGgMinion(placedMinion.id); };
+                const hpColor = hpPct > 60 ? '#44cc88' : hpPct > 30 ? '#ffaa00' : '#cc3333';
+                cell.style.background = 'rgba(68,204,136,0.08)';
+                cell.style.border = '1px solid rgba(68,204,136,0.3)';
+                cell.innerHTML = `<span style="position:relative;display:inline-block;">${battleMinions[placedMinion.minionId]?.icon || '👿'}<div style="position:absolute;bottom:-5px;left:0;right:0;height:3px;background:#1a1030;border-radius:2px;"><div style="height:100%;width:${hpPct}%;background:${hpColor};border-radius:2px;transition:width 0.2s;"></div></div></span>`;
+                cell.title = `${battleMinions[placedMinion.minionId]?.name} (${placedMinion.hp}/${placedMinion.maxHp} hp) — click to remove`;
+                cell.onclick = () => removeGgMinion(placedMinion.id); // can remove anytime
             } else if (enemy) {
                 const hpPct = Math.max(0, enemy.hp / enemy.maxHp * 100);
-                cell.innerHTML = `<span style="position:relative;">${battleMinions[enemy.minionId]?.icon || '👹'}<div style="position:absolute;bottom:-4px;left:0;right:0;height:3px;background:#1a1030;border-radius:2px;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:2px;"></div></div></span>`;
-            } else if (!isSpawnCol && !isAltarCol && !ggState.waveInProgress) {
-                cell.onmouseenter = () => { cell.style.background = 'rgba(255,68,68,0.08)'; };
-                cell.onmouseleave = () => { cell.style.background = 'transparent'; };
+                cell.innerHTML = `<span style="position:relative;display:inline-block;">${battleMinions[enemy.minionId]?.icon || '👹'}<div style="position:absolute;bottom:-5px;left:0;right:0;height:3px;background:#1a1030;border-radius:2px;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:2px;transition:width 0.2s;"></div></div></span>`;
+            } else if (isPlaceable) {
+                if (hasSelected) {
+                    cell.onmouseenter = () => { cell.style.background = 'rgba(68,204,136,0.18)'; cell.style.borderColor = 'rgba(68,204,136,0.6)'; };
+                    cell.onmouseleave = () => { cell.style.background = 'rgba(68,204,136,0.06)'; cell.style.borderColor = 'rgba(68,204,136,0.25)'; };
+                }
                 cell.onclick = () => placeGgMinion(col, row);
             }
             grid.appendChild(cell);
         }
     }
-    // Update HUD
     renderGgHud();
 }
 
@@ -15983,23 +16007,20 @@ function renderGgHud() {
 
 function placeGgMinion(col, row) {
     if (!ggState.selectedMinionId) return;
-    if (ggState.waveInProgress) return;
     if (col === GG_ALTAR_COL || col === 0) return;
     if (ggState.placedMinions.find(m => m.x === col && m.y === row)) return;
     const bm = battleMinions[ggState.selectedMinionId];
     if (!bm) return;
     const remaining = ggState.budget - ggState.budgetSpent;
-    if (bm.cost > remaining) { ggLog(`Not enough deploy points for ${bm.name} (costs ${bm.cost}, have ${remaining}).`, '#ff4444'); return; }
+    if (bm.cost > remaining) { ggLog(`Not enough pts for ${bm.name} (costs ${bm.cost}, have ${remaining}).`, '#ff4444'); return; }
     const lv = gameState.minions[ggState.selectedMinionId]?.level || 1;
     const scale = 1 + Math.floor(lv / 25) * 0.05;
     const hp  = Math.ceil(bm.hp  * scale);
     const atk = Math.ceil(bm.atk * scale);
-    // Attack cooldown: fast attackers (high range) attack more frequently
     const cooldownMax = Math.max(1, 6 - Math.floor(bm.range / 2));
     ggState.placedMinions.push({ id: 'pm_' + Date.now() + '_' + col + '_' + row, minionId: ggState.selectedMinionId, x: col, y: row, hp, maxHp: hp, atk, range: bm.range, cooldown: 0, cooldownMax });
     ggState.budgetSpent += bm.cost;
-    ggLog(`Placed ${bm.name} at (${col},${row}). ${remaining - bm.cost} pts remaining.`, '#88cc88');
-    // Keep selection sticky — don't deselect, so player can place multiples easily
+    ggLog(`Deployed ${bm.name}. ${remaining - bm.cost} pts remaining.`, '#88cc88');
     renderGgGrid();
     renderGgMinionPalette();
 }
@@ -16066,45 +16087,46 @@ window.ggMercy = function() {
 function ggTick() {
     if (!ggState.waveInProgress) return;
 
-    // 1. Move enemies toward altar
+    // 1. Move enemies toward altar — blocked by ANY minion in the column directly ahead
     ggState.enemies.forEach(enemy => {
         if (enemy.dead) return;
         enemy.moveTimer = (enemy.moveTimer || 0) + 1;
-        if (enemy.moveTimer >= enemy.moveCooldown) {
-            enemy.moveTimer = 0;
-            // Check if a placed minion is blocking this row
-            const blocker = ggState.placedMinions.find(pm => pm.x === enemy.x + 1 && pm.y === enemy.y);
-            if (blocker) {
-                // Attack the blocker instead of moving
-                blocker.hp -= enemy.atk;
-                ggLog(`${battleMinions[enemy.minionId]?.icon || '👹'} attacks ${battleMinions[blocker.minionId]?.icon || '👿'} for ${enemy.atk}!`, '#ff8844');
-                if (blocker.hp <= 0) {
-                    ggState.placedMinions = ggState.placedMinions.filter(pm => pm.id !== blocker.id);
-                    ggLog(`${battleMinions[blocker.minionId]?.name} was destroyed!`, '#ff4444');
-                }
+        if (enemy.moveTimer < enemy.moveCooldown) return;
+        enemy.moveTimer = 0;
+
+        const nextCol = enemy.x + 1;
+        // Blocker: same row first, then adjacent row
+        let blocker = ggState.placedMinions.find(pm => pm.x === nextCol && pm.y === enemy.y);
+        if (!blocker) blocker = ggState.placedMinions.find(pm => pm.x === nextCol && Math.abs(pm.y - enemy.y) <= 1);
+
+        if (blocker) {
+            blocker.hp -= enemy.atk;
+            if (blocker.hp <= 0) {
+                ggState.placedMinions = ggState.placedMinions.filter(pm => pm.id !== blocker.id);
+                ggLog('💀 ' + (battleMinions[blocker.minionId]?.name || 'Defender') + ' destroyed by ' + (battleMinions[enemy.minionId]?.name || 'Enemy') + '!', '#ff4444');
             } else {
-                enemy.x++;
-                if (enemy.x >= GG_ALTAR_COL) {
-                    // Reached altar
-                    ggState.altarHp -= enemy.atk;
-                    enemy.dead = true;
-                    ggLog(`💥 ${battleMinions[enemy.minionId]?.name} reached the altar! -${enemy.atk} HP.`, '#ff2222');
-                    renderGgHud();
-                    if (ggState.altarHp <= 0) { ggDefeat(); return; }
-                }
+                ggLog((battleMinions[enemy.minionId]?.icon || '👹') + ' hits ' + (battleMinions[blocker.minionId]?.icon || '👿') + ' for ' + enemy.atk + ' (' + blocker.hp + ' hp left)', '#ff8844');
+            }
+        } else {
+            enemy.x++;
+            if (enemy.x >= GG_ALTAR_COL) {
+                ggState.altarHp -= enemy.atk;
+                enemy.dead = true;
+                ggLog('💥 ' + (battleMinions[enemy.minionId]?.name || 'Enemy') + ' reached the altar! -' + enemy.atk + ' HP.', '#ff2222');
+                renderGgHud();
+                if (ggState.altarHp <= 0) { ggDefeat(); return; }
             }
         }
     });
 
-    // 2. Placed minions attack any enemy within column range (no row restriction)
+    // 2. Placed minions shoot enemies within range — any row
     ggState.placedMinions.forEach(pm => {
         pm.cooldown = (pm.cooldown || 0) + 1;
         if (pm.cooldown < pm.cooldownMax) return;
         pm.cooldown = 0;
-        // Range 1 = adjacent columns only, Range 5+ = sniper across the board
-        const inRange = ggState.enemies.filter(e => !e.dead && Math.abs(e.x - pm.x) <= pm.range);
+        // Enemies come from the LEFT — minions shoot leftward. Range = how many columns to the left they can reach
+        const inRange = ggState.enemies.filter(e => !e.dead && e.x >= (pm.x - pm.range) && e.x <= pm.x);
         if (inRange.length === 0) return;
-        // Target closest to altar (highest x), tiebreak on lowest hp
         const target = inRange.reduce((best, e) => {
             if (e.x > best.x) return e;
             if (e.x === best.x && e.hp < best.hp) return e;
@@ -16113,7 +16135,7 @@ function ggTick() {
         target.hp -= pm.atk;
         if (target.hp <= 0) {
             target.dead = true;
-            ggLog(`${battleMinions[pm.minionId]?.icon || '👿'} slays ${battleMinions[target.minionId]?.name}!`, '#44cc88');
+            ggLog((battleMinions[pm.minionId]?.icon || '👿') + ' slays ' + (battleMinions[target.minionId]?.name || 'enemy') + '!', '#44cc88');
         }
     });
 
@@ -23071,6 +23093,15 @@ showScreen = function(screenId) {
 // 🔧 DEV TOOL: Repair corrupted Firebase save
 // Run in console: repairPlayerSave('UID_HERE')
 // =================================================================
+// Run in console to reset the gauntlet cooldown timer: resetGauntletCooldown()
+window.resetGauntletCooldown = function() {
+    if (!gameState.godsGauntlet) gameState.godsGauntlet = {};
+    gameState.godsGauntlet.lastTriggered = 0;
+    gameState.godsGauntlet._announced = false;
+    saveGame();
+    console.log('✅ Gauntlet cooldown reset — will trigger on next tick if qualified.');
+};
+
 async function repairPlayerSave(uid) {
     // Dev check removed — function only works if you know the UID
     const db = window._scFirebase?.db;

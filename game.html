@@ -71,13 +71,16 @@
             100% { opacity: 0.3; transform: scale(1) rotate(360deg); }
         }
         .screen { background: radial-gradient(ellipse at top center, rgba(60,20,80,0.08) 0%, transparent 70%); }
+        #godsgauntlet-screen { isolation: isolate; contain: paint; }
+        #market-ticker-wrap { isolation: isolate; }
         
         [data-tooltip]::after { background: linear-gradient(135deg, #080510, #100d1a); border: 1px solid #2d1a40; color: var(--secondary-color); box-shadow: 0 0 20px rgba(0,0,0,0.9), 0 0 8px rgba(100,0,150,0.2); }
         #souls-display { color: #f0d8d8; text-shadow: 0 0 12px rgba(220,80,80,0.6); }
         #leaderboard-list li:first-child { border-color: #c8a800; border-left-color: #c8a800; box-shadow: 0 0 20px rgba(200,168,0,0.3), inset 0 0 10px rgba(0,0,0,0.4); }
         .soul-particle { position: absolute; width: 4px; height: 14px; background: var(--primary-color); border: 1px solid #400; box-shadow: 0 0 14px var(--primary-glow), 0 0 6px rgba(255,80,80,0.5); pointer-events: none; opacity: 1; animation: fly-out 0.8s ease-out forwards; }
         @keyframes fly-out { from { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; } to { transform: translate(var(--x), var(--y)) scale(0) rotate(360deg); opacity: 0; } }
-        body { background-color: var(--background-color); box-shadow: inset 0 0 250px #000; background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYqUlJSbm5rR0dGSkpJZWVl4eHhfX1/Kysqztba6urqloqPy8/P19fX7+/sbwLSUAAAANElEQVR42mNgBAINDDxdgIvNlBPEyYPAyMDM0M0w9D8cmBjg8D8yMDBdBSMDBgABo4MBgABhIUgAAAAASUVORK5CYII='); color: var(--secondary-color); font-family: var(--font-body); font-size: var(--font-size-base); text-align: center; padding: 15px; margin: 0; user-select: none; }
+        html { scrollbar-gutter: stable; }
+        body { background-color: var(--background-color); box-shadow: inset 0 0 250px #000; background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYqUlJSbm5rR0dGSkpJZWVl4eHhfX1/Kysqztba6urqloqPy8/P19fX7+/sbwLSUAAAANElEQVR42mNgBAINDDxdgIvNlBPEyYPAyMDM0M0w9D8cmBjg8D8yMDBdBSMDBgABo4MBgABhIUgAAAAASUVORK5CYII='); color: var(--secondary-color); font-family: var(--font-body); font-size: var(--font-size-base); text-align: center; padding: 15px; margin: 0; user-select: none; overflow-x: hidden; }
         /* ================================================================= */
         /* DARK MODE SCROLLBAR STYLES (NEW) */
         /* ================================================================= */
@@ -3900,7 +3903,7 @@ text-decoration: underline; /* Adds an underline on hover */
                             </div>
                         </div>
                         <!-- The battle grid -->
-                        <div id="gg-grid-wrap" style="position:relative; background:#06040e; border:2px solid #2a1a3a; border-radius:8px; overflow:hidden;">
+                        <div id="gg-grid-wrap" style="position:relative; background:#06040e; border:2px solid #2a1a3a; border-radius:8px; overflow:hidden; contain:layout size;">
                             <div id="gg-grid" style="display:grid; grid-template-columns:repeat(9,1fr); grid-template-rows:repeat(5,1fr); width:100%; aspect-ratio:9/5;"></div>
                             <div id="gg-projectiles" style="position:absolute; inset:0; pointer-events:none;"></div>
                         </div>
@@ -16348,6 +16351,9 @@ window.ggStartWave = function() {
 
     if (ggState.intervalId) clearInterval(ggState.intervalId);
     ggState.intervalId = setInterval(ggTick, 300);
+    // Pause market ticker animation during combat to prevent visual glitching
+    const ticker = document.getElementById('market-ticker-inner');
+    if (ticker) ticker.style.animationPlayState = 'paused';
 };
 
 window.ggMercy = function() {
@@ -16456,6 +16462,8 @@ function ggTick() {
 
 function ggVictory() {
     ggState.active = false;
+    const ticker = document.getElementById('market-ticker-inner');
+    if (ticker) ticker.style.animationPlayState = 'running';
     gameState.godsGauntlet._announced = false;
     gameState.godsGauntlet.gauntletCount = (gameState.godsGauntlet.gauntletCount || 0) + 1;
     applyGgDivineBuff();
@@ -16471,6 +16479,8 @@ function ggVictory() {
 function ggDefeat() {
     clearInterval(ggState.intervalId);
     ggState.active = false;
+    const ticker = document.getElementById('market-ticker-inner');
+    if (ticker) ticker.style.animationPlayState = 'running';
     gameState.godsGauntlet._announced = false;
     applyGgCurse();
     ggLog('💀 YOUR ALTAR FALLS. THE GOD TAKES WHAT IS HIS.', '#ff2222');

@@ -5057,6 +5057,13 @@ const fusionRecipes = [
     { a: 'phial_of_brilliance',      b: 'brew_of_luck',               result: 'fusion_fortune_storm' },
     { a: 'vial_of_the_eternal_harvest', b: 'brew_of_luck',            result: 'fusion_fortune_storm' },
     { a: 'ichor_of_wealth',          b: 'brew_of_luck',               result: 'fusion_fortune_storm' },
+
+    // Raid health potion fusions — two lesser heals make a greater one
+    { a: 'minor_healing_flask',      b: 'minor_healing_flask',        result: 'healing_draught' },
+    { a: 'minor_healing_flask',      b: 'healing_draught',            result: 'elixir_of_the_abyss_mend' },
+    { a: 'healing_draught',          b: 'healing_draught',            result: 'elixir_of_the_abyss_mend' },
+    { a: 'minor_healing_flask',      b: 'ichor_of_wealth',            result: 'healing_draught' },
+    { a: 'healing_draught',          b: 'tincture_of_rage',           result: 'elixir_of_the_abyss_mend' },
 ];
 
 // Look up recipe — order-independent
@@ -7114,6 +7121,36 @@ const potions = {
         cost: 1e28,
         cooldown: 3600,
         effect: { type: 'pvp_power_boost_flat', value: 2.0, duration: 300 }
+    },
+
+    // ── RAID HEALTH POTIONS ─────────────────────────────────────────
+    // Stackable (no cooldown) — consumed one at a time during Soul Raids
+    // Each restores a different amount of HP to your raid party
+
+    minor_healing_flask: {
+        name: "Minor Healing Flask",
+        desc: "Raid only — Restores 30% HP to your entire raid party. Stackable. No cooldown.",
+        cost: 5e8,
+        raidOnly: true,
+        effect: { type: 'raid_heal', value: 0.30 }
+    },
+    healing_draught: {
+        name: "Healing Draught",
+        desc: "Raid only — Restores 55% HP to your entire raid party and grants +2 momentum. Stackable. No cooldown.",
+        cost: 5e12,
+        costType: 'souls_and_shards',
+        shardsCost: 5,
+        raidOnly: true,
+        effect: { type: 'raid_heal', value: 0.55 }
+    },
+    elixir_of_the_abyss_mend: {
+        name: "Elixir of Abyssal Mending",
+        desc: "Raid only — Fully restores ALL party members to max HP and grants +3 momentum. Stackable. No cooldown.",
+        cost: 5e18,
+        costType: 'souls_and_shards',
+        shardsCost: 50,
+        raidOnly: true,
+        effect: { type: 'raid_heal', value: 1.0 }
     },
 
 
@@ -10898,6 +10935,10 @@ const potionMeta = {
     tincture_of_expediency:        { icon:'⚡', color:'#ffdd00', rarity:'uncommon' },
     brew_of_luck:                  { icon:'🍀', color:'#44ff88', rarity:'rare' },
     draught_of_the_raider:         { icon:'⚔️', color:'#ff2244', rarity:'rare' },
+    // Raid health potions
+    minor_healing_flask:           { icon:'🧪', color:'#44ff88', rarity:'common' },
+    healing_draught:               { icon:'❤️', color:'#ff4466', rarity:'uncommon' },
+    elixir_of_the_abyss_mend:     { icon:'💖', color:'#ff88cc', rarity:'rare' },
     // New standard brewed
     essence_of_the_damned:         { icon:'💀', color:'#880000', rarity:'uncommon' },
     vial_of_dark_echoes:           { icon:'🔔', color:'#4422aa', rarity:'uncommon' },
@@ -16566,7 +16607,12 @@ function renderRaidDungeon() {
         const role = fBm ? (fBm.atk > fBm.hp * 0.12 ? 'striker' : fBm.hp > fBm.atk * 10 ? 'tank' : 'duelist') : 'duelist';
         const roleLabel = { striker:'⚔ Striker', tank:'🪨 Tank', duelist:'🌀 Duelist' }[role];
         const abCd = raidState._abilityCooldown||0;
-        const hasPotion = Object.values(gameState.potions||{}).some(c=>c>0);
+        const raidHealIds = ['elixir_of_the_abyss_mend', 'healing_draught', 'minor_healing_flask'];
+        const bestRaidPotion = raidHealIds.find(id => (gameState.potions[id]||0) > 0);
+        const hasPotion = bestRaidPotion || Object.values(gameState.potions||{}).some(c=>c>0);
+        const potionLabel = bestRaidPotion
+            ? `${potionMeta[bestRaidPotion]?.icon||'⚗️'} ${potions[bestRaidPotion]?.name||'Potion'} ×${gameState.potions[bestRaidPotion]}`
+            : `⚗ USE POTION — restore party HP`;
         const canSwap = aliveParty.length > 1;
         const mom = raidState._momentum !== undefined ? raidState._momentum : 3;
         const momLabel = mom <= 1 ? '⚠ ENEMY PRESSURE' : mom >= 5 ? '✨ YOUR MOMENTUM' : '⚖ NEUTRAL';
@@ -16627,7 +16673,7 @@ function renderRaidDungeon() {
                 <button onclick="raidCombatAction(&quot;ability&quot;)" style="background:linear-gradient(135deg,${abCd>0?'#22220a':'#ffaa4422'},transparent);border:1px solid ${abilityBdr};border-radius:8px;padding:10px 6px;color:${abilityCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${abilityCur};">${abilityLabel}<div style="font-size:.58em;color:${abCd>0?'#333':'#886622'};margin-top:2px;">${abilityName}</div></button>
                 <button onclick="raidCombatAction(&quot;swap&quot;)" style="background:linear-gradient(135deg,${canSwap?'#44cc8811':'transparent'},transparent);border:1px solid ${swapBdr};border-radius:8px;padding:10px 6px;color:${swapCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${swapCur};">🔄 SWAP<div style="font-size:.62em;color:${canSwap?'#226644':'#222'};margin-top:2px;">${canSwap?'change frontliner (enemy free hit)':'no reserves'}</div></button>
             </div>
-            ${hasPotion ? `<button onclick="raidCombatAction(&quot;potion&quot;)" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#44cc8811,transparent);border:1px solid #44cc8844;border-radius:8px;padding:8px;color:#88ffaa;font-family:var(--font-title);font-size:.7em;cursor:pointer;">⚗ USE POTION — restore party HP</button>` : ''}
+            ${hasPotion ? `<button onclick="raidCombatAction(&quot;potion&quot;)" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#44cc8811,transparent);border:1px solid #44cc8844;border-radius:8px;padding:8px;color:#88ffaa;font-family:var(--font-title);font-size:.7em;cursor:pointer;">${potionLabel}</button>` : ''}
         </div>`;
     }
     roomEl.innerHTML = html;
@@ -16868,16 +16914,26 @@ window.raidCombatAction = function(action) {
         }
 
     } else if (action === 'potion') {
-        const avail = Object.entries(gameState.potions||{}).filter(([,c])=>c>0);
-        if (avail.length > 0) {
-            const [pid] = avail[0];
-            gameState.potions[pid]--;
-            const heal = Math.floor(frontliner.maxHp * 0.5);
-            aliveParty.forEach(p => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(heal * 0.5)); });
-            frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + Math.floor(heal * 0.5));
-            logLines.push(`⚗️ <b>${potions[pid]?.name||'Potion'}</b> used — party restored!`);
+        // Prioritise dedicated raid heal potions, fall back to any potion
+        const raidHealIds = ['elixir_of_the_abyss_mend', 'healing_draught', 'minor_healing_flask'];
+        const raidAvail = raidHealIds.filter(id => (gameState.potions[id]||0) > 0);
+        const anyAvail  = Object.entries(gameState.potions||{}).filter(([,c])=>c>0);
+        const usePid    = raidAvail.length > 0 ? raidAvail[0] : (anyAvail.length > 0 ? anyAvail[0][0] : null);
+
+        if (usePid) {
+            gameState.potions[usePid]--;
+            const pDef   = potions[usePid];
+            const pMeta  = potionMeta[usePid];
+            // Raid heal potions use their defined heal value; others heal 40%
+            const healPct = (pDef?.effect?.type === 'raid_heal') ? pDef.effect.value : 0.40;
+            aliveParty.forEach(p => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * healPct)); });
+            // Bonus momentum from stronger potions
+            if (usePid === 'healing_draught')          raidState._momentum = Math.min(6, (raidState._momentum||3) + 2);
+            if (usePid === 'elixir_of_the_abyss_mend') raidState._momentum = Math.min(6, (raidState._momentum||3) + 3);
+            const remaining = gameState.potions[usePid] || 0;
+            logLines.push(`${pMeta?.icon||'⚗️'} <b>${pDef?.name||'Potion'}</b> — party healed ${Math.round(healPct*100)}% HP! (${remaining} left)`);
         } else {
-            logLines.push(`❌ No potions left.`);
+            logLines.push(`❌ No healing potions left.`);
         }
     }
 

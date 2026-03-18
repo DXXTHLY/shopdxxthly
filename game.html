@@ -402,6 +402,7 @@
         .auth-btn-ghost:hover { color: var(--accent-color); }
         .auth-error { color: #ff5555; font-size: 0.9rem; margin-top: 10px; min-height: 20px; }
         .auth-loading { color: var(--dim-color); font-style: italic; font-size: 0.9rem; margin-top: 10px; }
+        #profile-setup {
             width: 100%; height: 100%;
             background: radial-gradient(ellipse at center, #0d0520 0%, #060010 60%, #000 100%);
             display: flex; justify-content: center; align-items: center;
@@ -2747,39 +2748,37 @@ text-decoration: underline; /* Adds an underline on hover */
                             <div id="raid-dungeon-area">
                                 <div id="raid-pregame" style="text-align:center; padding:20px 0;">
                                     <div style="background:#0a0812; border:1px solid #ff664422; border-radius:10px; padding:16px; margin-bottom:16px; text-align:left; max-width:420px; margin:0 auto 16px;">
-                                        <div style="color:#ff6644; font-size:0.75em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;">What You'll Find</div>
+                                        <div style="color:#ff6644; font-size:0.75em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;">How It Works</div>
                                         <div style="color:#888; font-size:0.82em; line-height:1.7;">
-                                            ⚔ Combat rooms — fight enemies to advance<br>
-                                            ⭐ Elite rooms — tougher enemies, better loot<br>
-                                            👑 Boss — room 10, hardest fight<br>
-                                            💰 Treasure — free Corrupted Fragments<br>
-                                            💧 Fountain — restore HP and energy<br>
-                                            📦 Abyssal Chest — rare spinning reel loot
+                                            🗺 Navigate a <strong style="color:#ddd;">7×7 dungeon grid</strong> — click adjacent tiles to move<br>
+                                            ⚡ Each move costs <strong style="color:#ddd;">1 energy</strong> (start with 20)<br>
+                                            👹 Enemies <strong style="color:#ddd;">patrol back and forth</strong> — step on them to fight<br>
+                                            💰 Loot guarded by patrols — defeat them to grab it<br>
+                                            🚪 Find the exit to descend to the next floor<br>
+                                            🏃 Flee any time and keep everything you've found
                                         </div>
                                     </div>
                                     <div style="background:#0a0812; border:1px solid #ff664422; border-radius:10px; padding:16px; margin-bottom:16px; text-align:left; max-width:420px; margin:0 auto 16px;">
-                                        <div style="color:#ff6644; font-size:0.75em; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">Rules</div>
+                                        <div style="color:#ff6644; font-size:0.75em; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">Tile Types</div>
                                         <div style="color:#888; font-size:0.82em; line-height:1.7;">
-                                            • Start with <strong style="color:#ddd;">20 energy</strong> — each room costs 1<br>
-                                            • <strong style="color:#ddd;">Flee any time</strong> and keep your loot<br>
-                                            • Minions that die have a <strong style="color:#ddd;">2-hour cooldown</strong><br>
-                                            • 4-hour cooldown between raids
+                                            👹 Enemy patrol &nbsp;💰 Treasure &nbsp;💧 Fountain<br>
+                                            📦 Abyssal Chest (rare) &nbsp;👑 Boss &nbsp;🚪 Exit
                                         </div>
                                     </div>
                                     <button id="raid-enter-btn" onclick="startSoulRaid()" disabled style="background:linear-gradient(135deg,#cc3311,#440000); border:2px solid #ff664466; border-radius:10px; padding:14px 40px; color:#ff9988; font-family:var(--font-title); font-size:0.95em; letter-spacing:2px; cursor:pointer; opacity:0.5;">⚔ ENTER THE DUNGEON</button>
                                 </div>
                                 <div id="raid-active" style="display:none;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
-                                        <div id="raid-room-label" style="color:#ff6644; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px;">Room 1 / 10</div>
+                                        <div id="raid-room-label" style="color:#ff6644; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px;">Floor 1 / 3</div>
                                         <div style="display:flex; gap:6px; align-items:center;">
                                             <div id="raid-energy-display" style="color:#44ccff; font-size:0.82em;">⚡ 20 energy</div>
                                             <button onclick="fleeRaid()" style="background:transparent; border:1px solid #44444466; border-radius:8px; padding:6px 14px; color:#555; font-family:var(--font-title); font-size:0.75em; cursor:pointer;">🏃 Flee</button>
                                         </div>
                                     </div>
-                                    <div id="raid-room-display" style="background:#06040e; border:2px solid #2a1a3a; border-radius:10px; padding:16px; margin-bottom:12px; min-height:180px;"></div>
-                                    <div id="raid-actions" style="display:none; gap:8px; flex-wrap:wrap; margin-bottom:12px;"></div>
+                                    <div id="raid-room-display" style="background:#06040e; border:2px solid #2a1a3a; border-radius:10px; padding:10px; margin-bottom:12px; min-height:220px; text-align:center; overflow-x:auto;"></div>
+                                    <div id="raid-actions" style="display:none;"></div>
                                     <div id="raid-party-hpbars" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
-                                    <div id="raid-log" style="background:#06040e; border:1px solid #1a1030; border-radius:6px; padding:8px 10px; height:100px; overflow-y:auto; font-size:0.75em; color:#666;"></div>
+                                    <div id="raid-log" style="background:#06040e; border:1px solid #1a1030; border-radius:6px; padding:8px 10px; height:120px; overflow-y:auto; font-size:0.75em; color:#666;"></div>
                                 </div>
                             </div>
                         </div>
@@ -12689,7 +12688,7 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
 async function fetchPvpTargets() {
     const targetList = document.getElementById('pvp-target-list');
     if (!targetList || !supabaseClient || SUPABASE_URL.includes("YOUR_SUPABASE")) {
-        targetList.innerHTML = `<li>PvP Database not configured. See Step 1 in the tutorial.</li>`;
+        if (targetList) targetList.innerHTML = `<li>PvP Database not configured. See Step 1 in the tutorial.</li>`;
         return;
     }
     targetList.innerHTML = '<li><em>Scouring the abyss for rivals...</em></li>';
@@ -12757,7 +12756,7 @@ function renderPvpLog() {
 }
 
 function updateRaidCooldownDisplay() {
-    const timerEl = document.getElementById('raid-cooldown-timer');
+    const timerEl = document.getElementById('raid-cooldown-display');
     if (!timerEl) return;
     const now = Date.now();
     if (now < gameState.raidCooldownEnd) {
@@ -15721,57 +15720,48 @@ const breachMinionAbilities = {
     }
 };
 // =================================================================
-// SOUL RAIDS — PVE Dungeon Crawl
+// =================================================================
+// SOUL RAIDS — PVE Dungeon Grid
 // =================================================================
 
-const RAID_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours between raids
-const RAID_MAX_ROOMS   = 10;
+const RAID_COOLDOWN_MS = 4 * 60 * 60 * 1000;
+const RAID_GRID_SIZE   = 7;
 const RAID_MAX_ENERGY  = 20;
 const RAID_PARTY_SIZE  = 3;
+const RAID_MAX_FLOORS  = 3;
 
-// Raid tiers
 const RAID_TIERS = [
-    { id: 'tier1', label: '⚔ Tier I — The Shallow Dark',   color: '#44cc88', enemyScale: 1.0,  fragMin: 10, fragMax: 18, unlockAscensions: 0  },
-    { id: 'tier2', label: '💀 Tier II — The Burning Depths', color: '#ff9944', enemyScale: 2.5,  fragMin: 15, fragMax: 25, unlockAscensions: 3  },
-    { id: 'tier3', label: '☠ Tier III — The Void Core',     color: '#aa44ff', enemyScale: 6.0,  fragMin: 20, fragMax: 35, unlockAscensions: 8  },
+    { id:'tier1', label:'⚔ Tier I — Shallow Dark',    color:'#44cc88', enemyScale:1.0,  fragMin:10, fragMax:18, unlockAscensions:0 },
+    { id:'tier2', label:'💀 Tier II — Burning Depths', color:'#ff9944', enemyScale:2.5,  fragMin:15, fragMax:25, unlockAscensions:3 },
+    { id:'tier3', label:'☠ Tier III — Void Core',     color:'#aa44ff', enemyScale:6.0,  fragMin:20, fragMax:35, unlockAscensions:8 },
 ];
 
-// Room type pool per room index (0-9)
-// Each entry: array of possible room types with weights
-const RAID_ROOM_TYPES = ['combat','combat','combat','treasure','combat','fountain','combat','elite','chest','boss'];
-
-// Raid Echo items — exclusive to raids
 const RAID_ECHOES = [
-    { id:'echo_of_slaughter', name:'Echo of Slaughter', type:'weapon', rarity:'epic', desc:'All minion ATK in raids +30%. SPS +8% permanently.', bonus:{type:'global_sps_multiplier',value:1.08} },
-    { id:'echo_of_endurance', name:'Echo of Endurance', type:'idol',   rarity:'epic', desc:'Minion HP in raids +40%. SPS +6% permanently.', bonus:{type:'global_sps_multiplier',value:1.06} },
-    { id:'echo_of_hunger',    name:'Echo of Hunger',    type:'sigil',  rarity:'epic', desc:'Fragment rewards from raids +50%. Dark Essence +8%.', bonus:{type:'essence_multiplier',value:1.08} },
-    { id:'echo_of_the_deep',  name:'Echo of the Deep',  type:'helm',   rarity:'legendary', desc:'All raid rewards doubled. SPS +15% permanently.', bonus:{type:'global_sps_multiplier',value:1.15} },
-    { id:'echo_of_eternity',  name:'Echo of Eternity',  type:'tome',   rarity:'legendary', desc:'Raid cooldown halved. Expedition fragments +25%.', bonus:{type:'expedition_fragment_multiplier',value:1.25} },
+    { id:'echo_of_slaughter', name:'Echo of Slaughter', type:'weapon', rarity:'epic',      desc:'SPS +8% permanently.',       bonus:{type:'global_sps_multiplier',value:1.08} },
+    { id:'echo_of_endurance', name:'Echo of Endurance', type:'idol',   rarity:'epic',      desc:'SPS +6% permanently.',       bonus:{type:'global_sps_multiplier',value:1.06} },
+    { id:'echo_of_hunger',    name:'Echo of Hunger',    type:'sigil',  rarity:'epic',      desc:'Dark Essence gains +8%.',    bonus:{type:'essence_multiplier',value:1.08} },
+    { id:'echo_of_the_deep',  name:'Echo of the Deep',  type:'helm',   rarity:'legendary', desc:'SPS +15% permanently.',      bonus:{type:'global_sps_multiplier',value:1.15} },
+    { id:'echo_of_eternity',  name:'Echo of Eternity',  type:'tome',   rarity:'legendary', desc:'Expedition fragments +25%.', bonus:{type:'expedition_fragment_multiplier',value:1.25} },
 ];
-
-// Add raid echoes to items object if not already there
 RAID_ECHOES.forEach(e => { if (!items[e.id]) items[e.id] = e; });
 
-// Enemy pools per tier
 const RAID_ENEMY_POOLS = {
-    tier1: [['imp','ghoul','demon'],['ash_golem','cinder_wraith'],['abyssal_stalker','frost_lich']],
-    tier2: [['hellhound','balrog'],['corrupted_cherub','shoggoth'],['river_hydra','fallen_angel']],
-    tier3: [['pit_lord','spacetime_ghast'],['glacial_titan','reality_warper'],['void_spawn','alpha_omega','god_eater']],
+    tier1: ['imp','ghoul','demon','ash_golem','cinder_wraith'],
+    tier2: ['hellhound','balrog','corrupted_cherub','shoggoth','river_hydra'],
+    tier3: ['pit_lord','spacetime_ghast','glacial_titan','reality_warper','void_spawn'],
 };
 
+// Tile types
+const RTILE = { EMPTY:'empty', WALL:'wall', ENEMY:'enemy', TREASURE:'treasure', FOUNTAIN:'fountain', CHEST:'chest', BOSS:'boss', EXIT:'exit', PLAYER:'player' };
+
 let raidState = {
-    active: false,
-    room: 0,
-    energy: RAID_MAX_ENERGY,
-    tier: 'tier1',
-    party: [],       // [{minionId, hp, maxHp, atk}]
-    enemies: [],     // [{minionId, hp, maxHp, atk, name, icon}]
-    roomType: 'combat',
-    turn: 0,
-    loot: { fragments: 0, echoes: [], chestOpened: false },
-    inCombat: false,
-    roomMap: [],     // pre-generated room types
+    active:false, floor:1, energy:RAID_MAX_ENERGY, tier:'tier1',
+    party:[], grid:[], playerPos:{x:0,y:0}, enemies:[],
+    inCombat:false, combatEnemy:null, loot:{fragments:0,echoes:[]},
+    explored:new Set(),
 };
+
+// ── UI helpers ────────────────────────────────────────────────────
 
 function initSoulRaids() {
     renderRaidTierSelector();
@@ -15784,16 +15774,16 @@ function initSoulRaids() {
 function renderRaidStatusBar() {
     const r = gameState.soulRaids || {};
     const now = Date.now();
-    const cdLeft = Math.max(0, (r.cooldownUntil || 0) - now);
+    const cdLeft = Math.max(0, (r.cooldownUntil||0) - now);
     const statusEl = document.getElementById('raid-status-text');
-    const cdEl = document.getElementById('raid-cooldown-display');
+    const cdEl     = document.getElementById('raid-cooldown-display');
     if (cdLeft > 0) {
         const h = Math.floor(cdLeft/3600000), m = Math.floor((cdLeft%3600000)/60000);
-        if (statusEl) { statusEl.textContent = 'ON COOLDOWN'; statusEl.style.color = '#555'; }
+        if (statusEl) { statusEl.textContent = 'ON COOLDOWN'; statusEl.style.color='#555'; }
         if (cdEl) cdEl.textContent = `Next raid in ${h}h ${m}m`;
     } else {
-        if (statusEl) { statusEl.textContent = raidState.active ? 'RAID IN PROGRESS' : 'READY'; statusEl.style.color = '#ff6644'; }
-        if (cdEl) cdEl.textContent = `${(r.completedRaids||0)} raids completed`;
+        if (statusEl) { statusEl.textContent = raidState.active ? `FLOOR ${raidState.floor} — IN PROGRESS` : 'READY'; statusEl.style.color='#ff6644'; }
+        if (cdEl) cdEl.textContent = `${r.completedRaids||0} raids completed`;
     }
 }
 
@@ -15803,11 +15793,11 @@ function renderRaidTierSelector() {
     el.innerHTML = '';
     RAID_TIERS.forEach(tier => {
         const locked = (gameState.ascensions||0) < tier.unlockAscensions;
-        const isSelected = raidState.tier === tier.id;
+        const sel = raidState.tier === tier.id;
         const btn = document.createElement('div');
-        btn.style.cssText = `background:${isSelected?`linear-gradient(135deg,${tier.color}18,transparent)`:'transparent'};border:1px solid ${isSelected?tier.color+'88':'#2a1a3a'};border-radius:8px;padding:8px 10px;cursor:${locked?'default':'pointer'};opacity:${locked?0.4:1};transition:all 0.2s;`;
-        btn.innerHTML = `<div style="color:${locked?'#333':tier.color};font-size:0.78em;font-weight:bold;">${tier.label}</div><div style="color:#555;font-size:0.68em;margin-top:2px;">${locked?`Requires ${tier.unlockAscensions} ascensions`:`${tier.fragMin}–${tier.fragMax} fragments`}</div>`;
-        if (!locked) btn.onclick = () => { raidState.tier = tier.id; renderRaidTierSelector(); updateRaidEnterBtn(); };
+        btn.style.cssText = `background:${sel?`linear-gradient(135deg,${tier.color}18,transparent)`:'transparent'};border:1px solid ${sel?tier.color+'88':'#2a1a3a'};border-radius:8px;padding:8px 10px;cursor:${locked?'default':'pointer'};opacity:${locked?.4:1};transition:all .2s;`;
+        btn.innerHTML = `<div style="color:${locked?'#333':tier.color};font-size:.78em;font-weight:bold;">${tier.label}</div><div style="color:#555;font-size:.68em;margin-top:2px;">${locked?`Requires ${tier.unlockAscensions} ascensions`:`${tier.fragMin}–${tier.fragMax} frags`}</div>`;
+        if (!locked) btn.onclick = () => { raidState.tier=tier.id; renderRaidTierSelector(); updateRaidEnterBtn(); };
         el.appendChild(btn);
     });
 }
@@ -15817,21 +15807,20 @@ function renderRaidRoster() {
     if (!el) return;
     el.innerHTML = '';
     const owned = Object.entries(gameState.minions||{})
-        .filter(([id,m]) => (m.level||0)>0 && battleMinions[id] && !minions[id]?.secret)
-        .sort((a,b) => (battleMinions[b[0]].cost||0)-(battleMinions[a[0]].cost||0));
+        .filter(([id,m])=>(m.level||0)>0 && battleMinions[id] && !minions[id]?.secret)
+        .sort((a,b)=>(battleMinions[b[0]].cost||0)-(battleMinions[a[0]].cost||0));
     const cooldowns = gameState.soulRaids?.minionCooldowns||{};
     const now = Date.now();
     owned.forEach(([id,m]) => {
         const bm = battleMinions[id];
         const onCd = cooldowns[id] && now < cooldowns[id];
         const inParty = raidState.party.includes(id);
-        const btn = document.createElement('div');
-        btn.style.cssText = `background:${inParty?'linear-gradient(135deg,#ff664418,transparent)':'transparent'};border:1px solid ${inParty?'#ff664488':'#1a1030'};border-radius:6px;padding:6px 8px;cursor:${onCd||(!inParty&&raidState.party.length>=RAID_PARTY_SIZE)?'default':'pointer'};opacity:${onCd?0.3:1};display:flex;align-items:center;gap:6px;`;
         const lv = m.level||0;
-        const scale = 1+Math.floor(lv/25)*0.05;
+        const scale = 1+Math.floor(lv/25)*.05;
         const hp = Math.ceil(bm.hp*scale), atk = Math.ceil(bm.atk*scale);
-        const cdStr = onCd ? ` · <span style="color:#ff4444">CD ${Math.ceil((cooldowns[id]-now)/3600000)}h</span>` : '';
-        btn.innerHTML = `<span style="font-size:1.2em;">${bm.icon}</span><div style="flex:1;overflow:hidden;"><div style="color:#ddd;font-size:0.72em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${bm.name}</div><div style="color:#555;font-size:0.62em;">Lv${lv} ❤${hp} ⚔${atk}${cdStr}</div></div>`;
+        const btn = document.createElement('div');
+        btn.style.cssText = `background:${inParty?'linear-gradient(135deg,#ff664418,transparent)':'transparent'};border:1px solid ${inParty?'#ff664488':'#1a1030'};border-radius:6px;padding:6px 8px;cursor:${onCd||(!inParty&&raidState.party.length>=RAID_PARTY_SIZE)?'default':'pointer'};opacity:${onCd?.3:1};display:flex;align-items:center;gap:6px;`;
+        btn.innerHTML = `<span style="font-size:1.2em;">${bm.icon}</span><div style="flex:1;overflow:hidden;"><div style="color:#ddd;font-size:.72em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${bm.name}</div><div style="color:#555;font-size:.62em;">Lv${lv} ❤${hp} ⚔${atk}${onCd?` · <span style="color:#ff4444">CD</span>`:''}</div></div>`;
         if (!onCd) btn.onclick = () => toggleRaidParty(id);
         el.appendChild(btn);
     });
@@ -15844,13 +15833,13 @@ function renderRaidPartySlots() {
     for (let i=0; i<RAID_PARTY_SIZE; i++) {
         const id = raidState.party[i];
         const slot = document.createElement('div');
-        slot.style.cssText = `background:#08050f;border:1px solid ${id?'#ff664444':'#1a1030'};border-radius:8px;padding:8px;min-height:40px;display:flex;align-items:center;gap:8px;cursor:${id?'pointer':'default'};`;
+        slot.style.cssText = `background:#08050f;border:1px solid ${id?'#ff664444':'#1a1030'};border-radius:8px;padding:8px;min-height:40px;display:flex;align-items:center;gap:8px;`;
         if (id) {
             const bm = battleMinions[id];
             const lv = gameState.minions[id]?.level||0;
-            slot.innerHTML = `<span style="font-size:1.3em;">${bm.icon}</span><div style="flex:1;"><div style="color:#ddd;font-size:0.75em;">${bm.name}</div><div style="color:#555;font-size:0.65em;">Lv${lv}</div></div><span style="color:#ff4444;font-size:0.8em;" onclick="toggleRaidParty('${id}')">✕</span>`;
+            slot.innerHTML = `<span style="font-size:1.3em;">${bm.icon}</span><div style="flex:1;"><div style="color:#ddd;font-size:.75em;">${bm.name}</div><div style="color:#555;font-size:.65em;">Lv${lv}</div></div><span style="color:#ff4444;font-size:.8em;cursor:pointer;" onclick="toggleRaidParty('${id}')">✕</span>`;
         } else {
-            slot.innerHTML = `<span style="color:#2a1a3a;font-size:0.75em;font-style:italic;">Empty slot ${i+1}</span>`;
+            slot.innerHTML = `<span style="color:#2a1a3a;font-size:.75em;font-style:italic;">Empty slot ${i+1}</span>`;
         }
         el.appendChild(slot);
     }
@@ -15858,392 +15847,481 @@ function renderRaidPartySlots() {
 }
 
 function toggleRaidParty(id) {
-    if (raidState.party.includes(id)) {
-        raidState.party = raidState.party.filter(x=>x!==id);
-    } else if (raidState.party.length < RAID_PARTY_SIZE) {
-        raidState.party.push(id);
-    }
-    renderRaidRoster();
-    renderRaidPartySlots();
+    if (raidState.party.includes(id)) raidState.party = raidState.party.filter(x=>x!==id);
+    else if (raidState.party.length < RAID_PARTY_SIZE) raidState.party.push(id);
+    renderRaidRoster(); renderRaidPartySlots();
 }
 
 function updateRaidEnterBtn() {
     const btn = document.getElementById('raid-enter-btn');
     if (!btn) return;
-    const r = gameState.soulRaids||{};
-    const onCd = Date.now() < (r.cooldownUntil||0);
+    const onCd = Date.now() < (gameState.soulRaids?.cooldownUntil||0);
     const ready = raidState.party.length === RAID_PARTY_SIZE && !onCd && !raidState.active;
     btn.disabled = !ready;
-    btn.style.opacity = ready ? '1' : '0.5';
-    btn.style.cursor = ready ? 'pointer' : 'default';
+    btn.style.opacity = ready?'1':'0.5';
+    btn.style.cursor  = ready?'pointer':'default';
 }
+
+// ── Grid generation ───────────────────────────────────────────────
+
+function generateRaidGrid(floor) {
+    const G = RAID_GRID_SIZE;
+    // Init all empty
+    const grid = Array.from({length:G}, ()=>Array(G).fill(null).map(()=>({type:RTILE.EMPTY, enemy:null, item:null})));
+
+    // Player starts top-left
+    grid[0][0].type = RTILE.EMPTY; // player tracked separately
+
+    // Exit bottom-right
+    grid[G-1][G-1].type = RTILE.EXIT;
+
+    // Boss near exit
+    grid[G-2][G-1].type = RTILE.BOSS;
+
+    // Place fountains (2)
+    placeRaidTiles(grid, RTILE.FOUNTAIN, 2);
+    // Treasures (3-4)
+    placeRaidTiles(grid, RTILE.TREASURE, 3 + Math.floor(Math.random()*2));
+    // Chest (1, rare 40% chance)
+    if (Math.random() < 0.40) placeRaidTiles(grid, RTILE.CHEST, 1);
+
+    // Place enemies (8-10) with patrol paths
+    const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
+    const pool = RAID_ENEMY_POOLS[raidState.tier];
+    const enemyCount = 8 + Math.floor(Math.random()*3);
+    const enemies = [];
+    let placed = 0;
+    let attempts = 0;
+    while (placed < enemyCount && attempts < 200) {
+        attempts++;
+        const x = 1 + Math.floor(Math.random()*(G-1));
+        const y = Math.floor(Math.random()*G);
+        if (grid[y][x].type !== RTILE.EMPTY) continue;
+        if (Math.abs(x)+Math.abs(y) < 2) continue; // keep start clear
+        const minionId = pool[Math.floor(Math.random()*pool.length)];
+        const bm = battleMinions[minionId];
+        if (!bm) continue;
+        const scale = tierData.enemyScale * (1 + floor*0.3) * (0.8+Math.random()*0.4);
+        // Patrol: horizontal or vertical, 2-3 tiles
+        const dir = Math.random()<0.5?'h':'v';
+        const patrolLen = 2 + Math.floor(Math.random()*2);
+        const enemy = { id:'e_'+Date.now()+'_'+placed, minionId, x, y, hp:Math.ceil(bm.hp*scale), maxHp:Math.ceil(bm.hp*scale), atk:Math.ceil(bm.atk*scale), patrolOrigin:{x,y}, patrolDir:dir, patrolLen, patrolStep:0, patrolFwd:true };
+        grid[y][x].type  = RTILE.ENEMY;
+        grid[y][x].enemy = enemy;
+        enemies.push(enemy);
+        placed++;
+    }
+    return { grid, enemies };
+}
+
+function placeRaidTiles(grid, type, count) {
+    const G = RAID_GRID_SIZE;
+    let placed = 0, attempts = 0;
+    while (placed < count && attempts < 100) {
+        attempts++;
+        const x = Math.floor(Math.random()*G);
+        const y = Math.floor(Math.random()*G);
+        if (grid[y][x].type !== RTILE.EMPTY) continue;
+        if (x===0 && y===0) continue;
+        if (x===G-1 && y===G-1) continue;
+        grid[y][x].type = type;
+        placed++;
+    }
+}
+
+// ── Start raid ────────────────────────────────────────────────────
 
 window.startSoulRaid = function() {
     if (raidState.party.length !== RAID_PARTY_SIZE) return;
     const r = gameState.soulRaids||{};
     if (Date.now() < (r.cooldownUntil||0)) return;
     const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
-    if (!tierData) return;
 
-    // Pre-generate room map
-    raidState.roomMap = [];
-    for (let i=0; i<RAID_MAX_ROOMS; i++) {
-        raidState.roomMap.push(RAID_ROOM_TYPES[i]);
-    }
-    // 15% chance to replace a combat room (rooms 2-7) with a chest
-    for (let i=2; i<7; i++) {
-        if (raidState.roomMap[i]==='combat' && Math.random()<0.15) raidState.roomMap[i]='chest';
-    }
-
-    // Build party with scaled stats
+    // Build party with scaled HP/ATK
     raidState.party = raidState.party.map(id => {
-        const bm = battleMinions[id];
-        const lv = gameState.minions[id]?.level||1;
-        const scale = (1+Math.floor(lv/25)*0.05) * tierData.enemyScale * 0.8; // players slightly buffed
-        return { minionId:id, hp:Math.ceil(bm.hp*scale), maxHp:Math.ceil(bm.hp*scale), atk:Math.ceil(bm.atk*scale), range:bm.range };
+        const bm = battleMinions[id]; const lv = gameState.minions[id]?.level||1;
+        const scale = (1+Math.floor(lv/25)*.05);
+        return { minionId:id, hp:Math.ceil(bm.hp*scale), maxHp:Math.ceil(bm.hp*scale), atk:Math.ceil(bm.atk*scale) };
     });
 
-    raidState.active = true;
-    raidState.room = 0;
-    raidState.energy = RAID_MAX_ENERGY;
-    raidState.loot = { fragments:0, echoes:[], chestOpened:false };
+    raidState.active   = true;
+    raidState.floor    = 1;
+    raidState.energy   = RAID_MAX_ENERGY;
+    raidState.loot     = { fragments:0, echoes:[] };
     raidState.inCombat = false;
+    raidState.explored = new Set();
+    raidState.playerPos = { x:0, y:0 };
+    raidState.explored.add('0,0');
+
+    const { grid, enemies } = generateRaidGrid(1);
+    raidState.grid    = grid;
+    raidState.enemies = enemies;
 
     document.getElementById('raid-pregame').style.display = 'none';
-    document.getElementById('raid-active').style.display = 'block';
-    raidLog('The dungeon opens before you. Your minions advance...', '#ff6644');
-    enterRaidRoom();
+    document.getElementById('raid-active').style.display  = 'block';
+    raidLog('You descend into the dungeon. Fog fills the corridors...', '#ff6644');
+    renderRaidDungeon();
+    updateRaidHUD();
 };
 
-function enterRaidRoom() {
-    raidState.room++;
-    raidState.inCombat = false;
-    if (raidState.room > RAID_MAX_ROOMS) { completeRaid(true); return; }
-    raidState.energy--;
-    if (raidState.energy < 0) { fleeRaid(); return; }
+// ── Dungeon rendering ─────────────────────────────────────────────
 
-    const roomType = raidState.roomMap[raidState.room-1];
-    raidState.roomType = roomType;
-    raidState.turn = 0;
-
-    updateRaidUI();
-
-    const label = document.getElementById('raid-room-label');
-    if (label) label.textContent = `Room ${raidState.room} / ${RAID_MAX_ROOMS}`;
-    const energyEl = document.getElementById('raid-energy-display');
-    if (energyEl) energyEl.textContent = `⚡ ${raidState.energy} energy`;
-
-    const room = document.getElementById('raid-room-display');
-    const actions = document.getElementById('raid-actions');
-    if (actions) { actions.style.display = 'none'; actions.innerHTML = ''; }
-
-    if (roomType === 'combat' || roomType === 'elite' || roomType === 'boss') {
-        spawnRaidEnemies(roomType);
-    } else if (roomType === 'treasure') {
-        resolveRaidTreasure();
-    } else if (roomType === 'fountain') {
-        resolveRaidFountain();
-    } else if (roomType === 'chest') {
-        resolveRaidChest();
-    }
-}
-
-function spawnRaidEnemies(roomType) {
-    const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
-    const pool = RAID_ENEMY_POOLS[raidState.tier];
-    const poolIdx = roomType==='boss' ? pool.length-1 : Math.min(Math.floor((raidState.room-1)/4), pool.length-1);
-    const enemyPool = pool[poolIdx];
-    const count = roomType==='boss' ? 1 : roomType==='elite' ? 2 : Math.min(3, 1+Math.floor(raidState.room/3));
-    const scale = tierData.enemyScale * (1 + (raidState.room-1)*0.15) * (roomType==='boss'?3:roomType==='elite'?1.8:1);
-
-    raidState.enemies = [];
-    for (let i=0; i<count; i++) {
-        const id = enemyPool[Math.floor(Math.random()*enemyPool.length)];
-        const bm = battleMinions[id];
-        if (!bm) continue;
-        raidState.enemies.push({ minionId:id, name:bm.name, icon:bm.icon, hp:Math.ceil(bm.hp*scale), maxHp:Math.ceil(bm.hp*scale), atk:Math.ceil(bm.atk*scale) });
-    }
-
-    raidState.inCombat = true;
+function renderRaidDungeon() {
     const roomEl = document.getElementById('raid-room-display');
-    const typeLabel = roomType==='boss'?'👑 BOSS ROOM':roomType==='elite'?'⭐ Elite Room':'⚔ Combat Room';
-    if (roomEl) {
-        roomEl.innerHTML = `<div style="color:#ff6644;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;margin-bottom:12px;">${typeLabel}</div>
-        <div id="raid-enemy-display" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;"></div>`;
+    if (!roomEl) return;
+
+    const G = RAID_GRID_SIZE;
+    const CELL = Math.min(72, Math.floor((roomEl.offsetWidth||450) / G));
+
+    const tileColors = { empty:'#06040e', enemy:'#1a0505', treasure:'#1a1400', fountain:'#00101a', chest:'#0a0018', boss:'#1a0008', exit:'#001a0a' };
+    const tileIcons  = { treasure:'💰', fountain:'💧', chest:'📦', boss:'👑', exit:'🚪' };
+
+    let html = `<div style="display:inline-grid;grid-template-columns:repeat(${G},${CELL}px);grid-template-rows:repeat(${G},${CELL}px);gap:2px;background:#0a0812;padding:8px;border-radius:8px;user-select:none;">`;
+
+    for (let y=0; y<G; y++) {
+        for (let x=0; x<G; x++) {
+            const key = `${x},${y}`;
+            const isPlayer = raidState.playerPos.x===x && raidState.playerPos.y===y;
+            const explored = raidState.explored.has(key);
+            const adjacent = isAdjacent(x,y) && !isPlayer;
+            const tile = raidState.grid[y][x];
+
+            // Find enemy on this tile
+            const enemy = raidState.enemies.find(e=>e.x===x && e.y===y && e.hp>0);
+
+            let bg = '#03020a';
+            let icon = '';
+            let border = '1px solid #0d0920';
+            let cursor = 'default';
+
+            if (isPlayer) {
+                bg = 'rgba(255,102,68,0.15)';
+                border = '2px solid #ff6644';
+                icon = `<span style="font-size:${CELL*.4}px;">👤</span>`;
+            } else if (!explored && !adjacent) {
+                // Fog
+                bg = '#03020a';
+                icon = '';
+            } else if (explored || adjacent) {
+                bg = tileColors[tile.type] || '#06040e';
+                if (adjacent && !explored) {
+                    bg = 'rgba(255,102,68,0.05)';
+                    border = '1px solid rgba(255,102,68,0.2)';
+                }
+                if (enemy) {
+                    const hpPct = Math.max(0, enemy.hp/enemy.maxHp*100);
+                    icon = `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-size:${CELL*.32}px;">${battleMinions[enemy.minionId]?.icon||'👹'}</span><div style="width:${CELL*.6}px;height:3px;background:#1a1030;border-radius:2px;overflow:hidden;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:2px;"></div></div></div>`;
+                } else if (tile.type !== RTILE.EMPTY && tile.type !== RTILE.ENEMY) {
+                    const ico = tileIcons[tile.type];
+                    if (ico) icon = `<span style="font-size:${CELL*.4}px;">${ico}</span>`;
+                }
+                if (adjacent && !raidState.inCombat) cursor = 'pointer';
+            }
+
+            html += `<div onclick="moveRaidPlayer(${x},${y})" style="width:${CELL}px;height:${CELL}px;background:${bg};border:${border};border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:${cursor};transition:background .15s;box-sizing:border-box;">${icon}</div>`;
+        }
     }
-    renderRaidEnemies();
-    renderRaidCombatActions();
-    raidLog(`${count} enem${count>1?'ies':'y'} block your path!`, '#ff4444');
-}
+    html += '</div>';
 
-function renderRaidEnemies() {
-    const el = document.getElementById('raid-enemy-display');
-    if (!el) return;
-    el.innerHTML = raidState.enemies.filter(e=>e.hp>0).map((e,i) => {
-        const pct = Math.max(0, e.hp/e.maxHp*100);
-        return `<div style="background:#0a0812;border:1px solid #ff444433;border-radius:8px;padding:10px;text-align:center;min-width:80px;">
-            <div style="font-size:1.8em;">${e.icon}</div>
-            <div style="color:#ff6644;font-size:0.72em;margin-top:4px;">${e.name}</div>
-            <div style="background:#1a1030;border-radius:3px;height:4px;margin-top:4px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#cc3333;border-radius:3px;"></div></div>
-            <div style="color:#cc3333;font-size:0.65em;margin-top:2px;">${e.hp}/${e.maxHp}</div>
+    // Add combat or tile info below grid
+    if (raidState.inCombat && raidState.combatEnemy) {
+        const e = raidState.combatEnemy;
+        const hpPct = Math.max(0, e.hp/e.maxHp*100);
+        html += `<div style="margin-top:12px;background:#0a0812;border:1px solid #ff444433;border-top:2px solid #ff4444;border-radius:8px;padding:12px;">
+            <div style="color:#ff4444;font-family:var(--font-title);font-size:.8em;letter-spacing:2px;margin-bottom:8px;">⚔ COMBAT — ${e.name||battleMinions[e.minionId]?.name}</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                <span style="font-size:2em;">${battleMinions[e.minionId]?.icon||'👹'}</span>
+                <div style="flex:1;"><div style="background:#1a1030;border-radius:4px;height:8px;overflow:hidden;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:4px;transition:width .3s;"></div></div><div style="color:#cc3333;font-size:.72em;margin-top:3px;">${e.hp} / ${e.maxHp} HP</div></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button onclick="raidCombatAction('attack')" style="flex:1;background:linear-gradient(135deg,#cc111122,transparent);border:1px solid #ff444466;border-radius:8px;padding:10px;color:#ff8866;font-family:var(--font-title);font-size:.78em;letter-spacing:1px;cursor:pointer;">⚔ ATTACK</button>
+                <button onclick="raidCombatAction('defend')" style="flex:1;background:linear-gradient(135deg,#4488ff11,transparent);border:1px solid #4488ff44;border-radius:8px;padding:10px;color:#88aaff;font-family:var(--font-title);font-size:.78em;letter-spacing:1px;cursor:pointer;">🛡 DEFEND</button>
+                ${Object.values(gameState.potions||{}).some(c=>c>0)?`<button onclick="raidCombatAction('potion')" style="flex:1;background:linear-gradient(135deg,#44cc8811,transparent);border:1px solid #44cc8844;border-radius:8px;padding:10px;color:#88ffaa;font-family:var(--font-title);font-size:.78em;letter-spacing:1px;cursor:pointer;">⚗ POTION</button>`:''}
+            </div>
         </div>`;
-    }).join('');
+    }
+
+    roomEl.innerHTML = html;
 }
 
-function renderRaidCombatActions() {
-    const actions = document.getElementById('raid-actions');
-    if (!actions) return;
-    actions.style.display = 'flex';
-    const alive = raidState.party.filter(p=>p.hp>0);
-    actions.innerHTML = `
-        <button onclick="raidAction('attack')" style="flex:1;background:linear-gradient(135deg,#cc111122,transparent);border:1px solid #ff444466;border-radius:8px;padding:10px;color:#ff8866;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;">⚔ ATTACK</button>
-        <button onclick="raidAction('defend')" style="flex:1;background:linear-gradient(135deg,#4488ff11,transparent);border:1px solid #4488ff44;border-radius:8px;padding:10px;color:#88aaff;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;">🛡 DEFEND</button>
-        ${Object.values(gameState.potions||{}).some(c=>c>0) ? '<button onclick="raidAction(\'potion\')" style="flex:1;background:linear-gradient(135deg,#44cc8811,transparent);border:1px solid #44cc8844;border-radius:8px;padding:10px;color:#88ffaa;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;">⚗ USE POTION</button>' : ''}
-    `;
+function isAdjacent(x, y) {
+    const p = raidState.playerPos;
+    return (Math.abs(x-p.x) + Math.abs(y-p.y)) === 1;
 }
 
-window.raidAction = function(action) {
-    if (!raidState.inCombat) return;
-    raidState.turn++;
+// ── Player movement ───────────────────────────────────────────────
 
+window.moveRaidPlayer = function(x, y) {
+    if (raidState.inCombat) return;
+    if (!isAdjacent(x, y)) return;
+    if (raidState.energy <= 0) { raidLog('Out of energy — you must flee!', '#ff4444'); fleeRaid(); return; }
+
+    raidState.energy--;
+    raidState.playerPos = {x, y};
+    raidState.explored.add(`${x},${y}`);
+
+    updateRaidHUD();
+
+    const tile = raidState.grid[y][x];
+    const enemy = raidState.enemies.find(e=>e.x===x && e.y===y && e.hp>0);
+
+    if (enemy) {
+        // Start combat with this enemy
+        raidState.inCombat = true;
+        raidState.combatEnemy = enemy;
+        raidLog(`⚔ You encounter ${battleMinions[enemy.minionId]?.name||'an enemy'}!`, '#ff4444');
+        renderRaidDungeon();
+        return;
+    }
+
+    // Handle tile events
+    if (tile.type === RTILE.TREASURE) {
+        const frags = Math.floor(3 + raidState.floor * 2 + Math.random()*4);
+        raidState.loot.fragments += frags;
+        tile.type = RTILE.EMPTY;
+        raidLog(`💰 Treasure! +${frags} Corrupted Fragments.`, '#c8a800');
+    } else if (tile.type === RTILE.FOUNTAIN) {
+        const restore = 3 + Math.floor(Math.random()*3);
+        raidState.energy = Math.min(RAID_MAX_ENERGY, raidState.energy + restore);
+        const heal = .35;
+        raidState.party.forEach(p=>{ p.hp = Math.min(p.maxHp, p.hp+Math.floor(p.maxHp*heal)); });
+        tile.type = RTILE.EMPTY;
+        raidLog(`💧 Fountain! +${restore} energy, party healed 35%.`, '#44ccff');
+        updateRaidHUD();
+    } else if (tile.type === RTILE.CHEST) {
+        tile.type = RTILE.EMPTY;
+        raidLog('📦 An Abyssal Chest! Opening...', '#aa44ff');
+        if (typeof openAbyssalBreachChest === 'function') openAbyssalBreachChest();
+    } else if (tile.type === RTILE.BOSS) {
+        const pool = RAID_ENEMY_POOLS[raidState.tier];
+        const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
+        const bossId = pool[pool.length-1];
+        const bm = battleMinions[bossId];
+        const scale = tierData.enemyScale * (1+raidState.floor*.4) * 3;
+        const boss = { id:'boss', minionId:bossId, x, y, hp:Math.ceil(bm.hp*scale), maxHp:Math.ceil(bm.hp*scale), atk:Math.ceil(bm.atk*scale), isBoss:true };
+        raidState.inCombat = true;
+        raidState.combatEnemy = boss;
+        tile.type = RTILE.EMPTY;
+        raidLog(`👑 THE FLOOR BOSS AWAKENS — ${bm.name}!`, '#ffcc00');
+    } else if (tile.type === RTILE.EXIT) {
+        // Advance floor or complete
+        advanceRaidFloor();
+        return;
+    }
+
+    // After moving: patrol enemies
+    patrolRaidEnemies();
+    renderRaidDungeon();
+};
+
+// ── Enemy patrol ──────────────────────────────────────────────────
+
+function patrolRaidEnemies() {
+    const G = RAID_GRID_SIZE;
+    raidState.enemies.forEach(enemy => {
+        if (enemy.hp <= 0) return;
+        // Clear current position
+        if (raidState.grid[enemy.y][enemy.x].enemy === enemy) raidState.grid[enemy.y][enemy.x].type = RTILE.EMPTY;
+
+        // Move along patrol
+        let nx = enemy.x, ny = enemy.y;
+        if (enemy.patrolDir === 'h') nx += enemy.patrolFwd ? 1 : -1;
+        else                         ny += enemy.patrolFwd ? 1 : -1;
+
+        enemy.patrolStep += 1;
+        if (enemy.patrolStep >= enemy.patrolLen) { enemy.patrolFwd = !enemy.patrolFwd; enemy.patrolStep = 0; }
+
+        // Only move if target is in bounds, empty (no other enemy/tile), and not player
+        if (nx>=0 && nx<G && ny>=0 && ny<G && raidState.grid[ny][nx].type===RTILE.EMPTY &&
+            !(nx===raidState.playerPos.x && ny===raidState.playerPos.y)) {
+            enemy.x = nx; enemy.y = ny;
+        }
+
+        // Mark new position
+        if (enemy.hp > 0) { raidState.grid[enemy.y][enemy.x].type = RTILE.ENEMY; raidState.grid[enemy.y][enemy.x].enemy = enemy; }
+    });
+
+    // Check if any enemy patrolled onto player
+    const onPlayer = raidState.enemies.find(e=>e.hp>0 && e.x===raidState.playerPos.x && e.y===raidState.playerPos.y);
+    if (onPlayer && !raidState.inCombat) {
+        raidState.inCombat = true;
+        raidState.combatEnemy = onPlayer;
+        raidLog(`⚔ ${battleMinions[onPlayer.minionId]?.name} ambushes you!`, '#ff4444');
+    }
+}
+
+// ── Combat ────────────────────────────────────────────────────────
+
+window.raidCombatAction = function(action) {
+    if (!raidState.inCombat || !raidState.combatEnemy) return;
+    const enemy = raidState.combatEnemy;
     const aliveParty = raidState.party.filter(p=>p.hp>0);
-    const aliveEnemies = raidState.enemies.filter(e=>e.hp>0);
-    if (!aliveParty.length || !aliveEnemies.length) return;
+    if (!aliveParty.length) return;
 
     let defending = false;
 
     if (action === 'attack') {
-        // Party attacks — each alive member deals damage to a random enemy
         aliveParty.forEach(member => {
-            const target = aliveEnemies[Math.floor(Math.random()*aliveEnemies.length)];
-            if (!target || target.hp<=0) return;
+            if (enemy.hp <= 0) return;
             const dmg = member.atk;
-            target.hp = Math.max(0, target.hp - dmg);
-            raidLog(`${battleMinions[member.minionId]?.icon} hits ${target.icon} ${target.name} for ${dmg}!`, '#44cc88');
+            enemy.hp = Math.max(0, enemy.hp - dmg);
+            raidLog(`${battleMinions[member.minionId]?.icon} hits ${battleMinions[enemy.minionId]?.icon} for ${dmg}!`, '#44cc88');
         });
     } else if (action === 'defend') {
         defending = true;
-        raidLog('🛡 Your party braces — incoming damage halved this turn.', '#88aaff');
+        raidLog('🛡 Party braces — damage halved this turn.', '#88aaff');
     } else if (action === 'potion') {
-        // Use a random available potion to heal party
-        const availPotions = Object.entries(gameState.potions||{}).filter(([,c])=>c>0);
-        if (availPotions.length > 0) {
-            const [pid] = availPotions[Math.floor(Math.random()*availPotions.length)];
+        const avail = Object.entries(gameState.potions||{}).filter(([,c])=>c>0);
+        if (avail.length > 0) {
+            const [pid] = avail[Math.floor(Math.random()*avail.length)];
             gameState.potions[pid]--;
-            const healAmt = Math.floor(aliveParty[0].maxHp * 0.3);
-            aliveParty.forEach(p => p.hp = Math.min(p.maxHp, p.hp + healAmt));
-            raidLog(`⚗ Used ${potions[pid]?.name||'potion'} — party healed for ${healAmt} HP!`, '#44cc88');
+            const heal = Math.floor(aliveParty[0].maxHp * .3);
+            aliveParty.forEach(p=>{ p.hp = Math.min(p.maxHp, p.hp+heal); });
+            raidLog(`⚗ ${potions[pid]?.name||'Potion'} used — party +${heal} HP.`, '#44cc88');
         }
     }
 
-    // Enemies attack back
-    const stillAliveEnemies = raidState.enemies.filter(e=>e.hp>0);
-    if (stillAliveEnemies.length > 0) {
-        stillAliveEnemies.forEach(enemy => {
-            const target = aliveParty[Math.floor(Math.random()*aliveParty.length)];
-            if (!target) return;
-            const dmg = Math.max(1, Math.floor(enemy.atk * (defending ? 0.5 : 1)));
+    // Enemy attacks back if alive
+    if (enemy.hp > 0) {
+        const target = aliveParty[Math.floor(Math.random()*aliveParty.length)];
+        if (target) {
+            const dmg = Math.max(1, Math.floor(enemy.atk * (defending?.5:1)));
             target.hp = Math.max(0, target.hp - dmg);
-            if (target.hp <= 0) raidLog(`💀 ${battleMinions[target.minionId]?.name} was defeated!`, '#ff2222');
-            else raidLog(`${enemy.icon} attacks ${battleMinions[target.minionId]?.icon} for ${dmg}!`, '#ff8844');
-        });
+            if (target.hp <= 0) raidLog(`💀 ${battleMinions[target.minionId]?.name} fell!`, '#ff2222');
+            else raidLog(`${battleMinions[enemy.minionId]?.icon} attacks ${battleMinions[target.minionId]?.icon} for ${dmg}!`, '#ff8844');
+        }
     }
 
-    // Check outcomes
-    const deadEnemies = raidState.enemies.filter(e=>e.hp<=0).length;
-    const deadParty = raidState.party.filter(p=>p.hp<=0).length;
+    updateRaidHUD();
 
-    renderRaidEnemies();
-    updateRaidPartyHpBars();
-
-    if (raidState.enemies.every(e=>e.hp<=0)) {
-        // Room cleared!
+    // Enemy dead
+    if (enemy.hp <= 0) {
         raidState.inCombat = false;
-        const fragReward = Math.floor(2 + raidState.room * 1.5);
+        const fragReward = Math.floor(1 + raidState.floor + (enemy.isBoss?8:0));
         raidState.loot.fragments += fragReward;
-        raidLog(`✓ Room cleared! +${fragReward} fragments.`, '#44cc88');
-        const actions = document.getElementById('raid-actions');
-        if (actions) { actions.style.display = 'none'; }
-        // Show advance button
-        const roomEl = document.getElementById('raid-room-display');
-        if (roomEl) roomEl.innerHTML += `<div style="text-align:center;margin-top:14px;">
-            ${raidState.room < RAID_MAX_ROOMS
-                ? `<button onclick="enterRaidRoom()" style="background:linear-gradient(135deg,#cc3311,#440000);border:2px solid #ff664466;border-radius:10px;padding:12px 28px;color:#ff9988;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">▶ ADVANCE TO ROOM ${raidState.room+1}</button>`
-                : `<button onclick="completeRaid(true)" style="background:linear-gradient(135deg,#c8a800,#440000);border:2px solid #ffcc0066;border-radius:10px;padding:12px 28px;color:#ffeeaa;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">🏆 COMPLETE RAID</button>`}
-        </div>`;
-    } else if (raidState.party.every(p=>p.hp<=0)) {
-        // Party wiped
-        applyRaidCooldowns();
+        // Remove from enemies array
+        raidState.enemies = raidState.enemies.filter(e=>e!==enemy);
+        // Clear tile
+        if (raidState.grid[enemy.y]?.[enemy.x]?.type === RTILE.ENEMY) raidState.grid[enemy.y][enemy.x] = {type:RTILE.EMPTY, enemy:null};
+        raidState.combatEnemy = null;
+        raidLog(`✓ Enemy defeated! +${fragReward} fragments.`, '#44cc88');
+        if (enemy.isBoss) { raidLog('👑 Boss slain! Floor cleared!', '#ffcc00'); advanceRaidFloor(); return; }
+    }
+
+    // Party wiped
+    if (raidState.party.every(p=>p.hp<=0)) {
+        raidState.inCombat = false;
+        raidLog('💀 Your party has fallen.', '#ff2222');
         endRaid(false);
+        return;
     }
+
+    renderRaidDungeon();
 };
 
-function resolveRaidTreasure() {
-    const frags = Math.floor(5 + raidState.room * 2);
-    raidState.loot.fragments += frags;
-    const roomEl = document.getElementById('raid-room-display');
-    if (roomEl) roomEl.innerHTML = `<div style="text-align:center;padding:20px;">
-        <div style="font-size:2.5em;margin-bottom:10px;">💰</div>
-        <div style="color:#c8a800;font-family:var(--font-title);font-size:0.9em;letter-spacing:2px;margin-bottom:8px;">TREASURE ROOM</div>
-        <div style="color:#aaa;font-size:0.85em;margin-bottom:16px;">You find a cache of corrupted fragments. +${frags} fragments.</div>
-        ${raidState.room < RAID_MAX_ROOMS ? `<button onclick="enterRaidRoom()" style="background:linear-gradient(135deg,#cc3311,#440000);border:2px solid #ff664466;border-radius:10px;padding:12px 28px;color:#ff9988;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">▶ ADVANCE</button>` : `<button onclick="completeRaid(true)" style="background:linear-gradient(135deg,#c8a800,#440000);border:2px solid #ffcc0066;border-radius:10px;padding:12px 28px;color:#ffeeaa;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">🏆 COMPLETE RAID</button>`}
-    </div>`;
-    raidLog(`💰 Treasure room! +${frags} Corrupted Fragments.`, '#c8a800');
+// ── Floor progression ─────────────────────────────────────────────
+
+function advanceRaidFloor() {
+    if (raidState.floor >= RAID_MAX_FLOORS) {
+        completeRaid();
+        return;
+    }
+    raidState.floor++;
+    raidState.energy = RAID_MAX_ENERGY;
+    raidState.playerPos = {x:0, y:0};
+    raidState.explored = new Set(['0,0']);
+    const {grid, enemies} = generateRaidGrid(raidState.floor);
+    raidState.grid = grid; raidState.enemies = enemies;
+    raidLog(`🔽 Descending to Floor ${raidState.floor}...`, '#ff6644');
+    updateRaidHUD();
+    renderRaidDungeon();
 }
 
-function resolveRaidFountain() {
-    const restore = Math.floor(3 + Math.random()*3);
-    const healPct = 0.4;
-    raidState.energy = Math.min(RAID_MAX_ENERGY, raidState.energy + restore);
-    raidState.party.forEach(p => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * healPct)); });
-    const roomEl = document.getElementById('raid-room-display');
-    if (roomEl) roomEl.innerHTML = `<div style="text-align:center;padding:20px;">
-        <div style="font-size:2.5em;margin-bottom:10px;">💧</div>
-        <div style="color:#44ccff;font-family:var(--font-title);font-size:0.9em;letter-spacing:2px;margin-bottom:8px;">FOUNTAIN OF SOULS</div>
-        <div style="color:#aaa;font-size:0.85em;margin-bottom:16px;">Your minions drink deep. +${restore} energy, party healed 40%.</div>
-        ${raidState.room < RAID_MAX_ROOMS ? `<button onclick="enterRaidRoom()" style="background:linear-gradient(135deg,#cc3311,#440000);border:2px solid #ff664466;border-radius:10px;padding:12px 28px;color:#ff9988;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">▶ ADVANCE</button>` : `<button onclick="completeRaid(true)" style="background:linear-gradient(135deg,#c8a800,#440000);border:2px solid #ffcc0066;border-radius:10px;padding:12px 28px;color:#ffeeaa;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">🏆 COMPLETE RAID</button>`}
-    </div>`;
-    updateRaidPartyHpBars();
-    raidLog(`💧 Fountain! +${restore} energy, party healed.`, '#44ccff');
+// ── HUD ───────────────────────────────────────────────────────────
+
+function updateRaidHUD() {
+    const labelEl  = document.getElementById('raid-room-label');
     const energyEl = document.getElementById('raid-energy-display');
+    if (labelEl)  labelEl.textContent  = `Floor ${raidState.floor} / ${RAID_MAX_FLOORS}`;
     if (energyEl) energyEl.textContent = `⚡ ${raidState.energy} energy`;
+
+    const hpEl = document.getElementById('raid-party-hpbars');
+    if (!hpEl) return;
+    hpEl.innerHTML = raidState.party.map(p=>{
+        const pct = Math.max(0,p.hp/p.maxHp*100);
+        const col = pct>60?'#44cc88':pct>30?'#ffaa00':'#cc3333';
+        return `<div style="flex:1;background:#0a0812;border:1px solid #2a1a3a;border-radius:8px;padding:8px;min-width:80px;text-align:center;">
+            <div style="font-size:1.2em;">${battleMinions[p.minionId]?.icon||'👿'}</div>
+            <div style="background:#1a1030;border-radius:3px;height:5px;margin:4px 0;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};border-radius:3px;"></div></div>
+            <div style="color:${col};font-size:.62em;">${p.hp<=0?'💀':p.hp+'/'+p.maxHp}</div>
+        </div>`;
+    }).join('');
 }
 
-function resolveRaidChest() {
-    raidState.loot.chestOpened = true;
-    const roomEl = document.getElementById('raid-room-display');
-    if (roomEl) roomEl.innerHTML = `<div style="text-align:center;padding:20px;">
-        <div style="font-size:2.5em;margin-bottom:10px;">📦</div>
-        <div style="color:#aa44ff;font-family:var(--font-title);font-size:0.9em;letter-spacing:2px;margin-bottom:8px;">ABYSSAL CHEST</div>
-        <div style="color:#aaa;font-size:0.85em;margin-bottom:16px;">A sealed chest pulses in the dark...</div>
-        <button onclick="openRaidChest()" style="background:linear-gradient(135deg,#aa44ff22,transparent);border:2px solid #aa44ff66;border-radius:10px;padding:12px 28px;color:#aa44ff;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">📦 OPEN CHEST</button>
-    </div>`;
-    raidLog(`📦 An Abyssal Chest! It hums with strange energy...`, '#aa44ff');
-}
+// ── End / Complete ────────────────────────────────────────────────
 
-window.openRaidChest = function() {
-    // Use the existing breach chest system
-    if (typeof openAbyssalBreachChest === 'function') {
-        openAbyssalBreachChest();
-        // After chest, show advance button
-        setTimeout(() => {
-            const roomEl = document.getElementById('raid-room-display');
-            if (roomEl) roomEl.innerHTML += `<div style="text-align:center;margin-top:14px;">
-                ${raidState.room < RAID_MAX_ROOMS ? `<button onclick="enterRaidRoom()" style="background:linear-gradient(135deg,#cc3311,#440000);border:2px solid #ff664466;border-radius:10px;padding:12px 28px;color:#ff9988;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">▶ ADVANCE</button>` : `<button onclick="completeRaid(true)" style="background:linear-gradient(135deg,#c8a800,#440000);border:2px solid #ffcc0066;border-radius:10px;padding:12px 28px;color:#ffeeaa;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">🏆 COMPLETE RAID</button>`}
-            </div>`;
-        }, 4000);
-    }
-};
-
-window.fleeRaid = function() {
-    if (!raidState.active) return;
-    raidLog('🏃 You flee the dungeon, taking your spoils...', '#888');
-    endRaid(false);
-};
-
-function applyRaidCooldowns() {
-    const now = Date.now();
-    if (!gameState.soulRaids) gameState.soulRaids = { cooldownUntil:0, completedRaids:0, minionCooldowns:{} };
-    raidState.party.forEach(p => {
-        if (p.hp <= 0) {
-            gameState.soulRaids.minionCooldowns[p.minionId] = now + 2*60*60*1000; // 2h cooldown if died
-        }
-    });
-}
-
-function completeRaid(isVictory) {
-    const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
-    const isFullClear = raidState.room >= RAID_MAX_ROOMS;
-
-    // Bonus fragments for full clear
-    if (isFullClear) {
-        const bonus = Math.floor((tierData.fragMax - tierData.fragMin) * 0.5);
-        raidState.loot.fragments += bonus;
-        raidLog(`🏆 FULL CLEAR BONUS: +${bonus} fragments!`, '#ffcc00');
-    }
-
-    // Chance at a raid echo item (15% per tier per room cleared)
-    const echoChance = 0.08 + (raidState.room/RAID_MAX_ROOMS)*0.15;
-    if (Math.random() < echoChance) {
+function completeRaid() {
+    // Echo chance scales with floors cleared
+    if (Math.random() < 0.18) {
         const echo = RAID_ECHOES[Math.floor(Math.random()*RAID_ECHOES.length)];
-        if (!gameState.inventory.includes(echo.id)) {
-            raidState.loot.echoes.push(echo);
-        }
+        if (!gameState.inventory.includes(echo.id)) raidState.loot.echoes.push(echo);
     }
-
+    // Completion bonus fragments
+    const bonus = 10 + raidState.floor * 5;
+    raidState.loot.fragments += bonus;
+    raidLog(`🏆 Full clear bonus! +${bonus} fragments.`, '#ffcc00');
     endRaid(true);
 }
 
-function endRaid(survived) {
-    raidState.active = false;
+window.fleeRaid = function() {
+    if (!raidState.active) return;
     raidState.inCombat = false;
+    raidLog('🏃 You flee the dungeon, clutching your spoils...', '#888');
+    endRaid(false);
+};
 
+function endRaid(survived) {
+    raidState.active = false; raidState.inCombat = false;
     const now = Date.now();
-    if (!gameState.soulRaids) gameState.soulRaids = { cooldownUntil:0, completedRaids:0, minionCooldowns:{} };
+    if (!gameState.soulRaids) gameState.soulRaids = {cooldownUntil:0,completedRaids:0,minionCooldowns:{}};
     gameState.soulRaids.cooldownUntil = now + RAID_COOLDOWN_MS;
     if (survived) gameState.soulRaids.completedRaids = (gameState.soulRaids.completedRaids||0)+1;
 
-    applyRaidCooldowns();
-
-    // Grant loot
-    const frags = Math.max(0, raidState.loot.fragments);
-    _safeAddCur('corruptedFragments', frags);
-    raidState.loot.echoes.forEach(echo => {
-        gameState.inventory.push(echo.id);
+    // Cooldowns for dead minions
+    raidState.party.forEach(p=>{
+        if (p.hp<=0) gameState.soulRaids.minionCooldowns[p.minionId] = now + 2*60*60*1000;
     });
 
-    // Show result
-    const rarityColor = { epic:'#aa44ff', legendary:'#ffcc00' };
+    const frags = Math.max(0, raidState.loot.fragments);
+    _safeAddCur('corruptedFragments', frags);
+    raidState.loot.echoes.forEach(e=>{ gameState.inventory.push(e.id); });
+
+    const rarC = {epic:'#aa44ff',legendary:'#ffcc00'};
     const roomEl = document.getElementById('raid-room-display');
     if (roomEl) roomEl.innerHTML = `<div style="text-align:center;padding:24px;">
         <div style="font-size:2.5em;margin-bottom:10px;">${survived?'🏆':'💀'}</div>
-        <div style="color:${survived?'#ffcc00':'#ff4444'};font-family:var(--font-title);font-size:1em;letter-spacing:3px;margin-bottom:12px;">${survived?'RAID COMPLETE':'PARTY WIPED'}</div>
-        <div style="color:#aaa;font-size:0.82em;margin-bottom:16px;">Cleared ${raidState.room-1} room${raidState.room-1!==1?'s':''}.</div>
+        <div style="color:${survived?'#ffcc00':'#ff4444'};font-family:var(--font-title);font-size:1em;letter-spacing:3px;margin-bottom:12px;">${survived?'DUNGEON CLEARED':'PARTY WIPED'}</div>
         <div style="background:#0a0812;border-radius:8px;padding:12px 16px;margin-bottom:16px;text-align:left;display:inline-block;min-width:200px;">
-            <div style="color:#666;font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Loot</div>
-            <div style="color:#aa44ff;font-size:0.85em;">🔮 +${frags} Corrupted Fragments</div>
-            ${raidState.loot.echoes.map(e=>`<div style="color:${rarityColor[e.rarity]||'#aaa'};font-size:0.82em;margin-top:4px;">📿 ${e.name} — added to Inventory</div>`).join('')}
+            <div style="color:#666;font-size:.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Loot</div>
+            <div style="color:#aa44ff;font-size:.85em;">🔮 +${frags} Corrupted Fragments</div>
+            ${raidState.loot.echoes.map(e=>`<div style="color:${rarC[e.rarity]||'#aaa'};font-size:.82em;margin-top:4px;">📿 ${e.name}</div>`).join('')}
         </div>
-        <div><button onclick="resetRaidScreen()" style="background:linear-gradient(135deg,#cc3311,#440000);border:2px solid #ff664466;border-radius:10px;padding:12px 28px;color:#ff9988;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">↩ RETURN</button></div>
+        <div><button onclick="resetRaidScreen()" style="background:linear-gradient(135deg,#cc3311,#440000);border:2px solid #ff664466;border-radius:10px;padding:12px 28px;color:#ff9988;font-family:var(--font-title);font-size:.85em;letter-spacing:2px;cursor:pointer;">↩ RETURN</button></div>
     </div>`;
 
-    const actions = document.getElementById('raid-actions');
-    if (actions) { actions.style.display='none'; actions.innerHTML=''; }
-
-    Toastify({ text:`⚔ Raid ${survived?'complete':'ended'}! +${frags} Corrupted Fragments${raidState.loot.echoes.length?` + ${raidState.loot.echoes[0].name}`:''}`, duration:7000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0800,#cc330033)'} }).showToast();
-
+    document.getElementById('raid-actions').style.display='none';
+    Toastify({text:`⚔ Raid ended — +${frags} Fragments${raidState.loot.echoes.length?` + ${raidState.loot.echoes[0].name}`:''}`, duration:7000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0800,#cc330033)'}}).showToast();
     calculateStats(); saveGame();
     renderRaidStatusBar();
 }
 
 window.resetRaidScreen = function() {
-    raidState = { active:false, room:0, energy:RAID_MAX_ENERGY, tier:raidState.tier, party:[], enemies:[], roomType:'combat', turn:0, loot:{fragments:0,echoes:[],chestOpened:false}, inCombat:false, roomMap:[] };
-    document.getElementById('raid-pregame').style.display = 'block';
-    document.getElementById('raid-active').style.display = 'none';
-    renderRaidRoster();
-    renderRaidPartySlots();
-    renderRaidStatusBar();
-    updateRaidEnterBtn();
+    const partyIds = raidState.party.map(p=>p.minionId);
+    raidState = {active:false,floor:1,energy:RAID_MAX_ENERGY,tier:raidState.tier,party:partyIds,grid:[],playerPos:{x:0,y:0},enemies:[],inCombat:false,combatEnemy:null,loot:{fragments:0,echoes:[]},explored:new Set()};
+    document.getElementById('raid-pregame').style.display='block';
+    document.getElementById('raid-active').style.display='none';
+    renderRaidRoster(); renderRaidPartySlots(); renderRaidStatusBar(); updateRaidEnterBtn();
 };
-
-function updateRaidUI() {
-    renderRaidEnemies();
-    updateRaidPartyHpBars();
-}
-
-function updateRaidPartyHpBars() {
-    const el = document.getElementById('raid-party-hpbars');
-    if (!el) return;
-    el.innerHTML = raidState.party.map(p => {
-        const pct = Math.max(0, p.hp/p.maxHp*100);
-        const col = pct>60?'#44cc88':pct>30?'#ffaa00':'#cc3333';
-        return `<div style="flex:1;background:#0a0812;border:1px solid #2a1a3a;border-radius:8px;padding:8px;min-width:80px;text-align:center;">
-            <div style="font-size:1.2em;">${battleMinions[p.minionId]?.icon||'👿'}</div>
-            <div style="background:#1a1030;border-radius:3px;height:5px;margin:4px 0;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};border-radius:3px;"></div></div>
-            <div style="color:${col};font-size:0.62em;">${p.hp<=0?'💀':p.hp+'/'+p.maxHp}</div>
-        </div>`;
-    }).join('');
-}
 
 function raidLog(msg, color) {
     const log = document.getElementById('raid-log');
@@ -16255,7 +16333,7 @@ function raidLog(msg, color) {
     log.scrollTop = log.scrollHeight;
 }
 
-// Raid nav button shown always
+
 window.openSoulRaidsPanel = function() {
     document.getElementById('soul-raids-panel').style.display = 'block';
     document.getElementById('arena-main-container').style.display = 'none';

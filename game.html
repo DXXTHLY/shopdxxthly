@@ -15533,7 +15533,7 @@ const breachMinionAbilities = {
 // =================================================================
 
 const GG_THRESHOLD    = '1e200'; // lifetime souls required
-const GG_COOLDOWN_MS  = (3 + Math.random() * 3) * 60 * 60 * 1000; // random 3–6 hours
+const GG_COOLDOWN_MS  = 6 * 60 * 60 * 1000; // fallback — actual cooldown set per-session in ggSessionCooldown
 const GG_CURSE_MS     = 30 * 60 * 1000;   // 30 min curse on failure
 const GG_BUFF_MS      = 10 * 60 * 1000;   // 10 min divine favor on win
 const GG_MERCY_CD_MS  = 24 * 60 * 60 * 1000; // 24h mercy cooldown
@@ -15573,7 +15573,7 @@ function renderGgScreenState() {
     const trialPending = gg._announced && !ggState.active;
     const isCursed = now < (gg.cursedUntil || 0);
     const isBlessed = now < (gg.divineBuffUntil || 0);
-    const cooldownLeft = Math.max(0, (gg.lastTriggered || 0) + GG_COOLDOWN_MS - now);
+    const cooldownLeft = Math.max(0, (gg.lastTriggered || 0) + ggSessionCooldown - now);
     const mercyReady = (now - (gg.mercyUsedAt || 0)) > GG_MERCY_CD_MS;
 
     // Always update status bar
@@ -15679,13 +15679,68 @@ function renderGgScreenState() {
                 <div style="color:#ff4444; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; margin-bottom:8px;">${cooldownLeft > 0 ? 'THE GOD RESTS' : 'READY FOR TRIAL'}</div>
                 ${cooldownLeft > 0
                     ? `<div style="color:#555; font-size:0.82em; margin-bottom:12px;">The Abyss God will call upon you again in:</div>
-                       <div style="color:#ff6644; font-family:monospace; font-size:1.3em; margin-bottom:8px;">${cooldownH}h ${cooldownM}m</div>`
+                       <div data-gg-cd style="color:#ff6644; font-family:monospace; font-size:1.3em; margin-bottom:8px;">${cooldownH}h ${cooldownM}m</div>`
                     : `<div style="color:#555; font-size:0.82em; margin-bottom:12px;">The God may call at any moment. Stay active — the trial fires while the tab is open.</div>`
                 }
                 ${completedCount > 0 ? `<div style="color:#333; font-size:0.75em; margin-top:8px;">Trials survived: <span style="color:#ff6644;">${completedCount}</span></div>` : ''}
             </div>`;
     }
 }
+
+// Lightweight per-second update — only touches countdown text, never rebuilds layout
+function ggUpdateCountdowns() {
+    const gg = gameState.godsGauntlet || {};
+    const now = Date.now();
+
+    // Check if curse expired and restore items
+    if (gg.cursedUntil > 0 && now > gg.cursedUntil) {
+        restoreCursedItems();
+        renderGgScreenState(); // full rebuild needed when state changes
+        return;
+    }
+    // Check if divine buff expired
+    if (gg.divineBuffUntil > 0 && now > gg.divineBuffUntil) {
+        gg.divineBuffUntil = 0;
+        renderGgScreenState();
+        return;
+    }
+
+    // Just update countdown text in-place
+    if (now < gg.cursedUntil) {
+        const s = Math.ceil((gg.cursedUntil - now) / 1000);
+        const el = document.getElementById('gg-curse-countdown');
+        if (el) el.textContent = `${Math.floor(s/60)}m ${s%60}s remaining`;
+        const el2 = document.getElementById('gg-locked-items-list');
+        // already rendered, no rebuild needed
+    } else if (now < gg.divineBuffUntil) {
+        const s = Math.ceil((gg.divineBuffUntil - now) / 1000);
+        const el = document.getElementById('gg-divine-countdown');
+        if (el) el.textContent = `${Math.floor(s/60)}m ${s%60}s remaining`;
+    } else {
+        // Update cooldown countdown in the pregame panel
+        const cooldownLeft = Math.max(0, (gg.lastTriggered || 0) + ggSessionCooldown - now);
+        if (cooldownLeft > 0) {
+            const h = Math.floor(cooldownLeft / 3600000);
+            const m = Math.floor((cooldownLeft % 3600000) / 60000);
+            // Find the countdown element if it exists
+            const pregame = document.getElementById('gg-pregame');
+            if (pregame) {
+                const cdEl = pregame.querySelector('[data-gg-cd]');
+                if (cdEl) cdEl.textContent = `${h}h ${m}m`;
+            }
+        }
+    }
+}
+
+// Fixed cooldown for this session — set once on load, stored so it doesn't re-roll
+let ggSessionCooldown = (() => {
+    // Try to load from sessionStorage so refreshing the page keeps the same value
+    const stored = sessionStorage.getItem('gg_cooldown_ms');
+    if (stored) return parseInt(stored);
+    const val = Math.floor((3 + Math.random() * 3) * 60 * 60 * 1000); // 3–6 hours
+    sessionStorage.setItem('gg_cooldown_ms', val);
+    return val;
+})();
 
 function checkGodsGauntletTrigger() {
     if (!gameState.godsGauntlet) return;
@@ -15699,15 +15754,15 @@ function checkGodsGauntletTrigger() {
         if (qualified) navBtn.style.color = Date.now() < gg.cursedUntil ? '#aa44ff' : (Date.now() < gg.divineBuffUntil ? '#ffcc00' : '#ff6644');
     }
 
-    // Update gauntlet screen timers if open
+    // Update gauntlet screen timers if open (only update countdown text, not rebuild layout)
     if (document.getElementById('godsgauntlet-screen')?.classList.contains('active') && !ggState.active) {
-        renderGgScreenState();
+        ggUpdateCountdowns();
     }
 
     // Fire the announcement if threshold just crossed and cooldown passed
     if (D(gameState.lifetimeSouls).gte(D(GG_THRESHOLD))) {
         const now = Date.now();
-        const cooldownPassed = (now - (gg.lastTriggered || 0)) > GG_COOLDOWN_MS;
+        const cooldownPassed = (now - (gg.lastTriggered || 0)) > ggSessionCooldown;
         if (cooldownPassed && !ggState.active && !gg._announced) {
             gg._announced = true;
             gg.lastTriggered = now;

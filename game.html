@@ -13598,18 +13598,41 @@ function convertCurrency(from, to, amountIn, amountOut) {
         return;
     }
 
+    // === FRAGMENT COST — anti-spam gate on every conversion ===
+    const CONV_FRAG_COSTS = {
+        'shards-de':    15,   // Shards→DE: powerful DE generation
+        'aether-de':    25,   // Aether→DE: spending deepest currency
+        'de-souls':     10,   // DE→Souls: already has daily cap too
+        'de-shards':    20,   // DE→Shards: bypasses ascension grind
+        'shards-fragments': 0, // already has escalating shard cost built in
+    };
+    const convKey = `${from}-${to}`;
+    const fragCost = CONV_FRAG_COSTS[convKey] || 0;
+    if (fragCost > 0) {
+        if (D(gameState.corruptedFragments || 0).lt(fragCost)) {
+            Toastify({ text: `🔮 Need ${fragCost} Corrupted Fragments to use this exchange.`, duration: 3500, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#1a001a,#440044)' } }).showToast();
+            return;
+        }
+    }
+
     // === LOOP PREVENTION: DE→Souls is limited to 5 times per day ===
     if (from === 'de' && to === 'souls') {
         const today = new Date().toDateString();
         if (gameState._deSoulsDate !== today) { gameState._deSoulsDate = today; gameState._deSoulsCount = 0; }
         if ((gameState._deSoulsCount || 0) >= 5) {
-            Toastify({ text: `⛔ DE→Souls limit: 5 per day. Prevents exploit loops. Resets at midnight.`, duration:4000, gravity:'top', position:'center' }).showToast();
+            Toastify({ text: `⛔ DE→Souls limit: 5 per day. Resets at midnight.`, duration:4000, gravity:'top', position:'center' }).showToast();
             return;
         }
         gameState._deSoulsCount = (gameState._deSoulsCount || 0) + 1;
     }
 
-    if (!confirm(`Convert ${formatNumber(amountIn)} ${from} → ${formatNumber(amountOut)} ${to}? Irreversible.`)) return;
+    const fragStr = fragCost > 0 ? ` + ${fragCost} 🔮 Fragments` : '';
+    if (!confirm(`Convert ${formatNumber(amountIn)} ${from} → ${formatNumber(amountOut)} ${to}${fragStr}? Irreversible.`)) return;
+
+    // Deduct fragments first
+    if (fragCost > 0) {
+        gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(fragCost);
+    }
 
     let canAfford = false;
 
@@ -13647,13 +13670,14 @@ function convertCurrency(from, to, amountIn, amountOut) {
         }
     }
 
-    // If the transaction was successful, update the game
     if (canAfford) {
         playSound('upgrade');
-        renderBank(); // Re-render the bank to update balances and button states
-        updateDynamicDisplays(); // Update the main header displays
+        renderBank();
+        updateDynamicDisplays();
         saveGame();
     } else {
+        // Refund fragments if the main conversion failed
+        if (fragCost > 0) gameState.corruptedFragments = D(gameState.corruptedFragments || 0).add(fragCost);
         alert("You do not have the required resources for this transmutation.");
     }
 }
@@ -13704,31 +13728,36 @@ function renderBank() {
     const fragBal = document.getElementById('exchange-fragments-balance');
     if (fragBal) fragBal.innerText = formatNumber(gameState.corruptedFragments);
 
+    const CONV_FRAG_COSTS = { 'shards-de': 15, 'aether-de': 25, 'de-souls': 10, 'de-shards': 20 };
+    const hasFrags = (cost) => D(gameState.corruptedFragments || 0).gte(cost);
+    const fragTag = (cost) => `<span style="color:${hasFrags(cost) ? '#aa44ff' : '#ff4444'}; font-size:0.8em;"> + ${cost}🔮</span>`;
+
     const shardsTier = conversionTiers.shardsToDe[currentConversionIndexes.shardsToDe];
-    document.getElementById('shards-tier-text').innerHTML = `<span class="cost-shards">${formatNumber(shardsTier.fromAmount)} Shards</span> → <span class="cost-essence">${formatNumber(shardsTier.toAmount)} DE</span>`;
+    document.getElementById('shards-tier-text').innerHTML = `<span class="cost-shards">${formatNumber(shardsTier.fromAmount)} Shards</span> → <span class="cost-essence">${formatNumber(shardsTier.toAmount)} DE</span>${fragTag(15)}`;
     const csb = document.getElementById('convert-shards-btn');
     csb.onclick = () => convertCurrency('shards', 'de', shardsTier.fromAmount, shardsTier.toAmount);
-    csb.disabled = D(gameState.abyssalShards).lt(shardsTier.fromAmount);
+    csb.disabled = D(gameState.abyssalShards).lt(shardsTier.fromAmount) || !hasFrags(15);
 
     const aetherTier = conversionTiers.aetherToDe[currentConversionIndexes.aetherToDe];
     const aetherOut = (currentConversionIndexes.aetherToDe === 0) ? Math.max(5, 50 - (gameState.aetherToDeConversions * 5)) : aetherTier.toAmount;
-    document.getElementById('aether-tier-text').innerHTML = `<span style="color:#00e5ff;">${formatNumber(aetherTier.fromAmount)} Aether</span> → <span class="cost-essence">${formatNumber(aetherOut)} DE</span>`;
+    document.getElementById('aether-tier-text').innerHTML = `<span style="color:#00e5ff;">${formatNumber(aetherTier.fromAmount)} Aether</span> → <span class="cost-essence">${formatNumber(aetherOut)} DE</span>${fragTag(25)}`;
     const cab = document.getElementById('convert-aether-btn');
     cab.onclick = () => convertCurrency('aether', 'de', aetherTier.fromAmount, aetherOut);
-    cab.disabled = D(gameState.aether).lt(aetherTier.fromAmount);
+    cab.disabled = D(gameState.aether).lt(aetherTier.fromAmount) || !hasFrags(25);
 
     const deTier = conversionTiers.deToSouls[currentConversionIndexes.deToSouls];
-    document.getElementById('de-tier-text').innerHTML = `<span class="cost-essence">${formatNumber(deTier.fromAmount)} DE</span> → <span class="cost-souls">${formatNumber(deTier.toAmount)} Souls</span>`;
+    const deSoulsUsed = gameState._deSoulsDate === new Date().toDateString() ? (gameState._deSoulsCount || 0) : 0;
+    document.getElementById('de-tier-text').innerHTML = `<span class="cost-essence">${formatNumber(deTier.fromAmount)} DE</span> → <span class="cost-souls">${formatNumber(deTier.toAmount)} Souls</span>${fragTag(10)} <span style="color:#555; font-size:0.75em;">(${deSoulsUsed}/5 today)</span>`;
     const ceb = document.getElementById('convert-essence-btn');
     ceb.onclick = () => convertCurrency('de', 'souls', deTier.fromAmount, deTier.toAmount);
-    ceb.disabled = D(gameState.darkEssence).lt(deTier.fromAmount);
+    ceb.disabled = D(gameState.darkEssence).lt(deTier.fromAmount) || !hasFrags(10) || deSoulsUsed >= 5;
 
     const deShardsTier = conversionTiers.deToShards[currentConversionIndexes.deToShards];
     const dsEl = document.getElementById('de-shards-tier-text');
     if (dsEl) {
-        dsEl.innerHTML = `<span class="cost-essence">${formatNumber(deShardsTier.fromAmount)} DE</span> → <span class="cost-shards">${formatNumber(deShardsTier.toAmount)} Shards</span>`;
+        dsEl.innerHTML = `<span class="cost-essence">${formatNumber(deShardsTier.fromAmount)} DE</span> → <span class="cost-shards">${formatNumber(deShardsTier.toAmount)} Shards</span>${fragTag(20)}`;
         const cdsb = document.getElementById('convert-de-shards-btn');
-        if (cdsb) { cdsb.onclick = () => convertCurrency('de', 'shards', deShardsTier.fromAmount, deShardsTier.toAmount); cdsb.disabled = D(gameState.darkEssence).lt(deShardsTier.fromAmount); }
+        if (cdsb) { cdsb.onclick = () => convertCurrency('de', 'shards', deShardsTier.fromAmount, deShardsTier.toAmount); cdsb.disabled = D(gameState.darkEssence).lt(deShardsTier.fromAmount) || !hasFrags(20); }
     }
 
     // Shards → Fragments (dynamic escalating cost)

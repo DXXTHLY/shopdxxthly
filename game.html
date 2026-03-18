@@ -20015,7 +20015,7 @@ const CODEX_CHAPTERS = [
         unlockCondition: () => (gameState.unlockedWorlds || []).length > 1,
         content: () => {
             const unlocked = gameState.unlockedWorlds || [];
-            const worldList = Object.entries(worlds).map(([id, w]) => {
+            const worldList = Object.entries(typeof worlds !== 'undefined' ? worlds : {}).map(([id, w]) => {
                 const done = unlocked.includes(id);
                 return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:${done?'#0a1a0a':'#0a0812'}; border:1px solid ${done?'#44cc8822':'#1a1030'}; border-radius:6px; margin-bottom:4px;">
                     <span style="color:${done?'#44cc88':'#444'}; font-size:0.82em;">${done?'✔':''} ${w.name}</span>
@@ -20404,16 +20404,25 @@ const CODEX_CHAPTERS = [
 let activeCodexChapter = 'origin';
 
 function openCodex() {
-    // Update the subtitle to reflect unlocked chapters
-    const unlocked = CODEX_CHAPTERS.filter(c => {
-        try { return c.unlockCondition(); } catch(e) { return false; }
-    });
-    const sub = document.getElementById('codex-btn-sub');
-    if (sub) sub.textContent = `${unlocked.length} of ${CODEX_CHAPTERS.length} chapters unlocked`;
+    // Show overlay immediately — don't let render errors block it
+    const overlay = document.getElementById('codex-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
 
-    renderCodexTabs();
-    renderCodexContent(activeCodexChapter);
-    document.getElementById('codex-overlay').style.display = 'flex';
+    // Update subtitle
+    try {
+        const unlocked = CODEX_CHAPTERS.filter(c => {
+            try { return c.unlockCondition(); } catch(e) { return false; }
+        });
+        const sub = document.getElementById('codex-btn-sub');
+        if (sub) sub.textContent = `${unlocked.length} of ${CODEX_CHAPTERS.length} chapters unlocked`;
+    } catch(e) {}
+
+    try { renderCodexTabs(); } catch(e) { console.warn('Codex tabs error:', e); }
+    try { renderCodexContent(activeCodexChapter); } catch(e) {
+        const content = document.getElementById('codex-content');
+        if (content) content.innerHTML = `<div style="color:#cc3333; padding:20px;">Error loading chapter. Try another tab.</div>`;
+    }
 }
 
 function closeCodex() {
@@ -20425,7 +20434,7 @@ function renderCodexTabs() {
     if (!tabs) return;
     tabs.innerHTML = '';
     CODEX_CHAPTERS.forEach(chapter => {
-        let unlocked;
+        let unlocked = false;
         try { unlocked = chapter.unlockCondition(); } catch(e) { unlocked = false; }
         const isActive = chapter.id === activeCodexChapter;
         const btn = document.createElement('button');

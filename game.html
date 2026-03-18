@@ -2716,7 +2716,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div style="font-size:2em;">⚔</div>
                     <div style="flex:1; min-width:180px;">
                         <div style="color:#ff6644; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; margin-bottom:4px;">SOUL RAIDS — PVE</div>
-                        <div style="color:#555; font-size:0.78em; line-height:1.5;">Assemble a party of 3 minions and descend into the Abyssal Dungeon. Turn-based combat across up to 10 rooms. Earn exclusive Raid Echo items and Corrupted Fragments.</div>
+                        <div style="color:#555; font-size:0.78em; line-height:1.5;">Assemble a party of 3 minions and descend into the Abyssal Dungeon. Explore a 7×7 grid across 3 floors — enemies lurk hidden in the fog. Turn-based combat with momentum, roles, and abilities. Earn Raid Echo items and Corrupted Fragments.</div>
                     </div>
                     <button onclick="openSoulRaidsPanel()" style="background:linear-gradient(135deg,#cc3311,#440000); border:2px solid #ff664466; border-radius:10px; padding:10px 22px; color:#ff9988; font-family:var(--font-title); font-size:0.82em; letter-spacing:2px; cursor:pointer; white-space:nowrap;">⚔ ENTER RAIDS</button>
                 </div>
@@ -20956,26 +20956,42 @@ const CODEX_CHAPTERS = [
         content: () => {
             const r = gameState.soulRaids || {};
             const completed = r.completedRaids || 0;
+            const cdLeft = Math.max(0, (r.cooldownUntil||0) - Date.now());
+            const cdStr = cdLeft > 0 ? `Next raid in ${Math.floor(cdLeft/3600000)}h ${Math.floor((cdLeft%3600000)/60000)}m` : 'Ready now';
             return `
             <div style="color:#ff6644; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">INTO THE ABYSS DUNGEON</div>
-            <p style="color:#aaa; margin-bottom:14px;">Assemble a party of 3 minions and descend into the Abyssal Dungeon. Fight through up to 10 rooms in turn-based combat — attack, defend, or use potions each turn. Flee any time and keep your loot.</p>
-            <p style="color:#aaa; margin-bottom:18px;">You have completed <strong style="color:#ff6644;">${completed}</strong> raid${completed !== 1 ? 's' : ''}.</p>
+            <p style="color:#aaa; margin-bottom:14px;">Descend into a fog-shrouded dungeon with a party of 3 minions. Explore a 7×7 grid across 3 floors — enemies lurk hidden until you step on them. Fight with momentum, roles, and abilities. Flee any time and keep everything you've found.</p>
+            <p style="color:#555; margin-bottom:18px; font-size:0.88em;">Raids completed: <strong style="color:#ff6644;">${completed}</strong> &nbsp;·&nbsp; ${cdStr} &nbsp;·&nbsp; Cooldown: random 3–6 hours per raid</p>
+
             <div style="display:grid; gap:10px; margin-bottom:18px;">
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px 16px;">
-                    <div style="color:#ff6644; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Room Types</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.7;">⚔ Combat — fight enemies to advance<br>⭐ Elite — tougher enemy, better loot<br>👑 Boss — room 10 only, hardest fight<br>💰 Treasure — free fragments<br>💧 Fountain — restore HP and energy<br>📦 Abyssal Chest — rare, spinning reel loot</div>
+                    <div style="color:#ff6644; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🗺 The Dungeon</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.6;">Navigate a <strong style="color:#ddd;">7×7 grid</strong> across <strong style="color:#ddd;">3 floors</strong>. Each move costs 1 energy (start with 20). The fog hides everything — enemies are invisible until you walk onto them. Explored tiles stay revealed. Fountains restore energy and heal your party.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px 16px;">
-                    <div style="color:#ff6644; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Energy</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">You start with 20 energy. Each room costs 1 energy to enter. Fountains restore 3–5. Run out and you're forced to retreat with whatever loot you've earned.</div>
+                    <div style="color:#ff6644; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">⚔ Combat Roles — auto-assigned by stats</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.8;">
+                        <span style="color:#ffaa44;">⚔ Striker</span> (high ATK) — +25% damage, 30% double-strike, <strong style="color:#ddd;">Berserker Rush</strong>: AoE all enemies + Burn (5% HP/turn)<br>
+                        <span style="color:#88aaff;">🪨 Tank</span> (high HP) — counter-strikes on defend, <strong style="color:#ddd;">Iron Wall</strong>: heal 45% HP + armor for 2 hits + taunt<br>
+                        <span style="color:#44cc88;">🌀 Duelist</span> (balanced) — 30% double-strike on attack, <strong style="color:#ddd;">Feint</strong>: guaranteed dodge + 2.5× counter<br>
+                        Abilities are on a <strong style="color:#ddd;">3-turn cooldown</strong> and carry between fights on the same floor.
+                    </div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px 16px;">
-                    <div style="color:#ff6644; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Rewards</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">🔮 10–35 Corrupted Fragments per raid (scales with depth and tier)<br>📿 Raid Echo items — exclusive legendary gear only found here<br>⚡ Bonus fragments for full 10-room clears</div>
+                    <div style="color:#ff6644; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚖ Momentum — the core of combat</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.6;">Every fight has a 0–6 momentum bar. At <strong style="color:#cc3333;">low momentum</strong> the enemy hits you for +50% damage. At <strong style="color:#44cc88;">high momentum</strong> your attacks deal +30% damage. <strong style="color:#ddd;">DEFEND</strong> swings momentum +2 toward you, cuts incoming damage by 65%, and has a <strong style="color:#ddd;">40% chance to stagger</strong> the enemy — cancelling their attack entirely. Don't just spam attack.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px 16px;">
-                    <div style="color:#ff6644; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Minion Cooldowns</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Minions that die in a raid have a 2-hour cooldown before they can raid again. They still generate SPS while on cooldown — only raids and expeditions are blocked.</div>
+                    <div style="color:#ff6644; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">👥 Party & Frontline</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.6;">Only your first alive minion fights at a time. When they fall, the next steps up automatically. You can <strong style="color:#ddd;">SWAP</strong> mid-combat to rotate them — but the enemy gets a free hit as punishment. Choose your order wisely: lead with a Tank to absorb hits, follow with your Striker for burst damage.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff6644; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🏆 Rewards</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.6;">🔮 <strong style="color:#ddd;">Corrupted Fragments</strong> — earned from every enemy killed and treasure found<br>📿 <strong style="color:#ddd;">Raid Echo items</strong> — exclusive legendary gear (weapon, idol, sigil, helm, tome) only found here<br>💀 Minions that die in a raid are on a <strong style="color:#ddd;">2-hour cooldown</strong> before they can raid again</div>
+                </div>
+                <div style="background:#0a0508; border:1px solid #ff664433; border-left:3px solid #ff6644; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#ff6644; font-size:0.78em; margin-bottom:4px;">⚠ Difficulty scales with your power</div>
+                    <div style="color:#666; font-size:0.82em;">Enemy HP and ATK scale to match your party's actual strength — raids will always be a real fight regardless of how strong your minions get. Boss HP is 3× a normal enemy of the same scale.</div>
                 </div>
             </div>`;
         }

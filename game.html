@@ -13297,12 +13297,25 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     if (itemType === 'key') itemName = KEYS[itemId]?.name || 'A Key';
     if (itemType === 'secret_minion') itemName = minions[itemId]?.name || itemId;
 
+    // Fragment surcharge — scales by type and rarity
+    const fragCost = (() => {
+        if (itemType === 'item') return ({common:0,uncommon:5,rare:15,epic:30,legendary:60,forged:100}[items[itemId]?.rarity||'common']||0);
+        if (itemType === 'potion')        return 5;
+        if (itemType === 'market_potion') return 20;
+        if (itemType === 'artifact')      return 10;
+        if (itemType === 'secret_minion') return 50;
+        if (itemType === 'key')           return 25;
+        return 0;
+    })();
+    if (fragCost > 0 && D(gameState.corruptedFragments||0).lt(fragCost)) {
+        Toastify({text:`🔮 Need ${fragCost} Corrupted Fragments for this purchase.`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a001a,#440044)'}}).showToast();
+        return;
+    }
+    const fragStr = fragCost > 0 ? ` + ${fragCost} 🔮 Fragments` : '';
     const limitMsg = limit > 1 ? ` (${bought + 1}/${limit} this hour)` : '';
-    const _bfc=(itemType==='item')?({common:0,uncommon:0,rare:0,epic:5,legendary:20,forged:60}[items[itemId]?.rarity||'common']||0):0;
-    if(_bfc>0&&D(gameState.corruptedFragments||0).lt(_bfc)){Toastify({text:`🔮 Need ${_bfc} Corrupted Fragments.`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a001a,#440044)'}}).showToast();return;}
-    if(!confirm(`Buy ${itemName} for ${formatNumber(price)} Dark Essence${_bfc>0?` + ${_bfc} 🔮 Fragments`:''}?${limitMsg}`))return;
-    gameState.darkEssence=D(gameState.darkEssence).sub(price);
-    if(_bfc>0)gameState.corruptedFragments=D(gameState.corruptedFragments||0).sub(_bfc);
+    if (!confirm(`Buy ${itemName} for ${formatNumber(price)} Dark Essence${fragStr}?${limitMsg}`)) return;
+    gameState.darkEssence = D(gameState.darkEssence).sub(price);
+    if (fragCost > 0) gameState.corruptedFragments = D(gameState.corruptedFragments||0).sub(fragCost);
 
     // Record purchase
     gameState.shopPurchases[purchaseKey] = bought + 1;

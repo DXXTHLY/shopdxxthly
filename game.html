@@ -19414,16 +19414,17 @@ async function arenaEndBattle(playerWon) {
 
 // Wave multiplier table
 const GNT_WAVES = [
-    { wave:1,  mult:1.5,  label:'1.50x',  color:'#44cc88' },
-    { wave:2,  mult:2.5,  label:'2.50x',  color:'#44cc88' },
-    { wave:3,  mult:4.0,  label:'4.00x',  color:'#c8a800' },
-    { wave:4,  mult:6.0,  label:'6.00x',  color:'#c8a800' },
-    { wave:5,  mult:9.0,  label:'9.00x',  color:'#ff9944' },
-    { wave:6,  mult:13.0, label:'13.00x', color:'#ff9944' },
-    { wave:7,  mult:18.0, label:'18.00x', color:'#ff6644' },
-    { wave:8,  mult:25.0, label:'25.00x', color:'#ff4444' },
-    { wave:9,  mult:35.0, label:'35.00x', color:'#ff4444' },
-    { wave:10, mult:50.0, label:'50.00x', color:'#aa44ff' },
+    { wave:1,  mult:1.0,  label:'1.00x (break-even)',  color:'#666666' },
+    { wave:2,  mult:1.5,  label:'1.50x',  color:'#44cc88' },
+    { wave:3,  mult:2.5,  label:'2.50x',  color:'#44cc88' },
+    { wave:4,  mult:4.0,  label:'4.00x',  color:'#c8a800' },
+    { wave:5,  mult:6.0,  label:'6.00x',  color:'#c8a800' },
+    { wave:6,  mult:9.0,  label:'9.00x',  color:'#ff9944' },
+    { wave:7,  mult:13.0, label:'13.00x', color:'#ff9944' },
+    { wave:8,  mult:18.0, label:'18.00x', color:'#ff6644' },
+    { wave:9,  mult:25.0, label:'25.00x', color:'#ff4444' },
+    { wave:10, mult:35.0, label:'35.00x', color:'#ff4444' },
+    { wave:11, mult:50.0, label:'50.00x', color:'#aa44ff' },
 ];
 // Waves beyond 10: multiplier = previous * 1.5
 function gntGetWaveData(waveNum) {
@@ -19691,21 +19692,33 @@ function gntWaveLost(){
     gntSetPhase('RESULT');gntRenderGrid();
 }
 function gntCashOut(){
-    const wd=gntGetWaveData(gntState.wave);
-    // Use Decimal for win calculation — bet could be huge souls value
+    const wd = gntGetWaveData(gntState.wave);
+    const now = Date.now();
+    // ANTI-EXPLOIT: 2-minute cooldown between all runs
+    if (!gameState._gntCooldownUntil) gameState._gntCooldownUntil = 0;
+    if (now < gameState._gntCooldownUntil) {
+        const secsLeft = Math.ceil((gameState._gntCooldownUntil - now) / 1000);
+        Toastify({ text: `Next run available in ${secsLeft}s.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#1a0000,#440000)' } }).showToast();
+        return;
+    }
     const winD = D(gntState.betAmount).mul(D(wd.mult));
     const winDisplay = formatNumber(winD);
-    // Add winnings back
     if (gntState.betCurrency === 'souls') {
         gameState.souls = D(gameState.souls).add(winD);
-        gameState.lifetimeSouls = D(gameState.lifetimeSouls); // lifetimeSouls not affected by winnings
     } else {
         gameState[gntState.betCurrency] = D(gameState[gntState.betCurrency] || 0).add(winD);
     }
-    updateDynamicDisplays();saveGame();playSound('upgrade');
-    gntLog(`💰 Cashed out at ${wd.label} — +${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)}!`,'#c8a800');
-    const box=document.getElementById('gnt-result-box');if(box){box.style.borderTopColor='#44cc88';box.innerHTML=`<div style="font-size:2em;margin-bottom:8px;">💰</div><div style="color:#44cc88;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:8px;">CASHED OUT</div><div style="color:#aaa;font-size:0.82em;line-height:1.6;">Survived ${gntState.wave} wave${gntState.wave>1?'s':''}.<br>Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>Winnings: <strong style="color:#44cc88;">+${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)}</strong></div>`;}
-    const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`💰 Cashed out — ${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)} collected!`;sb.style.borderLeftColor='#44cc88';sb.style.color='#44cc88';}
+    gameState._gntCooldownUntil = now + 2 * 60 * 1000;
+    updateDynamicDisplays(); saveGame(); playSound('upgrade');
+    const isBreakEven = gntState.wave === 1;
+    gntLog(`Cashed out at ${wd.label} -- +${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)}!${isBreakEven ? ' (break-even -- no profit on wave 1)' : ''}`, '#c8a800');
+    const box = document.getElementById('gnt-result-box');
+    if (box) {
+        box.style.borderTopColor = '#44cc88';
+        box.innerHTML = `<div style="font-size:2em;margin-bottom:8px;">&#x1F4B0;</div><div style="color:#44cc88;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:8px;">CASHED OUT</div><div style="color:#aaa;font-size:0.82em;line-height:1.6;">Survived ${gntState.wave} wave${gntState.wave>1?'s':''}.<br>Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>Winnings: <strong style="color:#44cc88;">+${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)}</strong>${isBreakEven ? '<br><span style="color:#555;font-size:0.85em;">Wave 1 = break-even. Profit starts at Wave 2 (1.5x).</span>' : ''}</div><div style="color:#555;font-size:0.75em;margin-top:10px;">Next run in 2 minutes.</div>`;
+    }
+    const sb = document.getElementById('gnt-status-bar');
+    if (sb) { sb.textContent = `Cashed out -- ${winDisplay} collected! (2min cooldown)`; sb.style.borderLeftColor = '#44cc88'; sb.style.color = '#44cc88'; }
     gntSetPhase('RESULT');
 }
 function gntNextWave(){
@@ -21485,7 +21498,15 @@ function updateBarterDropdowns() {
             const sHp  = bm ? Math.ceil(bm.hp  * total) : '?';
             const sAtk = bm ? Math.ceil(bm.atk * total) : '?';
             haveStr = `Lv${lv}${promoTier > 0 ? ' ★'.repeat(promoTier) : ''} · ❤${sHp} ⚔${sAtk} ↔${bm?.range||'?'} — Buyers levels STACK with any they already own`;
-            if (offerAmtInput && !offerAmtInput.value) offerAmtInput.value = lv;
+            // The number = levels to transfer. Always pre-fill with current level.
+            if (offerAmtInput) {
+                offerAmtInput.value = lv;
+                offerAmtInput.min = 1;
+                offerAmtInput.max = lv;
+                offerAmtInput.placeholder = lv;
+                offerAmtInput.title = 'Levels to transfer (1–' + lv + '). Your minion is Lv' + lv + '.';
+            }
+            haveStr += ' — The number below = LEVELS to transfer (your minion is Lv' + lv + ', field auto-set to ' + lv + ')';
         }
         preview.textContent = haveStr;
     }

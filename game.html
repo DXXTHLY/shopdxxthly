@@ -4347,6 +4347,8 @@ window.onload = function() {
     loadGame();
     calculateStats();
     renderAll();
+    // Apply anti-cheat proxy after game is fully loaded
+    if (typeof _applyGameStateProxy === 'function') _applyGameStateProxy();
     updateCacheTimer();
     initRift();
     let tickCounter = 0;
@@ -8010,6 +8012,63 @@ const conversionTiers = {
 // GAME STATE & CORE LOGIC
 // =================================================================
 let gameState = {};
+
+// ── Anti-cheat: block console currency manipulation for non-devs ──
+const _PROTECTED_FIELDS = new Set([
+    'souls','lifetimeSouls','soulsSpent',
+    'darkEssence','abyssalShards','aether','corruptedFragments','bankedShards',
+    'inventory','ownedArtifacts','minions','pvpWins','ascensions','totalCollapses'
+]);
+const _DEV_UIDS = new Set([
+    'CiOpgh1RLBg3l5oXn0SAho66Po93','KzzWmCKFlaXCf85Xq7QXINJBNrC3',
+    'LVRqcOHhz8SFLPASUkQPelRjLYv2','ppWQuwhcnEYSHCjnIGh8O8rIl4F2',
+    'hw0jR6r683PNq4Uq0WTuUSlTTii2','PZA5qgKWsPTXc278pyx7NwROf313',
+    'P75eMwh756Rb6h1W6iqQfHN2Dm92','DMGt5UvMVzcsejDtwbpHQ1lPfFG2',
+    'X5iLoLtJIDcnTWiAag6sj4Xv5qt1','QW7EGvTuiaUJrhI3qEEbGqk7sGe2',
+    'uf2BxylGuYYPoZZtpF7hnIAtkht2','CsLHBQQErOPD5AcEK9X241sfrlr1',
+    'TOqInacHmaRiKuTakIIbuJKAzQH3','tC1VW4WkXEOfK7rCpwGvFcv7MJo1',
+    'hTinUwrewTYNcXujW1hUaXrScGW2','xeHH7zJVRyU4IfuYnqF5amSyXRe2',
+    'AQfZZxXypaNRGBKLVlY57MtPdJE2'
+]);
+function _isDevSession() {
+    try {
+        const uid = window._scFirebase?.auth?.currentUser?.uid;
+        return uid && _DEV_UIDS.has(uid);
+    } catch(e) { return false; }
+}
+function _isConsoleCall() {
+    // Check if the call originates from the browser console / external script
+    // Internal game calls come from known script src (same page), console calls show as anonymous
+    try {
+        const stack = new Error().stack || '';
+        // Console inputs show as '<anonymous>' with no script URL, or 'debugger eval code'
+        // Internal game code references the page script (blob: or the html file itself)
+        const lines = stack.split('\n');
+        // Skip first 3 frames (Error, _isConsoleCall, proxy set handler)
+        const callerFrames = lines.slice(3);
+        const isAnonymous = callerFrames.length > 0 && callerFrames.every(l =>
+            l.includes('<anonymous>') || l.includes('debugger eval') || l.includes('eval at') || l.trim() === ''
+        );
+        return isAnonymous;
+    } catch(e) { return false; }
+}
+const _gameStateHandler = {
+    set(target, prop, value) {
+        if (_PROTECTED_FIELDS.has(prop) && _isConsoleCall() && !_isDevSession()) {
+            console.warn(
+                '%c⛔ Soul Collector — Cheat Blocked',
+                'color:#ff4444;font-weight:bold;font-size:15px;background:#1a0000;padding:4px 8px;border-radius:4px;',
+                `\nAccess to gameState.${prop} is protected. Nice try. How about your just donate, bud. Help us out.`
+            );
+            return true; // block silently
+        }
+        target[prop] = value;
+        return true;
+    }
+};
+window._applyGameStateProxy = function() {
+    gameState = new Proxy(gameState, _gameStateHandler);
+};
 let vfxCanvas, vfxCtx, particles = []; // NEW
 let duelState = {};
 let hasUserInteracted = false;
@@ -12756,6 +12815,8 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
             return true;
         });
 
+        // Always sync local player's live stats from gameState (Supabase may have stale/missing pvpWins)
+        // Skip dev accounts entirely
         // Always sync local player's live stats from gameState (Supabase may have stale/missing pvpWins)
         const localPlayerIdx = players.findIndex(p => p.name === gameState.playerName);
         const localPlayerData = {

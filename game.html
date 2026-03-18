@@ -16016,6 +16016,9 @@ window.startSoulRaid = function() {
     raidState.explored = new Set();
     raidState.playerPos = { x:0, y:0 };
     raidState.explored.add('0,0');
+    raidState._defending = false;
+    raidState._abilityCooldown = 0;
+    raidState._tauntTurns = 0;
 
     const { grid, enemies } = generateRaidGrid(1);
     raidState.grid    = grid;
@@ -16078,8 +16081,8 @@ function renderRaidDungeon() {
                     const hpPct = Math.max(0, enemy.hp/enemy.maxHp*100);
                     icon = `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-size:${CELL*.32}px;">${battleMinions[enemy.minionId]?.icon||'👹'}</span><div style="width:${CELL*.6}px;height:3px;background:#1a1030;border-radius:2px;overflow:hidden;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:2px;"></div></div></div>`;
                 } else if (enemy && adjacent && !explored) {
-                    // Hint that something dangerous is there — but don't show what
-                    icon = `<span style="font-size:${CELL*.3}px;opacity:0.5;">⚠</span>`;
+                    // Enemy is hidden — tile looks empty, combat triggers on step
+                    icon = '';
                 } else if (!enemy && tile.type !== RTILE.EMPTY && tile.type !== RTILE.ENEMY) {
                     const ico = tileIcons[tile.type];
                     if (ico) icon = `<span style="font-size:${CELL*.4}px;">${ico}</span>`;
@@ -16096,17 +16099,58 @@ function renderRaidDungeon() {
     if (raidState.inCombat && raidState.combatEnemy) {
         const e = raidState.combatEnemy;
         const hpPct = Math.max(0, e.hp/e.maxHp*100);
-        html += `<div style="margin-top:12px;background:#0a0812;border:1px solid #ff444433;border-top:2px solid #ff4444;border-radius:8px;padding:12px;">
-            <div style="color:#ff4444;font-family:var(--font-title);font-size:.8em;letter-spacing:2px;margin-bottom:8px;">⚔ COMBAT — ${e.name||battleMinions[e.minionId]?.name}</div>
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        const aliveParty = raidState.party.filter(p=>p.hp>0);
+        const frontliner = aliveParty[0];
+        const fBm = frontliner ? battleMinions[frontliner.minionId] : null;
+        const role = fBm ? (fBm.atk > fBm.hp * 0.12 ? 'striker' : fBm.hp > fBm.atk * 10 ? 'tank' : 'duelist') : 'duelist';
+        const roleLabel = { striker:'⚔ Striker', tank:'🪨 Tank', duelist:'🌀 Duelist' }[role];
+        const roleDesc  = { striker:'Bonus dmg · AoE ability', tank:'Dmg reduction · heal+taunt', duelist:'Counter · dodge+2× strike' }[role];
+        const abCd = raidState._abilityCooldown||0;
+        const hasPotion = Object.values(gameState.potions||{}).some(c=>c>0);
+        const canSwap = aliveParty.length > 1;
+        const abilityName = { striker:'Rush — hit all', tank:'Iron Wall', duelist:'Feint+dodge' }[role];
+        const partyQueue = raidState.party.map((p,idx)=>{
+            const pb = battleMinions[p.minionId];
+            const pct = Math.max(0, p.hp/p.maxHp*100);
+            const col = p.hp<=0 ? '#333' : pct>60 ? '#44cc88' : pct>30 ? '#ffaa00' : '#cc3333';
+            const isActive = idx === raidState.party.findIndex(x=>x.hp>0);
+            const border = isActive ? '#ff664466' : '#1a1030';
+            const bg = isActive ? 'rgba(255,102,68,0.1)' : 'transparent';
+            const op = p.hp<=0 ? 'opacity:0.3;' : '';
+            return `<div style="text-align:center;padding:4px 8px;background:${bg};border:1px solid ${border};border-radius:6px;min-width:52px;"><div style="font-size:1.1em;${op}">${pb?.icon||'👿'}</div><div style="background:#1a1030;border-radius:2px;height:3px;margin:2px 0;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};border-radius:2px;"></div></div><div style="color:${col};font-size:.55em;">${p.hp<=0?'💀':p.hp+'/'+p.maxHp}</div></div>`;
+        }).join('');
+        const abilityBg    = abCd > 0 ? '#22220a' : '#ffaa4422';
+        const abilityBdr   = abCd > 0 ? '#333' : '#ffaa4466';
+        const abilityCol   = abCd > 0 ? '#444' : '#ffaa44';
+        const abilityCur   = abCd > 0 ? 'default' : 'pointer';
+        const abilityDescC = abCd > 0 ? '#333' : '#886622';
+        const swapBg  = canSwap ? '#44cc8811' : 'transparent';
+        const swapBdr = canSwap ? '#44cc8844' : '#1a1a1a';
+        const swapCol = canSwap ? '#44cc88' : '#333';
+        const swapCur = canSwap ? 'pointer' : 'default';
+        const swapDc  = canSwap ? '#226644' : '#222';
+        const abilityLabel = abCd > 0 ? `✨ ABILITY (${abCd})` : '✨ ABILITY';
+        html += `
+        <div style="margin-top:12px;background:#0a0812;border:1px solid #ff444433;border-top:2px solid #ff4444;border-radius:10px;padding:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                <div style="color:#ff4444;font-family:var(--font-title);font-size:.8em;letter-spacing:2px;">⚔ ${e.name||battleMinions[e.minionId]?.name||'Enemy'}${e.isBoss?' 👑':''}</div>
+                <div style="display:flex;gap:6px;">${partyQueue}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
                 <span style="font-size:2em;">${battleMinions[e.minionId]?.icon||'👹'}</span>
-                <div style="flex:1;"><div style="background:#1a1030;border-radius:4px;height:8px;overflow:hidden;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:4px;transition:width .3s;"></div></div><div style="color:#cc3333;font-size:.72em;margin-top:3px;">${e.hp} / ${e.maxHp} HP</div></div>
+                <div style="flex:1;">
+                    <div style="background:#1a1030;border-radius:4px;height:8px;overflow:hidden;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:4px;transition:width .3s;"></div></div>
+                    <div style="color:#cc3333;font-size:.72em;margin-top:3px;">${e.hp} / ${e.maxHp} HP</div>
+                </div>
+                ${frontliner ? `<div style="background:#ffffff08;border:1px solid #ffffff11;border-radius:8px;padding:6px 10px;text-align:center;min-width:90px;"><div style="color:#ffaa44;font-size:.65em;font-weight:bold;">${roleLabel}</div><div style="color:#555;font-size:.58em;margin-top:2px;line-height:1.3;">${roleDesc}</div></div>` : ''}
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button onclick="raidCombatAction('attack')" style="flex:1;background:linear-gradient(135deg,#cc111122,transparent);border:1px solid #ff444466;border-radius:8px;padding:10px;color:#ff8866;font-family:var(--font-title);font-size:.78em;letter-spacing:1px;cursor:pointer;">⚔ ATTACK</button>
-                <button onclick="raidCombatAction('defend')" style="flex:1;background:linear-gradient(135deg,#4488ff11,transparent);border:1px solid #4488ff44;border-radius:8px;padding:10px;color:#88aaff;font-family:var(--font-title);font-size:.78em;letter-spacing:1px;cursor:pointer;">🛡 DEFEND</button>
-                ${Object.values(gameState.potions||{}).some(c=>c>0)?`<button onclick="raidCombatAction('potion')" style="flex:1;background:linear-gradient(135deg,#44cc8811,transparent);border:1px solid #44cc8844;border-radius:8px;padding:10px;color:#88ffaa;font-family:var(--font-title);font-size:.78em;letter-spacing:1px;cursor:pointer;">⚗ POTION</button>`:''}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <button onclick="raidCombatAction(&quot;attack&quot;)" style="background:linear-gradient(135deg,#cc111122,transparent);border:1px solid #ff444466;border-radius:8px;padding:10px 6px;color:#ff8866;font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:pointer;">⚔ ATTACK</button>
+                <button onclick="raidCombatAction(&quot;defend&quot;)" style="background:linear-gradient(135deg,#4488ff11,transparent);border:1px solid #4488ff44;border-radius:8px;padding:10px 6px;color:#88aaff;font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:pointer;">🛡 DEFEND<div style="font-size:.62em;color:#4466aa;margin-top:1px;">−60% dmg taken</div></button>
+                <button onclick="raidCombatAction(&quot;ability&quot;)" style="background:linear-gradient(135deg,${abilityBg},transparent);border:1px solid ${abilityBdr};border-radius:8px;padding:10px 6px;color:${abilityCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${abilityCur};">${abilityLabel}<div style="font-size:.6em;color:${abilityDescC};margin-top:1px;">${abilityName}</div></button>
+                <button onclick="raidCombatAction(&quot;swap&quot;)" style="background:linear-gradient(135deg,${swapBg},transparent);border:1px solid ${swapBdr};border-radius:8px;padding:10px 6px;color:${swapCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${swapCur};">🔄 SWAP<div style="font-size:.6em;color:${swapDc};margin-top:1px;">enemy free hit</div></button>
             </div>
+            ${hasPotion ? `<button onclick="raidCombatAction(&quot;potion&quot;)" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#44cc8811,transparent);border:1px solid #44cc8844;border-radius:8px;padding:8px;color:#88ffaa;font-family:var(--font-title);font-size:.7em;letter-spacing:1px;cursor:pointer;">⚗ USE POTION — heal party</button>` : ''}
         </div>`;
     }
 
@@ -16229,60 +16273,167 @@ window.raidCombatAction = function(action) {
     const aliveParty = raidState.party.filter(p=>p.hp>0);
     if (!aliveParty.length) return;
 
-    let defending = false;
+    // Frontliner = first alive minion — others are in reserve
+    const frontliner = aliveParty[0];
+    const bm = battleMinions[frontliner.minionId];
+
+    // Each minion has a unique role based on their stats
+    // High ATK relative to HP = Striker (bonus dmg), high HP relative to ATK = Tank (damage reduction),
+    // balanced = Duelist (counter-attack chance)
+    const role = bm ? (bm.atk > bm.hp * 0.12 ? 'striker' : bm.hp > bm.atk * 10 ? 'tank' : 'duelist') : 'duelist';
+
+    let playerDmg = 0;
+    let enemyDmg  = 0;
+    let logLines  = [];
+    let skipEnemyTurn = false;
 
     if (action === 'attack') {
-        aliveParty.forEach(member => {
-            if (enemy.hp <= 0) return;
-            const dmg = member.atk;
-            enemy.hp = Math.max(0, enemy.hp - dmg);
-            raidLog(`${battleMinions[member.minionId]?.icon} hits ${battleMinions[enemy.minionId]?.icon} for ${dmg}!`, '#44cc88');
-        });
+        // Base damage from frontliner
+        playerDmg = frontliner.atk;
+        // Strikers deal +35% on attack
+        if (role === 'striker') { playerDmg = Math.ceil(playerDmg * 1.35); logLines.push(`💥 Striker bonus!`); }
+        // Duelists have 25% chance to attack twice
+        if (role === 'duelist' && Math.random() < 0.25) { playerDmg *= 2; logLines.push(`⚡ Double strike!`); }
+        enemy.hp = Math.max(0, enemy.hp - playerDmg);
+        logLines.push(`${bm?.icon||'👿'} <b>${bm?.name||'Minion'}</b> attacks for <b>${playerDmg}</b> dmg!`);
+
     } else if (action === 'defend') {
-        defending = true;
-        raidLog('🛡 Party braces — damage halved this turn.', '#88aaff');
+        // Tanks reflect 20% of incoming dmg; everyone reduces damage taken this turn
+        raidState._defending = true;
+        logLines.push(`🛡 ${bm?.name||'Minion'} takes a defensive stance.`);
+        if (role === 'tank') logLines.push(`🪨 Tank stance — reflects 20% damage back.`);
+
+    } else if (action === 'ability') {
+        // Each minion gets a unique ability on cooldown
+        if ((raidState._abilityCooldown||0) > 0) {
+            logLines.push(`⏳ Ability on cooldown (${raidState._abilityCooldown} turns).`);
+        } else {
+            raidState._abilityCooldown = 3;
+            if (role === 'striker') {
+                // Berserker Rush — hit all enemies on floor for 60% ATK each
+                const aoeTargets = raidState.enemies.filter(e=>e.hp>0);
+                const aoeDmg = Math.ceil(frontliner.atk * 0.6);
+                aoeTargets.forEach(e => e.hp = Math.max(0, e.hp - aoeDmg));
+                logLines.push(`🔥 <b>Berserker Rush!</b> Hits all enemies for ${aoeDmg} dmg!`);
+                // Clean up dead enemies from the map
+                raidState.enemies.filter(e=>e.hp<=0 && e!==enemy).forEach(e=>{
+                    if(raidState.grid[e.y]?.[e.x]) raidState.grid[e.y][e.x]={type:RTILE.EMPTY,enemy:null};
+                });
+            } else if (role === 'tank') {
+                // Iron Wall — fully heal frontliner and taunt (enemy must attack them next 2 turns)
+                const healed = Math.floor(frontliner.maxHp * 0.5);
+                frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + healed);
+                raidState._tauntTurns = 2;
+                logLines.push(`🏰 <b>Iron Wall!</b> Restored ${healed} HP, taunting enemy for 2 turns.`);
+            } else {
+                // Duelist Feint — skip enemy's next attack and deal 2× dmg
+                playerDmg = frontliner.atk * 2;
+                enemy.hp = Math.max(0, enemy.hp - playerDmg);
+                skipEnemyTurn = true;
+                logLines.push(`🌀 <b>Feint!</b> Deals ${playerDmg} dmg and dodges retaliation!`);
+            }
+        }
+
+    } else if (action === 'swap') {
+        // Swap frontliner to the next alive minion
+        if (aliveParty.length < 2) {
+            logLines.push(`❌ No other minions alive to swap to.`);
+        } else {
+            // Rotate: move current frontliner to back
+            const idx = raidState.party.indexOf(frontliner);
+            const next = aliveParty[1];
+            const nextBm = battleMinions[next.minionId];
+            // Swap in party array
+            raidState.party.splice(idx, 1);
+            raidState.party.push(frontliner);
+            logLines.push(`🔄 <b>${bm?.name}</b> falls back — <b>${nextBm?.name}</b> steps up!`);
+            // Enemy gets a free hit on the swap
+            enemyDmg = Math.max(1, Math.floor(enemy.atk * 0.5));
+            next.hp = Math.max(0, next.hp - enemyDmg);
+            logLines.push(`${battleMinions[enemy.minionId]?.icon} punishes the swap for ${enemyDmg}!`);
+            updateRaidHUD();
+            logLines.forEach(msg => raidLog(msg, '#aaa'));
+            renderRaidDungeon();
+            return;
+        }
+
     } else if (action === 'potion') {
         const avail = Object.entries(gameState.potions||{}).filter(([,c])=>c>0);
         if (avail.length > 0) {
             const [pid] = avail[Math.floor(Math.random()*avail.length)];
             gameState.potions[pid]--;
-            const heal = Math.floor(aliveParty[0].maxHp * .3);
-            aliveParty.forEach(p=>{ p.hp = Math.min(p.maxHp, p.hp+heal); });
-            raidLog(`⚗ ${potions[pid]?.name||'Potion'} used — party +${heal} HP.`, '#44cc88');
+            const heal = Math.floor(frontliner.maxHp * 0.45);
+            // Potion heals all alive party members
+            aliveParty.forEach(p => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(heal * 0.6)); });
+            frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + Math.floor(heal * 0.4)); // extra to frontliner
+            logLines.push(`⚗️ <b>${potions[pid]?.name||'Potion'}</b> — party healed!`);
+        } else {
+            logLines.push(`❌ No potions left.`);
         }
     }
 
-    // Enemy attacks back if alive
-    if (enemy.hp > 0) {
-        const target = aliveParty[Math.floor(Math.random()*aliveParty.length)];
-        if (target) {
-            const dmg = Math.max(1, Math.floor(enemy.atk * (defending?.5:1)));
-            target.hp = Math.max(0, target.hp - dmg);
-            if (target.hp <= 0) raidLog(`💀 ${battleMinions[target.minionId]?.name} fell!`, '#ff2222');
-            else raidLog(`${battleMinions[enemy.minionId]?.icon} attacks ${battleMinions[target.minionId]?.icon} for ${dmg}!`, '#ff8844');
+    // ── Enemy counter-attack ──────────────────────────────────────
+    if (!skipEnemyTurn && enemy.hp > 0 && action !== 'swap') {
+        // Determine target — taunt forces it onto frontliner
+        let target = frontliner;
+        if (!raidState._tauntTurns && aliveParty.length > 1 && Math.random() < 0.25) {
+            target = aliveParty[Math.floor(Math.random() * aliveParty.length)];
+        }
+        if (raidState._tauntTurns > 0) raidState._tauntTurns--;
+
+        const defending = raidState._defending;
+        raidState._defending = false;
+
+        let incomingDmg = Math.max(1, Math.floor(enemy.atk * (defending ? 0.4 : 1)));
+
+        // Tank reflects 20% when defending
+        if (defending && role === 'tank') {
+            const reflect = Math.ceil(incomingDmg * 0.2);
+            enemy.hp = Math.max(0, enemy.hp - reflect);
+            logLines.push(`🔄 Reflected ${reflect} dmg!`);
+        }
+
+        target.hp = Math.max(0, target.hp - incomingDmg);
+        const targetBm = battleMinions[target.minionId];
+        if (target.hp <= 0) {
+            logLines.push(`💀 <b>${targetBm?.name}</b> has fallen!`);
+            // Auto-advance to next alive minion
+            const nextAlive = raidState.party.filter(p=>p.hp>0);
+            if (nextAlive.length > 0) {
+                const nextBm2 = battleMinions[nextAlive[0].minionId];
+                logLines.push(`➡ <b>${nextBm2?.name}</b> steps into the fight!`);
+            }
+        } else {
+            logLines.push(`${battleMinions[enemy.minionId]?.icon} hits <b>${targetBm?.name}</b> for <b>${incomingDmg}</b>!`);
         }
     }
+
+    // Tick ability cooldown
+    if ((raidState._abilityCooldown||0) > 0 && action !== 'ability') raidState._abilityCooldown--;
 
     updateRaidHUD();
 
-    // Enemy dead
+    // Log all lines
+    const logColor = action === 'attack' ? '#44cc88' : action === 'defend' ? '#88aaff' : action === 'ability' ? '#ffaa44' : '#aaa';
+    logLines.forEach((msg, i) => raidLog(msg, i === 0 ? logColor : '#888'));
+
+    // ── Check outcomes ────────────────────────────────────────────
     if (enemy.hp <= 0) {
         raidState.inCombat = false;
-        const fragReward = Math.floor(1 + raidState.floor + (enemy.isBoss?8:0));
+        raidState._defending = false;
+        raidState._abilityCooldown = 0;
+        const fragReward = Math.floor(2 + raidState.floor * 2 + (enemy.isBoss ? 12 : 0));
         raidState.loot.fragments += fragReward;
-        // Remove from enemies array
         raidState.enemies = raidState.enemies.filter(e=>e!==enemy);
-        // Clear tile
         if (raidState.grid[enemy.y]?.[enemy.x]?.type === RTILE.ENEMY) raidState.grid[enemy.y][enemy.x] = {type:RTILE.EMPTY, enemy:null};
         raidState.combatEnemy = null;
-        raidLog(`✓ Enemy defeated! +${fragReward} fragments.`, '#44cc88');
+        raidLog(`✅ Enemy defeated! +${fragReward} fragments.`, '#44cc88');
         if (enemy.isBoss) { raidLog('👑 Boss slain! Floor cleared!', '#ffcc00'); advanceRaidFloor(); return; }
     }
 
-    // Party wiped
     if (raidState.party.every(p=>p.hp<=0)) {
         raidState.inCombat = false;
-        raidLog('💀 Your party has fallen.', '#ff2222');
+        raidLog('💀 Your entire party has fallen.', '#ff2222');
         endRaid(false);
         return;
     }
@@ -16301,6 +16452,9 @@ function advanceRaidFloor() {
     raidState.energy = RAID_MAX_ENERGY;
     raidState.playerPos = {x:0, y:0};
     raidState.explored = new Set(['0,0']);
+    raidState._defending = false;
+    raidState._abilityCooldown = Math.max(0, (raidState._abilityCooldown||1)-1); // 1 cooldown tick between floors
+    raidState._tauntTurns = 0;
     const {grid, enemies} = generateRaidGrid(raidState.floor);
     raidState.grid = grid; raidState.enemies = enemies;
     raidLog(`🔽 Descending to Floor ${raidState.floor}...`, '#ff6644');

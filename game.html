@@ -15565,6 +15565,128 @@ let ggState = {
     enemyIdCounter: 0,
 };
 
+// Renders the correct God's Gauntlet screen state whenever the screen is opened
+function renderGgScreenState() {
+    const gg = gameState.godsGauntlet || {};
+    const now = Date.now();
+    const qualified = D(gameState.lifetimeSouls).gte(D(GG_THRESHOLD));
+    const trialPending = gg._announced && !ggState.active;
+    const isCursed = now < (gg.cursedUntil || 0);
+    const isBlessed = now < (gg.divineBuffUntil || 0);
+    const cooldownLeft = Math.max(0, (gg.lastTriggered || 0) + GG_COOLDOWN_MS - now);
+    const mercyReady = (now - (gg.mercyUsedAt || 0)) > GG_MERCY_CD_MS;
+
+    // Always update status bar
+    renderGgStatusBar();
+
+    // If a game is actively running, just re-render the grid
+    if (ggState.active) {
+        renderGgMinionPalette();
+        renderGgGrid();
+        renderGgHud();
+        return;
+    }
+
+    // Replace the pregame section with the right content
+    const pregame = document.getElementById('gg-pregame');
+    if (!pregame) return;
+
+    // Also update wave label and start btn to reflect idle state
+    const waveLabel = document.getElementById('gg-wave-label');
+    const startBtn  = document.getElementById('gg-start-btn');
+    if (waveLabel) waveLabel.textContent = 'Wave 0 / 5';
+    if (startBtn)  { startBtn.disabled = true; startBtn.textContent = '▶ SEND WAVE'; }
+
+    // Clear the grid and palette to show placeholder
+    const palette = document.getElementById('gg-minion-palette');
+    if (palette) palette.innerHTML = '<div style="color:#333; font-size:0.75em; font-style:italic; text-align:center; padding:20px 8px;">Accept the trial to deploy your forces.</div>';
+    const grid = document.getElementById('gg-grid');
+    if (grid) {
+        grid.innerHTML = '';
+        grid.style.cssText = `display:grid; grid-template-columns:repeat(${GG_COLS},1fr); grid-template-rows:repeat(${GG_ROWS},1fr); width:100%; aspect-ratio:9/5;`;
+        for (let r = 0; r < GG_ROWS; r++) {
+            for (let c = 0; c < GG_COLS; c++) {
+                const cell = document.createElement('div');
+                const isAltar = c === GG_ALTAR_COL;
+                cell.style.cssText = `aspect-ratio:1;display:flex;align-items:center;justify-content:center;border:1px solid #0d0920;background:${isAltar ? 'rgba(255,100,50,0.08)' : 'transparent'};`;
+                if (isAltar && r === 2) cell.innerHTML = `<span style="opacity:0.3;">🏛️</span>`;
+                grid.appendChild(cell);
+            }
+        }
+    }
+    const budgetEl = document.getElementById('gg-budget-display');
+    if (budgetEl) budgetEl.textContent = '— / — pts';
+
+    // Build the pregame panel based on state
+    if (!qualified) {
+        pregame.innerHTML = `
+            <div style="text-align:center; padding:30px 20px;">
+                <div style="font-size:2.5em; margin-bottom:12px; opacity:0.3;">⚡</div>
+                <div style="color:#333; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; margin-bottom:10px;">THE GOD HAS NOT YET NOTICED YOU</div>
+                <div style="color:#2a1a3a; font-size:0.82em; line-height:1.6;">The God's Gauntlet activates at <strong style="color:#444;">1e200 lifetime souls</strong>.<br>Only the mightiest collectors face this trial.</div>
+                <div style="margin-top:16px; background:#0a0812; border:1px solid #1a1030; border-radius:8px; padding:12px;">
+                    <div style="color:#333; font-size:0.75em; margin-bottom:4px;">YOUR LIFETIME SOULS</div>
+                    <div style="color:#555; font-family:monospace; font-size:1em;">${formatNumber(gameState.lifetimeSouls || 0)}</div>
+                </div>
+            </div>`;
+    } else if (isCursed) {
+        const secsLeft = Math.ceil((gg.cursedUntil - now) / 1000);
+        const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
+        const cursedItems = Object.entries(gg.cursedSlots || {});
+        pregame.innerHTML = `
+            <div style="background:linear-gradient(135deg,#1a0008,#2a0018); border:1px solid #aa44ff55; border-top:3px solid #aa44ff; border-radius:12px; padding:24px; text-align:center; margin-bottom:16px;">
+                <div style="font-size:2em; margin-bottom:10px;">🔮</div>
+                <div style="color:#aa44ff; font-family:var(--font-title); font-size:1em; letter-spacing:3px; margin-bottom:8px;">THE CURSE IS UPON YOU</div>
+                <div style="color:#555; font-size:0.82em; margin-bottom:16px;">Your equipped items have been stripped by the Abyss God. They will return when the curse expires.</div>
+                ${cursedItems.length > 0 ? `<div style="background:#0a0508; border-radius:8px; padding:10px; margin-bottom:16px; text-align:left;">
+                    ${cursedItems.map(([slot, id]) => `<div style="color:#666; font-size:0.8em; padding:3px 0; border-bottom:1px solid #1a0a18;"><span style="color:#aa44ff44; text-transform:capitalize;">${slot}:</span> <span style="color:#774466;">${items[id]?.name || id}</span></div>`).join('')}
+                </div>` : ''}
+                <div style="color:#aa44ff; font-family:monospace; font-size:1.4em; margin-bottom:4px;">${m}m ${s}s</div>
+                <div style="color:#333; font-size:0.72em;">until curse lifts</div>
+            </div>`;
+    } else if (isBlessed) {
+        const secsLeft = Math.ceil((gg.divineBuffUntil - now) / 1000);
+        const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
+        pregame.innerHTML = `
+            <div style="background:linear-gradient(135deg,#1a1000,#2a2000); border:1px solid #ffcc0055; border-top:3px solid #ffcc00; border-radius:12px; padding:24px; text-align:center; margin-bottom:16px;">
+                <div style="font-size:2em; margin-bottom:10px;">✨</div>
+                <div style="color:#ffcc00; font-family:var(--font-title); font-size:1em; letter-spacing:3px; margin-bottom:8px;">DIVINE FAVOR ACTIVE</div>
+                <div style="color:#888; font-size:0.82em; margin-bottom:16px;">The God is pleased. Your SPS is doubled and all equipped items are blessed.</div>
+                <div style="color:#ffcc00; font-family:monospace; font-size:1.4em; margin-bottom:4px;">${m}m ${s}s</div>
+                <div style="color:#555; font-size:0.72em;">remaining</div>
+            </div>`;
+    } else if (trialPending) {
+        // Trial has been announced — show accept/flee right on the screen
+        pregame.innerHTML = `
+            <div style="background:linear-gradient(135deg,#1a0005,#2a0010); border:2px solid #ff444466; border-top:3px solid #ff4444; border-radius:12px; padding:28px; text-align:center;">
+                <div style="font-size:2.5em; margin-bottom:12px; animation:runeRotate 3s linear infinite;">⚡</div>
+                <div style="color:#ff4444; font-family:var(--font-title); font-size:1.1em; letter-spacing:3px; margin-bottom:10px;">THE GOD DEMANDS YOUR PRESENCE</div>
+                <div style="color:#888; font-size:0.82em; line-height:1.7; margin-bottom:24px;">A trial has been issued. Defend your altar across 5 waves using your minions.<br><strong style="color:#ffcc00;">Victory:</strong> SPS doubled for 10 min. &nbsp;<strong style="color:#aa44ff;">Defeat:</strong> Items cursed for 30 min.</div>
+                <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                    <button onclick="acceptGgTrial()" style="background:linear-gradient(135deg,#cc1111,#440000); border:2px solid #ff444466; border-radius:10px; padding:14px 32px; color:#ff9988; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:pointer;">⚡ ACCEPT THE TRIAL</button>
+                    <button onclick="fleeGgTrial()" style="background:transparent; border:1px solid #33333366; border-radius:10px; padding:14px 24px; color:#444; font-family:var(--font-title); font-size:0.8em; letter-spacing:1px; cursor:pointer;" title="${mercyReady ? 'Flee without penalty (Mercy available)' : 'Fleeing will curse your items!'}">${mercyReady ? '🕊 Flee (Mercy)' : '💀 Flee (Cursed)'}</button>
+                </div>
+                ${!mercyReady ? '<div style="color:#333; font-size:0.72em; margin-top:10px;">Divine Mercy unavailable — fleeing strips your equipped items.</div>' : ''}
+            </div>`;
+    } else {
+        // Qualified but waiting for cooldown
+        const cooldownH = Math.floor(cooldownLeft / 3600000);
+        const cooldownM = Math.floor((cooldownLeft % 3600000) / 60000);
+        const completedCount = gg.gauntletCount || 0;
+        pregame.innerHTML = `
+            <div style="background:#0a0812; border:1px solid #ff444422; border-radius:12px; padding:24px; text-align:center;">
+                <div style="font-size:2em; margin-bottom:10px; opacity:0.5;">⚡</div>
+                <div style="color:#ff4444; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; margin-bottom:8px;">${cooldownLeft > 0 ? 'THE GOD RESTS' : 'READY FOR TRIAL'}</div>
+                ${cooldownLeft > 0
+                    ? `<div style="color:#555; font-size:0.82em; margin-bottom:12px;">The Abyss God will call upon you again in:</div>
+                       <div style="color:#ff6644; font-family:monospace; font-size:1.3em; margin-bottom:8px;">${cooldownH}h ${cooldownM}m</div>`
+                    : `<div style="color:#555; font-size:0.82em; margin-bottom:12px;">The God may call at any moment. Stay active — the trial fires while the tab is open.</div>`
+                }
+                ${completedCount > 0 ? `<div style="color:#333; font-size:0.75em; margin-top:8px;">Trials survived: <span style="color:#ff6644;">${completedCount}</span></div>` : ''}
+            </div>`;
+    }
+}
+
 function checkGodsGauntletTrigger() {
     if (!gameState.godsGauntlet) return;
     const gg = gameState.godsGauntlet;
@@ -15578,8 +15700,8 @@ function checkGodsGauntletTrigger() {
     }
 
     // Update gauntlet screen timers if open
-    if (document.getElementById('godsgauntlet-screen')?.classList.contains('active')) {
-        renderGgStatusBar();
+    if (document.getElementById('godsgauntlet-screen')?.classList.contains('active') && !ggState.active) {
+        renderGgScreenState();
     }
 
     // Fire the announcement if threshold just crossed and cooldown passed
@@ -15641,7 +15763,10 @@ function showGgAnnouncement() {
 window.acceptGgTrial = function() {
     const el = document.getElementById('gg-announcement-overlay');
     if (el) el.style.display = 'none';
-    showScreen('godsgauntlet');
+    // Navigate to screen if not already there
+    if (!document.getElementById('godsgauntlet-screen')?.classList.contains('active')) {
+        showScreen('godsgauntlet');
+    }
     initGgGame();
 };
 
@@ -22916,6 +23041,7 @@ const _origShowScreen = showScreen;
 showScreen = function(screenId) {
     _origShowScreen(screenId);
     if (screenId === 'settings') renderKeyInSettings();
+    if (screenId === 'godsgauntlet') renderGgScreenState();
 };
 </script>
 

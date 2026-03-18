@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Soul Collector - Abyssal Ascension</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -2214,6 +2216,57 @@ text-decoration: underline; /* Adds an underline on hover */
         --font-size-xxl: 1.6rem;
     }
 
+    /* ── iOS zoom fix — inputs must be 16px+ to prevent auto-zoom ── */
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+
+    /* ── INTRO FIXES ── */
+    #intro-title-top {
+        font-size: clamp(1.4rem, 8vw, 2.8rem) !important;
+        letter-spacing: 3px !important;
+        white-space: normal !important;
+        text-align: center !important;
+        padding: 0 12px !important;
+    }
+    #intro-subtitle {
+        font-size: clamp(0.7rem, 4vw, 1.2rem) !important;
+        letter-spacing: 4px !important;
+        text-align: center !important;
+        padding: 0 16px !important;
+    }
+    #intro-credits { bottom: 12vh; }
+    #intro-credits .credits-names { gap: 12px; }
+    #intro-enter { font-size: 0.72rem; letter-spacing: 2px; }
+
+    /* ── STICKY NAV — stays at top, content scrolls under it ── */
+    #game-container {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh; /* dynamic viewport height - handles mobile browser chrome */
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        top: 0;
+        left: 0;
+    }
+    nav {
+        flex-shrink: 0;
+        position: relative;
+        z-index: 100;
+    }
+    #player-stats-container {
+        flex-shrink: 0;
+        position: relative;
+        z-index: 99;
+    }
+    main {
+        flex: 1;
+        overflow-y: scroll;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
     /* Game container — full width, no margin */
     #game-container { margin: 0; border-left: none; border-right: none; min-height: 100vh; }
 
@@ -2912,6 +2965,7 @@ text-decoration: underline; /* Adds an underline on hover */
                                              👑 Floor Boss &nbsp;🚪 Exit to next floor
                                          </div>
                                      </div>
+                                     <button id="raid-enter-btn" onclick="startSoulRaid()" disabled style="background:linear-gradient(135deg,#cc3311,#440000); border:2px solid #ff664466; border-radius:10px; padding:14px 40px; color:#ff9988; font-family:var(--font-title); font-size:0.95em; letter-spacing:2px; cursor:pointer; opacity:0.5; margin-top:8px;">⚔ ENTER THE DUNGEON</button>
                                 </div>
                                 <div id="raid-active" style="display:none;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">

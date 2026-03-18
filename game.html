@@ -8633,22 +8633,48 @@ function activateRitual(id) {
     console.log("TEST: The activateRitual function was called for:", id); // You can delete this line later if you want
     
     const ritualData = rituals[id];
-    const ritualState = gameState.activeRituals[id]; // Get the state of the current ritual
+    const ritualState = gameState.activeRituals[id];
 
-    // --- THIS IS THE BUG FIX ---
-    // The old code checked for ANY active ritual. This new code checks if THIS SPECIFIC ritual is on cooldown.
     if (ritualState && Date.now() < ritualState.cooldownEndTime) {
         console.log("Ritual stopped: Still on cooldown.");
-        return; // Stop if THIS ritual is on cooldown
+        return;
     }
     if (D(gameState.souls).lt(D(ritualData.cost))) {
         console.log("Ritual stopped: Not enough souls.");
-        return; // Stop if you cannot afford it
+        return;
+    }
+
+    // ── Fragment surcharge — scales by ritual power tier ──────────
+    const RITUAL_FRAG_COSTS = {
+        // Early game — no fragment cost
+        blood_frenzy: 0, demonic_horde: 0, soul_sear: 0, essence_theft: 0,
+        unholy_power: 0, devils_bargain: 0,
+        // Mid game — small cost
+        glacial_freeze: 5, divine_curse: 10, void_rupture: 15,
+        entropic_cascade: 20, ascendants_echo: 25,
+        // Late game — meaningful cost
+        reality_fracture: 30, void_resonance: 30, singularity_pulse: 35,
+        horizon_collapse: 40, event_loop: 30, temporal_rift: 50,
+        genesis_surge: 50, primal_harvest: 40, first_breath: 60,
+        // Endgame — serious cost
+        godfire: 75, ash_resurrection: 60, divine_mandate: 100,
+        time_shatter: 80, chronos_debt: 70, age_of_ruin: 100,
+        omega_convergence: 90, final_theorem: 120, point_of_no_return: 100,
+        // True endgame — heavy cost
+        infinite_hunger: 150, beyond_everything: 200, the_last_ritual: 250,
+    };
+    const fragCost = RITUAL_FRAG_COSTS[id] || 0;
+    if (fragCost > 0 && D(gameState.corruptedFragments || 0).lt(fragCost)) {
+        Toastify({ text: `🔮 ${ritualData.name} requires ${fragCost} Corrupted Fragments.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#1a001a,#440044)' } }).showToast();
+        return;
     }
 
     // --- All checks passed, let's activate it! ---
     gameState.souls = D(gameState.souls).sub(D(ritualData.cost));
     gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(ritualData.cost));
+    if (fragCost > 0) {
+        gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(fragCost);
+    }
     gameState.ritualsPerformed++;
 
     const effect = ritualData.effect;
@@ -12111,13 +12137,16 @@ function renderRituals() {
         const r = rituals[id];
         const ritualState = gameState.activeRituals[id];
         const isOnCooldown = ritualState && Date.now() < ritualState.cooldownEndTime;
-        const cannotAfford = D(gameState.souls).lt(D(r.cost))
+        const cannotAfford = D(gameState.souls).lt(D(r.cost));
+        const RITUAL_FRAG_COSTS = { glacial_freeze:5, divine_curse:10, void_rupture:15, entropic_cascade:20, ascendants_echo:25, reality_fracture:30, void_resonance:30, singularity_pulse:35, horizon_collapse:40, event_loop:30, temporal_rift:50, genesis_surge:50, primal_harvest:40, first_breath:60, godfire:75, ash_resurrection:60, divine_mandate:100, time_shatter:80, chronos_debt:70, age_of_ruin:100, omega_convergence:90, final_theorem:120, point_of_no_return:100, infinite_hunger:150, beyond_everything:200, the_last_ritual:250 };
+        const fragCost = RITUAL_FRAG_COSTS[id] || 0;
+        const cannotAffordFrags = fragCost > 0 && D(gameState.corruptedFragments || 0).lt(fragCost);
         const meta = ritualMeta[id] || { icon:'🔮', color:'#8855ff', glow:'#8855ff44' };
         const effectLabel = effectLabels[r.effect?.type] || '✨ Special';
 
         let cooldownBar = '';
         let statusText = '';
-        let btnDisabled = cannotAfford ? 'disabled' : '';
+        let btnDisabled = (cannotAfford || cannotAffordFrags) ? 'disabled' : '';
 
         if (isOnCooldown) {
             const timeLeft = Math.ceil((ritualState.cooldownEndTime - Date.now()) / 1000);
@@ -12150,12 +12179,12 @@ function renderRituals() {
                     🕐 Cooldown: ${r.cooldown >= 3600 ? (r.cooldown/3600)+'h' : r.cooldown >= 60 ? (r.cooldown/60)+'m' : r.cooldown+'s'}
                 </div>
                 <div style="font-size:0.88em; color:${cannotAfford && !isOnCooldown ? '#ff4444' : '#e8c46a'}; font-weight:bold;">
-                    Cost: ${formatNumber(r.cost)} souls
+                    Cost: ${formatNumber(r.cost)} souls${fragCost > 0 ? ` <span style="color:${cannotAffordFrags ? '#ff4444' : '#aa44ff'};">+ ${fragCost} 🔮</span>` : ''}
                 </div>
             </div>
             <button id="ritual-btn-${id}" class="upgrade-btn" onclick="activateRitual('${id}')" ${btnDisabled}
-                style="margin-top:8px; width:100%; border-color:${meta.color}88; ${isOnCooldown ? 'opacity:0.5;' : cannotAfford ? 'opacity:0.6;' : `background:linear-gradient(135deg,${meta.color}22,transparent);`}">
-                ${isOnCooldown ? statusText : cannotAfford ? '<span style="color:#666;">⚠️ Insufficient Souls</span>' : `<span style="color:${meta.color};">✦ Perform Ritual</span>`}
+                style="margin-top:8px; width:100%; border-color:${meta.color}88; ${isOnCooldown ? 'opacity:0.5;' : (cannotAfford || cannotAffordFrags) ? 'opacity:0.6;' : `background:linear-gradient(135deg,${meta.color}22,transparent);`}">
+                ${isOnCooldown ? statusText : cannotAffordFrags ? `<span style="color:#666;">⚠️ Need ${fragCost} 🔮 Fragments</span>` : cannotAfford ? '<span style="color:#666;">⚠️ Insufficient Souls</span>' : `<span style="color:${meta.color};">✦ Perform Ritual</span>`}
             </button>
         </div>`;
         grid.innerHTML += card;

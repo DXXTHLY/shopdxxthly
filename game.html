@@ -3856,7 +3856,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     <span id="bestiary-progress-text" style="color:#cc4488; font-size:0.82em; font-weight:bold; font-family:monospace; white-space:nowrap;">0 / 0</span>
                 </div>
 
-                <div id="bestiary-grid" style="max-width:900px; margin:0 auto;">
+                <div id="bestiary-grid" style="max-width:900px; margin:0 auto; padding-bottom:60px;">
                 </div>
             </div>
 
@@ -9945,7 +9945,19 @@ function renderBestiary() {
     if (fill) fill.style.width = Math.round(unlocked/total*100) + '%';
     if (txt)  txt.textContent = `${unlocked} / ${total}`;
 
-    for (const worldId in byWorld) {
+    // Render worlds in logical progression order
+    const worldOrder = [
+        'nether_plains','ashen_wastes','stygian_depths','burning_hells','frozen_abyss',
+        'celestial_ruins','void_threshold','singularity','event_horizon','genesis',
+        'pantheon_of_ashes','chronos_fault','omega_point','true_infinity',
+        'akashic_records','plane_of_ideas','the_white_room','nexus_of_all_realities',
+        'the_dreaming_dark','shattered_omniverse','the_primordial_wound'
+    ];
+    // Also catch any world not in the ordered list
+    const allWorldKeys = [...new Set([...worldOrder, ...Object.keys(byWorld)])];
+
+    for (const worldId of allWorldKeys) {
+        if (!byWorld[worldId]) continue;
         const theme = worldThemes[worldId] || { label: worldId, color:'#888', icon:'🌐' };
         const ids = byWorld[worldId];
         const worldUnlocked = ids.filter(id => gameState.minions[id]?.level > 0).length;
@@ -9970,9 +9982,13 @@ function renderBestiary() {
             const m = minions[id];
             const pm = gameState.minions[id];
             const isUnlocked = pm && pm.level > 0;
-            const currentTier = isUnlocked ? Math.floor(pm.level / 25) : 0;
-            const nextTierLevel = (currentTier) * 25 + 25;
-            const progressPct = isUnlocked ? Math.min(100, (pm.level % 25) / 25 * 100) : 0;
+            const tierLevels = m.researchTiers?.map(t => t.level) || [5, 15, 30];
+            const currentTier = isUnlocked ? tierLevels.filter(lv => pm.level >= lv).length : 0;
+            const nextTierLevel = tierLevels[currentTier] || tierLevels[tierLevels.length - 1];
+            const prevTierLevel = currentTier > 0 ? tierLevels[currentTier - 1] : 0;
+            const progressPct = isUnlocked && currentTier < tierLevels.length
+                ? Math.min(100, (pm.level - prevTierLevel) / (nextTierLevel - prevTierLevel) * 100)
+                : 100;
             const maxTier = m.researchTiers?.length || 3;
             const tc = theme.color;
 
@@ -9995,7 +10011,7 @@ function renderBestiary() {
                 const researchRows = m.researchTiers?.map((t, i) => {
                     const done = i < currentTier;
                     return `<div style="display:flex; align-items:flex-start; gap:8px; padding:5px 0; border-bottom:1px solid #0d0a18; opacity:${done ? 1 : 0.4};">
-                        <span style="color:${done ? tc : '#333'}; font-size:0.8em; flex-shrink:0;">◈ Lv${(i+1)*25}</span>
+                        <span style="color:${done ? tc : '#333'}; font-size:0.8em; flex-shrink:0;">◈ Lv${t.level || [5,15,30][i] || (i+1)*25}</span>
                         <span style="color:${done ? '#aaa' : '#444'}; font-size:0.75em; line-height:1.3;">${t.desc}</span>
                         ${done ? `<span style="color:${tc}; font-size:0.7em; flex-shrink:0; margin-left:auto;">✔</span>` : ''}
                     </div>`;

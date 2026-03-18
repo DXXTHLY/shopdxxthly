@@ -15533,7 +15533,7 @@ const breachMinionAbilities = {
 // =================================================================
 
 const GG_THRESHOLD    = '1e200'; // lifetime souls required
-const GG_COOLDOWN_MS  = 5 * 60 * 1000;    // 5 MINUTES — testing mode (change back to 6 * 60 * 60 * 1000 for live)
+const GG_COOLDOWN_MS  = (3 + Math.random() * 3) * 60 * 60 * 1000; // random 3–6 hours
 const GG_CURSE_MS     = 30 * 60 * 1000;   // 30 min curse on failure
 const GG_BUFF_MS      = 10 * 60 * 1000;   // 10 min divine favor on win
 const GG_MERCY_CD_MS  = 24 * 60 * 60 * 1000; // 24h mercy cooldown
@@ -15945,51 +15945,89 @@ function renderGgMinionPalette() {
 function renderGgGrid() {
     const grid = document.getElementById('gg-grid');
     if (!grid) return;
-    grid.innerHTML = '';
     const hasSelected = !!ggState.selectedMinionId;
 
+    // Build grid cells on first render only — update in-place after that
+    if (grid.children.length !== GG_ROWS * GG_COLS) {
+        grid.innerHTML = '';
+        grid.style.cssText = `display:grid;grid-template-columns:repeat(${GG_COLS},1fr);grid-template-rows:repeat(${GG_ROWS},1fr);width:100%;aspect-ratio:${GG_COLS}/${GG_ROWS};`;
+        for (let row = 0; row < GG_ROWS; row++) {
+            for (let col = 0; col < GG_COLS; col++) {
+                const cell = document.createElement('div');
+                cell.dataset.col = col;
+                cell.dataset.row = row;
+                cell.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:clamp(10px,2vw,20px);border:1px solid #0d0920;position:relative;transition:background 0.15s;overflow:hidden;';
+                grid.appendChild(cell);
+            }
+        }
+    }
+
+    // Update each cell in-place
+    const cells = grid.children;
+    let i = 0;
     for (let row = 0; row < GG_ROWS; row++) {
         for (let col = 0; col < GG_COLS; col++) {
-            const cell = document.createElement('div');
-            const isAltarCol   = col === GG_ALTAR_COL;
-            const isSpawnCol   = col === 0;
-            const isPlaceable  = !isAltarCol && !isSpawnCol;
-            const placedMinion = ggState.placedMinions.find(m => m.x === col && m.y === row);
-            const enemy        = ggState.enemies.find(e => Math.round(e.x) === col && e.y === row && !e.dead);
+            const cell = cells[i++];
+            const isAltarCol  = col === GG_ALTAR_COL;
+            const isSpawnCol  = col === 0;
+            const isPlaceable = !isAltarCol && !isSpawnCol;
+            const pm  = ggState.placedMinions.find(m => m.x === col && m.y === row);
+            const enemy = ggState.enemies.find(e => Math.round(e.x) === col && e.y === row && !e.dead);
 
-            // Background: altar = orange tint, spawn = red tint, placeable zone = subtle green tint when minion selected
-            let bg = 'transparent';
-            if (isAltarCol)  bg = 'rgba(255,100,50,0.10)';
-            else if (isSpawnCol) bg = 'rgba(150,0,0,0.10)';
-            else if (isPlaceable && hasSelected && !placedMinion && !enemy) bg = 'rgba(68,204,136,0.06)';
+            // Determine content key to avoid unnecessary DOM updates
+            const contentKey = pm ? `pm:${pm.minionId}:${Math.floor(pm.hp)}` 
+                              : enemy ? `en:${enemy.id}:${Math.floor(enemy.hp)}`
+                              : isAltarCol && row === 2 ? 'altar'
+                              : 'empty';
 
-            // Border: highlight placeable cells with a faint green border when a minion is selected
-            let border = '1px solid #0d0920';
-            if (isPlaceable && hasSelected && !placedMinion && !enemy) border = '1px solid rgba(68,204,136,0.25)';
+            if (cell.dataset.contentKey !== contentKey) {
+                cell.dataset.contentKey = contentKey;
 
-            cell.style.cssText = `aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:clamp(10px,2vw,18px);cursor:${isPlaceable && hasSelected ? 'pointer' : 'default'};border:${border};position:relative;background:${bg};transition:background 0.15s;`;
-
-            if (isAltarCol) {
-                cell.innerHTML = row === 2 ? `<span title="Your Altar">🏛️</span>` : '';
-            } else if (placedMinion) {
-                const hpPct = Math.max(0, placedMinion.hp / placedMinion.maxHp * 100);
-                const hpColor = hpPct > 60 ? '#44cc88' : hpPct > 30 ? '#ffaa00' : '#cc3333';
-                cell.style.background = 'rgba(68,204,136,0.08)';
-                cell.style.border = '1px solid rgba(68,204,136,0.3)';
-                cell.innerHTML = `<span style="position:relative;display:inline-block;">${battleMinions[placedMinion.minionId]?.icon || '👿'}<div style="position:absolute;bottom:-5px;left:0;right:0;height:3px;background:#1a1030;border-radius:2px;"><div style="height:100%;width:${hpPct}%;background:${hpColor};border-radius:2px;transition:width 0.2s;"></div></div></span>`;
-                cell.title = `${battleMinions[placedMinion.minionId]?.name} (${placedMinion.hp}/${placedMinion.maxHp} hp) — click to remove`;
-                cell.onclick = () => removeGgMinion(placedMinion.id); // can remove anytime
-            } else if (enemy) {
-                const hpPct = Math.max(0, enemy.hp / enemy.maxHp * 100);
-                cell.innerHTML = `<span style="position:relative;display:inline-block;">${battleMinions[enemy.minionId]?.icon || '👹'}<div style="position:absolute;bottom:-5px;left:0;right:0;height:3px;background:#1a1030;border-radius:2px;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:2px;transition:width 0.2s;"></div></div></span>`;
-            } else if (isPlaceable) {
-                if (hasSelected) {
-                    cell.onmouseenter = () => { cell.style.background = 'rgba(68,204,136,0.18)'; cell.style.borderColor = 'rgba(68,204,136,0.6)'; };
-                    cell.onmouseleave = () => { cell.style.background = 'rgba(68,204,136,0.06)'; cell.style.borderColor = 'rgba(68,204,136,0.25)'; };
+                if (isAltarCol) {
+                    cell.innerHTML = row === 2 ? `<span title="Your Altar">🏛️</span>` : '';
+                    cell.style.background = 'rgba(255,100,50,0.10)';
+                    cell.style.border = '1px solid #0d0920';
+                    cell.onclick = null;
+                } else if (pm) {
+                    const hpPct = Math.max(0, pm.hp / pm.maxHp * 100);
+                    const hpColor = hpPct > 60 ? '#44cc88' : hpPct > 30 ? '#ffaa00' : '#cc3333';
+                    cell.innerHTML = `<span style="position:relative;display:inline-block;">${battleMinions[pm.minionId]?.icon || '👿'}<div style="position:absolute;bottom:-5px;left:0;right:0;height:3px;background:#1a1030;border-radius:2px;"><div style="height:100%;width:${hpPct}%;background:${hpColor};border-radius:2px;"></div></div></span>`;
+                    cell.title = `${battleMinions[pm.minionId]?.name} (${Math.floor(pm.hp)}/${pm.maxHp}hp) — click to remove`;
+                    cell.style.background = 'rgba(68,204,136,0.08)';
+                    cell.style.border = '1px solid rgba(68,204,136,0.3)';
+                    cell.style.cursor = 'pointer';
+                    cell.onclick = () => removeGgMinion(pm.id);
+                    cell.onmouseenter = null; cell.onmouseleave = null;
+                } else if (enemy) {
+                    const hpPct = Math.max(0, enemy.hp / enemy.maxHp * 100);
+                    cell.innerHTML = `<span style="position:relative;display:inline-block;">${battleMinions[enemy.minionId]?.icon || '👹'}<div style="position:absolute;bottom:-5px;left:0;right:0;height:3px;background:#1a1030;border-radius:2px;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:2px;"></div></div></span>`;
+                    cell.style.background = 'rgba(150,0,0,0.08)';
+                    cell.style.border = '1px solid #0d0920';
+                    cell.style.cursor = 'default';
+                    cell.onclick = null;
+                    cell.onmouseenter = null; cell.onmouseleave = null;
+                } else if (isSpawnCol) {
+                    cell.innerHTML = '';
+                    cell.style.background = 'rgba(150,0,0,0.10)';
+                    cell.style.border = '1px solid #0d0920';
+                    cell.style.cursor = 'default';
+                    cell.onclick = null;
+                    cell.onmouseenter = null; cell.onmouseleave = null;
+                } else {
+                    // Placeable empty cell
+                    cell.innerHTML = '';
+                    cell.style.background = hasSelected ? 'rgba(68,204,136,0.06)' : 'transparent';
+                    cell.style.border = hasSelected ? '1px solid rgba(68,204,136,0.25)' : '1px solid #0d0920';
+                    cell.style.cursor = hasSelected ? 'pointer' : 'default';
+                    cell.onclick = () => placeGgMinion(col, row);
+                    if (hasSelected) {
+                        cell.onmouseenter = () => { cell.style.background = 'rgba(68,204,136,0.18)'; cell.style.borderColor = 'rgba(68,204,136,0.55)'; };
+                        cell.onmouseleave = () => { cell.style.background = 'rgba(68,204,136,0.06)'; cell.style.borderColor = 'rgba(68,204,136,0.25)'; };
+                    } else {
+                        cell.onmouseenter = null; cell.onmouseleave = null;
+                    }
                 }
-                cell.onclick = () => placeGgMinion(col, row);
             }
-            grid.appendChild(cell);
         }
     }
     renderGgHud();
@@ -16063,7 +16101,7 @@ window.ggStartWave = function() {
     if (queueEl) queueEl.textContent = `Incoming: ${wave.enemies.map(id => battleMinions[id]?.icon || '👹').join(' ')}`;
 
     if (ggState.intervalId) clearInterval(ggState.intervalId);
-    ggState.intervalId = setInterval(ggTick, 200); // 200ms tick = snappier combat
+    ggState.intervalId = setInterval(ggTick, 300);
 };
 
 window.ggMercy = function() {

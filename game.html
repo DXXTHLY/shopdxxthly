@@ -16019,6 +16019,8 @@ window.startSoulRaid = function() {
     raidState._defending = false;
     raidState._abilityCooldown = 0;
     raidState._tauntTurns = 0;
+    raidState._momentum = 3;
+    raidState._armorStack = 0;
 
     const { grid, enemies } = generateRaidGrid(1);
     raidState.grid    = grid;
@@ -16104,56 +16106,71 @@ function renderRaidDungeon() {
         const fBm = frontliner ? battleMinions[frontliner.minionId] : null;
         const role = fBm ? (fBm.atk > fBm.hp * 0.12 ? 'striker' : fBm.hp > fBm.atk * 10 ? 'tank' : 'duelist') : 'duelist';
         const roleLabel = { striker:'⚔ Striker', tank:'🪨 Tank', duelist:'🌀 Duelist' }[role];
-        const roleDesc  = { striker:'Bonus dmg · AoE ability', tank:'Dmg reduction · heal+taunt', duelist:'Counter · dodge+2× strike' }[role];
         const abCd = raidState._abilityCooldown||0;
         const hasPotion = Object.values(gameState.potions||{}).some(c=>c>0);
         const canSwap = aliveParty.length > 1;
-        const abilityName = { striker:'Rush — hit all', tank:'Iron Wall', duelist:'Feint+dodge' }[role];
-        const partyQueue = raidState.party.map((p,idx)=>{
+        const mom = raidState._momentum !== undefined ? raidState._momentum : 3;
+        const momLabel = mom <= 1 ? '⚠ ENEMY PRESSURE' : mom >= 5 ? '✨ YOUR MOMENTUM' : '⚖ NEUTRAL';
+        const momColor = mom <= 1 ? '#ff4444' : mom >= 5 ? '#44cc88' : '#c8a800';
+        const momBarLeft  = Math.round((mom/6)*100); // player momentum fills left to right
+        const abilityName = { striker:'Berserker Rush — AoE + Burn', tank:'Iron Wall — heal+armor+taunt', duelist:'Feint — dodge+2.5× counter' }[role];
+
+        // Party queue
+        const partyQueue = raidState.party.map((p,idx) => {
             const pb = battleMinions[p.minionId];
             const pct = Math.max(0, p.hp/p.maxHp*100);
             const col = p.hp<=0 ? '#333' : pct>60 ? '#44cc88' : pct>30 ? '#ffaa00' : '#cc3333';
             const isActive = idx === raidState.party.findIndex(x=>x.hp>0);
-            const border = isActive ? '#ff664466' : '#1a1030';
-            const bg = isActive ? 'rgba(255,102,68,0.1)' : 'transparent';
-            const op = p.hp<=0 ? 'opacity:0.3;' : '';
-            return `<div style="text-align:center;padding:4px 8px;background:${bg};border:1px solid ${border};border-radius:6px;min-width:52px;"><div style="font-size:1.1em;${op}">${pb?.icon||'👿'}</div><div style="background:#1a1030;border-radius:2px;height:3px;margin:2px 0;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};border-radius:2px;"></div></div><div style="color:${col};font-size:.55em;">${p.hp<=0?'💀':p.hp+'/'+p.maxHp}</div></div>`;
+            return `<div style="text-align:center;padding:4px 8px;background:${isActive?'rgba(255,102,68,0.1)':'transparent'};border:1px solid ${isActive?'#ff664466':'#1a1030'};border-radius:6px;min-width:52px;">
+                <div style="font-size:1.1em;${p.hp<=0?'opacity:0.3':''}">${pb?.icon||'👿'}</div>
+                <div style="background:#1a1030;border-radius:2px;height:3px;margin:2px 0;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};"></div></div>
+                <div style="color:${col};font-size:.55em;">${p.hp<=0?'💀':p.hp+'/'+p.maxHp}</div>
+            </div>`;
         }).join('');
-        const abilityBg    = abCd > 0 ? '#22220a' : '#ffaa4422';
-        const abilityBdr   = abCd > 0 ? '#333' : '#ffaa4466';
-        const abilityCol   = abCd > 0 ? '#444' : '#ffaa44';
-        const abilityCur   = abCd > 0 ? 'default' : 'pointer';
-        const abilityDescC = abCd > 0 ? '#333' : '#886622';
-        const swapBg  = canSwap ? '#44cc8811' : 'transparent';
+
+        const abilityBdr = abCd > 0 ? '#333' : '#ffaa4466';
+        const abilityCol = abCd > 0 ? '#444' : '#ffaa44';
+        const abilityCur = abCd > 0 ? 'default' : 'pointer';
+        const abilityLabel = abCd > 0 ? `✨ ABILITY (${abCd})` : '✨ ABILITY';
         const swapBdr = canSwap ? '#44cc8844' : '#1a1a1a';
         const swapCol = canSwap ? '#44cc88' : '#333';
         const swapCur = canSwap ? 'pointer' : 'default';
-        const swapDc  = canSwap ? '#226644' : '#222';
-        const abilityLabel = abCd > 0 ? `✨ ABILITY (${abCd})` : '✨ ABILITY';
+
         html += `
         <div style="margin-top:12px;background:#0a0812;border:1px solid #ff444433;border-top:2px solid #ff4444;border-radius:10px;padding:14px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
                 <div style="color:#ff4444;font-family:var(--font-title);font-size:.8em;letter-spacing:2px;">⚔ ${e.name||battleMinions[e.minionId]?.name||'Enemy'}${e.isBoss?' 👑':''}</div>
                 <div style="display:flex;gap:6px;">${partyQueue}</div>
             </div>
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
                 <span style="font-size:2em;">${battleMinions[e.minionId]?.icon||'👹'}</span>
                 <div style="flex:1;">
                     <div style="background:#1a1030;border-radius:4px;height:8px;overflow:hidden;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:4px;transition:width .3s;"></div></div>
-                    <div style="color:#cc3333;font-size:.72em;margin-top:3px;">${e.hp} / ${e.maxHp} HP</div>
+                    <div style="color:#cc3333;font-size:.7em;margin-top:2px;">${e.hp} / ${e.maxHp} HP${e._burning?` 🔥×${e._burning}`:''}${e._weakened?` 💢weakened`:''}${e.isBoss?' 👑 BOSS':''}</div>
                 </div>
-                ${frontliner ? `<div style="background:#ffffff08;border:1px solid #ffffff11;border-radius:8px;padding:6px 10px;text-align:center;min-width:90px;"><div style="color:#ffaa44;font-size:.65em;font-weight:bold;">${roleLabel}</div><div style="color:#555;font-size:.58em;margin-top:2px;line-height:1.3;">${roleDesc}</div></div>` : ''}
+                ${frontliner ? `<div style="background:#ffffff08;border:1px solid #ffffff11;border-radius:8px;padding:5px 10px;text-align:center;min-width:80px;"><div style="color:#ffaa44;font-size:.65em;font-weight:bold;">${roleLabel}</div></div>` : ''}
+            </div>
+            <div style="margin-bottom:10px;background:#0d0a18;border-radius:6px;padding:6px 10px;">
+                <div style="display:flex;justify-content:space-between;font-size:.62em;margin-bottom:3px;">
+                    <span style="color:#666;">ENEMY PRESSURE</span>
+                    <span style="color:${momColor};font-weight:bold;">${momLabel}</span>
+                    <span style="color:#666;">YOUR MOMENTUM</span>
+                </div>
+                <div style="background:#1a1030;border-radius:3px;height:6px;overflow:hidden;position:relative;">
+                    <div style="position:absolute;height:100%;width:${momBarLeft}%;background:linear-gradient(90deg,#cc3333,${momColor});border-radius:3px;transition:width .4s;"></div>
+                    <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:#333;"></div>
+                </div>
+                <div style="color:#555;font-size:.6em;margin-top:3px;">DEFEND builds momentum · attack at high momentum = +30% dmg · enemy hits +50% harder at low momentum</div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <button onclick="raidCombatAction(&quot;attack&quot;)" style="background:linear-gradient(135deg,#cc111122,transparent);border:1px solid #ff444466;border-radius:8px;padding:10px 6px;color:#ff8866;font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:pointer;">⚔ ATTACK</button>
-                <button onclick="raidCombatAction(&quot;defend&quot;)" style="background:linear-gradient(135deg,#4488ff11,transparent);border:1px solid #4488ff44;border-radius:8px;padding:10px 6px;color:#88aaff;font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:pointer;">🛡 DEFEND<div style="font-size:.62em;color:#4466aa;margin-top:1px;">−60% dmg taken</div></button>
-                <button onclick="raidCombatAction(&quot;ability&quot;)" style="background:linear-gradient(135deg,${abilityBg},transparent);border:1px solid ${abilityBdr};border-radius:8px;padding:10px 6px;color:${abilityCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${abilityCur};">${abilityLabel}<div style="font-size:.6em;color:${abilityDescC};margin-top:1px;">${abilityName}</div></button>
-                <button onclick="raidCombatAction(&quot;swap&quot;)" style="background:linear-gradient(135deg,${swapBg},transparent);border:1px solid ${swapBdr};border-radius:8px;padding:10px 6px;color:${swapCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${swapCur};">🔄 SWAP<div style="font-size:.6em;color:${swapDc};margin-top:1px;">enemy free hit</div></button>
+                <button onclick="raidCombatAction(&quot;attack&quot;)" style="background:linear-gradient(135deg,#cc111122,transparent);border:1px solid #ff444466;border-radius:8px;padding:10px 6px;color:#ff8866;font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:pointer;">⚔ ATTACK<div style="font-size:.62em;color:#884422;margin-top:2px;">${mom>=5?'+30% dmg':mom<=1?'−30% dmg (low mom)':'standard dmg'}</div></button>
+                <button onclick="raidCombatAction(&quot;defend&quot;)" style="background:linear-gradient(135deg,#4488ff11,transparent);border:1px solid #4488ff44;border-radius:8px;padding:10px 6px;color:#88aaff;font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:pointer;">🛡 DEFEND<div style="font-size:.62em;color:#4466aa;margin-top:2px;">40% stagger · +2 momentum · −65% dmg</div></button>
+                <button onclick="raidCombatAction(&quot;ability&quot;)" style="background:linear-gradient(135deg,${abCd>0?'#22220a':'#ffaa4422'},transparent);border:1px solid ${abilityBdr};border-radius:8px;padding:10px 6px;color:${abilityCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${abilityCur};">${abilityLabel}<div style="font-size:.58em;color:${abCd>0?'#333':'#886622'};margin-top:2px;">${abilityName}</div></button>
+                <button onclick="raidCombatAction(&quot;swap&quot;)" style="background:linear-gradient(135deg,${canSwap?'#44cc8811':'transparent'},transparent);border:1px solid ${swapBdr};border-radius:8px;padding:10px 6px;color:${swapCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${swapCur};">🔄 SWAP<div style="font-size:.62em;color:${canSwap?'#226644':'#222'};margin-top:2px;">${canSwap?'change frontliner (enemy free hit)':'no reserves'}</div></button>
             </div>
-            ${hasPotion ? `<button onclick="raidCombatAction(&quot;potion&quot;)" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#44cc8811,transparent);border:1px solid #44cc8844;border-radius:8px;padding:8px;color:#88ffaa;font-family:var(--font-title);font-size:.7em;letter-spacing:1px;cursor:pointer;">⚗ USE POTION — heal party</button>` : ''}
+            ${hasPotion ? `<button onclick="raidCombatAction(&quot;potion&quot;)" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#44cc8811,transparent);border:1px solid #44cc8844;border-radius:8px;padding:8px;color:#88ffaa;font-family:var(--font-title);font-size:.7em;cursor:pointer;">⚗ USE POTION — restore party HP</button>` : ''}
         </div>`;
     }
-
     roomEl.innerHTML = html;
 }
 
@@ -16273,84 +16290,118 @@ window.raidCombatAction = function(action) {
     const aliveParty = raidState.party.filter(p=>p.hp>0);
     if (!aliveParty.length) return;
 
-    // Frontliner = first alive minion — others are in reserve
     const frontliner = aliveParty[0];
     const bm = battleMinions[frontliner.minionId];
+    const ebm = battleMinions[enemy.minionId];
 
-    // Each minion has a unique role based on their stats
-    // High ATK relative to HP = Striker (bonus dmg), high HP relative to ATK = Tank (damage reduction),
-    // balanced = Duelist (counter-attack chance)
+    // Role = stat-based archetype
     const role = bm ? (bm.atk > bm.hp * 0.12 ? 'striker' : bm.hp > bm.atk * 10 ? 'tank' : 'duelist') : 'duelist';
 
-    let playerDmg = 0;
-    let enemyDmg  = 0;
-    let logLines  = [];
-    let skipEnemyTurn = false;
+    // ── Momentum system ──────────────────────────────────────────
+    // 0–2 = enemy has momentum (attacks harder), 3 = neutral, 4–6 = you have momentum (bonuses)
+    // Attacking builds momentum. Defending shifts it toward you.
+    // At enemy momentum the enemy hits MUCH harder — making defend genuinely important.
+    if (!raidState._momentum) raidState._momentum = 3;
+    const mom = raidState._momentum;
 
+    let logLines = [];
+    let skipEnemyTurn = false;
+    let enemyMomShift = 0; // how much to shift momentum toward player this turn
+
+    // ── Player action ────────────────────────────────────────────
     if (action === 'attack') {
-        // Base damage from frontliner
-        playerDmg = frontliner.atk;
-        // Strikers deal +35% on attack
-        if (role === 'striker') { playerDmg = Math.ceil(playerDmg * 1.35); logLines.push(`💥 Striker bonus!`); }
-        // Duelists have 25% chance to attack twice
-        if (role === 'duelist' && Math.random() < 0.25) { playerDmg *= 2; logLines.push(`⚡ Double strike!`); }
-        enemy.hp = Math.max(0, enemy.hp - playerDmg);
-        logLines.push(`${bm?.icon||'👿'} <b>${bm?.name||'Minion'}</b> attacks for <b>${playerDmg}</b> dmg!`);
+        let dmg = frontliner.atk;
+
+        // Momentum bonus/penalty on attack
+        if (mom >= 5) { dmg = Math.ceil(dmg * 1.3); logLines.push(`⚡ <b>High momentum</b> — +30% dmg!`); }
+        else if (mom <= 1) { dmg = Math.ceil(dmg * 0.7); logLines.push(`😬 <b>Low momentum</b> — enemy pressure reduces your dmg.`); }
+
+        // Role modifier
+        if (role === 'striker') { dmg = Math.ceil(dmg * 1.25); }
+        if (role === 'duelist' && Math.random() < 0.3) { dmg *= 2; logLines.push(`⚡ <b>Double strike!</b>`); }
+
+        // Burn status: enemy takes 20% extra damage
+        if (enemy._burning) { const bonus = Math.ceil(dmg * 0.2); dmg += bonus; logLines.push(`🔥 Burn: +${bonus} dmg!`); }
+
+        enemy.hp = Math.max(0, enemy.hp - dmg);
+        logLines.push(`${bm?.icon} <b>${bm?.name}</b> hits for <b>${dmg}</b>!`);
+        enemyMomShift = -1; // attacking slightly drains momentum
+
+        // Weakened status: enemy atk reduced this turn (set by defend+)
+        if (enemy._weakened > 0) { enemy._weakened--; }
 
     } else if (action === 'defend') {
-        // Tanks reflect 20% of incoming dmg; everyone reduces damage taken this turn
+        // Defend is NOT just "take less damage this turn" — it BUILDS momentum and can stagger the enemy
         raidState._defending = true;
-        logLines.push(`🛡 ${bm?.name||'Minion'} takes a defensive stance.`);
-        if (role === 'tank') logLines.push(`🪨 Tank stance — reflects 20% damage back.`);
+        enemyMomShift = +2; // big momentum swing toward player
+
+        // Stagger chance: 40% to make enemy skip their turn entirely
+        if (Math.random() < 0.40) {
+            skipEnemyTurn = true;
+            enemy._weakened = (enemy._weakened||0) + 1; // weakens enemy next attack too
+            logLines.push(`🛡 <b>Perfect guard!</b> Enemy staggered — their attack is cancelled!`);
+            logLines.push(`💢 Enemy is <b>weakened</b> next turn (−30% atk).`);
+        } else {
+            logLines.push(`🛡 <b>${bm?.name}</b> braces. Incoming dmg −65%. Momentum building...`);
+        }
+
+        // Tank special: counter-strike on defend
+        if (role === 'tank') {
+            const counterDmg = Math.ceil(frontliner.atk * 0.4);
+            enemy.hp = Math.max(0, enemy.hp - counterDmg);
+            logLines.push(`🪨 Tank counter-strike for <b>${counterDmg}</b>!`);
+        }
 
     } else if (action === 'ability') {
-        // Each minion gets a unique ability on cooldown
         if ((raidState._abilityCooldown||0) > 0) {
-            logLines.push(`⏳ Ability on cooldown (${raidState._abilityCooldown} turns).`);
+            logLines.push(`⏳ Ability on cooldown — <b>${raidState._abilityCooldown}</b> turns left.`);
         } else {
             raidState._abilityCooldown = 3;
+            skipEnemyTurn = false;
+
             if (role === 'striker') {
-                // Berserker Rush — hit all enemies on floor for 60% ATK each
+                // Berserker Rush — AoE 80% ATK + sets all enemies on fire
+                const aoeDmg = Math.ceil(frontliner.atk * 0.8);
                 const aoeTargets = raidState.enemies.filter(e=>e.hp>0);
-                const aoeDmg = Math.ceil(frontliner.atk * 0.6);
-                aoeTargets.forEach(e => e.hp = Math.max(0, e.hp - aoeDmg));
-                logLines.push(`🔥 <b>Berserker Rush!</b> Hits all enemies for ${aoeDmg} dmg!`);
-                // Clean up dead enemies from the map
+                aoeTargets.forEach(e => { e.hp = Math.max(0, e.hp - aoeDmg); e._burning = 2; });
                 raidState.enemies.filter(e=>e.hp<=0 && e!==enemy).forEach(e=>{
                     if(raidState.grid[e.y]?.[e.x]) raidState.grid[e.y][e.x]={type:RTILE.EMPTY,enemy:null};
                 });
+                logLines.push(`🔥 <b>Berserker Rush!</b> ${aoeDmg} dmg to all enemies + <b>Burn</b> (2 turns)!`);
+                enemyMomShift = +1;
             } else if (role === 'tank') {
-                // Iron Wall — fully heal frontliner and taunt (enemy must attack them next 2 turns)
-                const healed = Math.floor(frontliner.maxHp * 0.5);
+                // Iron Wall — heal 45% HP, gain +3 momentum, taunt 2 turns, reduce own dmg-taken next 2 hits
+                const healed = Math.floor(frontliner.maxHp * 0.45);
                 frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + healed);
                 raidState._tauntTurns = 2;
-                logLines.push(`🏰 <b>Iron Wall!</b> Restored ${healed} HP, taunting enemy for 2 turns.`);
+                raidState._armorStack = 2; // next 2 incoming hits do −50% dmg
+                enemyMomShift = +3;
+                logLines.push(`🏰 <b>Iron Wall!</b> Healed <b>${healed} HP</b>, taunt active, armor for 2 hits!`);
             } else {
-                // Duelist Feint — skip enemy's next attack and deal 2× dmg
-                playerDmg = frontliner.atk * 2;
-                enemy.hp = Math.max(0, enemy.hp - playerDmg);
+                // Duelist Feint — guaranteed dodge + 2.5× counter
+                const counterDmg = Math.ceil(frontliner.atk * 2.5);
+                enemy.hp = Math.max(0, enemy.hp - counterDmg);
                 skipEnemyTurn = true;
-                logLines.push(`🌀 <b>Feint!</b> Deals ${playerDmg} dmg and dodges retaliation!`);
+                enemyMomShift = +2;
+                logLines.push(`🌀 <b>Feint!</b> Dodge + counter for <b>${counterDmg}</b> dmg!`);
             }
         }
 
     } else if (action === 'swap') {
-        // Swap frontliner to the next alive minion
         if (aliveParty.length < 2) {
-            logLines.push(`❌ No other minions alive to swap to.`);
+            logLines.push(`❌ No other minions alive.`);
         } else {
-            // Rotate: move current frontliner to back
             const idx = raidState.party.indexOf(frontliner);
             const next = aliveParty[1];
             const nextBm = battleMinions[next.minionId];
-            // Swap in party array
             raidState.party.splice(idx, 1);
             raidState.party.push(frontliner);
-            logLines.push(`🔄 <b>${bm?.name}</b> falls back — <b>${nextBm?.name}</b> steps up!`);
-            // Enemy gets a free hit on the swap
-            enemyDmg = Math.max(1, Math.floor(enemy.atk * 0.5));
-            next.hp = Math.max(0, next.hp - enemyDmg);
-            logLines.push(`${battleMinions[enemy.minionId]?.icon} punishes the swap for ${enemyDmg}!`);
+            // Swap costs momentum and enemy gets a free hit
+            raidState._momentum = Math.max(0, raidState._momentum - 2);
+            const swapDmg = Math.max(1, Math.floor(enemy.atk * 0.6));
+            next.hp = Math.max(0, next.hp - swapDmg);
+            logLines.push(`🔄 <b>${bm?.name}</b> retreats — <b>${nextBm?.name}</b> steps in!`);
+            logLines.push(`${ebm?.icon} punishes the swap for <b>${swapDmg}</b>!`);
             updateRaidHUD();
             logLines.forEach(msg => raidLog(msg, '#aaa'));
             renderRaidDungeon();
@@ -16360,52 +16411,76 @@ window.raidCombatAction = function(action) {
     } else if (action === 'potion') {
         const avail = Object.entries(gameState.potions||{}).filter(([,c])=>c>0);
         if (avail.length > 0) {
-            const [pid] = avail[Math.floor(Math.random()*avail.length)];
+            const [pid] = avail[0];
             gameState.potions[pid]--;
-            const heal = Math.floor(frontliner.maxHp * 0.45);
-            // Potion heals all alive party members
-            aliveParty.forEach(p => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(heal * 0.6)); });
-            frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + Math.floor(heal * 0.4)); // extra to frontliner
-            logLines.push(`⚗️ <b>${potions[pid]?.name||'Potion'}</b> — party healed!`);
+            const heal = Math.floor(frontliner.maxHp * 0.5);
+            aliveParty.forEach(p => { p.hp = Math.min(p.maxHp, p.hp + Math.floor(heal * 0.5)); });
+            frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + Math.floor(heal * 0.5));
+            logLines.push(`⚗️ <b>${potions[pid]?.name||'Potion'}</b> used — party restored!`);
         } else {
             logLines.push(`❌ No potions left.`);
         }
     }
 
-    // ── Enemy counter-attack ──────────────────────────────────────
-    if (!skipEnemyTurn && enemy.hp > 0 && action !== 'swap') {
-        // Determine target — taunt forces it onto frontliner
-        let target = frontliner;
-        if (!raidState._tauntTurns && aliveParty.length > 1 && Math.random() < 0.25) {
-            target = aliveParty[Math.floor(Math.random() * aliveParty.length)];
-        }
+    // Apply momentum shift (clamped 0–6)
+    raidState._momentum = Math.max(0, Math.min(6, (raidState._momentum||3) + enemyMomShift));
+
+    // ── Enemy turn ────────────────────────────────────────────────
+    if (!skipEnemyTurn && enemy.hp > 0) {
+        // Target: taunt forces frontliner, otherwise random with weight toward frontliner
+        const target = (raidState._tauntTurns > 0) ? frontliner
+            : (Math.random() < 0.75 ? frontliner : aliveParty[Math.floor(Math.random()*aliveParty.length)]);
         if (raidState._tauntTurns > 0) raidState._tauntTurns--;
 
-        const defending = raidState._defending;
+        const defending   = raidState._defending;
+        const hasArmor    = (raidState._armorStack||0) > 0;
         raidState._defending = false;
+        if (hasArmor) raidState._armorStack--;
 
-        let incomingDmg = Math.max(1, Math.floor(enemy.atk * (defending ? 0.4 : 1)));
+        // Enemy momentum multiplier: at mom 0-1 enemy hits hardest, at 5-6 you have pressure
+        const momMult = mom <= 1 ? 1.5 : mom >= 5 ? 0.6 : 1.0;
 
-        // Tank reflects 20% when defending
+        // Weakened debuff
+        const weakMult = (enemy._weakened > 0) ? 0.7 : 1.0;
+
+        let incomingDmg = Math.max(1, Math.floor(enemy.atk * momMult * weakMult
+            * (defending ? 0.35 : 1.0)
+            * (hasArmor  ? 0.5  : 1.0)));
+
+        // Burn tick on enemy
+        if (enemy._burning > 0) {
+            const burnDmg = Math.ceil(enemy.maxHp * 0.05);
+            enemy.hp = Math.max(0, enemy.hp - burnDmg);
+            enemy._burning--;
+            logLines.push(`🔥 Burn deals <b>${burnDmg}</b> to ${ebm?.name||'enemy'}!`);
+        }
+
+        // Tank reflect on defend
         if (defending && role === 'tank') {
-            const reflect = Math.ceil(incomingDmg * 0.2);
+            const reflect = Math.ceil(incomingDmg * 0.25);
             enemy.hp = Math.max(0, enemy.hp - reflect);
-            logLines.push(`🔄 Reflected ${reflect} dmg!`);
+            logLines.push(`🔄 Reflects <b>${reflect}</b> dmg back!`);
         }
 
-        target.hp = Math.max(0, target.hp - incomingDmg);
-        const targetBm = battleMinions[target.minionId];
-        if (target.hp <= 0) {
-            logLines.push(`💀 <b>${targetBm?.name}</b> has fallen!`);
-            // Auto-advance to next alive minion
-            const nextAlive = raidState.party.filter(p=>p.hp>0);
-            if (nextAlive.length > 0) {
-                const nextBm2 = battleMinions[nextAlive[0].minionId];
-                logLines.push(`➡ <b>${nextBm2?.name}</b> steps into the fight!`);
+        if (enemy.hp > 0) { // enemy might have died from burn/reflect
+            target.hp = Math.max(0, target.hp - incomingDmg);
+            const targetBm = battleMinions[target.minionId];
+            if (target.hp <= 0) {
+                logLines.push(`💀 <b>${targetBm?.name}</b> has fallen!`);
+                const nextAlive = raidState.party.filter(p=>p.hp>0);
+                if (nextAlive.length > 0) logLines.push(`➡ <b>${battleMinions[nextAlive[0].minionId]?.name}</b> steps up!`);
+            } else {
+                const momNote = mom <= 1 ? ' <span style="color:#ff4444">[momentum adv!]</span>' : '';
+                logLines.push(`${ebm?.icon} hits <b>${targetBm?.name}</b> for <b>${incomingDmg}</b>${momNote}!`);
             }
-        } else {
-            logLines.push(`${battleMinions[enemy.minionId]?.icon} hits <b>${targetBm?.name}</b> for <b>${incomingDmg}</b>!`);
         }
+
+        // Enemy gains momentum slightly on their hits
+        raidState._momentum = Math.max(0, raidState._momentum - 1);
+    } else if (skipEnemyTurn && enemy.hp > 0) {
+        raidState._defending = false;
+        // Stagger gives back some momentum
+        raidState._momentum = Math.min(6, raidState._momentum + 1);
     }
 
     // Tick ability cooldown
@@ -16413,27 +16488,26 @@ window.raidCombatAction = function(action) {
 
     updateRaidHUD();
 
-    // Log all lines
-    const logColor = action === 'attack' ? '#44cc88' : action === 'defend' ? '#88aaff' : action === 'ability' ? '#ffaa44' : '#aaa';
-    logLines.forEach((msg, i) => raidLog(msg, i === 0 ? logColor : '#888'));
+    const logColor = { attack:'#44cc88', defend:'#88aaff', ability:'#ffaa44', potion:'#44ffaa' }[action] || '#aaa';
+    logLines.forEach((msg, i) => raidLog(msg, i === 0 ? logColor : '#777'));
 
-    // ── Check outcomes ────────────────────────────────────────────
+    // ── Outcomes ──────────────────────────────────────────────────
     if (enemy.hp <= 0) {
-        raidState.inCombat = false;
+        raidState.inCombat  = false;
         raidState._defending = false;
-        raidState._abilityCooldown = 0;
-        const fragReward = Math.floor(2 + raidState.floor * 2 + (enemy.isBoss ? 12 : 0));
+        raidState._abilityCooldown = Math.max(0, (raidState._abilityCooldown||1) - 1);
+        const fragReward = Math.floor(2 + raidState.floor * 2 + (enemy.isBoss ? 14 : 0));
         raidState.loot.fragments += fragReward;
         raidState.enemies = raidState.enemies.filter(e=>e!==enemy);
-        if (raidState.grid[enemy.y]?.[enemy.x]?.type === RTILE.ENEMY) raidState.grid[enemy.y][enemy.x] = {type:RTILE.EMPTY, enemy:null};
+        if (raidState.grid[enemy.y]?.[enemy.x]?.type === RTILE.ENEMY) raidState.grid[enemy.y][enemy.x] = {type:RTILE.EMPTY,enemy:null};
         raidState.combatEnemy = null;
-        raidLog(`✅ Enemy defeated! +${fragReward} fragments.`, '#44cc88');
-        if (enemy.isBoss) { raidLog('👑 Boss slain! Floor cleared!', '#ffcc00'); advanceRaidFloor(); return; }
+        raidLog(`✅ <b>Enemy defeated!</b> +${fragReward} fragments.`, '#44cc88');
+        if (enemy.isBoss) { raidLog('👑 <b>Boss slain! Floor cleared!</b>', '#ffcc00'); advanceRaidFloor(); return; }
     }
 
     if (raidState.party.every(p=>p.hp<=0)) {
         raidState.inCombat = false;
-        raidLog('💀 Your entire party has fallen.', '#ff2222');
+        raidLog('💀 <b>Your entire party has fallen.</b>', '#ff2222');
         endRaid(false);
         return;
     }
@@ -16453,8 +16527,10 @@ function advanceRaidFloor() {
     raidState.playerPos = {x:0, y:0};
     raidState.explored = new Set(['0,0']);
     raidState._defending = false;
-    raidState._abilityCooldown = Math.max(0, (raidState._abilityCooldown||1)-1); // 1 cooldown tick between floors
+    raidState._abilityCooldown = Math.max(0, (raidState._abilityCooldown||1)-1);
     raidState._tauntTurns = 0;
+    raidState._momentum = 3;
+    raidState._armorStack = 0;
     const {grid, enemies} = generateRaidGrid(raidState.floor);
     raidState.grid = grid; raidState.enemies = enemies;
     raidLog(`🔽 Descending to Floor ${raidState.floor}...`, '#ff6644');
@@ -16556,7 +16632,7 @@ function raidLog(msg, color) {
     if (!log) return;
     const d = document.createElement('div');
     d.style.cssText = `color:${color||'#666'};padding:1px 0;border-bottom:1px solid #0d0920;`;
-    d.textContent = msg;
+    d.innerHTML = msg; // allows <b> formatting in combat messages
     log.appendChild(d);
     log.scrollTop = log.scrollHeight;
 }

@@ -2674,7 +2674,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
                 <div id="rift-container">
                     <canvas id="rift-canvas" width="400" height="200"></canvas>
-                    <button class="action-btn" onclick="harvestSoul()">Harvest Soul</button>
+                    <button id="main-action-btn" class="action-btn" onclick="mainActionClick()">Harvest Soul</button>
                 </div>
 
                 <!-- Altar upgrade cards -->
@@ -4571,6 +4571,7 @@ window.onload = function() {
         
         tickCounter++;
         if (tickCounter % TICKS_PER_SECOND === 0) { // This part is for less frequent updates (once per second)
+            checkTranscendenceUnlock();
             
             // --- NEW: COOLDOWN HASTE LOGIC ---
             let timeToPass = 1000; // Normally, 1 second (1000ms) passes
@@ -5875,7 +5876,289 @@ const minions = {
 };
 
 // =================================================================
-// INFERNAL PROVING GROUNDS - BATTLE DATA (NEW!)
+// LIGHT SOULS LAYER — GUARDIAN MINIONS
+// Unlocked after Transcendence. Celestial/angelic entities.
+// These scale around the strength of carried-over secret minions.
+// =================================================================
+const guardianMinions = {
+    luminary_sprite: {
+        name: "Luminary Sprite", baseSps: 1e12, cost: 1e15, multiplier: 1.15, requiredWorld: 'celestial_threshold',
+        lore: "Tiny sparks of pure creation energy. They were the first things to exist after the last darkness ended, and they remember every moment of it.",
+        icon: '✨',
+        promotions: [ { level: 25, soulCost: 1e20, essenceCost: 50, multiplier: 2 }, { level: 50, soulCost: 1e25, essenceCost: 200, multiplier: 3 }, { level: 100, soulCost: 1e30, essenceCost: 1000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Luminary Sprites grant +15% Light Soul gain.", bonus: { type: 'global_sps_multiplier', value: 1.15 } },
+            { level: 15, desc: "Their glow doubles your Soul Per Click.", bonus: { type: 'global_spc_multiplier', value: 2.0 } },
+            { level: 30, desc: "Each Sprite reduces Guardian costs by 1%.", bonus: { type: 'minion_cost_reducer', value: 0.99 } }
+        ]
+    },
+    dawn_sentinel: {
+        name: "Dawn Sentinel", baseSps: 8e12, cost: 1e17, multiplier: 1.16, requiredWorld: 'celestial_threshold',
+        lore: "Armoured in solidified sunrise, they stood at the edge of the void for ten thousand years before you called them. They were ready.",
+        icon: '🌅',
+        promotions: [ { level: 25, soulCost: 1e22, essenceCost: 100, multiplier: 2 }, { level: 50, soulCost: 1e27, essenceCost: 400, multiplier: 3 }, { level: 100, soulCost: 1e32, essenceCost: 2000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Dawn Sentinels grant +20% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.20 } },
+            { level: 15, desc: "Their vigilance cuts all ritual cooldowns by 10%.", bonus: { type: 'ritual_cooldown_reducer', value: 0.90 } },
+            { level: 30, desc: "Eternal watch: +30% Abyssal Shard gains.", bonus: { type: 'ascension_shard_bonus', value: 1.30 } }
+        ]
+    },
+    aureate_angel: {
+        name: "Aureate Angel", baseSps: 6e13, cost: 1e19, multiplier: 1.17, requiredWorld: 'radiant_expanse',
+        lore: "Not the angels of old religions — something older. They predate worship. They are what worship was invented to describe, and they find the concept charming.",
+        icon: '😇',
+        promotions: [ { level: 25, soulCost: 1e24, essenceCost: 200, multiplier: 2 }, { level: 50, soulCost: 1e29, essenceCost: 800, multiplier: 3 }, { level: 100, soulCost: 1e34, essenceCost: 4000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Aureate Angels grant +25% global SPS and SPC.", bonus: { type: 'global_all_multiplier', value: 1.25 } },
+            { level: 15, desc: "Divine resonance: Dark Essence gains +25%.", bonus: { type: 'essence_multiplier', value: 1.25 } },
+            { level: 30, desc: "Celestial blessing: all minion SPS +20%.", bonus: { type: 'global_sps_multiplier', value: 1.20 } }
+        ]
+    },
+    stellar_wraith: {
+        name: "Stellar Wraith", baseSps: 4e14, cost: 1e21, multiplier: 1.18, requiredWorld: 'radiant_expanse',
+        lore: "The ghost of a star that chose to die early rather than watch the universe end slowly. It still burns, but now it burns for you.",
+        icon: '⭐',
+        promotions: [ { level: 25, soulCost: 1e26, essenceCost: 400, multiplier: 2 }, { level: 50, soulCost: 1e31, essenceCost: 1600, multiplier: 3 }, { level: 100, soulCost: 1e36, essenceCost: 8000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Stellar Wraiths grant +30% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.30 } },
+            { level: 15, desc: "Starfire: expedition rewards +40%.", bonus: { type: 'expedition_fragment_multiplier', value: 1.40 } },
+            { level: 30, desc: "Supernova: all secret minion SPS tripled.", bonus: { type: 'secret_minion_sps_doubler', value: 3 } }
+        ]
+    },
+    prism_golem: {
+        name: "Prism Golem", baseSps: 3e15, cost: 1e23, multiplier: 1.19, requiredWorld: 'the_shining_deep',
+        lore: "Carved from crystallised light by a deity that no longer exists. The golem outlasted its creator by eons and has been looking for new orders ever since.",
+        icon: '🔷',
+        promotions: [ { level: 25, soulCost: 1e28, essenceCost: 800, multiplier: 2 }, { level: 50, soulCost: 1e33, essenceCost: 3200, multiplier: 3 }, { level: 100, soulCost: 1e38, essenceCost: 16000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Prism Golems grant +35% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.35 } },
+            { level: 15, desc: "Refracted power: global SPC +30%.", bonus: { type: 'global_spc_multiplier', value: 1.30 } },
+            { level: 30, desc: "Crystal resonance: Corrupted Fragment gains doubled.", bonus: { type: 'cache_reward_doubler', value: 2 } }
+        ]
+    },
+    throne_guardian: {
+        name: "Throne Guardian", baseSps: 2e16, cost: 1e25, multiplier: 1.20, requiredWorld: 'the_shining_deep',
+        lore: "It guards something that was taken away before the universe began. No one remembers what it was. The Guardian does not either. It guards the absence.",
+        icon: '🛡️',
+        promotions: [ { level: 25, soulCost: 1e30, essenceCost: 1500, multiplier: 2 }, { level: 50, soulCost: 1e35, essenceCost: 6000, multiplier: 3 }, { level: 100, soulCost: 1e40, essenceCost: 30000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Throne Guardians grant +40% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.40 } },
+            { level: 15, desc: "Eternal defense: all Aether gains +35%.", bonus: { type: 'aether_gain_multiplier', value: 1.35 } },
+            { level: 30, desc: "Unbreakable ward: reduce all minion costs 8%.", bonus: { type: 'minion_cost_reducer', value: 0.92 } }
+        ]
+    },
+    void_seraph: {
+        name: "Void Seraph", baseSps: 1.5e17, cost: 1e27, multiplier: 1.20, requiredWorld: 'empyrean_void',
+        lore: "An angel that fell into the void between realities and came out the other side as something that cannot be named in any living language. It is still good. Mostly.",
+        icon: '🌌',
+        promotions: [ { level: 25, soulCost: 1e32, essenceCost: 3000, multiplier: 2 }, { level: 50, soulCost: 1e37, essenceCost: 12000, multiplier: 3 }, { level: 100, soulCost: 1e42, essenceCost: 60000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Void Seraphs grant +45% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.45 } },
+            { level: 15, desc: "Void resonance: all soul gains +30%.", bonus: { type: 'global_all_multiplier', value: 1.30 } },
+            { level: 30, desc: "Between worlds: Ascension Shard gains +50%.", bonus: { type: 'ascension_shard_bonus', value: 1.50 } }
+        ]
+    },
+    light_titan: {
+        name: "Light Titan", baseSps: 1e18, cost: 1e29, multiplier: 1.21, requiredWorld: 'empyrean_void',
+        lore: "In the age before gods, these walked the formless dark and shaped it with their hands. They are tired of shaping. Now they harvest.",
+        icon: '⚡',
+        promotions: [ { level: 25, soulCost: 1e34, essenceCost: 6000, multiplier: 2 }, { level: 50, soulCost: 1e39, essenceCost: 24000, multiplier: 3 }, { level: 100, soulCost: 1e44, essenceCost: 120000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Light Titans grant +50% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.50 } },
+            { level: 15, desc: "Titan stride: ritual durations +40%.", bonus: { type: 'ritual_duration', value: 1.40 } },
+            { level: 30, desc: "Ancient power: all secret and guardian minion SPS ×4.", bonus: { type: 'secret_minion_sps_doubler', value: 4 } }
+        ]
+    },
+    celestial_dragon: {
+        name: "Celestial Dragon", baseSps: 8e18, cost: 1e31, multiplier: 1.22, requiredWorld: 'the_first_light',
+        lore: "Not a creature — a force of nature that chose to take the shape of a dragon because the shape felt honest. It breathes pure causality instead of fire.",
+        icon: '🐉',
+        promotions: [ { level: 25, soulCost: 1e36, essenceCost: 12000, multiplier: 2 }, { level: 50, soulCost: 1e41, essenceCost: 48000, multiplier: 3 }, { level: 100, soulCost: 1e46, essenceCost: 240000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Celestial Dragon grants +60% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.60 } },
+            { level: 15, desc: "Dragon fire: Dark Essence gains ×2.", bonus: { type: 'essence_multiplier', value: 2.0 } },
+            { level: 30, desc: "Causality breath: all gains raised by power of 1.02.", bonus: { type: 'gain_exponent_flat', value: 1.02 } }
+        ]
+    },
+    radiant_oracle: {
+        name: "Radiant Oracle", baseSps: 6e19, cost: 1e33, multiplier: 1.22, requiredWorld: 'the_first_light',
+        lore: "It knows everything that will happen. It still chose to serve you. Either this is a very good sign, or a very bad one.",
+        icon: '🔮',
+        promotions: [ { level: 25, soulCost: 1e38, essenceCost: 25000, multiplier: 2 }, { level: 50, soulCost: 1e43, essenceCost: 100000, multiplier: 3 }, { level: 100, soulCost: 1e48, essenceCost: 500000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Radiant Oracle grants +70% global SPS and SPC.", bonus: { type: 'global_all_multiplier', value: 1.70 } },
+            { level: 15, desc: "Foresight: Abyssal Cache rare chance +15%.", bonus: { type: 'cache_rare_chance', value: 0.15 } },
+            { level: 30, desc: "Prophecy fulfilled: all Guardian SPS tripled.", bonus: { type: 'secret_minion_sps_doubler', value: 3 } }
+        ]
+    },
+    purity_engine: {
+        name: "Purity Engine", baseSps: 5e20, cost: 1e35, multiplier: 1.23, requiredWorld: 'throne_of_genesis',
+        lore: "A machine built by the last civilization to try to outlast entropy. They failed. The machine is still running. It found better work.",
+        icon: '⚙️',
+        promotions: [ { level: 25, soulCost: 1e40, essenceCost: 50000, multiplier: 2 }, { level: 50, soulCost: 1e45, essenceCost: 200000, multiplier: 3 }, { level: 100, soulCost: 1e50, essenceCost: 1000000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Purity Engine grants +80% global SPS.", bonus: { type: 'global_sps_multiplier', value: 1.80 } },
+            { level: 15, desc: "Infinite efficiency: minion costs -15%.", bonus: { type: 'minion_cost_reducer', value: 0.85 } },
+            { level: 30, desc: "Optimized output: all soul gains ×2.", bonus: { type: 'global_all_multiplier', value: 2.0 } }
+        ]
+    },
+    genesis_herald: {
+        name: "Genesis Herald", baseSps: 4e21, cost: 1e37, multiplier: 1.23, requiredWorld: 'throne_of_genesis',
+        lore: "It carries the announcement of the next creation. It has been holding the message for longer than the current universe has existed. It is very, very patient.",
+        icon: '📯',
+        promotions: [ { level: 25, soulCost: 1e42, essenceCost: 100000, multiplier: 2 }, { level: 50, soulCost: 1e47, essenceCost: 400000, multiplier: 3 }, { level: 100, soulCost: 1e52, essenceCost: 2000000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Genesis Herald grants +100% global SPS.", bonus: { type: 'global_sps_multiplier', value: 2.0 } },
+            { level: 15, desc: "The announcement: Shard gains +80%.", bonus: { type: 'ascension_shard_bonus', value: 1.80 } },
+            { level: 30, desc: "New creation: all light world minion SPS ×5.", bonus: { type: 'secret_minion_sps_doubler', value: 5 } }
+        ]
+    },
+    infinite_warden: {
+        name: "Infinite Warden", baseSps: 3e22, cost: 1e39, multiplier: 1.24, requiredWorld: 'apex_of_light',
+        lore: "There is no prison large enough to hold it, so it guards instead. It watches over the boundary between what exists and what is still deciding whether to.",
+        icon: '👁️',
+        promotions: [ { level: 25, soulCost: 1e44, essenceCost: 250000, multiplier: 2 }, { level: 50, soulCost: 1e49, essenceCost: 1000000, multiplier: 3 }, { level: 100, soulCost: 1e54, essenceCost: 5000000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "Infinite Warden grants +120% global SPS.", bonus: { type: 'global_sps_multiplier', value: 2.20 } },
+            { level: 15, desc: "Eternal vigil: all ritual effects +50%.", bonus: { type: 'ritual_duration', value: 1.50 } },
+            { level: 30, desc: "Boundary collapse: Aether gains ×3.", bonus: { type: 'aether_gain_multiplier', value: 3.0 } }
+        ]
+    },
+    the_first_guardian: {
+        name: "The First Guardian", baseSps: 2e23, cost: 1e41, multiplier: 1.24, requiredWorld: 'apex_of_light',
+        lore: "Before the first soul was harvested, this was already watching. It did not object. It simply waited until you were ready. You are, apparently, ready now.",
+        icon: '🌟',
+        promotions: [ { level: 25, soulCost: 1e46, essenceCost: 600000, multiplier: 2 }, { level: 50, soulCost: 1e51, essenceCost: 2400000, multiplier: 3 }, { level: 100, soulCost: 1e56, essenceCost: 12000000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "The First Guardian grants +150% global SPS.", bonus: { type: 'global_sps_multiplier', value: 2.50 } },
+            { level: 15, desc: "First light: SPC +200%.", bonus: { type: 'global_spc_multiplier', value: 3.0 } },
+            { level: 30, desc: "Origin power: all minion SPS ×5 permanently.", bonus: { type: 'secret_minion_sps_doubler', value: 5 } }
+        ]
+    },
+    the_undying_flame: {
+        name: "The Undying Flame", baseSps: 1.5e24, cost: 1e43, multiplier: 1.25, requiredWorld: 'the_infinite_beyond',
+        lore: "The last fire that will ever burn. It started before the first star and will outlast the final one. Right now it is yours, and it burns for light souls.",
+        icon: '🔥',
+        promotions: [ { level: 25, soulCost: 1e48, essenceCost: 1500000, multiplier: 2 }, { level: 50, soulCost: 1e53, essenceCost: 6000000, multiplier: 3 }, { level: 100, soulCost: 1e58, essenceCost: 30000000, multiplier: 5 } ],
+        researchTiers: [
+            { level: 5,  desc: "The Undying Flame grants +200% global SPS.", bonus: { type: 'global_sps_multiplier', value: 3.0 } },
+            { level: 15, desc: "Eternal burn: all gains raised to power of 1.05.", bonus: { type: 'gain_exponent_flat', value: 1.05 } },
+            { level: 30, desc: "Undying: all Guardian and Secret minion SPS ×10.", bonus: { type: 'secret_minion_sps_doubler', value: 10 } }
+        ]
+    },
+};
+
+// =================================================================
+// LIGHT WORLDS — 15 Celestial/Guardian worlds
+// Unlocked after Transcendence. Exponentially harder grind.
+// =================================================================
+const lightWorlds = {
+    celestial_threshold: {
+        name: "The Celestial Threshold",
+        unlockCost: 0,
+        perk: "Unlocks Guardian minions. The door between dark and light.",
+        bonus: { type: 'global_sps_multiplier', value: 1.5 },
+        lore: "A shimmering boundary of pure resonance. To cross it is to leave everything behind. The darkness cannot follow you here — only what you earned."
+    },
+    radiant_expanse: {
+        name: "The Radiant Expanse",
+        unlockCost: 'lt_1e20',
+        perk: "+50% global SPS. An infinite plain of solidified light.",
+        bonus: { type: 'global_sps_multiplier', value: 1.5 },
+        lore: "Vast beyond comprehension, the Expanse stretches in all directions without horizon or boundary. It was waiting to be harvested by someone powerful enough to reach it."
+    },
+    the_shining_deep: {
+        name: "The Shining Deep",
+        unlockCost: 'lt_1e50',
+        perk: "+50% SPC. Even the depths here glow.",
+        bonus: { type: 'spc_multiplier', value: 1.5 },
+        lore: "What waits at the bottom of an ocean made entirely of light? Something patient, something ancient, something that has been generating light souls since before the concept of time."
+    },
+    empyrean_void: {
+        name: "Empyrean Void",
+        unlockCost: 'lt_1e100',
+        perk: "+75% global all gains. Not empty — full of something you can't see yet.",
+        bonus: { type: 'global_all_multiplier', value: 1.75 },
+        lore: "It should be nothing here. The physics of this realm insist nothing exists. And yet light souls pour from it like water from a wound. Some voids are fuller than realities."
+    },
+    the_first_light: {
+        name: "The First Light",
+        unlockCost: 'lt_1e200',
+        perk: "+2× Dark Essence gain. The original photon still echoes here.",
+        bonus: { type: 'essence_multiplier', value: 2.0 },
+        lore: "Physicists theorized about the first photon. This is where it went. It has been bouncing between the walls of this realm for the entirety of existence, growing stronger with every reflection."
+    },
+    crystal_heaven: {
+        name: "Crystal Heaven",
+        unlockCost: 'lt_1e400',
+        perk: "+100% Abyssal Shard gains. Heaven is harder than you expected.",
+        bonus: { type: 'ascension_shard_bonus', value: 2.0 },
+        lore: "Not the heaven of stories — a literal crystalline realm where condensed light has solidified into structures of impossible complexity. Every shard here is worth a kingdom."
+    },
+    throne_of_genesis: {
+        name: "Throne of Genesis",
+        unlockCost: 'lt_1e700',
+        perk: "+200% global SPS. Creation itself works for you now.",
+        bonus: { type: 'global_sps_multiplier', value: 3.0 },
+        lore: "The seat from which reality was first spoken into existence. It is empty now. Its previous occupant left in a hurry, and the power of creation still hums in the armrests."
+    },
+    the_light_forge: {
+        name: "The Light Forge",
+        unlockCost: 'lt_1e1000',
+        perk: "All minion costs halved. Even Guardians are cheaper here.",
+        bonus: { type: 'minion_cost_reducer', value: 0.5 },
+        lore: "Where Guardians were made, before they were called Guardians. The forge is still hot. You can feel it from ten thousand light-years away — a warmth that makes dark worlds feel cold by comparison."
+    },
+    sanctum_of_eternity: {
+        name: "Sanctum of Eternity",
+        unlockCost: 'lt_1e1500',
+        perk: "+300% global SPS. Time moves differently here.",
+        bonus: { type: 'global_sps_multiplier', value: 4.0 },
+        lore: "A place outside of time where all moments exist simultaneously. You experience every second of your harvest at once. It is overwhelming. It is perfect."
+    },
+    apex_of_light: {
+        name: "Apex of Light",
+        unlockCost: 'lt_1e2500',
+        perk: "+500% global SPS. The highest point anything has ever reached.",
+        bonus: { type: 'global_sps_multiplier', value: 6.0 },
+        lore: "There is nothing above the Apex. You know this because you can see in all directions and there is nothing. Then you realize: the nothing is yours. You own the top of everything."
+    },
+    the_resonant_choir: {
+        name: "The Resonant Choir",
+        unlockCost: 'lt_1e4000',
+        perk: "Ritual durations ×3. Their song accelerates everything.",
+        bonus: { type: 'ritual_duration', value: 3.0 },
+        lore: "A billion Guardian voices singing in perfect harmony. Each note extends the duration of every power you possess. You do not understand the song. You do not need to. It understands you."
+    },
+    the_convergence: {
+        name: "The Convergence",
+        unlockCost: 'lt_1e6000',
+        perk: "All gains raised to power of 1.03. Everything flows inward.",
+        bonus: { type: 'gain_exponent_flat', value: 1.03 },
+        lore: "A point where every timeline, every universe, every possible outcome collapses into a single stream. That stream flows through you. You are the Convergence now."
+    },
+    pure_genesis: {
+        name: "Pure Genesis",
+        unlockCost: 'lt_1e9000',
+        perk: "+1000% global SPS. The origin of origins.",
+        bonus: { type: 'global_sps_multiplier', value: 11.0 },
+        lore: "Before there was a first light there was a reason for a first light. This is that reason made physical. It has been waiting to generate light souls since before the concept of generation existed."
+    },
+    the_infinite_beyond: {
+        name: "The Infinite Beyond",
+        unlockCost: 'lt_1e15000',
+        perk: "+2000% global SPS. Beyond infinity is more infinity.",
+        bonus: { type: 'global_sps_multiplier', value: 21.0 },
+        lore: "Mathematicians claimed infinity was the end. They were wrong. There are hierarchies of infinity, each one vast beyond the measure of the last. You have reached the second one. There are more."
+    },
+    the_absolute: {
+        name: "The Absolute",
+        unlockCost: 'lt_1e25000',
+        perk: "All gains raised to power of 1.1. There is nothing beyond this. Yet.",
+        bonus: { type: 'gain_exponent_flat', value: 1.1 },
+        lore: "The final world. The end of the light path. The absolute limit of what has ever existed or can ever exist. You stand here. You are harvesting. The universe watches with something that might be respect, or might be terror. Possibly both."
+    },
+};
 // =================================================================
 
 // This object defines how your minions behave in the mini-game.
@@ -8381,6 +8664,13 @@ function getDefaultGameState() {
         activeExpeditions: {}, 
         anomalyTimers: {},
         breachesCompleted: 0,
+        // ── TRANSCENDENCE (Light Souls Layer) ──────────────────────────
+        isTranscended: false,
+        lightSouls: 0,
+        lifetimeLightSouls: 0,
+        transcendenceCount: 0,
+        unlockedLightWorlds: [],
+        guardianMinions: {}, // separate from dark minions
     };
 }
 // =================================================================
@@ -9386,8 +9676,173 @@ function executeAscension() {
   postGhostEvent('ascension');
 }
 // =================================================================
+// TRANSCENDENCE SYSTEM — Light Souls Layer
+// =================================================================
+const TRANSCENDENCE_THRESHOLD = '1e1000'; // 1e1000 lifetime souls required
+
+function checkTranscendenceUnlock() {
+    if (gameState.isTranscended) return; // already transcended
+    if (gameState.ascensions < 1) return; // need at least 1 ascension
+    const btn = document.getElementById('main-action-btn');
+    if (!btn) return;
+    const meetsThreshold = D(gameState.lifetimeSouls).gte(D(TRANSCENDENCE_THRESHOLD));
+    if (meetsThreshold) {
+        btn.textContent = '✦ TRANSCEND';
+        btn.style.background = 'linear-gradient(160deg, #0a0a2a 0%, #1a0a4a 45%, #0a0a2a 100%)';
+        btn.style.color = '#c8b4ff';
+        btn.style.borderColor = '#4422aa';
+        btn.style.boxShadow = '0 0 40px rgba(100,50,255,0.6), inset 0 0 20px rgba(0,0,0,0.7)';
+        btn.style.letterSpacing = '4px';
+        btn.onclick = function() { confirmTranscendence(); };
+    } else {
+        btn.textContent = gameState.isTranscended ? 'Harvest Light' : 'Harvest Soul';
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+        btn.style.boxShadow = '';
+        btn.style.letterSpacing = '';
+        btn.onclick = function() { mainActionClick(); };
+    }
+}
+
+function mainActionClick() {
+    if (gameState.isTranscended) {
+        harvestSoul(); // still harvests, just Light Souls now
+    } else {
+        harvestSoul();
+    }
+}
+
+function confirmTranscendence() {
+    if (gameState.isTranscended) return;
+    if (D(gameState.lifetimeSouls).lt(D(TRANSCENDENCE_THRESHOLD)) && !window._devTranscendTest) {
+        Toastify({ text: '✦ You have not yet reached the threshold for Transcendence.', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0030,#4400aa)' } }).showToast();
+        return;
+    }
+    if (gameState.ascensions < 1 && !window._devTranscendTest) {
+        Toastify({ text: '✦ You must Ascend at least once before you can Transcend.', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0030,#4400aa)' } }).showToast();
+        return;
+    }
+
+    const secretOwned = Object.entries(gameState.minions).filter(([id, m]) => minions[id]?.secret && m.level > 0).map(([id]) => minions[id].name);
+    const secretList = secretOwned.length > 0 ? `\n\nCarrying over ${secretOwned.length} secret minion(s): ${secretOwned.slice(0,3).join(', ')}${secretOwned.length > 3 ? '...' : ''}` : '\n\nNo secret minions owned — you will start from scratch.';
+
+    if (!confirm(
+        `✦ TRANSCENDENCE ✦\n\nYou are about to leave the Dark Souls behind and enter the Light.\n\nWhat you LOSE:\n• All Dark Souls & minions\n• All worlds & world progress\n• All upgrades & rituals\n• SPS & SPC reset to base\n\nWhat you KEEP:\n• Abyssal Shards, Aether, Fragments\n• Artifacts, Inventory & gear\n• Secret minions (as your foundation)${secretList}\n\nProceed?`
+    )) return;
+
+    executeTranscendence();
+}
+
+function executeTranscendence() {
+    // Preserve what carries over
+    const oldPlayerName    = gameState.playerName;
+    const oldShards        = D(gameState.abyssalShards);
+    const oldAether        = D(gameState.aether);
+    const oldAetherUpgrades = gameState.aetherUpgrades;
+    const oldFragments     = D(gameState.corruptedFragments || 0);
+    const oldInventory     = gameState.inventory;
+    const oldEquipped      = gameState.equipped;
+    const oldOwnedArtifacts = JSON.parse(JSON.stringify(gameState.ownedArtifacts || {}));
+    const oldPvpWins       = gameState.pvpWins;
+    const oldPvpLosses     = gameState.pvpLosses;
+    const oldAscensions    = gameState.ascensions;
+    const oldCollapses     = gameState.totalCollapses;
+    const oldLifetimeSouls = gameState.lifetimeSouls;
+    const oldTotalShardsEarned = gameState.totalShardsEarned;
+    const oldTranscendenceCount = (gameState.transcendenceCount || 0) + 1;
+
+    // Preserve secret minions
+    const secretMinionsSaved = {};
+    for (const id in gameState.minions) {
+        if (minions[id]?.secret && gameState.minions[id].level > 0) {
+            secretMinionsSaved[id] = { ...gameState.minions[id] };
+        }
+    }
+
+    // Reset to default
+    const defaultState = getDefaultGameState();
+    gameState = defaultState;
+
+    // Restore carried-over fields
+    gameState.playerName         = oldPlayerName;
+    gameState.abyssalShards      = oldShards;
+    gameState.aether             = oldAether;
+    gameState.aetherUpgrades     = oldAetherUpgrades;
+    gameState.corruptedFragments = oldFragments;
+    gameState.inventory          = oldInventory;
+    gameState.equipped           = oldEquipped;
+    gameState.ownedArtifacts     = oldOwnedArtifacts;
+    gameState.pvpWins            = oldPvpWins;
+    gameState.pvpLosses          = oldPvpLosses;
+    gameState.ascensions         = oldAscensions;
+    gameState.totalCollapses     = oldCollapses;
+    gameState.lifetimeSouls      = oldLifetimeSouls;
+    gameState.totalShardsEarned  = oldTotalShardsEarned;
+
+    // Restore secret minions
+    for (const id in secretMinionsSaved) {
+        gameState.minions[id] = secretMinionsSaved[id];
+    }
+
+    // Initialise guardian minions state
+    gameState.guardianMinions = {};
+    for (const id in guardianMinions) {
+        gameState.guardianMinions[id] = { level: 0, cost: D(guardianMinions[id].cost), promotionTier: 0 };
+    }
+
+    // Set transcendence flags
+    gameState.isTranscended      = true;
+    gameState.lightSouls         = D(0);
+    gameState.lifetimeLightSouls = D(0);
+    gameState.transcendenceCount = oldTranscendenceCount;
+    gameState.unlockedLightWorlds = ['celestial_threshold'];
+
+    // Wipe arena defense (minions reset)
+    if (supabaseClient && oldPlayerName !== 'Unnamed') {
+        supabaseClient.from('arena_defenses').delete().eq('player_name', oldPlayerName);
+    }
+    if (typeof arenaState !== 'undefined') {
+        arenaState.playerUnits = [];
+        arenaState.pointsSpent = 0;
+    }
+
+    calculateStats();
+    renderAll();
+    showScreen('altar');
+    saveGame();
+
+    // Flash the transcendence event
+    Toastify({
+        text: '✦ TRANSCENDED ✦\nYou have crossed into the Light.\nSecret minions carry your legacy forward.',
+        duration: 8000, gravity: 'top', position: 'center',
+        style: { background: 'linear-gradient(135deg,#0a0020,#220066,#0a0020)', fontSize: '1em', letterSpacing: '1px', whiteSpace: 'pre-line' }
+    }).showToast();
+
+    postGhostEvent('transcendence');
+}
+
+function renderTranscendenceIndicator() {
+    // Show a small indicator in the player stats area if transcended
+    const existing = document.getElementById('transcend-badge');
+    if (gameState.isTranscended) {
+        if (!existing) {
+            const statsContainer = document.getElementById('player-stats-container');
+            if (statsContainer) {
+                const badge = document.createElement('div');
+                badge.id = 'transcend-badge';
+                badge.style.cssText = 'text-align:center; font-size:0.65em; letter-spacing:3px; color:#9966ff; text-transform:uppercase; padding:2px 0 4px; font-family:var(--font-title); text-shadow:0 0 12px rgba(150,100,255,0.8);';
+                badge.textContent = '✦ TRANSCENDED — LIGHT SOULS ✦';
+                statsContainer.insertBefore(badge, statsContainer.firstChild);
+            }
+        }
+    } else if (existing) {
+        existing.remove();
+    }
+}
+
+// =================================================================
 function calculateAetherOnCollapse() {
-    if (!gameState.unlockedWorlds.includes('nexus_of_all_realities')) return 0;
     const base = Math.floor(5 * Math.pow(Math.log10(D(gameState.abyssalShards).toNumber() + 1) / 10, 2));
     const multiplier = gameState._aetherGainMultiplier || 1;
     const aether = Math.floor(base * multiplier);
@@ -10011,7 +10466,9 @@ function renderAll() {
   if (!gameState || !gameState.currentWorld) return;
 
   document.getElementById('playerName-display').innerText = gameState.playerName;
-  document.getElementById('world-title').innerText = worlds[gameState.currentWorld].name;
+  document.getElementById('world-title').innerText = worlds[gameState.currentWorld]?.name || (lightWorlds[gameState.currentWorld]?.name || gameState.currentWorld);
+
+  if (typeof renderTranscendenceIndicator === 'function') renderTranscendenceIndicator();
 
   renderAltar();
   renderMinions();
@@ -13121,7 +13578,7 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
 
         // Client-side re-sort by true numeric value (guards against Supabase ordering gaps)
         switch (type) {
-            case 'lifetimeSouls': players.sort((a, b) => (b.soulsLog || 0)       - (a.soulsLog || 0));       title.innerText = 'Ranking by Total Souls';          break;
+            case 'lifetimeSouls': players.sort((a, b) => { const aT=a.isTranscended?1:0,bT=b.isTranscended?1:0; if(aT!==bT)return bT-aT; if(aT&&bT)return(b.lightSoulsLog||0)-(a.lightSoulsLog||0); return(b.soulsLog||0)-(a.soulsLog||0); }); title.innerText='Ranking by Total Souls'; break;
             case 'ascensions':    players.sort((a, b) => (b.ascensions || 0)     - (a.ascensions || 0));     title.innerText = 'Ranking by Ascensions';            break;
             case 'aether':        players.sort((a, b) => (b.totalCollapses || 0) - (a.totalCollapses || 0)); title.innerText = 'Ranking by Collapses (Aether)';    break;
             case 'pvpWins':       players.sort((a, b) => (b.pvpWins || 0)        - (a.pvpWins || 0));        title.innerText = 'Ranking by PvP Wins';              break;
@@ -13131,6 +13588,7 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
         players.slice(0, 10).forEach((player, index) => {
             const li    = document.createElement('li');
             const isMe  = player.name === gameState.playerName;
+             const transcendBadge = player.isTranscended ? `<span style="background:linear-gradient(135deg,#220055,#4400aa); color:#c8b4ff; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ LIGHT</span>` : '';
 
             let valueHTML;
             if (type === 'lifetimeSouls') {
@@ -13199,7 +13657,7 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
 
             // Rank medal for top 3
             const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
-            li.innerHTML = `<span>${medal} ${player.name}</span> ${valueHTML}`;
+             li.innerHTML = `<span>${medal} ${player.name}${transcendBadge}</span> ${valueHTML}`;
             if (isMe) li.style.cssText = 'color:var(--primary-color);font-weight:bold;border-color:var(--primary-color);';
             list.appendChild(li);
         });
@@ -15495,17 +15953,29 @@ function initializeChat() {
                         return;
                     }
                     // Dev command: /clear — wipes slitherChat
-                    // Dev command: !remove — toggle mod-removal mode
-                    if (text === '!remove') {
+                    // Dev command: !light1 — temporarily unlock transcendence test mode for 15 min
+                    if (text === '!light1') {
                         if (window._scIsDev && window._scIsDev(uid)) {
-                            window._devRemoveMode = !window._devRemoveMode;
-                            if (window._devRemoveMode) {
-                                window._injectRemoveButtons && window._injectRemoveButtons();
-                                Toastify({ text: '🔧 DEV: Remove mode ON — ✕ buttons visible on listings & PvP defenses', duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#2a0000,#aa0000)' } }).showToast();
-                            } else {
-                                window._removeRemoveButtons && window._removeRemoveButtons();
-                                Toastify({ text: '🔧 DEV: Remove mode OFF', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
+                            window._devTranscendTest = true;
+                            const endTime = Date.now() + 15 * 60 * 1000;
+                            window._devTranscendTestEnd = endTime;
+                            checkTranscendenceUnlock();
+                            // Force show the button
+                            const btn = document.getElementById('main-action-btn');
+                            if (btn) {
+                                btn.textContent = '✦ TRANSCEND';
+                                btn.style.background = 'linear-gradient(160deg,#0a0a2a 0%,#1a0a4a 45%,#0a0a2a 100%)';
+                                btn.style.color = '#c8b4ff';
+                                btn.style.borderColor = '#4422aa';
+                                btn.style.boxShadow = '0 0 40px rgba(100,50,255,0.6),inset 0 0 20px rgba(0,0,0,0.7)';
+                                btn.onclick = () => confirmTranscendence();
                             }
+                            setTimeout(() => {
+                                window._devTranscendTest = false;
+                                checkTranscendenceUnlock();
+                                Toastify({ text: '🔧 DEV: !light1 test mode expired.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
+                            }, 15 * 60 * 1000);
+                            Toastify({ text: '🔧 DEV: Transcendence test mode ON for 15 minutes. TRANSCEND button is now active.', duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)' } }).showToast();
                         } else {
                             Toastify({ text: '⛔ Dev-only command.', duration: 2000, gravity: 'top', position: 'center' }).showToast();
                         }
@@ -15576,6 +16046,31 @@ function initializeChat() {
                         return;
                     }
                     // Dev command: /clear
+                    // Dev command: !light1 — temporarily unlock transcendence test mode for 15 min
+                    if (text === '!light1') {
+                        if (window._scIsDev && window._scIsDev(uid)) {
+                            window._devTranscendTest = true;
+                            setTimeout(() => {
+                                window._devTranscendTest = false;
+                                if (typeof checkTranscendenceUnlock === 'function') checkTranscendenceUnlock();
+                                Toastify({ text: '🔧 DEV: !light1 test mode expired.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
+                            }, 15 * 60 * 1000);
+                            const btn = document.getElementById('main-action-btn');
+                            if (btn) {
+                                btn.textContent = '✦ TRANSCEND';
+                                btn.style.background = 'linear-gradient(160deg,#0a0a2a 0%,#1a0a4a 45%,#0a0a2a 100%)';
+                                btn.style.color = '#c8b4ff';
+                                btn.style.borderColor = '#4422aa';
+                                btn.style.boxShadow = '0 0 40px rgba(100,50,255,0.6),inset 0 0 20px rgba(0,0,0,0.7)';
+                                btn.onclick = () => confirmTranscendence();
+                            }
+                            Toastify({ text: '🔧 DEV: Transcendence test mode ON for 15 minutes.', duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)' } }).showToast();
+                        } else {
+                            Toastify({ text: '⛔ Dev-only command.', duration: 2000, gravity: 'top', position: 'center' }).showToast();
+                        }
+                        input.value = '';
+                        return;
+                    }
                     // Dev command: !remove — toggle mod-removal mode
                     if (text === '!remove') {
                         if (window._scIsDev && window._scIsDev(uid)) {

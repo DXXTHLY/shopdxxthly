@@ -2778,7 +2778,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
 
                     <!-- Fuse button -->
-                    <div id="fusion-frag-cost" style="text-align:center; color:#888; font-size:0.78em; margin-bottom:6px;">🔮 Costs 1 Corrupted Fragment · You have <span id="fusion-frag-count">0</span></div>
+                    <div id="fusion-frag-cost" style="text-align:center; color:#888; font-size:0.78em; margin-bottom:6px;">🔮 Costs 5 Corrupted Fragments · You have <span id="fusion-frag-count">0</span></div>
                     <button id="fusion-btn" onclick="executeFusion()" disabled
                         style="width:100%; margin-top:16px; padding:12px; background:linear-gradient(135deg,#1a0a2a,#2a0a4a); border:1px solid #aa44ff44; border-bottom:3px solid #000; border-radius:10px; color:#444; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:not-allowed; text-transform:uppercase; transition:all 0.2s;">
                         🔮 Fuse Potions
@@ -9126,9 +9126,9 @@ function activateRitual(id) {
 
     // ── Fragment surcharge — scales by ritual power tier ──────────
     const RITUAL_FRAG_COSTS = {
-        // Early game — no fragment cost
-        blood_frenzy: 0, demonic_horde: 0, soul_sear: 0, essence_theft: 0,
-        unholy_power: 0, devils_bargain: 0,
+        // Early game — 5 fragments each
+        blood_frenzy: 5, demonic_horde: 5, soul_sear: 5, essence_theft: 5,
+        unholy_power: 5, devils_bargain: 5,
         // Mid game — small cost
         glacial_freeze: 5, divine_curse: 10, void_rupture: 15,
         entropic_cascade: 20, ascendants_echo: 25,
@@ -11233,8 +11233,8 @@ function executeFusion() {
         Toastify({ text: "You need at least one of each potion in your shelf.", duration:3000, gravity:'top', position:'center', style:{background:'#550000'} }).showToast();
         return;
     }
-    if (D(gameState.corruptedFragments || 0).lt(1)) {
-        Toastify({ text: "🔮 Fusion requires 1 Corrupted Fragment.", duration:3000, gravity:'top', position:'center', style:{background:'#550033'} }).showToast();
+    if (D(gameState.corruptedFragments || 0).lt(5)) {
+        Toastify({ text: "🔮 Fusion requires 5 Corrupted Fragments.", duration:3000, gravity:'top', position:'center', style:{background:'#550033'} }).showToast();
         return;
     }
 
@@ -11256,10 +11256,10 @@ Into:
 Both potions will be consumed. Proceed?`;
     if (!confirm(confirmMsg)) return;
 
-    // Consume both potions + 1 fragment
+    // Consume both potions + 5 fragments
     gameState.potions[a]--;
     gameState.potions[b]--;
-    gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(1);
+    gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(5);
 
     // Grant result
     if (!gameState.potions[resultId]) gameState.potions[resultId] = 0;
@@ -11328,7 +11328,9 @@ function renderBrewery() {
         const meta = getPotionMeta(id);
         const canAffordSouls = D(gameState.souls).gte(D(p.cost));
         const canAffordShards = !p.shardsCost || D(gameState.abyssalShards).gte(p.shardsCost);
-        const canAffordFrags = D(gameState.corruptedFragments || 0).gte(1);
+        const BREW_FRAG_COSTS = { common:1, uncommon:2, rare:3, epic:4, legendary:5, fused:0, market:0, 'market-legendary':0 };
+        const fragCost = p.raidOnly ? 1 : (BREW_FRAG_COSTS[meta.rarity] || 1);
+        const canAffordFrags = D(gameState.corruptedFragments || 0).gte(fragCost);
         const canAfford = canAffordSouls && canAffordShards && canAffordFrags;
 
         const cooldownEndTime = gameState.potionCooldowns[id];
@@ -11358,7 +11360,7 @@ function renderBrewery() {
             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
                 <span style="color:${canAffordSouls?'#e8c46a':'#ff4444'}; font-size:0.82em;">👻 ${formatNumber(p.cost)}</span>
                 ${p.shardsCost ? `<span style="color:${canAffordShards?'#44aaff':'#ff4444'}; font-size:0.82em;">💎 ${formatNumber(p.shardsCost)} Shards</span>` : ''}
-                <span style="color:${canAffordFrags?'#22c55e':'#ff4444'}; font-size:0.82em;">🔮 1 Fragment</span>
+                <span style="color:${canAffordFrags?'#22c55e':'#ff4444'}; font-size:0.82em;">🔮 ${fragCost} Fragment${fragCost !== 1 ? 's' : ''}</span>
             </div>
             <button class="upgrade-btn" onclick="brewPotion('${id}')" ${isDisabled ? 'disabled' : ''}
                 style="width:100%; border-color:${meta.color}66; ${!isDisabled ? `background:linear-gradient(135deg,${meta.color}18,transparent);` : 'opacity:0.5;'}">
@@ -11497,23 +11499,24 @@ function brewPotion(id) {
         return;
     }
 
+    // Per-potion fragment cost by rarity
+    const meta = getPotionMeta(id);
+    const BREW_FRAG_COSTS = { common:1, uncommon:2, rare:3, epic:4, legendary:5, fused:0, market:0, 'market-legendary':0 };
+    const fragCost = p.raidOnly ? 1 : (BREW_FRAG_COSTS[meta.rarity] || 1);
+
     let canAfford = D(gameState.souls).gte(D(p.cost))
     if (p.costType === 'souls_and_shards') {
         canAfford = D(gameState.souls).gte(D(p.cost)) && D(gameState.abyssalShards).gte(p.shardsCost);
     }
-    
-    const canAffordFrags = D(gameState.corruptedFragments || 0).gte(1);
+
+    const canAffordFrags = D(gameState.corruptedFragments || 0).gte(fragCost);
     if (canAfford && canAffordFrags) {
         gameState.souls = D(gameState.souls).sub(D(p.cost));
         gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(p.cost));
         if (p.shardsCost) gameState.abyssalShards = D(gameState.abyssalShards).sub(p.shardsCost);
-        gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(1);
+        gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(fragCost);
         gameState.potions[id] = (gameState.potions[id] || 0) + 1;
         gameState.potionsBrewed++;
-
-        // Cooldown is NOT set at brew time — only starts when you actually USE the potion.
-        // Re-brewing is blocked by the alreadyOwned check above (you cannot brew a second
-        // copy while you already have one sitting on your shelf).
 
         Toastify({ text: `🧪 ${p.name} added to your shelf!`, duration:3000, gravity:'top', position:'center',
             style:{background:'linear-gradient(135deg,#1a0830,#9944cc)'} }).showToast();
@@ -11522,6 +11525,8 @@ function brewPotion(id) {
         renderBrewery();
         checkButtons();
         saveGame();
+    } else if (!canAffordFrags) {
+        Toastify({ text: `🔮 Brewing ${p.name} requires ${fragCost} Fragment${fragCost !== 1 ? 's' : ''}.`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0030,#440044)'} }).showToast();
     }
 }
 // NEW, UPGRADED usePotion FUNCTION
@@ -12773,7 +12778,7 @@ function renderRituals() {
         const ritualState = gameState.activeRituals[id];
         const isOnCooldown = ritualState && Date.now() < ritualState.cooldownEndTime;
         const cannotAfford = D(gameState.souls).lt(D(r.cost));
-        const RITUAL_FRAG_COSTS = { glacial_freeze:5, divine_curse:10, void_rupture:15, entropic_cascade:20, ascendants_echo:25, reality_fracture:30, void_resonance:30, singularity_pulse:35, horizon_collapse:40, event_loop:30, temporal_rift:50, genesis_surge:50, primal_harvest:40, first_breath:60, godfire:75, ash_resurrection:60, divine_mandate:100, time_shatter:80, chronos_debt:70, age_of_ruin:100, omega_convergence:90, final_theorem:120, point_of_no_return:100, infinite_hunger:150, beyond_everything:200, the_last_ritual:250 };
+        const RITUAL_FRAG_COSTS = { blood_frenzy:5, demonic_horde:5, soul_sear:5, essence_theft:5, unholy_power:5, devils_bargain:5, glacial_freeze:5, divine_curse:10, void_rupture:15, entropic_cascade:20, ascendants_echo:25, reality_fracture:30, void_resonance:30, singularity_pulse:35, horizon_collapse:40, event_loop:30, temporal_rift:50, genesis_surge:50, primal_harvest:40, first_breath:60, godfire:75, ash_resurrection:60, divine_mandate:100, time_shatter:80, chronos_debt:70, age_of_ruin:100, omega_convergence:90, final_theorem:120, point_of_no_return:100, infinite_hunger:150, beyond_everything:200, the_last_ritual:250 };
         const fragCost = RITUAL_FRAG_COSTS[id] || 0;
         const cannotAffordFrags = fragCost > 0 && D(gameState.corruptedFragments || 0).lt(fragCost);
         const meta = ritualMeta[id] || { icon:'🔮', color:'#8855ff', glow:'#8855ff44' };
@@ -22311,7 +22316,7 @@ const _origActivateRitual = activateRitual;
 activateRitual = function(id) {
     const eclipseActive = gameState.activePotions['eclipse_key_buff'] && Date.now() < gameState.activePotions['eclipse_key_buff'];
     if (eclipseActive) {
-        // Temporarily zero the cost for this call
+        // Eclipse key makes rituals free — zero the SOUL cost only, fragments still required
         const origCost = rituals[id].cost;
         rituals[id].cost = 0;
         _origActivateRitual(id);

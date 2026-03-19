@@ -2578,9 +2578,13 @@ text-decoration: underline; /* Adds an underline on hover */
                         <span class="chip-label">SOULS</span>
                         <span class="chip-value" id="souls-display">0</span>
                     </div>
-                    <div class="currency-chip chip-essence" data-tooltip="Dark Essence — earned by sacrificing souls. Used to buy artifacts, rituals, and items on the market. Resets on Ascension.">
-                        <span class="chip-label">ESSENCE</span>
+                    <div class="currency-chip chip-essence" id="de-chip" data-tooltip="Dark Essence — earned by sacrificing souls. Used to buy artifacts, rituals, and items on the market. Resets on Ascension.">
+                        <span class="chip-label" id="essence-label">ESSENCE</span>
                         <span class="chip-value" id="essence-display">0</span>
+                    </div>
+                    <div class="currency-chip" id="le-chip" style="display:none;background:linear-gradient(135deg,#1a0a2a,#0a0020);border:1px solid #c8b4ff44;" data-tooltip="Light Essence — earned in the transcended realm. Used for Prayers and upgrades.">
+                        <span class="chip-label" style="color:#88ffcc;">LE</span>
+                        <span class="chip-value" id="le-display" style="color:#88ffcc;">0</span>
                     </div>
                     <div class="currency-chip chip-shards" data-tooltip="Abyssal Shards — earned on Ascension. Used to upgrade artifacts and unlock powerful bonuses. Survive Ascension.">
                         <span class="chip-label">SHARDS</span>
@@ -2637,7 +2641,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div class="nav-group-label label-power">Power</div>
                 <div class="nav-group-buttons">
                     <button onclick="showScreen('artifacts')">Artifacts</button>
-                    <button onclick="showScreen('rituals')">Rituals</button>
+                    <button id="rituals-nav-btn" onclick="showScreen('rituals')">Rituals</button>
                     <button onclick="showScreen('map')">Worlds</button>
                     <button onclick="showScreen('pvp')">Raids</button>
                     <button onclick="showScreen('crashgame')">Gauntlet</button>
@@ -2888,7 +2892,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div id="artifact-grid" class="ritual-grid"></div>
             </div>
             <div id="rituals-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#cc3333;">🔮 DARK RITUALS 🔮</h2>
+                <h2 id="rituals-header" style="letter-spacing:3px; color:#cc3333;">🔮 DARK RITUALS 🔮</h2>
                 <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Channel forbidden power through blood and sacrifice. Each ritual costs souls and enters a cooldown before it can be performed again.</p>
                 <div id="ritual-grid" class="ritual-grid"></div>
             </div>
@@ -3828,7 +3832,7 @@ text-decoration: underline; /* Adds an underline on hover */
                             <div style="display:flex; flex-direction:column; gap:7px; font-size:0.8em; color:#555;">
                                 <div><span style="color:#cc3333;">✗</span> All Souls (current run)</div>
                                 <div><span style="color:#cc3333;">✗</span> Dark Essence (unless tome saves some)</div>
-                                <div><span style="color:#cc3333;">✗</span> All Minion Levels &amp; Promotions</div>
+                                <div><span style="color:#cc3333;">✗</span> All Minion Levels &amp; Promotions (secret minions kept at Lv.1)</div>
                                 <div><span style="color:#cc3333;">✗</span> All Artifact Levels</div>
                                 <div><span style="color:#cc3333;">✗</span> Brewed Potions (shelf stock)</div>
                                 <div><span style="color:#cc3333;">✗</span> Click &amp; Resonance Upgrades</div>
@@ -3847,6 +3851,8 @@ text-decoration: underline; /* Adds an underline on hover */
                                 <div><span style="color:#44cc88;">✔</span> Aether &amp; Aether Upgrades</div>
                                 <div><span style="color:#44cc88;">✔</span> PvP Wins &amp; Losses</div>
                                 <div><span style="color:#44cc88;">✔</span> Banked Souls, Fragments &amp; Essence</div>
+                                <div><span style="color:#44cc88;">✔</span> Secret Minions (ranks reset)</div>
+                                <div><span style="color:#44cc88;">✔</span> Secret Minions (kept at Lv.1, ranks reset)</div>
                                 <div><span style="color:#44cc88;">✔</span> Pact membership</div>
                                 <div><span style="color:#44cc88;">✔</span> Lifetime stats (never reset)</div>
                             </div>
@@ -4557,6 +4563,7 @@ window.onload = function() {
 		// Cap instead of zero — Infinity/NaN wraps to max safe float, never to 0
 		// Re-wrap as Decimal (handles corrupt saves)
 		gameState.darkEssence        = D(gameState.darkEssence        || 0);
+        gameState.lightEssence       = D(gameState.lightEssence       || 0);
 		gameState.abyssalShards      = D(gameState.abyssalShards      || 0);
 		gameState.aether             = D(gameState.aether             || 0);
 		gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
@@ -4598,6 +4605,35 @@ window.onload = function() {
                 }
             }
             // --- END OF NEW LOGIC ---
+
+            // ── LIGHT ESSENCE generation (transcended side only) ─────────────
+            // LE generates passively at 1 per 10 seconds base, scaling with
+            // Guardian minions owned (like DE scales with dark minions)
+            if (gameState.isTranscended) {
+                let leGainBase = 0.1; // 1 LE per 10 sec base
+                let guardianCount = 0;
+                for (const id in gameState.guardianMinions) {
+                    if ((gameState.guardianMinions[id]?.level || 0) > 0) guardianCount++;
+                }
+                // Each guardian adds 0.05 LE/sec, scaled by its level
+                for (const id in gameState.guardianMinions) {
+                    const gm = gameState.guardianMinions[id];
+                    if (gm && gm.level > 0) leGainBase += 0.05 * Math.log10(gm.level + 1);
+                }
+                // Prayer bonus multiplier
+                const leMul = D(gameState.permanentPrayerBonuses?.le_multiplier || 1);
+                const leGain = D(leGainBase).mul(leMul);
+                gameState.lightEssence = D(gameState.lightEssence || 0).add(leGain);
+            }
+
+            // ── Prayer cooldown ticking (parallel to ritual cooldowns) ────────
+            if (gameState.isTranscended && gameState.activePrayers) {
+                for (const id in gameState.activePrayers) {
+                    if (gameState.activePrayers[id]?.cooldownEndTime > Date.now()) {
+                        if (!timeKeyActive) gameState.activePrayers[id].cooldownEndTime -= (timeToPass - 1000);
+                    }
+                }
+            }
 
             gameState.playTime++;
             let statsChanged = updateEffectTimers(now);
@@ -5072,6 +5108,30 @@ function getFusionResult(idA, idB) {
     // Always sort so A+B == B+A
     const sorted = [idA, idB].sort();
     const key = sorted[0] + '|' + sorted[1];
+
+    // ── LIGHT × DARK = NEUTRAL ────────────────────────────────────────────
+    // If one potion is lightOnly and the other is a standard/dark/fused potion,
+    // the opposing forces cancel into a balanced neutral fusion.
+    const aIsLight = potions[idA]?.lightOnly;
+    const bIsLight = potions[idB]?.lightOnly;
+    const neutralPool = [
+        'fusion_neutral_balance',
+        'fusion_neutral_convergence',
+        'fusion_neutral_harmony',
+        'fusion_neutral_void',
+        'fusion_neutral_zenith',
+    ];
+    if ((aIsLight && !bIsLight) || (!aIsLight && bIsLight)) {
+        let hash2 = 0;
+        for (let i = 0; i < key.length; i++) hash2 = ((hash2 << 5) - hash2 + key.charCodeAt(i)) | 0;
+        return neutralPool[Math.abs(hash2) % neutralPool.length];
+    }
+    // Light + Light just gives a random neutral too (they overwhelm each other)
+    if (aIsLight && bIsLight) {
+        let hash2 = 0;
+        for (let i = 0; i < key.length; i++) hash2 = ((hash2 << 5) - hash2 + key.charCodeAt(i)) | 0;
+        return neutralPool[Math.abs(hash2) % neutralPool.length];
+    }
 
     // Check specific recipes first
     const recipe = fusionRecipes.find(r =>
@@ -5873,6 +5933,39 @@ const minions = {
             { level: 30, desc: "Total erasure: all secret minion SPS multiplied by 4.", bonus: { type: 'secret_minion_sps_doubler', value: 4 } }
         ]
     },
+
+    // ── LEADERBOARD THRONE MINIONS ─────────────────────────────────
+    // Awarded automatically to #1 on each leaderboard tier.
+    // Do NOT give SPS — give unique permanent bonuses instead.
+    // Only one player can hold each at a time. Transferred on rank change.
+
+    god: {
+        name: "God",
+        baseSps: 0, cost: 0, multiplier: 0,
+        secret: true, leaderboardMinion: true, leaderboardTier: 'light',
+        lore: "The undisputed sovereign of Light Souls. It does not harvest — it simply IS. Its presence alone bends the fabric of existence toward your favour. Only the greatest Light Soul collector may call it ally.",
+        icon: '☀️',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "God grants +25% Abyssal Shard gains while you hold #1 Light Souls.", bonus: { type: 'ascension_shard_bonus', value: 1.25 } },
+            { level: 15, desc: "Divine authority: all Light World unlock costs -30%.", bonus: { type: 'minion_cost_reducer', value: 0.70 } },
+            { level: 30, desc: "Omnipotence: all Guardian minion research bonuses doubled.", bonus: { type: 'meta_research_doubler', value: 2 } }
+        ]
+    },
+
+    satan: {
+        name: "Satan",
+        baseSps: 0, cost: 0, multiplier: 0,
+        secret: true, leaderboardMinion: true, leaderboardTier: 'dark',
+        lore: "The supreme lord of Dark Souls. He does not harvest for you — he amplifies the darkness already within your harvest. Only the player sitting atop the Dark Souls leaderboard may claim him. He will leave the moment someone surpasses you.",
+        icon: '😈',
+        promotions: [],
+        researchTiers: [
+            { level: 5,  desc: "Satan grants +25% global SPS while you hold #1 Dark Souls.", bonus: { type: 'global_sps_multiplier', value: 1.25 } },
+            { level: 15, desc: "Infernal dominion: all ritual cooldowns -25%.", bonus: { type: 'ritual_cooldown_reducer', value: 0.75 } },
+            { level: 30, desc: "The devil's deal: all secret minion SPS ×3.", bonus: { type: 'secret_minion_sps_doubler', value: 3 } }
+        ]
+    },
 };
 
 // =================================================================
@@ -6522,6 +6615,51 @@ const battleMinions = {
     the_void_author:        { name: "The Void Author",        hp: 160, atk: 58, range: 4, cost: 36, icon: '🖋️', secret: true, donorOnly: true },
     the_bleeding_throne:    { name: "The Bleeding Throne",    hp: 280, atk: 52, range: 2, cost: 38, icon: '🩸', secret: true, donorOnly: true },
     the_unmaker:            { name: "The Unmaker",            hp: 200, atk: 65, range: 3, cost: 42, icon: '🌑', secret: true, donorOnly: true },
+
+    // GUARDIAN MINIONS — stronger combat stats than equivalent dark minion tiers
+    // Their base SPS is comparable to dark minions, but they excel in PvP/raids
+    luminary_sprite:     { name: "Luminary Sprite",     hp: 20,  atk: 7,  range: 3, cost: 3,  icon: '✨', secret: false },
+    dawn_sentinel:       { name: "Dawn Sentinel",       hp: 40,  atk: 12, range: 2, cost: 5,  icon: '🌅', secret: false },
+    aureate_angel:       { name: "Aureate Angel",       hp: 30,  atk: 16, range: 4, cost: 6,  icon: '😇', secret: false },
+    stellar_wraith:      { name: "Stellar Wraith",      hp: 22,  atk: 20, range: 5, cost: 7,  icon: '⭐', secret: false },
+    prism_golem:         { name: "Prism Golem",         hp: 70,  atk: 14, range: 1, cost: 8,  icon: '🔷', secret: false },
+    throne_guardian:     { name: "Throne Guardian",     hp: 110, atk: 16, range: 1, cost: 10, icon: '🛡️', secret: false },
+    void_seraph:         { name: "Void Seraph",         hp: 50,  atk: 24, range: 4, cost: 11, icon: '🌌', secret: false },
+    light_titan:         { name: "Light Titan",         hp: 130, atk: 20, range: 1, cost: 13, icon: '⚡', secret: false },
+    celestial_dragon:    { name: "Celestial Dragon",    hp: 90,  atk: 30, range: 3, cost: 14, icon: '🐉', secret: false },
+    radiant_oracle:      { name: "Radiant Oracle",      hp: 40,  atk: 36, range: 6, cost: 15, icon: '🔮', secret: false },
+    purity_engine:       { name: "Purity Engine",       hp: 145, atk: 22, range: 1, cost: 17, icon: '⚙️', secret: false },
+    genesis_herald:      { name: "Genesis Herald",      hp: 55,  atk: 40, range: 5, cost: 18, icon: '📯', secret: false },
+    infinite_warden:     { name: "Infinite Warden",     hp: 175, atk: 26, range: 1, cost: 20, icon: '👁️', secret: false },
+    the_first_guardian:  { name: "The First Guardian",  hp: 100, atk: 44, range: 3, cost: 21, icon: '🌟', secret: false },
+    the_undying_flame:   { name: "The Undying Flame",   hp: 70,  atk: 48, range: 2, cost: 22, icon: '🔥', secret: false },
+    genesis_spark:       { name: "Genesis Spark",       hp: 28,  atk: 52, range: 7, cost: 23, icon: '💫', secret: false },
+    solar_archon:        { name: "Solar Archon",        hp: 115, atk: 36, range: 2, cost: 25, icon: '☀️', secret: false },
+    harmonic_weaver:     { name: "Harmonic Weaver",     hp: 60,  atk: 56, range: 5, cost: 26, icon: '🎼', secret: false },
+    apex_herald:         { name: "Apex Herald",         hp: 90,  atk: 46, range: 4, cost: 27, icon: '📢', secret: false },
+    luminous_titan:      { name: "Luminous Titan",      hp: 200, atk: 32, range: 1, cost: 28, icon: '🌠', secret: false },
+    choir_seraph:        { name: "Choir Seraph",        hp: 75,  atk: 60, range: 6, cost: 30, icon: '🎙️', secret: false },
+    eternal_witness:     { name: "Eternal Witness",     hp: 130, atk: 48, range: 2, cost: 31, icon: '🔭', secret: false },
+    convergence_engine:  { name: "Convergence Engine",  hp: 230, atk: 36, range: 1, cost: 33, icon: '⚙️', secret: false },
+    void_architect:      { name: "Void Architect",      hp: 85,  atk: 66, range: 5, cost: 34, icon: '📐', secret: false },
+    absolute_guardian:   { name: "Absolute Guardian",   hp: 195, atk: 44, range: 1, cost: 35, icon: '⚜️', secret: false },
+    creation_wraith:     { name: "Creation Wraith",     hp: 70,  atk: 70, range: 4, cost: 36, icon: '🌊', secret: false },
+    infinity_herald:     { name: "Infinity Herald",     hp: 50,  atk: 78, range: 7, cost: 38, icon: '♾️', secret: false },
+    stellar_sovereign:   { name: "Stellar Sovereign",   hp: 265, atk: 40, range: 1, cost: 39, icon: '👑', secret: false },
+    the_last_angel:      { name: "The Last Angel",      hp: 110, atk: 74, range: 4, cost: 40, icon: '👼', secret: false },
+    pure_thought:        { name: "Pure Thought",        hp: 35,  atk: 85, range: 7, cost: 42, icon: '🧠', secret: false },
+    transcendent_core:   { name: "Transcendent Core",   hp: 310, atk: 48, range: 1, cost: 43, icon: '💎', secret: false },
+    omega_seraph:        { name: "Omega Seraph",        hp: 145, atk: 80, range: 5, cost: 44, icon: '🕊️', secret: false },
+    the_infinite_self:   { name: "The Infinite Self",   hp: 80,  atk: 88, range: 6, cost: 46, icon: '🪞', secret: false },
+    the_light_beyond:    { name: "The Light Beyond",    hp: 100, atk: 85, range: 4, cost: 47, icon: '✨', secret: false },
+    eternal_sovereign:   { name: "Eternal Sovereign",   hp: 340, atk: 52, range: 1, cost: 48, icon: '🏆', secret: false },
+    the_nameless_light:  { name: "The Nameless Light",  hp: 120, atk: 92, range: 5, cost: 50, icon: '🌟', secret: false },
+    genesis_prime:       { name: "Genesis Prime",       hp: 85,  atk: 96, range: 6, cost: 52, icon: '🌀', secret: false },
+    the_final_guardian:  { name: "The Final Guardian",  hp: 390, atk: 58, range: 1, cost: 55, icon: '🛡️', secret: false },
+    absolute_light:      { name: "Absolute Light",      hp: 130, atk: 100,range: 4, cost: 58, icon: '💡', secret: false },
+    // Leaderboard minions
+    god:                 { name: "God",                 hp: 500, atk: 80, range: 5, cost: 50, icon: '☀️', secret: true },
+    satan:               { name: "Satan",               hp: 500, atk: 80, range: 5, cost: 50, icon: '😈', secret: true },
 };
 
 
@@ -7149,6 +7287,227 @@ const rituals = {
   },
 
 };
+
+// =================================================================
+// PRAYERS — Light-side equivalent of Rituals (30 total)
+// Cost in Light Souls. requiredWorld = light world id.
+// Effects use same types as rituals but scaled for the light layer.
+// =================================================================
+const prayers = {
+  // ── TIER 1: Celestial Threshold ──────────────────────────────────
+  luminary_whisper: {
+    name: "Luminary Whisper",
+    desc: "A soft invocation. Soul gain ×2 for 30 seconds.",
+    cost: 1e12, leCost: 0, fragCost: 5, cooldown: 300,
+    requiredWorld: 'celestial_threshold',
+    effect: { type: 'sps_multiplier', value: 2, duration: 30 }
+  },
+  guardian_focus: {
+    name: "Guardian's Focus",
+    desc: "Sharpen the light. Soul click power ×3 for 30 seconds.",
+    cost: 1e13, leCost: 0, fragCost: 5, cooldown: 300,
+    requiredWorld: 'celestial_threshold',
+    effect: { type: 'spc_multiplier', value: 3, duration: 30 }
+  },
+  dawn_offering: {
+    name: "Dawn Offering",
+    desc: "Offer light to the void. Instantly gain souls equal to 5 minutes of SPS.",
+    cost: 1e14, leCost: 1, fragCost: 5, cooldown: 600,
+    requiredWorld: 'celestial_threshold',
+    effect: { type: 'gain_sps_seconds', value: 300 }
+  },
+  // ── TIER 2: Radiant Expanse ───────────────────────────────────────
+  aureate_chant: {
+    name: "Aureate Chant",
+    desc: "A resonant prayer. All soul gains ×3 for 60 seconds.",
+    cost: 1e16, leCost: 2, fragCost: 8, cooldown: 900,
+    requiredWorld: 'radiant_expanse',
+    effect: { type: 'global_multiplier', value: 3, duration: 60 }
+  },
+  light_essence_surge: {
+    name: "Light Essence Surge",
+    desc: "Channel radiance into essence. Instantly gain 5 Light Essence.",
+    cost: 1e17, leCost: 0, fragCost: 8, cooldown: 1800,
+    requiredWorld: 'radiant_expanse',
+    effect: { type: 'gain_light_essence', value: 5 }
+  },
+  guardian_tithe: {
+    name: "Guardian's Tithe",
+    desc: "All Guardian minion costs halved for 3 minutes.",
+    cost: 1e18, leCost: 2, fragCost: 8, cooldown: 1800,
+    requiredWorld: 'radiant_expanse',
+    effect: { type: 'temp_minion_cost_reducer', value: 0.5, duration: 180 }
+  },
+  // ── TIER 3: Prismatic Vault ───────────────────────────────────────
+  prismatic_pulse: {
+    name: "Prismatic Pulse",
+    desc: "A burst of pure light. Soul gain ×5 for 60 seconds.",
+    cost: 1e21, leCost: 3, fragCost: 12, cooldown: 1800,
+    requiredWorld: 'prismatic_vault',
+    effect: { type: 'sps_multiplier', value: 5, duration: 60 }
+  },
+  light_of_memory: {
+    name: "Light of Memory",
+    desc: "Recall the first light. Instantly gain souls equal to 15 minutes of SPS.",
+    cost: 1e22, leCost: 5, fragCost: 12, cooldown: 3600,
+    requiredWorld: 'prismatic_vault',
+    effect: { type: 'gain_sps_seconds', value: 900 }
+  },
+  celestial_resonance: {
+    name: "Celestial Resonance",
+    desc: "All soul gains ×5 for 90 seconds.",
+    cost: 1e24, leCost: 5, fragCost: 12, cooldown: 3600,
+    requiredWorld: 'prismatic_vault',
+    effect: { type: 'global_multiplier', value: 5, duration: 90 }
+  },
+  // ── TIER 4: Heaven's Threshold ───────────────────────────────────
+  seraphic_mandate: {
+    name: "Seraphic Mandate",
+    desc: "Divine authority: click power ×10 for 2 minutes.",
+    cost: 1e28, leCost: 8, fragCost: 18, cooldown: 3600,
+    requiredWorld: 'heavens_threshold',
+    effect: { type: 'spc_multiplier', value: 10, duration: 120 }
+  },
+  radiant_surge: {
+    name: "Radiant Surge",
+    desc: "Passively gain 10 Light Essence.",
+    cost: 1e29, leCost: 0, fragCost: 18, cooldown: 3600,
+    requiredWorld: 'heavens_threshold',
+    effect: { type: 'gain_light_essence', value: 10 }
+  },
+  eternal_vigil: {
+    name: "Eternal Vigil",
+    desc: "All gains ×8 for 2 minutes. Light never rests.",
+    cost: 1e31, leCost: 10, fragCost: 18, cooldown: 7200,
+    requiredWorld: 'heavens_threshold',
+    effect: { type: 'global_multiplier', value: 8, duration: 120 }
+  },
+  // ── TIER 5: Choir of Souls ────────────────────────────────────────
+  choir_invocation: {
+    name: "Choir Invocation",
+    desc: "Voices of the light: all soul gains ×10 for 2 minutes.",
+    cost: 1e35, leCost: 12, fragCost: 25, cooldown: 7200,
+    requiredWorld: 'choir_of_souls',
+    effect: { type: 'global_multiplier', value: 10, duration: 120 }
+  },
+  harmonic_tithe: {
+    name: "Harmonic Tithe",
+    desc: "The choir pays tribute. Instantly gain souls equal to 30 minutes of SPS.",
+    cost: 1e37, leCost: 15, fragCost: 25, cooldown: 7200,
+    requiredWorld: 'choir_of_souls',
+    effect: { type: 'gain_sps_seconds', value: 1800 }
+  },
+  resonant_blessing: {
+    name: "Resonant Blessing",
+    desc: "Gain 20 Light Essence and halve all prayer cooldowns.",
+    cost: 1e38, leCost: 5, fragCost: 25, cooldown: 14400,
+    requiredWorld: 'choir_of_souls',
+    effect: { type: 'prayer_haste_and_le', value: 20 }
+  },
+  // ── TIER 6: The Eternal Gate ─────────────────────────────────────
+  gate_invocation: {
+    name: "Gate Invocation",
+    desc: "Open the eternal gate. Everything ×15 for 3 minutes.",
+    cost: 1e42, leCost: 20, fragCost: 35, cooldown: 14400,
+    requiredWorld: 'eternal_gate',
+    effect: { type: 'global_multiplier', value: 15, duration: 180 }
+  },
+  light_of_creation: {
+    name: "Light of Creation",
+    desc: "Soul gain ×20 for 3 minutes. Creation never ends.",
+    cost: 1e44, leCost: 20, fragCost: 35, cooldown: 14400,
+    requiredWorld: 'eternal_gate',
+    effect: { type: 'sps_multiplier', value: 20, duration: 180 }
+  },
+  angelic_surge: {
+    name: "Angelic Surge",
+    desc: "Click power ×25 for 3 minutes.",
+    cost: 1e45, leCost: 25, fragCost: 35, cooldown: 14400,
+    requiredWorld: 'eternal_gate',
+    effect: { type: 'spc_multiplier', value: 25, duration: 180 }
+  },
+  // ── TIER 7: Starborn Sanctum ─────────────────────────────────────
+  starborn_prayer: {
+    name: "Starborn Prayer",
+    desc: "Born of stars: all gains ×30 for 3 minutes.",
+    cost: 1e52, leCost: 30, fragCost: 50, cooldown: 21600,
+    requiredWorld: 'starborn_sanctum',
+    effect: { type: 'global_multiplier', value: 30, duration: 180 }
+  },
+  constellation_rite: {
+    name: "Constellation Rite",
+    desc: "Each star a soul. Instantly gain souls equal to 1 hour of SPS.",
+    cost: 1e54, leCost: 35, fragCost: 50, cooldown: 21600,
+    requiredWorld: 'starborn_sanctum',
+    effect: { type: 'gain_sps_seconds', value: 3600 }
+  },
+  light_fracture: {
+    name: "Light Fracture",
+    desc: "Shatter light into essence. Gain 50 Light Essence instantly.",
+    cost: 1e55, leCost: 0, fragCost: 50, cooldown: 28800,
+    requiredWorld: 'starborn_sanctum',
+    effect: { type: 'gain_light_essence', value: 50 }
+  },
+  // ── TIER 8: The Absolute Throne ──────────────────────────────────
+  absolute_invocation: {
+    name: "Absolute Invocation",
+    desc: "All gains ×50 for 4 minutes.",
+    cost: 1e65, leCost: 50, fragCost: 75, cooldown: 28800,
+    requiredWorld: 'absolute_throne',
+    effect: { type: 'global_multiplier', value: 50, duration: 240 }
+  },
+  throne_of_light: {
+    name: "Throne of Light",
+    desc: "Sit upon the throne: gain 100 Light Essence and ×10 gains for 2 min.",
+    cost: 1e68, leCost: 20, fragCost: 75, cooldown: 43200,
+    requiredWorld: 'absolute_throne',
+    effect: { type: 'prayer_throne', leBonus: 100, duration: 120 }
+  },
+  genesis_prayer: {
+    name: "Genesis Prayer",
+    desc: "Return to the source. Soul gain ×100 for 2 minutes.",
+    cost: 1e70, leCost: 60, fragCost: 75, cooldown: 43200,
+    requiredWorld: 'absolute_throne',
+    effect: { type: 'sps_multiplier', value: 100, duration: 120 }
+  },
+  // ── TIER 9: Beyond the Veil ──────────────────────────────────────
+  veil_communion: {
+    name: "Veil Communion",
+    desc: "Touch the beyond: all gains ×200 for 2 minutes.",
+    cost: 1e80, leCost: 80, fragCost: 100, cooldown: 43200,
+    requiredWorld: 'beyond_the_veil',
+    effect: { type: 'global_multiplier', value: 200, duration: 120 }
+  },
+  nameless_light: {
+    name: "Prayer to the Nameless",
+    desc: "No name, only light. Instantly gain souls equal to 3 hours of SPS.",
+    cost: 1e85, leCost: 100, fragCost: 100, cooldown: 86400,
+    requiredWorld: 'beyond_the_veil',
+    effect: { type: 'gain_sps_seconds', value: 10800 }
+  },
+  // ── TIER 10: The Absolute (final tier) ───────────────────────────
+  first_light: {
+    name: "The First Light",
+    desc: "The very first prayer. Everything ×500 for 3 minutes.",
+    cost: 1e100, leCost: 150, fragCost: 150, cooldown: 86400,
+    requiredWorld: 'the_absolute',
+    effect: { type: 'global_multiplier', value: 500, duration: 180 }
+  },
+  absolute_clarity: {
+    name: "Absolute Clarity",
+    desc: "Nothing is hidden: gain 500 Light Essence and ×1000 gains for 1 minute.",
+    cost: 1e120, leCost: 100, fragCost: 150, cooldown: 172800,
+    requiredWorld: 'the_absolute',
+    effect: { type: 'prayer_clarity', leBonus: 500, duration: 60 }
+  },
+  the_final_prayer: {
+    name: "The Final Prayer",
+    desc: "For 5 minutes, ALL gains are multiplied by 10,000. This is the last word of light.",
+    cost: 1e150, leCost: 200, fragCost: 150, cooldown: 604800,
+    requiredWorld: 'the_absolute',
+    effect: { type: 'global_multiplier', value: 10000, duration: 300 }
+  },
+};
 const worlds = {
   nether_plains: {
     name: "Nether Plains",
@@ -7705,6 +8064,86 @@ const potions = {
         effect: { type: 'raid_heal', value: 1.0 }
     },
 
+    // ── LIGHT SOUL POTIONS ─────────────────────────────────────────
+    // These potions are labeled as "light" — they work normally when transcended.
+    // When used on the dark side, their effect is reversed (souls divided, never below 0).
+
+    phial_of_radiance: {
+        name: "Phial of Radiance",
+        desc: "✦ Grants 30 minutes of your current SPS in souls. Warning: unstable on the dark side — halves current souls if misused.",
+        cost: 1e30,
+        lightOnly: true,
+        effect: { type: 'light_gain_sps_minutes', value: 30, darkPenalty: 'halve_souls' }
+    },
+    celestial_draught: {
+        name: "Celestial Draught",
+        desc: "✦ For 3 minutes, soul gain is tripled. Warning: volatile energy — halves SPS for 3 minutes if improperly channeled.",
+        cost: 1e35,
+        lightOnly: true,
+        effect: { type: 'light_sps_triple', duration: 180, darkPenalty: 'halve_sps' }
+    },
+    vial_of_first_light: {
+        name: "Vial of First Light",
+        desc: "✦ Instantly unlocks the next progression tier for free. Warning: forbidden resonance — increases world costs by 50% for 5 minutes if misused.",
+        cost: 1e40,
+        lightOnly: true,
+        costType: 'souls_and_shards',
+        shardsCost: 500,
+        effect: { type: 'light_free_world_unlock', darkPenalty: 'world_cost_increase' }
+    },
+    elixir_of_transcendence: {
+        name: "Elixir of Transcendence",
+        desc: "✦ All advanced minion costs halved for 10 minutes. Warning: chaotic energy — doubles all minion costs for 5 minutes if improperly used.",
+        cost: 1e45,
+        lightOnly: true,
+        costType: 'souls_and_shards',
+        shardsCost: 2000,
+        effect: { type: 'light_guardian_cost_halve', duration: 600, darkPenalty: 'double_minion_costs' }
+    },
+    ichor_of_absolute_light: {
+        name: "Ichor of Absolute Light",
+        desc: "✦ All soul gains ×5 for 5 minutes AND grants +50 Abyssal Shards. Warning: extreme backlash — removes 50 Shards and halves SPS for 2 minutes if misused.",
+        cost: 1e55,
+        lightOnly: true,
+        costType: 'souls_and_shards',
+        shardsCost: 10000,
+        effect: { type: 'light_mega_boost', duration: 300, shardBonus: 50, darkPenalty: 'shard_remove_and_halve' }
+    },
+
+
+    // ── NEUTRAL FUSION POTIONS (Light × Dark) ────────────────────────────
+    // Created only by fusing a light potion with any dark/standard potion.
+    // Balanced effect — no dark penalty, no transcendence bonus. Works on both sides.
+    fusion_neutral_balance: {
+        name: "Equilibrium Draught",
+        desc: "The light and dark cancel perfectly. Grants 10 minutes of 1.5× SPS and 1.5× SPC. Works on any side.",
+        cost: 0, fusedOnly: true,
+        effect: { type: 'sps_multiplier_flat', value: 1.5, duration: 600 }
+    },
+    fusion_neutral_convergence: {
+        name: "Convergence Phial",
+        desc: "Light meets dark in perfect stillness. Instantly grants 15 minutes of your current SPS as souls.",
+        cost: 0, fusedOnly: true,
+        effect: { type: 'gain_sps_seconds_flat', value: 900 }
+    },
+    fusion_neutral_harmony: {
+        name: "Harmonic Vial",
+        desc: "A rare balance of opposing forces. Grants 50 Abyssal Shards and reduces all ritual cooldowns by 10 minutes.",
+        cost: 0, fusedOnly: true,
+        effect: { type: 'neutral_harmony' }
+    },
+    fusion_neutral_void: {
+        name: "Void Accord",
+        desc: "Light and dark dissolve into void. Grants 5 minutes of ×2 soul gain and ×2 click power.",
+        cost: 0, fusedOnly: true,
+        effect: { type: 'neutral_void_accord', duration: 300 }
+    },
+    fusion_neutral_zenith: {
+        name: "Zenith Elixir",
+        desc: "Neither light nor dark — pure potential. Grants 20 Dark Essence and +5% SPS permanently (stacks up to 10×).",
+        cost: 0, fusedOnly: true,
+        effect: { type: 'neutral_zenith' }
+    },
 
     // ── NEW BREWED POTIONS ───────────────────────────────────────────────
     essence_of_the_damned: {
@@ -8591,7 +9030,7 @@ const expeditions = {
         cost: 1000,
         costType: 'souls',
         rewards: [
-            { type: 'guaranteed', item: 'corruptedFragments', min: 1, max: 1 },
+             { type: 'chance', item: 'corruptedFragments', chance: 0.08, min: 1, max: 4 },
             { type: 'chance', item: 'common_item', chance: 0.10 } // 10% chance
         ]
     },
@@ -8604,7 +9043,7 @@ const expeditions = {
         cost: 50000,
         costType: 'souls',
         rewards: [
-            { type: 'guaranteed', item: 'corruptedFragments', min: 1, max: 3 },
+             { type: 'chance', item: 'corruptedFragments', chance: 0.12, min: 2, max: 6 },
             { type: 'chance', item: 'uncommon_item', chance: 0.05 }
         ]
     },
@@ -8619,7 +9058,7 @@ const expeditions = {
         cost: 500000,
         costType: 'souls',
         rewards: [
-            { type: 'guaranteed', item: 'corruptedFragments', min: 3, max: 5 },
+             { type: 'chance', item: 'corruptedFragments', chance: 0.20, min: 2, max: 8 },
             { type: 'chance', item: 'uncommon_item', chance: 0.20 }
         ]
     },
@@ -8632,7 +9071,7 @@ const expeditions = {
         cost: 1000000,
         costType: 'souls',
         rewards: [
-            { type: 'guaranteed', item: 'corruptedFragments', min: 5, max: 10 },
+             { type: 'chance', item: 'corruptedFragments', chance: 0.30, min: 4, max: 10 },
             { type: 'chance', item: 'epic_item', chance: 0.02 }
         ]
     },
@@ -8647,7 +9086,7 @@ const expeditions = {
         cost: 50,
         costType: 'essence',
         rewards: [
-            { type: 'guaranteed', item: 'corruptedFragments', min: 20, max: 30 },
+             { type: 'guaranteed', item: 'corruptedFragments', min: 4, max: 15 },
             { type: 'chance', item: 'epic_item', chance: 0.10 },
         ]
     },
@@ -8660,7 +9099,7 @@ const expeditions = {
         cost: 250,
         costType: 'essence',
         rewards: [
-            { type: 'guaranteed', item: 'corruptedFragments', min: 50, max: 75 },
+             { type: 'guaranteed', item: 'corruptedFragments', min: 6, max: 20 },
             { type: 'chance', item: 'legendary_item', chance: 0.05 }
         ]
     }
@@ -8940,6 +9379,9 @@ function getDefaultGameState() {
         transcendenceCount: 0,
         unlockedLightWorlds: [],
         guardianMinions: {}, // separate from dark minions
+        lightEssence: 0,     // LE — parallel to DE on the light side
+        activePrayers: {},   // active prayer cooldowns (parallel to activeRituals)
+        permanentPrayerBonuses: { lps_multiplier: 1, lpc_multiplier: 1, global_light_multiplier: 1 },
     };
 }
 // =================================================================
@@ -9250,6 +9692,7 @@ async function saveGame() {
         totalCollapses:    safe(gameState.totalCollapses),
         // Light Souls transcendence fields
         isTranscended:     gameState.isTranscended ? true : false,
+        light_essence:     safe(D(gameState.lightEssence || 0).toNumber()),
         lightSoulsLog:     gameState.isTranscended && D(gameState.lifetimeSouls).gt(0)
                                ? safe(D(gameState.lifetimeSouls).log10().toNumber(), 0)
                                : 0,
@@ -9338,6 +9781,9 @@ function loadGame() {
             if (gameState.isTranscended) {
                 gameState.lightSouls         = D(gameState.lightSouls         || 0);
                 gameState.lifetimeLightSouls = D(gameState.lifetimeLightSouls || 0);
+                gameState.lightEssence       = D(gameState.lightEssence       || 0);
+                if (!gameState.activePrayers)          gameState.activePrayers = {};
+                if (!gameState.permanentPrayerBonuses) gameState.permanentPrayerBonuses = { lps_multiplier:1, lpc_multiplier:1, global_light_multiplier:1 };
                 if (!gameState.unlockedLightWorlds || gameState.unlockedLightWorlds.length === 0) {
                     gameState.unlockedLightWorlds = ['celestial_threshold'];
                 }
@@ -9549,15 +9995,17 @@ function promoteMinion(id) {
     effectiveEssenceCost = Math.floor(effectiveEssenceCost);
     // --- END: NEW REWARD LOGIC ---
 
-    // Check if the player meets all requirements, using the newly calculated cost.
-    const canAffordSouls = D(gameState.souls).gte(D(nextPromotion.soulCost))
-    const canAffordEssence = D(gameState.darkEssence).gte(effectiveEssenceCost); // Use the calculated cost for the check
+    // Check if the player meets all requirements.
+    // When transcended, souls = Light Souls. Essence cost is waived on light side.
+    const canAffordSouls   = D(gameState.souls).gte(D(nextPromotion.soulCost));
+    const canAffordEssence = gameState.isTranscended ? true : D(gameState.darkEssence).gte(effectiveEssenceCost);
     const hasRequiredLevel = playerMinion.level >= nextPromotion.level;
 
     if (canAffordSouls && canAffordEssence && hasRequiredLevel) {
-        // Subtract the cost from the player's resources.
-        gameState.souls = D(gameState.souls).sub(D(nextPromotion.soulCost));
-        gameState.darkEssence = D(gameState.darkEssence).sub(effectiveEssenceCost); // Subtract the calculated cost
+        gameState.souls = D(gameState.souls).sub(D(nextPromotion.soulCost)).max(0);
+        if (!gameState.isTranscended) {
+            gameState.darkEssence = D(gameState.darkEssence).sub(effectiveEssenceCost);
+        }
 
         // Increase the minion's promotion tier.
         playerMinion.promotionTier++;
@@ -9595,16 +10043,29 @@ function buyArtifact(id) {
 
     const baseCost = artifact.shardsCost || artifact.cost;
     const costType = artifact.shardsCost ? 'shards' : 'essence';
-    // Transcended players pay 3× more for artifacts
-    const transcendMul = gameState.isTranscended ? 3 : 1;
-    const currentCost = D(baseCost).mul(D(costMultiplier).pow(level)).mul(transcendMul).floor();
+    const darkCost = D(baseCost).mul(D(costMultiplier).pow(level)).floor();
 
     let canAfford = false;
-    if (costType === 'shards' && D(gameState.abyssalShards).gte(currentCost)) {
-        gameState.abyssalShards = D(gameState.abyssalShards).sub(currentCost);
+    if (gameState.isTranscended) {
+        if (costType === 'shards') {
+            // First 3 shard artifacts — still cost Shards on light side
+            if (D(gameState.abyssalShards).gte(darkCost)) {
+                gameState.abyssalShards = D(gameState.abyssalShards).sub(darkCost);
+                canAfford = true;
+            }
+        } else {
+            // Essence artifacts on light side — cost LE (×3)
+            const leCost = darkCost.mul(3);
+            if (D(gameState.lightEssence || 0).gte(leCost)) {
+                gameState.lightEssence = D(gameState.lightEssence || 0).sub(leCost).max(0);
+                canAfford = true;
+            }
+        }
+    } else if (costType === 'shards' && D(gameState.abyssalShards).gte(darkCost)) {
+        gameState.abyssalShards = D(gameState.abyssalShards).sub(darkCost);
         canAfford = true;
-    } else if (costType === 'essence' && D(gameState.darkEssence).gte(currentCost)) {
-        gameState.darkEssence = D(gameState.darkEssence).sub(currentCost);
+    } else if (costType === 'essence' && D(gameState.darkEssence).gte(darkCost)) {
+        gameState.darkEssence = D(gameState.darkEssence).sub(darkCost);
         canAfford = true;
     }
 
@@ -9888,6 +10349,14 @@ function executeAscension() {
   const oldTotalShardsEarned = gameState.totalShardsEarned;
   // completedPuzzles NOT saved
 
+  // Preserve secret minions — keep ownership but reset promotion rank
+  const savedSecretMinions = {};
+  for (const id in gameState.minions) {
+      if (minions[id]?.secret && gameState.minions[id].level > 0) {
+          savedSecretMinions[id] = { level: 1, cost: D(minions[id].cost), promotionTier: 0 };
+      }
+  }
+
   gameState = getDefaultGameState();
   gameState.permanentRitualBonuses = { spc_multiplier: 1, sps_multiplier: 1, global_multiplier: 1 };
 
@@ -9926,6 +10395,11 @@ function executeAscension() {
   gameState.cachesOpened = oldCachesOpened;
   gameState.potionsBrewed = oldPotionsBrewed;
   gameState.ritualsPerformed = oldRitualsPerformed;
+
+  // Restore secret minions (kept on ascension, ranks reset to 0)
+  for (const id in savedSecretMinions) {
+      gameState.minions[id] = savedSecretMinions[id];
+  }
   // PG resets on collapse
 
   if (gameState.aetherUpgrades?.startMinions?.level > 0) {
@@ -10123,7 +10597,12 @@ function executeTranscendence() {
 function renderTranscendenceIndicator() {
     // Show a small indicator in the player stats area if transcended
     const existing = document.getElementById('transcend-badge');
+    // Update Rituals → Prayers tab label
+    const ritualsBtn = document.getElementById('rituals-nav-btn');
+    const ritualsHeader = document.getElementById('rituals-header');
     if (gameState.isTranscended) {
+        if (ritualsBtn) ritualsBtn.textContent = 'Prayers';
+        if (ritualsHeader) { ritualsHeader.textContent = '🙏 CELESTIAL PRAYERS 🙏'; ritualsHeader.style.color = '#c8b4ff'; }
         if (!existing) {
             const statsContainer = document.getElementById('player-stats-container');
             if (statsContainer) {
@@ -10134,8 +10613,10 @@ function renderTranscendenceIndicator() {
                 statsContainer.insertBefore(badge, statsContainer.firstChild);
             }
         }
-    } else if (existing) {
-        existing.remove();
+    } else {
+        if (ritualsBtn) ritualsBtn.textContent = 'Rituals';
+        if (ritualsHeader) { ritualsHeader.textContent = '🔮 DARK RITUALS 🔮'; ritualsHeader.style.color = '#cc3333'; }
+        if (existing) existing.remove();
     }
 }
 
@@ -10658,6 +11139,25 @@ function calculateStats() {
             if (effect.type === 'prestige_bonus_squared_flat')     { const _pb2 = D(1).add(D(gameState.abyssalShards||0).add(1).log10().mul(0.5 * prestigeBonusEnhancer)); global_multiplier = _gm_mul(_pb2); }
             if (effect.type === 'gain_exponent_flat')              global_multiplier = global_multiplier.pow(effect.value || 1.05);
             if (effect.type === 'add_sps_to_spc_flat')            { /* handled post-SPS calc */ }
+            // Neutral fusion buffs
+            if (effect.type === 'neutral_void_accord')             { sps_multiplier = sps_multiplier.mul(2); spc_multiplier = spc_multiplier.mul(2); }
+            // Light potion buffs (only meaningful when transcended but stored the same way)
+            if (effect.type === 'light_sps_triple')                sps_multiplier = sps_multiplier.mul(3);
+            if (effect.type === 'light_guardian_cost_halve')       tempMinionCostFactor *= 0.5;
+            if (effect.type === 'light_mega_boost')                { sps_multiplier = sps_multiplier.mul(5); spc_multiplier = spc_multiplier.mul(5); }
+        }
+    }
+    // ── Prayer buffs (_prayerBuffs) ─────────────────────────────────────
+    if (gameState._prayerBuffs) {
+        const nowP = Date.now();
+        for (const key in gameState._prayerBuffs) {
+            const pb = gameState._prayerBuffs[key];
+            if (!pb || nowP > pb.endsAt) { delete gameState._prayerBuffs[key]; continue; }
+            const pe = pb.effect;
+            if (pe.type === 'sps_multiplier')   sps_multiplier = sps_multiplier.mul(D(pe.value));
+            if (pe.type === 'spc_multiplier')   spc_multiplier = spc_multiplier.mul(D(pe.value));
+            if (pe.type === 'global_multiplier') global_multiplier = _gm_mul(D(pe.value));
+            if (pe.type === 'temp_minion_cost_reducer') tempMinionCostFactor *= pe.value;
         }
     }
     // =================================================================
@@ -10679,6 +11179,11 @@ function calculateStats() {
     if (worldBonus.type === 'sps_multiplier') sps_multiplier = sps_multiplier.mul(D(worldBonus.value));
     if (worldBonus.type === 'spc_multiplier') spc_multiplier = spc_multiplier.mul(D(worldBonus.value));
     global_multiplier = _gm_mul(D(worldBonus.value));
+
+    // ── ZENITH ELIXIR permanent stacks (+5% SPS each, up to 10×) ──────────
+    if (gameState.zenithStacks && gameState.zenithStacks > 0) {
+        sps_multiplier = sps_multiplier.mul(D(1 + 0.05 * Math.min(gameState.zenithStacks, 10)));
+    }
 
     // ── GUARDIAN MINIONS SPS (Light Souls layer) ──────────────────
     if (gameState.isTranscended && gameState.guardianMinions) {
@@ -10855,6 +11360,13 @@ function updateDynamicDisplays() {
       soulsChipEl.style.borderColor = gameState.isTranscended ? '#9966ff44' : '';
       soulsChipEl.querySelector('.chip-value').style.color = gameState.isTranscended ? '#c8b4ff' : '';
   }
+  // LE chip — show when transcended, hide otherwise. DE chip relabels to show context.
+  const leChip = document.getElementById('le-chip');
+  const deLabel = document.getElementById('essence-label');
+  if (leChip) leChip.style.display = gameState.isTranscended ? '' : 'none';
+  if (deLabel) deLabel.textContent = gameState.isTranscended ? 'DE' : 'ESSENCE';
+  const leDisplay = document.getElementById('le-display');
+  if (leDisplay) leDisplay.textContent = formatNumber(D(gameState.lightEssence || 0));
 
   // Pact buff live countdown
   if (typeof renderPactBuffStatus === 'function') renderPactBuffStatus();
@@ -11068,7 +11580,7 @@ function renderMinions() {
 
         const nextPromotion = m.promotions ? m.promotions[p.promotionTier] : null;
         const canPromote = nextPromotion && p.level >= nextPromotion.level;
-        const canAffordPromote = canPromote && D(gameState.souls).gte(D(nextPromotion.soulCost)) && D(gameState.darkEssence).gte(nextPromotion.essenceCost);
+        const canAffordPromote = canPromote && D(gameState.souls).gte(D(nextPromotion.soulCost)) && (gameState.isTranscended || D(gameState.darkEssence).gte(nextPromotion.essenceCost));
         const canAffordBuy = D(gameState.souls).gte(D(p.cost))
 
         // Promotion tier stars
@@ -11090,7 +11602,7 @@ function renderMinions() {
                 style="width:100%; border-color:#c8a80088; background:linear-gradient(135deg,#c8a80022,transparent); ${!canAffordPromote?'opacity:0.5;':''}">
                 <span style="color:#c8a800;">⬆ PROMOTE to Tier ${p.promotionTier+1}</span>
                 <span style="display:block; font-size:0.75em; margin-top:2px; color:#888;">
-                    ${formatNumber(nextPromotion.soulCost)} souls + ${formatNumber(nextPromotion.essenceCost)} DE
+                    ${formatNumber(nextPromotion.soulCost)} ${gameState.isTranscended ? '✦ Light Souls' : 'souls'}${gameState.isTranscended ? '' : ' + ' + formatNumber(nextPromotion.essenceCost) + ' DE'}
                 </span>
             </button>`;
         } else {
@@ -11621,6 +12133,94 @@ function renderBestiary() {
             secretGrid.appendChild(card);
         });
         grid.appendChild(secretGrid);
+
+        // ── GUARDIAN MINIONS BESTIARY (only shown when transcended) ──
+        if (gameState.isTranscended && guardianMinions) {
+            const guardianIds = Object.keys(guardianMinions);
+            const guardianUnlocked = guardianIds.filter(id => (gameState.guardianMinions?.[id]?.level || 0) > 0).length;
+
+            const guardianHeader = document.createElement('div');
+            guardianHeader.style.cssText = `display:flex; align-items:center; gap:10px; margin:24px 0 12px; padding:10px 16px; background:linear-gradient(135deg,#0a0a2222,transparent); border:1px solid #c8b4ff22; border-left:4px solid #c8b4ff; border-radius:10px;`;
+            guardianHeader.innerHTML = `
+                <span style="font-size:1.4em;">✦</span>
+                <div style="flex:1;">
+                    <div style="color:#c8b4ff; font-weight:bold; font-size:0.9em; letter-spacing:1px;">Guardian Minions — Light Souls Layer</div>
+                    <div style="color:#4a3870; font-size:0.7em;">${guardianUnlocked} / ${guardianIds.length} summoned · Celestial entities of the Light</div>
+                </div>
+                <div style="background:#c8b4ff15; border:1px solid #c8b4ff33; border-radius:20px; padding:2px 10px; font-size:0.7em; color:#c8b4ff;">${guardianUnlocked > 0 ? `${Math.round(guardianUnlocked/guardianIds.length*100)}%` : '???'}</div>`;
+            grid.appendChild(guardianHeader);
+
+            const guardianGrid = document.createElement('div');
+            guardianGrid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:12px; margin-bottom:8px;';
+
+            guardianIds.forEach(id => {
+                const gd = guardianMinions[id];
+                const gm = gameState.guardianMinions?.[id];
+                const isUnlocked = gm && gm.level > 0;
+                const card = document.createElement('div');
+                const tc = '#c8b4ff';
+
+                if (!isUnlocked) {
+                    card.style.cssText = `background:#07050f; border:1px solid #c8b4ff11; border-top:3px solid #2a1a4a; border-radius:12px; padding:16px; opacity:0.5; display:flex; align-items:center; gap:12px;`;
+                    card.innerHTML = `
+                        <div style="font-size:2.2em; filter:grayscale(1) brightness(0.2);">✦</div>
+                        <div>
+                            <div style="color:#2a1a4a; font-weight:bold; font-size:0.88em; letter-spacing:1px;">??? Guardian ???</div>
+                            <div style="color:#1a0a2a; font-size:0.72em; margin-top:4px; font-style:italic;">A celestial presence stirs. Summon it by unlocking the required Light World.</div>
+                        </div>`;
+                } else {
+                    const currentTier = gd.researchTiers?.filter(t => gm.level >= t.level).length || 0;
+                    const maxTier = gd.researchTiers?.length || 3;
+                    const nextTier = gd.researchTiers?.[currentTier];
+                    const progressPct = nextTier ? Math.min(100, Math.round((gm.level / nextTier.level) * 100)) : 100;
+
+                    const tierDots = gd.researchTiers?.map((t, i) => {
+                        const done = i < currentTier;
+                        return `<div title="${t.desc}" style="width:10px;height:10px;border-radius:50%;background:${done ? tc : '#1a1030'};border:1px solid ${done ? tc : '#2a1a3a'};"></div>`;
+                    }).join('') || '';
+                    const researchRows = gd.researchTiers?.map((t, i) => {
+                        const done = i < currentTier;
+                        return `<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid #0d0a18;opacity:${done?1:0.4};">
+                            <span style="color:${done?tc:'#333'};font-size:0.8em;flex-shrink:0;">◈ Lv${t.level}</span>
+                            <span style="color:${done?'#aaa':'#444'};font-size:0.75em;line-height:1.3;">${t.desc}</span>
+                            ${done?`<span style="color:${tc};font-size:0.7em;flex-shrink:0;margin-left:auto;">✔</span>`:''}
+                        </div>`;
+                    }).join('') || '';
+
+                    card.style.cssText = `background:linear-gradient(135deg,#0a0818,#140a28); border:1px solid ${tc}22; border-top:3px solid ${tc}; border-radius:12px; padding:16px; position:relative;`;
+                    card.innerHTML = `
+                        <div style="position:absolute;top:8px;right:10px;background:#c8b4ff22;border:1px solid #c8b4ff44;border-radius:10px;padding:1px 8px;font-size:0.62em;color:#c8b4ff;letter-spacing:1px;">✦ GUARDIAN</div>
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                            <div style="font-size:2em;filter:drop-shadow(0 0 8px ${tc}88);">${gd.icon}</div>
+                            <div style="flex:1;">
+                                <div style="color:#ddd;font-weight:bold;font-size:0.88em;">${gd.name}</div>
+                                <div style="color:#555;font-size:0.7em;">Lv ${gm.level} · ${formatNumber(D(gd.baseSps).mul(gm.level))} base LPS</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="color:${tc};font-size:0.7em;text-transform:uppercase;letter-spacing:1px;">Tier</div>
+                                <div style="color:${tc};font-weight:bold;font-size:1.1em;">${currentTier}/${maxTier}</div>
+                            </div>
+                        </div>
+                        <p style="color:#3a2860;font-size:0.72em;font-style:italic;line-height:1.4;margin:0 0 10px;">${gd.lore}</p>
+                        ${nextTier ? `<div style="margin-bottom:10px;">
+                            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                                <span style="color:#555;font-size:0.68em;">Progress to Lv ${nextTier.level}</span>
+                                <span style="color:${tc};font-size:0.68em;">${progressPct}%</span>
+                            </div>
+                            <div style="background:#0a0812;border-radius:4px;height:5px;overflow:hidden;">
+                                <div style="height:100%;width:${progressPct}%;background:linear-gradient(90deg,${tc}88,${tc});border-radius:4px;"></div>
+                            </div>
+                        </div>` : `<div style="color:${tc};font-size:0.72em;text-align:center;margin-bottom:10px;">✦ All research unlocked ✦</div>`}
+                        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+                            <span style="color:#444;font-size:0.68em;text-transform:uppercase;letter-spacing:1px;">Research</span>
+                            <div style="display:flex;gap:4px;">${tierDots}</div>
+                        </div>
+                        <div style="border-top:1px solid #1a1030;padding-top:8px;">${researchRows}</div>`;
+                }
+                guardianGrid.appendChild(card);
+            });
+            grid.appendChild(guardianGrid);
+        }
     }
 }
 
@@ -11780,6 +12380,38 @@ function renderArtifacts() {
     if (!grid) return;
     grid.innerHTML = '';
 
+    // ── Light versions of every artifact (shown when transcended) ──────────
+    const lightArtifacts = {
+        shard_of_avarice:       { name: "Shard of Radiance",        desc: "Your manual harvests channel 100% more celestial light." },
+        demonic_pact:           { name: "Angelic Covenant",          desc: "All Guardians are 25% more attuned to the light." },
+        unholy_effigy:          { name: "Holy Effigy",               desc: "Reduces the cost of all Guardian minions by 5%." },
+        brazier_of_cinders:     { name: "Brazier of Dawn",           desc: "Luminary Sprites and Dawn Sentinels radiate 100% more light." },
+        ember_locket:           { name: "Aureate Locket",            desc: "The Harvest of Light upgrade is 10% cheaper." },
+        philosophers_stone:     { name: "Celestial Keystone",        desc: "Offerings yield 20% more Light Essence." },
+        charons_oar:            { name: "Seraph's Wing",             desc: "Each Light World unlocked increases all soul gain by 5%." },
+        crown_of_the_damned:    { name: "Crown of Ascension",        desc: "Gain 1% more souls for each unique Light Artifact you own." },
+        hellfire_talisman:      { name: "Heavenly Talisman",         desc: "Prayer effects last 25% longer." },
+        book_of_belial:         { name: "Book of Blessings",         desc: "Prayers cool down 10% faster." },
+        heart_of_winter:        { name: "Heart of Starlight",        desc: "All celestial Guardian minions produce 200% more souls." },
+        hourglass_of_ages:      { name: "Hourglass of Eternity",     desc: "Gain a 10% bonus to Abyssal Shards when you Ascend." },
+        broken_halo:            { name: "Restored Halo",             desc: "All Guardian Seraphim also boost click power by 0.01% of their SPS." },
+        scroll_of_heresy:       { name: "Scroll of Revelation",      desc: "Soul Resonance is 25% more effective in the light." },
+        voidforged_gauntlet:    { name: "Lightforged Gauntlet",      desc: "Gain 0.5% more souls for each Ascension you've completed." },
+        eye_of_the_abyss:       { name: "Eye of the Eternal",        desc: "The Abyssal Shard soul bonus shines 10% brighter." },
+        singularity_shard:      { name: "Celestial Prism",           desc: "All soul gains are multiplied by the number of ascensions (min 1)." },
+        final_testament:        { name: "Divine Testament",          desc: "Doubles the effectiveness of ALL other Light Artifacts." },
+        aetheric_lens:          { name: "Prismatic Lens",            desc: "Light Essence offerings have a 1% chance to yield 100× the essence." },
+        covenant_of_the_first:  { name: "Covenant of the Light",     desc: "Global soul gain is multiplied by your ascensions SQUARED." },
+        paragon_soul:           { name: "Paragon of Light",          desc: "For every 100 Abyssal Shards, gain a +10% celestial soul multiplier." },
+        temporal_anchor:        { name: "Eternal Anchor",            desc: "After Prayers expire, their effects linger at 10% strength." },
+        eye_of_chaos:           { name: "Eye of Harmony",            desc: "For every unique Guardian type you own, gain +10% global soul gain." },
+        the_final_word:         { name: "The First Word",            desc: "You may now ascend beyond the light. The journey never ends." },
+        mobius_script:          { name: "Aureate Script",            desc: "Each Ascension also increases Light Essence gain by 1%." },
+        platos_soul:            { name: "Plato's Light",             desc: "All Light Artifacts are 25% more effective (not itself)." },
+        singularity_engine:     { name: "Celestial Engine",          desc: "Gain a 1.01× soul multiplier for every unique Guardian you own." },
+        the_god_paradox:        { name: "The Light Paradox",         desc: "Your global soul multiplier is multiplied by the Log10 of your Shards." },
+    };
+
     const bonusIcons = {
         spc_multiplier: '👆', sps_multiplier: '⏱', minion_cost_reducer: '💀',
         minion_specific_multiplier: '👹', upgrade_cost_reducer: '🔧', essence_multiplier: '🌑',
@@ -11790,22 +12422,88 @@ function renderArtifacts() {
         spc_to_sps: '🔗', upgrade_cost_reducer_altar: '⬇️'
     };
 
+    const isLight = gameState.isTranscended;
+
     let anyRendered = false;
     for (const id in artifacts) {
         if (!gameState.unlockedWorlds.includes(artifacts[id].requiredWorld)) continue;
         anyRendered = true;
         const a = artifacts[id];
+        const lv = lightArtifacts[id]; // light version name/desc
         const level = gameState.ownedArtifacts[id]?.level || 0;
         const baseCost = a.shardsCost || a.cost;
-        const costType = a.shardsCost ? 'shards' : 'essence';
         const costMultiplier = a.costMultiplier || 1.5;
-        // Transcended players pay 3× more for artifacts — everything is harder in the Light layer
-        const transcendCostMul = gameState.isTranscended ? 3 : 1;
-        const nextLevelCost = D(baseCost).mul(D(costMultiplier).pow(level)).mul(transcendCostMul).floor();
-        const canAfford = costType === 'shards' ? D(gameState.abyssalShards).gte(nextLevelCost) : D(gameState.darkEssence).gte(nextLevelCost);
 
+        // Light side: cost is in Light Souls + Corrupted Fragments (same numeric value as original)
+        // Dark side: original cost in Shards/Essence
+        let canAfford, costDisplay, costIcon, costLabel;
+        if (isLight) {
+            const isShardArtifact = !!a.shardsCost; // first 3 cost Shards + Frags on light side too
+            const fragCost  = 1 + Math.floor(level / 5);
+            let lightCost, soulsOk, fragOk;
+            fragOk = D(gameState.corruptedFragments || 0).gte(fragCost);
+            if (isShardArtifact) {
+                // Shards artifact: still costs Shards (same as dark side, no ×3 markup)
+                lightCost = D(baseCost).mul(D(costMultiplier).pow(level)).floor();
+                soulsOk   = D(gameState.abyssalShards).gte(lightCost);
+                canAfford = soulsOk && fragOk;
+            } else {
+                // Essence artifact on light side: costs Light Essence (LE) instead of DE
+                lightCost = D(baseCost).mul(D(costMultiplier).pow(level)).mul(3).floor();
+                soulsOk   = D(gameState.lightEssence || 0).gte(lightCost);
+                canAfford = soulsOk && fragOk;
+            }
+            costDisplay = lightCost;
+            costIcon    = isShardArtifact ? '💎' : '✦';
+            costLabel   = isShardArtifact ? 'Shards' : 'LE';
+
+            const displayName = lv?.name || a.name;
+            const displayDesc = lv?.desc || a.desc;
+            const col = '#c8b4ff';
+            const bonusIcon = bonusIcons[a.bonus?.type] || '✦';
+            const levelColor = level === 0 ? '#666' : level < 3 ? '#888' : level < 7 ? '#c8a800' : '#ff6600';
+            const onCd = _artifactCooldowns[id] && Date.now() < _artifactCooldowns[id];
+            const btnLabel = onCd ? `<span style="color:#555;">⏳ Cooldown</span>`
+                : !fragOk    ? `<span style="color:#555;">🔮 Need ${fragCost} Fragment${fragCost>1?'s':''}</span>`
+                : !soulsOk   ? `<span style="color:#555;">⚠️ Need more ${isShardArtifact?'Shards':'LE'}</span>`
+                : `<span style="color:${col};">✦ Uplift${level>0?' to Lv.'+(level+1):''} · 🔮${fragCost}</span>`;
+            const btnDisabled = (!canAfford || onCd) ? 'disabled' : '';
+
+            grid.innerHTML += `
+            <div style="background:linear-gradient(135deg,#0a0820,#150a2a);border:1px solid ${canAfford?col+'55':'#2a1a4a'};border-top:3px solid ${canAfford?col:'#2a1a4a'};border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;box-shadow:${canAfford?`0 0 16px ${col}22`:'none'};transition:all 0.2s;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:1.8em;">${bonusIcon}</span>
+                        <div>
+                            <div style="color:${canAfford?col:'#aaa'};font-weight:bold;font-size:0.95em;">${displayName}</div>
+                            <div style="color:${col}88;font-size:0.72em;text-transform:uppercase;letter-spacing:1px;">✦ Light Artifact</div>
+                        </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;">
+                        <div style="color:${levelColor};font-size:1.2em;font-weight:bold;">Lv.${level}</div>
+                        ${level > 0 ? `<div style="font-size:0.65em;color:#555;">${'★'.repeat(Math.min(level,5))}${'☆'.repeat(Math.max(0,5-level))}</div>` : ''}
+                    </div>
+                </div>
+                <p style="color:#aaa;font-size:0.82em;margin:0;line-height:1.4;">${displayDesc}</p>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;flex-wrap:wrap;gap:6px;">
+                    <div style="font-size:0.8em;color:${soulsOk?col:'#ff4444'};font-weight:bold;">${isShardArtifact?'💎':'✦'} ${formatNumber(lightCost)} ${isShardArtifact?'Shards':'LE'} &nbsp;<span style="color:${fragOk?'#22c55e':'#ff4444'};font-size:0.9em;">🔮 ${fragCost}</span></div>
+                    ${level > 0 ? `<div style="font-size:0.72em;color:#555;">Next: ${formatNumber(D(lightCost).mul(costMultiplier).floor())}</div>` : ''}
+                </div>
+                <button id="artifact-btn-${id}" class="upgrade-btn" onclick="buyArtifact('${id}')" ${btnDisabled}
+                    style="width:100%;border-color:${col}66;${canAfford&&!onCd?`background:linear-gradient(135deg,${col}18,transparent);`:'opacity:0.5;'}">
+                    ${btnLabel}
+                </button>
+            </div>`;
+            continue; // skip the dark render below
+        }
+
+        // ── Dark side render (original) ────────────────────────────────────
+        const transcendCostMul = 1; // not transcended
+        const nextLevelCost = D(baseCost).mul(D(costMultiplier).pow(level)).floor();
+        const costType = a.shardsCost ? 'shards' : 'essence';
+        canAfford = costType === 'shards' ? D(gameState.abyssalShards).gte(nextLevelCost) : D(gameState.darkEssence).gte(nextLevelCost);
         const costColor = costType === 'shards' ? '#44aaff' : '#9944cc';
-        const costIcon  = costType === 'shards' ? '💎' : '🌑';
+        costIcon  = costType === 'shards' ? '💎' : '🌑';
         const bonusIcon = bonusIcons[a.bonus?.type] || '✦';
         const levelColor = level === 0 ? '#666' : level < 3 ? '#888' : level < 7 ? '#c8a800' : '#ff6600';
 
@@ -11876,6 +12574,18 @@ const potionMeta = {
     minor_healing_flask:           { icon:'🧪', color:'#44ff88', rarity:'common' },
     healing_draught:               { icon:'❤️', color:'#ff4466', rarity:'uncommon' },
     elixir_of_the_abyss_mend:     { icon:'💖', color:'#ff88cc', rarity:'rare' },
+    // Light Soul potions
+    phial_of_radiance:             { icon:'🌟', color:'#c8b4ff', rarity:'light' },
+    celestial_draught:             { icon:'✨', color:'#ffe88a', rarity:'light' },
+    vial_of_first_light:           { icon:'💫', color:'#ffffff', rarity:'light' },
+    elixir_of_transcendence:       { icon:'🔮', color:'#aa88ff', rarity:'light' },
+    ichor_of_absolute_light:       { icon:'👑', color:'#c8b4ff', rarity:'light' },
+    // Neutral fusion (light × dark)
+    fusion_neutral_balance:        { icon:'☯️', color:'#aaaacc', rarity:'fused', glow:'#aaaacc44' },
+    fusion_neutral_convergence:    { icon:'🌗', color:'#88aacc', rarity:'fused', glow:'#88aacc44' },
+    fusion_neutral_harmony:        { icon:'🎭', color:'#ccaaff', rarity:'fused', glow:'#ccaaff44' },
+    fusion_neutral_void:           { icon:'🌀', color:'#8888bb', rarity:'fused', glow:'#8888bb44' },
+    fusion_neutral_zenith:         { icon:'⚖️', color:'#ffddaa', rarity:'fused', glow:'#ffddaa44' },
     // New standard brewed
     essence_of_the_damned:         { icon:'💀', color:'#880000', rarity:'uncommon' },
     vial_of_dark_echoes:           { icon:'🔔', color:'#4422aa', rarity:'uncommon' },
@@ -12002,6 +12712,7 @@ const RARITY_STYLE = {
     fused:            { border:'#ff8844cc', glow:'0 0 16px #ff884433', badge:'⚗️ Fused', shimmer:false },
     'fused-epic':     { border:'#ffffff99', glow:'0 0 22px #ffffff33', badge:'✨ Epic Fusion', shimmer:true },
     'fused-legendary':{ border:'#ffd700', glow:'0 0 30px #ffd70055', badge:'👑 Legendary Fusion', shimmer:true },
+    light:            { border:'#c8b4ffcc', glow:'0 0 20px #c8b4ff44', badge:'✦ Light', shimmer:true },
 };
 
 function getPotionMeta(id) {
@@ -12315,6 +13026,7 @@ function renderBrewery() {
             const rarity  = meta.rarity || 'common';
             const rs      = RARITY_STYLE[rarity] || RARITY_STYLE.common;
             const isFused = rarity.startsWith('fused');
+            const isLight = rarity === 'light';
             const isMarketRarity = rarity.startsWith('market');
             const glowVal = meta.glow || (isActive ? `0 0 24px ${meta.color}55` : rs.glow);
             const topBorder = meta.color;
@@ -12324,11 +13036,13 @@ function renderBrewery() {
             // Fused potions get a special diagonal stripe pattern bg + animated border
             const fusedBg = isFused
                 ? `background:linear-gradient(135deg,#120a1e,${meta.color}22,#0e0a1a,${meta.color}11,#160a28);`
-                : rs.shimmer
-                    ? `background:linear-gradient(135deg,#0e0a1a,${meta.color}18,#0e0a1a,${meta.color}11);background-size:200% 100%;animation:shimmerPot 3s ease-in-out infinite;`
-                    : `background:linear-gradient(135deg,#0e0a1a,#1a1020);`;
+                : isLight
+                    ? `background:linear-gradient(135deg,#0a0820,${meta.color}18,#0a0a28,${meta.color}11);`
+                    : rs.shimmer
+                        ? `background:linear-gradient(135deg,#0e0a1a,${meta.color}18,#0e0a1a,${meta.color}11);background-size:200% 100%;animation:shimmerPot 3s ease-in-out infinite;`
+                        : `background:linear-gradient(135deg,#0e0a1a,#1a1020);`;
 
-            const fusedBorderAnim = isFused ? `animation:fusedBorderPulse 2s ease-in-out infinite;` : '';
+            const fusedBorderAnim = (isFused || isLight) ? `animation:fusedBorderPulse 2s ease-in-out infinite;` : '';
 
             // Badge
             const badgeHtml = rs.badge
@@ -12336,8 +13050,9 @@ function renderBrewery() {
                 : '';
 
             inventoryGrid.innerHTML += `
-            <div style="${fusedBg} border:${isFused?'2px':'1px'} solid ${sideBorder}; border-top:${isFused?'4px':'3px'} solid ${topBorder}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:${glowVal}; position:relative; overflow:hidden; ${fusedBorderAnim}">
+            <div style="${fusedBg} border:${(isFused||isLight)?'2px':'1px'} solid ${sideBorder}; border-top:${(isFused||isLight)?'4px':'3px'} solid ${topBorder}; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; box-shadow:${glowVal}; position:relative; overflow:hidden; ${fusedBorderAnim}">
                 ${isFused ? `<div style="position:absolute;top:0;right:0;background:${meta.color};color:#000;font-size:0.55em;font-weight:900;padding:3px 10px 3px 14px;border-radius:0 0 0 12px;letter-spacing:2px;clip-path:polygon(10% 0,100% 0,100% 100%,0 100%);">FUSED</div>` : ''}
+                ${isLight ? `<div style="position:absolute;top:0;right:0;background:linear-gradient(135deg,#4422aa,#c8b4ff);color:#fff;font-size:0.55em;font-weight:900;padding:3px 10px 3px 14px;border-radius:0 0 0 12px;letter-spacing:2px;clip-path:polygon(10% 0,100% 0,100% 100%,0 100%);">✦ LIGHT</div>` : ''}
                 ${rs.shimmer && !isFused ? `<div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,${meta.color}08,transparent);pointer-events:none;"></div>` : ''}
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span style="font-size:${isFused?'2':'1.8'}em; flex-shrink:0; filter:drop-shadow(0 0 ${isFused?'10':'6'}px ${meta.color}${isFused?'bb':'88'});">${meta.icon}</span>
@@ -12460,6 +13175,70 @@ function usePotion(id) {
     if (gameState.potions[id] > 0) {
         gameState.potions[id]--;
         const effect = potions[id].effect;
+        const pMeta = getPotionMeta(id);
+
+        // ── LIGHT POTION HANDLING ──────────────────────────────────────
+        if (potions[id].lightOnly) {
+            if (gameState.isTranscended) {
+                // Normal light effect
+                if (effect.type === 'light_gain_sps_minutes') {
+                    const gain = D(gameState.stats.sps).mul(effect.value * 60);
+                    gameState.souls = D(gameState.souls).add(gain);
+                    gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(gain);
+                    Toastify({ text: `${pMeta.icon} ${potions[id].name} — gained ${formatNumber(gain)} Light Souls!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#220066)'} }).showToast();
+                }
+                if (effect.type === 'light_sps_triple') {
+                    gameState.activePotions[id] = Date.now() + (effect.duration * 1000);
+                    Toastify({ text: `${pMeta.icon} ${potions[id].name} — Light Soul gain ×3 for ${effect.duration/60}min!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#220066)'} }).showToast();
+                }
+                if (effect.type === 'light_free_world_unlock') {
+                    // Find next locked light world and unlock it free
+                    const nextWorld = Object.keys(lightWorlds).find(wid => !(gameState.unlockedLightWorlds || []).includes(wid));
+                    if (nextWorld) {
+                        if (!gameState.unlockedLightWorlds) gameState.unlockedLightWorlds = ['celestial_threshold'];
+                        gameState.unlockedLightWorlds.push(nextWorld);
+                        Toastify({ text: `${pMeta.icon} ${lightWorlds[nextWorld].name} unlocked for free!`, duration:5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#220066)'} }).showToast();
+                    } else {
+                        Toastify({ text: `${pMeta.icon} All Light Worlds already unlocked!`, duration:3000, gravity:'top', position:'center' }).showToast();
+                    }
+                }
+                if (effect.type === 'light_guardian_cost_halve') {
+                    gameState.activePotions[id] = Date.now() + (effect.duration * 1000);
+                    Toastify({ text: `${pMeta.icon} ${potions[id].name} — Guardian costs halved for ${effect.duration/60}min!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#220066)'} }).showToast();
+                }
+                if (effect.type === 'light_mega_boost') {
+                    gameState.activePotions[id] = Date.now() + (effect.duration * 1000);
+                    gameState.abyssalShards = D(gameState.abyssalShards).add(effect.shardBonus);
+                    Toastify({ text: `${pMeta.icon} ${potions[id].name} — Light gain ×5 for ${effect.duration/60}min + ${effect.shardBonus} Shards!`, duration:5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#440088)'} }).showToast();
+                }
+            } else {
+                // DARK SIDE — reversed effect, souls never go below 0
+                Toastify({ text: `⚠️ ${potions[id].name} is a Light potion — dark side backlash!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a0000,#660000)'} }).showToast();
+                if (effect.darkPenalty === 'halve_souls') {
+                    gameState.souls = D(gameState.souls).div(2).floor().max(0);
+                    Toastify({ text: `💀 Dark backlash — your souls were halved!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a0000,#660000)'} }).showToast();
+                }
+                if (effect.darkPenalty === 'halve_sps') {
+                    gameState.activePotions[id + '_dark_curse'] = Date.now() + (effect.duration * 1000);
+                    Toastify({ text: `💀 Dark backlash — SPS halved for ${effect.duration/60}min!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a0000,#660000)'} }).showToast();
+                }
+                if (effect.darkPenalty === 'world_cost_increase') {
+                    gameState.activePotions[id + '_dark_curse'] = Date.now() + (300 * 1000);
+                    Toastify({ text: `💀 Dark backlash — world costs +50% for 5min!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a0000,#660000)'} }).showToast();
+                }
+                if (effect.darkPenalty === 'double_minion_costs') {
+                    gameState.activePotions[id + '_dark_curse'] = Date.now() + (effect.duration * 1000);
+                    Toastify({ text: `💀 Dark backlash — minion costs doubled for ${effect.duration/60}min!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a0000,#660000)'} }).showToast();
+                }
+                if (effect.darkPenalty === 'shard_remove_and_halve') {
+                    gameState.abyssalShards = D(gameState.abyssalShards).sub(effect.shardBonus).max(0);
+                    gameState.activePotions[id + '_dark_curse'] = Date.now() + (120 * 1000);
+                    Toastify({ text: `💀 Dark backlash — lost ${effect.shardBonus} Shards and SPS halved for 2min!`, duration:5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a0000,#660000)'} }).showToast();
+                }
+            }
+            calculateStats(); renderAll(); saveGame();
+            return;
+        }
 
         // --- INSTANT EFFECTS ---
         if (effect.type === 'gain_sps_seconds_flat') {
@@ -12574,6 +13353,32 @@ function usePotion(id) {
             gameState.activePotions[id] = Date.now() + (effect.duration * 1000);
             const p = potions[id];
             Toastify({ text: `⚗️ ${p.name} activated!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#9944cc)'} }).showToast();
+        }
+
+        // ── NEUTRAL FUSION EFFECTS (light × dark) ─────────────────────────
+        if (effect.type === 'neutral_harmony') {
+            _safeAddCur("abyssalShards", 50);
+            for (const rid in gameState.activeRituals) {
+                if (gameState.activeRituals[rid].cooldownEndTime) {
+                    gameState.activeRituals[rid].cooldownEndTime = Math.max(0, gameState.activeRituals[rid].cooldownEndTime - 600000);
+                }
+            }
+            Toastify({ text: `🎭 Harmonic Vial — +50 Shards & ritual cooldowns -10min!`, duration:4500, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0a1a,#6655aa)'} }).showToast();
+        }
+        if (effect.type === 'neutral_void_accord') {
+            gameState.activePotions[id] = Date.now() + (effect.duration * 1000);
+            Toastify({ text: `🌀 Void Accord — ×2 soul gain & ×2 click power for 5min!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0a1a,#443355)'} }).showToast();
+        }
+        if (effect.type === 'neutral_zenith') {
+            const zenithStacks = (gameState.zenithStacks || 0);
+            if (zenithStacks < 10) {
+                gameState.zenithStacks = zenithStacks + 1;
+                _safeAddCur("darkEssence", 20);
+                Toastify({ text: `⚖️ Zenith Elixir — +20 DE & permanent +5% SPS (${gameState.zenithStacks}/10 stacks)!`, duration:5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a1000,#aa7700)'} }).showToast();
+            } else {
+                _safeAddCur("darkEssence", 100);
+                Toastify({ text: `⚖️ Zenith Elixir — max stacks! Bonus 100 DE granted.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a1000,#aa7700)'} }).showToast();
+            }
         }
 
         // Reset cooldown to start from use time (not brew time)
@@ -13643,6 +14448,10 @@ function toggleSfx() {
 function renderRituals() {
     const grid = document.getElementById('ritual-grid');
     if (!grid) return;
+
+    // When transcended, show Prayers instead of Rituals
+    if (gameState.isTranscended) { renderPrayers(grid); return; }
+
     grid.innerHTML = '';
 
     // Visual config per ritual
@@ -13774,6 +14583,184 @@ function renderRituals() {
         </div>`;
     }
 }
+
+// =================================================================
+// PRAYERS — render + activate (called when transcended)
+// =================================================================
+function renderPrayers(grid) {
+    grid.innerHTML = '';
+    const prayerMeta = {
+        luminary_whisper:    { icon:'🌟', color:'#c8b4ff', glow:'#c8b4ff44' },
+        guardian_focus:      { icon:'🛡️', color:'#ffe88a', glow:'#ffe88a44' },
+        dawn_offering:       { icon:'🌅', color:'#ffcc88', glow:'#ffcc8844' },
+        aureate_chant:       { icon:'🎶', color:'#c8b4ff', glow:'#c8b4ff44' },
+        light_essence_surge: { icon:'✦',  color:'#88ffcc', glow:'#88ffcc44' },
+        guardian_tithe:      { icon:'⚜️', color:'#aaddff', glow:'#aaddff44' },
+        prismatic_pulse:     { icon:'🔷', color:'#88ccff', glow:'#88ccff44' },
+        light_of_memory:     { icon:'💫', color:'#ffffaa', glow:'#ffffaa44' },
+        celestial_resonance: { icon:'🌌', color:'#cc99ff', glow:'#cc99ff44' },
+        seraphic_mandate:    { icon:'😇', color:'#ffffff', glow:'#ffffff22' },
+        radiant_surge:       { icon:'☀️', color:'#ffe066', glow:'#ffe06644' },
+        eternal_vigil:       { icon:'👁️', color:'#aaffee', glow:'#aaffee44' },
+        choir_invocation:    { icon:'🎙️', color:'#ffaaff', glow:'#ffaaff44' },
+        harmonic_tithe:      { icon:'🎼', color:'#c8b4ff', glow:'#c8b4ff44' },
+        resonant_blessing:   { icon:'🕊️', color:'#ccffcc', glow:'#ccffcc44' },
+        gate_invocation:     { icon:'🚪', color:'#ffddaa', glow:'#ffddaa44' },
+        light_of_creation:   { icon:'🌠', color:'#aabbff', glow:'#aabbff44' },
+        angelic_surge:       { icon:'👼', color:'#ffd700', glow:'#ffd70044' },
+        starborn_prayer:     { icon:'⭐', color:'#ffffcc', glow:'#ffffcc44' },
+        constellation_rite:  { icon:'🌃', color:'#8888ff', glow:'#8888ff44' },
+        light_fracture:      { icon:'💎', color:'#88ffff', glow:'#88ffff44' },
+        absolute_invocation: { icon:'♾️', color:'#ffffff', glow:'#ffffff33' },
+        throne_of_light:     { icon:'👑', color:'#ffd700', glow:'#ffd70066' },
+        genesis_prayer:      { icon:'💛', color:'#ffaa44', glow:'#ffaa4444' },
+        veil_communion:      { icon:'🌫️', color:'#ddbbff', glow:'#ddbbff44' },
+        nameless_light:      { icon:'🤍', color:'#eeeeff', glow:'#eeeeff22' },
+        first_light:         { icon:'🔆', color:'#fff8aa', glow:'#fff8aa55' },
+        absolute_clarity:    { icon:'🪩', color:'#c8b4ff', glow:'#c8b4ff55' },
+        the_final_prayer:    { icon:'✨', color:'#ffffff', glow:'#ffffff66' },
+    };
+    const effectLabels = {
+        spc_multiplier:          '👆 Click Power',
+        sps_multiplier:          '⏱ Soul Gain',
+        gain_sps_seconds:        '⚡ Instant Souls',
+        gain_light_essence:      '✦ Gain LE',
+        global_multiplier:       '🌟 All Gains',
+        temp_minion_cost_reducer:'⚜️ Cost Reducer',
+        prayer_haste_and_le:     '⏩ Haste + LE',
+        prayer_throne:           '👑 Throne Burst',
+        prayer_clarity:          '🪩 Absolute Burst',
+    };
+    const worldLabels = {
+        celestial_threshold:'Celestial Threshold', radiant_expanse:'Radiant Expanse',
+        prismatic_vault:'Prismatic Vault', heavens_threshold:"Heaven's Threshold",
+        choir_of_souls:'Choir of Souls', eternal_gate:'Eternal Gate',
+        starborn_sanctum:'Starborn Sanctum', absolute_throne:'Absolute Throne',
+        beyond_the_veil:'Beyond the Veil', the_absolute:'The Absolute',
+    };
+    let anyRendered = false;
+    for (const id in prayers) {
+        const p = prayers[id];
+        if (!gameState.unlockedLightWorlds?.includes(p.requiredWorld)) continue;
+        anyRendered = true;
+        const pState = gameState.activePrayers[id];
+        const isOnCooldown = pState && Date.now() < pState.cooldownEndTime;
+        const timeLeft = isOnCooldown ? Math.max(0, Math.ceil((pState.cooldownEndTime - Date.now()) / 1000)) : 0;
+        const pct = isOnCooldown ? ((p.cooldown - timeLeft) / p.cooldown) * 100 : 0;
+        const mins = Math.floor(timeLeft / 60).toString().padStart(2,'0');
+        const secs = (timeLeft % 60).toString().padStart(2,'0');
+        const cannotAffordSouls = D(gameState.souls).lt(p.cost);
+        const cannotAffordLE    = p.leCost > 0 && D(gameState.lightEssence || 0).lt(p.leCost);
+        const pFragCost         = p.fragCost || 0;
+        const cannotAffordFrags = pFragCost > 0 && D(gameState.corruptedFragments || 0).lt(pFragCost);
+        const cannotAfford      = cannotAffordSouls || cannotAffordLE || cannotAffordFrags;
+        const meta = prayerMeta[id] || { icon:'🙏', color:'#c8b4ff', glow:'#c8b4ff44' };
+        const effectLabel = effectLabels[p.effect?.type] || '✨ Special';
+        const tierLabel = worldLabels[p.requiredWorld] || p.requiredWorld;
+        let cooldownBar = '', btnDisabled = '', statusText = '';
+        if (isOnCooldown) {
+            cooldownBar = `<div style="margin:10px 0 4px;background:#ffffff10;border-radius:4px;height:6px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${meta.color};transition:width 1s linear;border-radius:4px;"></div></div><div style="color:${meta.color};font-size:0.78em;text-align:right;">⏳ ${mins}:${secs} remaining</div>`;
+            statusText = `<span style="color:#888;font-size:0.78em;">On cooldown</span>`;
+            btnDisabled = 'disabled';
+        }
+        const leCostHtml   = p.leCost > 0 ? ` <span style="color:${cannotAffordLE?'#ff4444':'#88ffcc'};">+ ${p.leCost} LE</span>` : '';
+        const fragCostHtml = pFragCost > 0 ? ` <span style="color:${cannotAffordFrags?'#ff4444':'#aa44ff'};">+ ${pFragCost} 🔮</span>` : '';
+        grid.innerHTML += `
+        <div style="background:linear-gradient(135deg,#0a0820,#150a2a);border:1px solid ${meta.color}44;border-top:3px solid ${meta.color};border-radius:12px;padding:18px;position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;box-shadow:0 0 20px ${meta.glow};">
+            <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top left,${meta.glow} 0%,transparent 60%);pointer-events:none;"></div>
+            <div style="position:absolute;top:8px;right:10px;background:${meta.color}18;border:1px solid ${meta.color}44;border-radius:8px;padding:1px 8px;font-size:0.6em;color:${meta.color};letter-spacing:1px;">${tierLabel}</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+                <div style="font-size:2em;line-height:1;">${meta.icon}</div>
+                <div>
+                    <div style="color:${meta.color};font-weight:bold;font-size:1.05em;letter-spacing:1px;">${p.name}</div>
+                    <div style="background:${meta.color}22;border:1px solid ${meta.color}44;border-radius:10px;padding:1px 8px;display:inline-block;font-size:0.7em;color:${meta.color};margin-top:2px;">${effectLabel}</div>
+                </div>
+            </div>
+            <p style="color:#aaa;font-size:0.84em;margin:0;line-height:1.4;">${p.desc}</p>
+            ${cooldownBar}
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;flex-wrap:wrap;gap:6px;">
+                <div style="font-size:0.82em;color:#666;">🕐 ${p.cooldown>=86400?(p.cooldown/86400)+'d':p.cooldown>=3600?(p.cooldown/3600)+'h':p.cooldown>=60?(p.cooldown/60)+'m':p.cooldown+'s'} cooldown</div>
+                <div style="font-size:0.88em;color:${cannotAfford&&!isOnCooldown?'#ff4444':'#c8b4ff'};font-weight:bold;">${formatNumber(p.cost)} souls${leCostHtml}${fragCostHtml}</div>
+            </div>
+            <button id="prayer-btn-${id}" class="upgrade-btn" onclick="activatePrayer('${id}')" ${btnDisabled}
+                style="margin-top:8px;width:100%;border-color:${meta.color}88;${isOnCooldown?'opacity:0.5;':cannotAfford?'opacity:0.6;':`background:linear-gradient(135deg,${meta.color}22,transparent);`}">
+                ${isOnCooldown ? statusText : cannotAffordFrags ? `<span style="color:#888;">⚠️ Need ${pFragCost} 🔮 Fragments</span>` : cannotAffordLE ? `<span style="color:#888;">⚠️ Need ${p.leCost} LE</span>` : cannotAffordSouls ? '<span style="color:#666;">⚠️ Insufficient Souls</span>' : `<span style="color:${meta.color};">🙏 Perform Prayer</span>`}
+            </button>
+        </div>`;
+    }
+    if (!anyRendered) {
+        grid.innerHTML = `<div style="color:#c8b4ff55;text-align:center;padding:40px;grid-column:1/-1;"><div style="font-size:2em;margin-bottom:10px;">🙏</div><div>No prayers available yet. Unlock Light Worlds to receive celestial guidance.</div></div>`;
+    }
+}
+
+function activatePrayer(id) {
+    const p = prayers[id];
+    if (!p || !gameState.isTranscended) return;
+    const pState = gameState.activePrayers[id];
+    if (pState && Date.now() < pState.cooldownEndTime) {
+        Toastify({ text:'🙏 This prayer is still cooling down.', duration:2500, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#330066)'} }).showToast();
+        return;
+    }
+    if (D(gameState.souls).lt(p.cost)) {
+        Toastify({ text:'⚠️ Not enough Light Souls.', duration:2500, gravity:'top', position:'center', style:{background:'#440022'} }).showToast();
+        return;
+    }
+    if (p.leCost > 0 && D(gameState.lightEssence || 0).lt(p.leCost)) {
+        Toastify({ text:`⚠️ Need ${p.leCost} Light Essence (LE).`, duration:2500, gravity:'top', position:'center', style:{background:'#220044'} }).showToast();
+        return;
+    }
+    const pFragCost = p.fragCost || 0;
+    if (pFragCost > 0 && D(gameState.corruptedFragments || 0).lt(pFragCost)) {
+        Toastify({ text:`⚠️ Need ${pFragCost} Corrupted Fragments 🔮`, duration:2500, gravity:'top', position:'center', style:{background:'#220033'} }).showToast();
+        return;
+    }
+    gameState.souls = D(gameState.souls).sub(p.cost).max(0);
+    if (p.leCost > 0) gameState.lightEssence = D(gameState.lightEssence || 0).sub(p.leCost).max(0);
+    if (pFragCost > 0) gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(pFragCost).max(0);
+    const e = p.effect;
+    const toast = (msg) => Toastify({ text:msg, duration:4500, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#440088)'} }).showToast();
+    if (['sps_multiplier','spc_multiplier','global_multiplier','temp_minion_cost_reducer'].includes(e.type)) {
+        if (!gameState._prayerBuffs) gameState._prayerBuffs = {};
+        gameState._prayerBuffs['prayer_' + id] = { effect: e, endsAt: Date.now() + (e.duration * 1000) };
+        const label = e.type==='sps_multiplier'?`×${e.value} soul gain`:e.type==='spc_multiplier'?`×${e.value} click power`:e.type==='temp_minion_cost_reducer'?`costs ×${e.value}`:`×${e.value} all gains`;
+        toast(`🙏 ${p.name} — ${label} for ${e.duration>=60?e.duration/60+'min':e.duration+'s'}!`);
+    } else if (e.type === 'gain_sps_seconds') {
+        const gain = D(gameState.stats.sps).mul(e.value);
+        gameState.souls = D(gameState.souls).add(gain);
+        gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(gain);
+        toast(`🙏 ${p.name} — gained ${formatNumber(gain)} souls!`);
+    } else if (e.type === 'gain_light_essence') {
+        gameState.lightEssence = D(gameState.lightEssence || 0).add(e.value);
+        toast(`✦ ${p.name} — gained ${e.value} LE!`);
+    } else if (e.type === 'prayer_haste_and_le') {
+        gameState.lightEssence = D(gameState.lightEssence || 0).add(e.value);
+        for (const pid in gameState.activePrayers) {
+            if (gameState.activePrayers[pid]?.cooldownEndTime) {
+                const rem = gameState.activePrayers[pid].cooldownEndTime - Date.now();
+                gameState.activePrayers[pid].cooldownEndTime = Date.now() + Math.max(0, rem / 2);
+            }
+        }
+        toast(`🕊️ ${p.name} — +${e.value} LE & prayer cooldowns halved!`);
+    } else if (e.type === 'prayer_throne') {
+        gameState.lightEssence = D(gameState.lightEssence || 0).add(e.leBonus);
+        if (!gameState._prayerBuffs) gameState._prayerBuffs = {};
+        gameState._prayerBuffs['prayer_' + id] = { effect:{type:'global_multiplier',value:10,duration:e.duration}, endsAt:Date.now()+(e.duration*1000) };
+        toast(`👑 ${p.name} — +${e.leBonus} LE & ×10 all gains for ${e.duration}s!`);
+    } else if (e.type === 'prayer_clarity') {
+        gameState.lightEssence = D(gameState.lightEssence || 0).add(e.leBonus);
+        if (!gameState._prayerBuffs) gameState._prayerBuffs = {};
+        gameState._prayerBuffs['prayer_' + id] = { effect:{type:'global_multiplier',value:1000,duration:e.duration}, endsAt:Date.now()+(e.duration*1000) };
+        toast(`🪩 ${p.name} — +${e.leBonus} LE & ×1000 gains for ${e.duration}s!`);
+    }
+    if (!gameState.activePrayers) gameState.activePrayers = {};
+    gameState.activePrayers[id] = { cooldownEndTime: Date.now() + (p.cooldown * 1000) };
+    gameState.ritualsPerformed = (gameState.ritualsPerformed || 0) + 1;
+    playSound('upgrade');
+    calculateStats();
+    renderAll();
+    saveGame();
+}
+
 function renderMap() {
     const grid = document.getElementById('map-grid');
     if (!grid) return;
@@ -14198,6 +15185,42 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
         }
 
         list.innerHTML = '';
+
+        // ── Grant God/Satan to #1 players ─────────────────────────────
+        if (type === 'lifetimeSouls' && players.length > 0) {
+            // #1 light souls player gets God
+            const lightLeader = players.find(p => p.isTranscended);
+            if (lightLeader && lightLeader.name === gameState.playerName) {
+                if (!gameState.minions['god']) gameState.minions['god'] = { level: 0, cost: 0, promotionTier: 0 };
+                if (gameState.minions['god'].level === 0) {
+                    gameState.minions['god'].level = 1;
+                    Toastify({ text: '☀️ GOD has joined your side — you lead all Light Souls!', duration:8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#220066)'} }).showToast();
+                    saveGame();
+                }
+            } else {
+                // Remove God if they lost #1
+                if (gameState.minions['god']?.level > 0) {
+                    gameState.minions['god'].level = 0;
+                    saveGame();
+                }
+            }
+            // #1 dark souls player (non-transcended) gets Satan
+            const darkLeader = players.find(p => !p.isTranscended);
+            if (darkLeader && darkLeader.name === gameState.playerName) {
+                if (!gameState.minions['satan']) gameState.minions['satan'] = { level: 0, cost: 0, promotionTier: 0 };
+                if (gameState.minions['satan'].level === 0) {
+                    gameState.minions['satan'].level = 1;
+                    Toastify({ text: '😈 SATAN has joined your side — you lead all Dark Souls!', duration:8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0000,#440000)'} }).showToast();
+                    saveGame();
+                }
+            } else {
+                if (gameState.minions['satan']?.level > 0) {
+                    gameState.minions['satan'].level = 0;
+                    saveGame();
+                }
+            }
+        }
+
         players.slice(0, 10).forEach((player, index) => {
             const li    = document.createElement('li');
             const isMe  = player.name === gameState.playerName;
@@ -14830,14 +15853,15 @@ function generateHourlyShopItems() {
     }
 
     // Per-type purchase limits
-    const LIMITS = { item: 1, artifact: 1, potion: 3, market_potion: 1, secret_minion: 1 };
+    const LIMITS = { item: 1, artifact: 1, potion: 3, market_potion: 1, secret_minion: 1, light_potion: 2 };
 
     // Build item pool
     const allItemKeys     = Object.keys(items).map(id => ({ id, type: 'item' }));
     const allArtifactKeys = Object.keys(artifacts).map(id => ({ id, type: 'artifact' }));
     // Market potions are shop-exclusive — exclude from normal pool, pool them separately
-    const allPotionKeys      = Object.keys(potions).filter(id => !potions[id].marketOnly).map(id => ({ id, type: 'potion' }));
+    const allPotionKeys      = Object.keys(potions).filter(id => !potions[id].marketOnly && !potions[id].lightOnly).map(id => ({ id, type: 'potion' }));
     const marketPotionKeys   = Object.keys(potions).filter(id =>  potions[id].marketOnly).map(id => ({ id, type: 'market_potion' }));
+    const lightPotionKeys    = Object.keys(potions).filter(id =>  potions[id].lightOnly).map(id => ({ id, type: 'light_potion' }));
     let availableItems = [...allItemKeys, ...allArtifactKeys, ...allPotionKeys];
 
     let shopItems = [];
@@ -14849,6 +15873,12 @@ function generateHourlyShopItems() {
     // Slot 3 (index 2) is always a market-exclusive potion
     const mpIdx = (seed * 17 + 5) % marketPotionKeys.length;
     shopItems[2] = marketPotionKeys[mpIdx];
+
+    // Slot 4 (index 3+) — if transcended AND light potions exist, add a rare light potion slot (~40% chance per hour)
+    if (gameState.isTranscended && lightPotionKeys.length > 0 && ((seed * 23 + 11) % 10) < 4) {
+        const lpIdx = (seed * 19 + 7) % lightPotionKeys.length;
+        shopItems.push(lightPotionKeys[lpIdx]);
+    }
 
     // 0.5% chance this hour has a Key slot (roughly once every 200 hours)
     const keySlotChance = ((seed * 31 + 97) % 200) === 0;
@@ -14887,6 +15917,7 @@ function generateHourlyShopItems() {
         artifact:      { icon:'💠',  color:'#aa44ff', label:'Artifact'      },
         potion:        { icon:'⚗️',  color:'#44cc88', label:'Potion'        },
         market_potion: { icon:'🔥',  color:'#ff6644', label:'Rare Potion'   },
+        light_potion:  { icon:'✦',   color:'#c8b4ff', label:'Light Potion'  },
     };
     const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
 
@@ -14966,15 +15997,25 @@ function generateHourlyShopItems() {
             if (replacement.type === 'potion') itemData = potions[replacement.id];
         }
 
-        let finalPrice, fragmentCost = 0;
+        const isLightPotion = shopItem.type === 'light_potion';
+        let finalPrice, fragmentCost = 0, lightSoulCost = 0;
         if (shopItem.id === 'mark_of_the_first') { finalPrice = 150; }
+        else if (isLightPotion) {
+            // Light potions cost Light Essence (LE), not souls
+            // Tier by index in lightPotionKeys
+            const leIdx = lightPotionKeys.findIndex(lp => lp.id === shopItem.id);
+            lightSoulCost = [5, 10, 20, 40, 80][leIdx] || 10; // LE cost per potion tier
+            finalPrice = 0; // no DE cost
+        }
         else if (shopItem.type === 'market_potion') { finalPrice = potions[shopItem.id]?.shopPrice || 50; }
         else if (shopItem.type === 'item') {
             const _r = itemData?.rarity || 'common';
             finalPrice   = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400 }[_r] || 5;
             fragmentCost = { common:0, uncommon:0, rare:0,  epic:5,  legendary:20,  forged:60  }[_r] || 0;
         } else { finalPrice = ((seed + index * 13) % 20) + 1; }
-        const canAfford  = !soldOut && D(gameState.darkEssence).gte(finalPrice) && (fragmentCost === 0 || D(gameState.corruptedFragments || 0).gte(fragmentCost));
+        const canAfford  = !soldOut && (isLightPotion
+            ? D(gameState.lightEssence || 0).gte(lightSoulCost)
+            : D(gameState.darkEssence).gte(finalPrice) && (fragmentCost === 0 || D(gameState.corruptedFragments || 0).gte(fragmentCost)));
         const theme      = typeTheme[shopItem.type] || typeTheme.item;
         const rc         = rarityColor[itemData?.rarity] || theme.color;
 
@@ -15004,7 +16045,12 @@ function generateHourlyShopItems() {
             <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #ffffff0a; padding-top:10px;">
                 <div>
                     <div style="color:#666; font-size:0.7em;">COST</div>
-                    <div style="color:${canAfford?'#9944cc':'#664466'}; font-weight:bold;">${formatNumber(finalPrice)} <span style="font-size:0.75em;">DE</span>${fragmentCost > 0 ? ` <span style="color:${D(gameState.corruptedFragments||0).gte(fragmentCost)?'#aa44ff':'#cc4444'}; font-size:0.85em;">+ ${fragmentCost} 🔮</span>` : ''}</div>
+                    <div style="color:${canAfford?theme.color:'#664466'}; font-weight:bold;">
+                        ${isLightPotion
+                            ? `<span style="color:${canAfford?'#88ffcc':'#446655'}">${formatNumber(lightSoulCost)}</span> <span style="font-size:0.75em; color:#88ffcc;">✦ LE</span>`
+                            : `${formatNumber(finalPrice)} <span style="font-size:0.75em;">DE</span>${fragmentCost > 0 ? ` <span style="color:${D(gameState.corruptedFragments||0).gte(fragmentCost)?'#aa44ff':'#cc4444'}; font-size:0.85em;">+ ${fragmentCost} 🔮</span>` : ''}`
+                        }
+                    </div>
                     ${remainingHtml}
                 </div>
                 <div style="background:${soldOut?'#11111133':canAfford?theme.color+'33':'#33333333'}; border:1px solid ${soldOut?'#222':canAfford?theme.color+'66':'#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${soldOut?'#333':canAfford?theme.color:'#555'};">
@@ -15019,6 +16065,34 @@ function generateHourlyShopItems() {
 // buyHourlyShopItem — enforces per-hour purchase limits
 // =================================================================
 function buyHourlyShopItem(itemId, itemType, price, hourKey) {
+    const isLightPotionPurchase = itemType === 'light_potion';
+
+    if (isLightPotionPurchase) {
+        // Light potions cost Light Essence (LE)
+        const leIdx2 = ['phial_of_radiance','celestial_draught','vial_of_first_light','elixir_of_transcendence','ichor_of_absolute_light'].indexOf(itemId);
+        const lsCost = [5, 10, 20, 40, 80][leIdx2 >= 0 ? leIdx2 : 0] || 10;
+        if (D(gameState.lightEssence || 0).lt(lsCost)) {
+            Toastify({ text: `✦ Need ${lsCost} Light Essence (LE).`, duration: 2500, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a0020,#440088)' } }).showToast();
+            return;
+        }
+        // Enforce limit
+        if (!gameState.shopPurchases) gameState.shopPurchases = {};
+        const LIMITS_L = { light_potion: 2 };
+        const purchaseKeyL = (hourKey || 'x') + ':' + itemId;
+        const boughtL = gameState.shopPurchases[purchaseKeyL] || 0;
+        if (boughtL >= 2) {
+            Toastify({ text: `Already purchased the limit of this Light Potion this hour.`, duration:3000, gravity:'top', position:'center', style:{background:'#883300'} }).showToast();
+            return;
+        }
+        if (!confirm(`Buy ${potions[itemId]?.name || itemId} for ${formatNumber(lsCost)} LE (Light Essence)?`)) return;
+        gameState.lightEssence = D(gameState.lightEssence || 0).sub(lsCost).max(0);
+        gameState.shopPurchases[purchaseKeyL] = boughtL + 1;
+        gameState.potions[itemId] = (gameState.potions[itemId] || 0) + 1;
+        Toastify({ text: `✦ ${potions[itemId]?.name || itemId} added to your Brewery!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#6600cc)'} }).showToast();
+        playSound('upgrade'); calculateStats(); renderAll(); saveGame(); generateHourlyShopItems();
+        return;
+    }
+
     if (D(gameState.darkEssence).lt(price)) {
         Toastify({ text: 'Not enough Dark Essence.', duration: 2500, gravity:'top', position:'center', style:{ background:'#aa2222' } }).showToast();
         return;
@@ -17079,7 +18153,14 @@ function endBreach(isVictory) {
         const _bMult = (_btome && items[_btome] && items[_btome].bonus.type === 'expedition_fragment_multiplier') ? items[_btome].bonus.value : 1.0;
         const bonusFrags = Math.floor(15 * _bMult);
         _safeAddCur("corruptedFragments", bonusFrags);
-        Toastify({ text: `Breach Cleared! +${bonusFrags} Corrupted Fragments!${_bMult > 1 ? ' (Codex bonus)' : ''}`, duration: 5000, style: { background: "linear-gradient(to right, #1eff00, #16a085)" } }).showToast();
+        // Light Essence bonus when transcended
+        if (gameState.isTranscended) {
+            const leReward = Math.floor(1 + Math.random() * 3); // 1–3 LE per breach
+            gameState.lightEssence = D(gameState.lightEssence || 0).add(leReward);
+            Toastify({ text: `✦ Breach Cleared! +${bonusFrags} Fragments & +${leReward} Light Essence!`, duration: 5500, style: { background: "linear-gradient(to right, #1a0050, #c8b4ff)" } }).showToast();
+        } else {
+            Toastify({ text: `Breach Cleared! +${bonusFrags} Corrupted Fragments!${_bMult > 1 ? ' (Codex bonus)' : ''}`, duration: 5000, style: { background: "linear-gradient(to right, #1eff00, #16a085)" } }).showToast();
+        }
         if (typeof rollForKey === 'function' && Math.random() < 0.005) {
             setTimeout(() => rollForKey('breach'), 2000);
         }
@@ -17110,7 +18191,15 @@ function completeExpedition(id) {
     }
     
     let rewardText = '';
-    let fragmentsGained = Math.floor(Math.random() * (data.rewards[0].max - data.rewards[0].min + 1)) + data.rewards[0].min;
+    const fragReward = data.rewards[0];
+    let fragmentsGained = 0;
+    if (fragReward.type === 'guaranteed') {
+        fragmentsGained = Math.floor(Math.random() * (fragReward.max - fragReward.min + 1)) + fragReward.min;
+    } else if (fragReward.type === 'chance') {
+        if (Math.random() < fragReward.chance) {
+            fragmentsGained = Math.floor(Math.random() * (fragReward.max - fragReward.min + 1)) + fragReward.min;
+        }
+    }
 
     const tomeId = gameState.equipped.tome;
     if (tomeId && items[tomeId] && items[tomeId].bonus.type === 'expedition_fragment_multiplier') {
@@ -17118,7 +18207,7 @@ function completeExpedition(id) {
     }
 
     _safeAddCur("corruptedFragments", fragmentsGained);
-    rewardText += `Found ${fragmentsGained} Corrupted Fragments!`;
+    if (fragmentsGained > 0) rewardText += `Found ${fragmentsGained} Corrupted Fragments!`;
     
     data.rewards.forEach(reward => {
         if (reward.type === 'chance' && Math.random() < reward.chance) {
@@ -22812,6 +23901,107 @@ const CODEX_CHAPTERS = [
                     </div>`).join('')}
             </div>
         `
+    },
+
+    // ── TRANSCENDENCE CHAPTER ─────────────────────────────────────
+    {
+        id: 'transcendence',
+        title: '\u2726 Transcendence',
+        unlockCondition: () => gameState.isTranscended || D(gameState.lifetimeSouls).gte(D('1e500')),
+        content: () => `
+            <div style="color:#c8b4ff; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:22px; text-align:center;">THE LIGHT BEYOND THE DARK</div>
+            <p style="color:#bbb; margin-bottom:16px; font-style:italic; text-align:center; border-bottom:1px solid #1a1030; padding-bottom:16px;">You have consumed so much darkness that you have become something else entirely.</p>
+            <p style="color:#aaa; margin-bottom:14px; line-height:1.75;">Transcendence is triggered by the <strong style="color:#c8b4ff;">✦ TRANSCEND</strong> button — it replaces the Harvest Soul button once you hit 1e1000 lifetime souls and have ascended at least once. A confirmation pop-up shows exactly what you lose and keep. You must confirm twice before anything changes.</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                <div style="background:#0a0812; border:1px solid #cc333322; border-top:2px solid #cc3333; border-radius:10px; padding:14px;">
+                    <div style="color:#cc3333; font-size:0.72em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;">✗ Lost</div>
+                    <div style="color:#555; font-size:0.8em; line-height:1.8;">
+                        <div>✗ All Dark Souls</div><div>✗ All Minion levels</div><div>✗ Upgrades & Worlds</div><div>✗ Active Rituals & Potions</div><div>✗ SPS & SPC reset</div>
+                    </div>
+                </div>
+                <div style="background:#080f0a; border:1px solid #44cc8822; border-top:2px solid #44cc88; border-radius:10px; padding:14px;">
+                    <div style="color:#44cc88; font-size:0.72em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;">✔ Kept</div>
+                    <div style="color:#888; font-size:0.8em; line-height:1.8;">
+                        <div>✔ Shards, Aether, Fragments</div><div>✔ Artifacts & Inventory</div><div>✔ Secret Minions</div><div>✔ PvP record & Pact</div><div>✔ Lifetime stats</div>
+                    </div>
+                </div>
+            </div>
+            <p style="color:#aaa; line-height:1.75;">Ascending or Collapsing returns you to Dark Souls. The #1 Light Soul player holds <strong style="color:#c8b4ff;">God</strong>. The #1 Dark Soul player holds <strong style="color:#ff4444;">Satan</strong>. Both are special minions that give unique permanent bonuses instead of SPS.</p>
+        `
+    },
+    {
+        id: 'guardians',
+        title: '\u2726 Guardians',
+        unlockCondition: () => gameState.isTranscended || Object.values(gameState.guardianMinions || {}).some(g => g.level > 0),
+        content: () => {
+            const owned = Object.entries(gameState.guardianMinions || {}).filter(([,g]) => g.level > 0);
+            return `
+            <div style="color:#c8b4ff; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:22px; text-align:center;">CELESTIAL GUARDIANS</div>
+            <p style="color:#aaa; margin-bottom:14px; line-height:1.75;">39 celestial entities spanning 15 Light Worlds. Guardians are not SPS machines — they are <strong style="color:#c8b4ff;">stronger beings</strong> whose research bonuses reach scales that dark minions cannot. The final Guardians multiply all gains by triple-digit factors.</p>
+            <p style="color:#aaa; margin-bottom:14px; line-height:1.75;">Guardians can be <strong style="color:#c8b4ff;">traded and sold in the Market</strong>. A dark-side player can own Guardian minions — they just won't produce Light Souls unless transcended.</p>
+            <div style="background:#0a0818; border:1px solid #c8b4ff22; border-left:3px solid #c8b4ff; border-radius:8px; padding:14px 16px;">
+                <div style="color:#c8b4ff; font-size:0.78em; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">✦ Your Guardians — ${owned.length} / ${Object.keys(guardianMinions).length} summoned</div>
+                ${owned.length > 0 ? owned.map(([id,g]) => `<div style="color:#888;font-size:0.82em;">${guardianMinions[id]?.icon} <strong style="color:#c8b4ff;">${guardianMinions[id]?.name}</strong> Lv ${g.level}</div>`).join('') : `<div style="color:#3a2860;font-size:0.82em;font-style:italic;">No Guardians summoned yet.</div>`}
+            </div>`;
+        }
+    },
+    // ── Prayers chapter (only visible when transcended) ──────────────────
+    // ── Prayers chapter (only visible when transcended) ──────────────────
+    {
+        id: 'prayers',
+        title: '🙏 Prayers',
+        unlockCondition: () => gameState.isTranscended,
+        content: () => {
+            const activePrayers = Object.keys(prayers).filter(id =>
+                gameState.unlockedLightWorlds?.includes(prayers[id].requiredWorld)
+            );
+            return `
+            <div style="color:#c8b4ff; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:22px; text-align:center;">CELESTIAL PRAYERS</div>
+            <p style="color:#aaa; margin-bottom:14px; line-height:1.75;">Prayers are the light-side equivalent of Rituals. They replace the Rituals tab entirely when transcended. Each costs <strong style="color:#c8b4ff;">Light Souls + Light Essence (LE) + Corrupted Fragments</strong> and has its own cooldown.</p>
+            <p style="color:#aaa; margin-bottom:14px; line-height:1.75;">30 Prayers across 10 tiers — each tier unlocks with its Light World. The final tier multiplies everything by 10,000 for 5 minutes.</p>
+            <div style="background:#0a0818; border:1px solid #c8b4ff22; border-left:3px solid #c8b4ff; border-radius:8px; padding:14px 16px; margin-bottom:14px;">
+                <div style="color:#c8b4ff; font-size:0.78em; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">✦ Prayer Access</div>
+                <div style="color:#888; font-size:0.82em; line-height:1.6;">
+                    You have unlocked <strong style="color:#c8b4ff;">${activePrayers.length}</strong> of 30 prayers.
+                    Fragment costs scale from 5 (Tier 1) to 150 (Tier 10).
+                    <em>Resonant Blessing</em> halves all prayer cooldowns at once.
+                </div>
+            </div>
+            <div style="background:#0a0818; border:1px solid #88ffcc22; border-radius:8px; padding:12px 16px;">
+                <div style="color:#88ffcc; font-size:0.78em; text-transform:uppercase; letter-spacing:2px; margin-bottom:6px;">✦ Light Essence (LE)</div>
+                <div style="color:#888; font-size:0.82em; line-height:1.5;">Earned passively from Guardians and from clearing Breaches in Light Worlds (1–3 LE per breach). Current LE: <strong style="color:#88ffcc;">${formatNumber(D(gameState.lightEssence || 0))}</strong></div>
+            </div>`;
+        }
+    },
+
+    // ── Light Artifacts chapter (only visible when transcended) ───────────────
+    {
+        id: 'light_artifacts',
+        title: '✦ Light Artifacts',
+        unlockCondition: () => gameState.isTranscended,
+        content: () => {
+            const ownedLight = Object.entries(gameState.ownedArtifacts || {}).filter(([,a]) => a.level > 0);
+            return `
+            <div style="color:#c8b4ff; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:22px; text-align:center;">LIGHT ARTIFACTS</div>
+            <p style="color:#aaa; margin-bottom:14px; line-height:1.75;">When transcended, your Artifacts tab shows <strong style="color:#c8b4ff;">celestial versions</strong> of every artifact — same bonuses, celestial names and theming. Your level progress carries over from the dark side.</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+                <div style="background:#0a0818; border:1px solid #44aaff22; border-radius:8px; padding:12px;">
+                    <div style="color:#44aaff; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">💎 First 3 — Shard Cost</div>
+                    <div style="color:#888; font-size:0.8em; line-height:1.5;">Shard of Radiance, Angelic Covenant &amp; Holy Effigy still cost <strong style="color:#44aaff;">Abyssal Shards</strong> on the light side.</div>
+                </div>
+                <div style="background:#0a0818; border:1px solid #88ffcc22; border-radius:8px; padding:12px;">
+                    <div style="color:#88ffcc; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">✦ All Others — LE Cost</div>
+                    <div style="color:#888; font-size:0.8em; line-height:1.5;">All other Light Artifacts cost <strong style="color:#88ffcc;">Light Essence (LE)</strong> + Corrupted Fragments instead of Dark Essence.</div>
+                </div>
+            </div>
+            <div style="background:#0a0818; border:1px solid #c8b4ff22; border-left:3px solid #c8b4ff; border-radius:8px; padding:12px 16px;">
+                <div style="color:#c8b4ff; font-size:0.78em; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">Your Artifacts — ${ownedLight.length} with levels</div>
+                ${ownedLight.length > 0
+                    ? ownedLight.map(([id,a]) => `<div style="color:#888;font-size:0.82em;">✦ <strong style="color:#c8b4ff;">${artifacts[id]?.name||id}</strong> Lv.${a.level}</div>`).join('')
+                    : `<div style="color:#3a2860;font-size:0.82em;font-style:italic;">No artifacts upgraded yet this ascension.</div>`
+                }
+            </div>`;
+        }
     },
 ];
 

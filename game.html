@@ -9247,7 +9247,12 @@ async function saveGame() {
         corrupted_fragments: safe(D(gameState.corruptedFragments).toNumber()),
         abyssalShards:     safe(D(gameState.abyssalShards).toNumber()),
         bin_id:            gameState.playerName,
-        totalCollapses:    safe(gameState.totalCollapses)
+        totalCollapses:    safe(gameState.totalCollapses),
+        // Light Souls transcendence fields
+        isTranscended:     gameState.isTranscended ? true : false,
+        lightSoulsLog:     gameState.isTranscended && D(gameState.lifetimeSouls).gt(0)
+                               ? safe(D(gameState.lifetimeSouls).log10().toNumber(), 0)
+                               : 0,
     };
     try {
         let error;
@@ -9329,6 +9334,22 @@ function loadGame() {
             gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
             gameState.bankedSouls        = D(gameState.bankedSouls        || 0);
             gameState.bankedEssence      = D(gameState.bankedEssence      || 0);
+            // Restore transcendence state
+            if (gameState.isTranscended) {
+                gameState.lightSouls         = D(gameState.lightSouls         || 0);
+                gameState.lifetimeLightSouls = D(gameState.lifetimeLightSouls || 0);
+                if (!gameState.unlockedLightWorlds || gameState.unlockedLightWorlds.length === 0) {
+                    gameState.unlockedLightWorlds = ['celestial_threshold'];
+                }
+                if (!gameState.guardianMinions) gameState.guardianMinions = {};
+                for (const id in guardianMinions) {
+                    if (!gameState.guardianMinions[id]) {
+                        gameState.guardianMinions[id] = { level: 0, cost: D(guardianMinions[id].cost), promotionTier: 0 };
+                    } else {
+                        gameState.guardianMinions[id].cost = D(gameState.guardianMinions[id].cost || guardianMinions[id].cost);
+                    }
+                }
+            }
             // stats.sps is always recomputed by calculateStats() — no restore needed
             // Existing player — go straight into the game
             // If save was corrupted, onAuthStateChanged will force cloud reload once Firebase loads
@@ -9574,7 +9595,9 @@ function buyArtifact(id) {
 
     const baseCost = artifact.shardsCost || artifact.cost;
     const costType = artifact.shardsCost ? 'shards' : 'essence';
-    const currentCost = D(baseCost).mul(D(costMultiplier).pow(level)).floor();
+    // Transcended players pay 3× more for artifacts
+    const transcendMul = gameState.isTranscended ? 3 : 1;
+    const currentCost = D(baseCost).mul(D(costMultiplier).pow(level)).mul(transcendMul).floor();
 
     let canAfford = false;
     if (costType === 'shards' && D(gameState.abyssalShards).gte(currentCost)) {
@@ -9678,7 +9701,7 @@ function activateRitual(id) {
         console.log("Ritual stopped: Still on cooldown.");
         return;
     }
-    if (D(gameState.souls).lt(D(ritualData.cost))) {
+    if (D(gameState.souls).lt(D(ritualData.cost).mul(gameState.isTranscended ? 3 : 1))) {
         console.log("Ritual stopped: Not enough souls.");
         return;
     }
@@ -9709,8 +9732,10 @@ function activateRitual(id) {
     }
 
     // --- All checks passed, let's activate it! ---
-    gameState.souls = D(gameState.souls).sub(D(ritualData.cost));
-    gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(ritualData.cost));
+    // Transcended players pay 3× more soul cost for rituals
+    const transcendRitualMul = gameState.isTranscended ? 3 : 1;
+    gameState.souls = D(gameState.souls).sub(D(ritualData.cost).mul(transcendRitualMul));
+    gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(ritualData.cost).mul(transcendRitualMul));
     if (fragCost > 0) {
         gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(fragCost);
     }
@@ -9888,6 +9913,10 @@ function executeAscension() {
   gameState.inventory = inventory;
   gameState.equipped = equipped;
   gameState.totalCollapses = collappses;
+  // Ascending drops you back to Dark Souls — transcendence must be re-earned
+  gameState.isTranscended = false;
+  gameState.unlockedLightWorlds = [];
+  gameState.guardianMinions = {};
   gameState.fragmentForgeCount = 0; // always reset on ascension — forge price drops back to base
   // Restore lifetime stats
   gameState.lifetimeSouls = oldLifetimeSouls;
@@ -9950,12 +9979,12 @@ function executeAscension() {
 const TRANSCENDENCE_THRESHOLD = '1e1000'; // 1e1000 lifetime souls required
 
 function checkTranscendenceUnlock() {
-    if (gameState.isTranscended) return; // already transcended
+    if (gameState.isTranscended) return; // already transcended, button handled by renderAll
     if (gameState.ascensions < 1) return; // need at least 1 ascension
     const btn = document.getElementById('main-action-btn');
     if (!btn) return;
     const meetsThreshold = D(gameState.lifetimeSouls).gte(D(TRANSCENDENCE_THRESHOLD));
-    if (meetsThreshold) {
+    if (meetsThreshold || window._devTranscendTest) {
         btn.textContent = '✦ TRANSCEND';
         btn.style.background = 'linear-gradient(160deg, #0a0a2a 0%, #1a0a4a 45%, #0a0a2a 100%)';
         btn.style.color = '#c8b4ff';
@@ -9964,7 +9993,7 @@ function checkTranscendenceUnlock() {
         btn.style.letterSpacing = '4px';
         btn.onclick = function() { confirmTranscendence(); };
     } else {
-        btn.textContent = gameState.isTranscended ? 'Harvest Light' : 'Harvest Soul';
+        btn.textContent = 'Harvest Soul';
         btn.style.background = '';
         btn.style.color = '';
         btn.style.borderColor = '';
@@ -10189,6 +10218,10 @@ function executeCollapse() {
     gameState.ritualsPerformed  = oldRitualsPerformed;
     gameState.totalShardsEarned = oldTotalShardsEarned;
     gameState.totalCollapses    = oldTotalCollapses + 1;
+    // Collapsing drops you back to Dark Souls — transcendence must be re-earned
+    gameState.isTranscended = false;
+    gameState.unlockedLightWorlds = [];
+    gameState.guardianMinions = {};
     // PG resets on collapse
     
     // Post-collapse actions
@@ -10642,10 +10675,33 @@ function calculateStats() {
         }
     }
 
-    const worldBonus = worlds[gameState.currentWorld]?.bonus || { type: 'none' };
+    const worldBonus = worlds[gameState.currentWorld]?.bonus || lightWorlds[gameState.currentWorld]?.bonus || { type: 'none' };
     if (worldBonus.type === 'sps_multiplier') sps_multiplier = sps_multiplier.mul(D(worldBonus.value));
     if (worldBonus.type === 'spc_multiplier') spc_multiplier = spc_multiplier.mul(D(worldBonus.value));
     global_multiplier = _gm_mul(D(worldBonus.value));
+
+    // ── GUARDIAN MINIONS SPS (Light Souls layer) ──────────────────
+    if (gameState.isTranscended && gameState.guardianMinions) {
+        for (const id in gameState.guardianMinions) {
+            const gm = gameState.guardianMinions[id];
+            const gd = guardianMinions[id];
+            if (!gm || !gd || gm.level <= 0) continue;
+            let mSps = D(gm.level).mul(D(gd.baseSps));
+            // Apply research tiers (use level/5 thresholds)
+            const researchTiers = gd.researchTiers || [];
+            const currentTier = researchTiers.filter(t => gm.level >= t.level).length;
+            for (let i = 0; i < currentTier && i < researchTiers.length; i++) {
+                if (researchTiers[i].bonus.type === 'minion_self_multiplier') {
+                    mSps = mSps.mul(D(researchTiers[i].bonus.value));
+                }
+            }
+            // Apply promotions
+            for (let i = 0; i < (gm.promotionTier || 0); i++) {
+                mSps = mSps.mul(D(gd.promotions[i].multiplier));
+            }
+            sps = sps.add(mSps);
+        }
+    }
 
     {
         // Shard bonus — logarithmic scaling so it doesn not explode after many ascensions
@@ -10739,6 +10795,28 @@ function renderAll() {
 
   if (typeof renderTranscendenceIndicator === 'function') renderTranscendenceIndicator();
 
+  // Update main action button label based on transcendence state
+  const _mainBtn = document.getElementById('main-action-btn');
+  if (_mainBtn && !window._devTranscendTest) {
+      if (gameState.isTranscended) {
+          _mainBtn.textContent = 'Harvest Light';
+          _mainBtn.style.background = 'linear-gradient(160deg,#0a0a2a 0%,#1a0a4a 45%,#0a0a2a 100%)';
+          _mainBtn.style.color = '#c8b4ff';
+          _mainBtn.style.borderColor = '#4422aa';
+          _mainBtn.style.boxShadow = '0 0 20px rgba(100,50,255,0.3),inset 0 0 20px rgba(0,0,0,0.7)';
+          _mainBtn.style.letterSpacing = '3px';
+          _mainBtn.onclick = function() { mainActionClick(); };
+      } else if (_mainBtn.textContent !== '✦ TRANSCEND') {
+          _mainBtn.textContent = 'Harvest Soul';
+          _mainBtn.style.background = '';
+          _mainBtn.style.color = '';
+          _mainBtn.style.borderColor = '';
+          _mainBtn.style.boxShadow = '';
+          _mainBtn.style.letterSpacing = '';
+          _mainBtn.onclick = function() { mainActionClick(); };
+      }
+  }
+
   renderAltar();
   renderMinions();
   renderBrewery();
@@ -10769,6 +10847,15 @@ function updateDynamicDisplays() {
   if (altarSps) altarSps.innerText = formatNumber(D(gameState.stats.sps));
   if (altarSpc) altarSpc.innerText = formatNumber(D(gameState.stats.spc));
 
+  // Light Souls layer — update souls chip label
+  const soulsChip = document.querySelector('.chip-souls .chip-label');
+  if (soulsChip) soulsChip.textContent = gameState.isTranscended ? 'LIGHT SOULS' : 'SOULS';
+  const soulsChipEl = document.querySelector('.chip-souls');
+  if (soulsChipEl) {
+      soulsChipEl.style.borderColor = gameState.isTranscended ? '#9966ff44' : '';
+      soulsChipEl.querySelector('.chip-value').style.color = gameState.isTranscended ? '#c8b4ff' : '';
+  }
+
   // Pact buff live countdown
   if (typeof renderPactBuffStatus === 'function') renderPactBuffStatus();
   if (typeof checkAutoPactBuff === 'function') checkAutoPactBuff();
@@ -10786,9 +10873,8 @@ function updateDynamicDisplays() {
         // so the display never drifts away from reality
         const el = document.getElementById('souls-display');
         if (el && gameState && gameState.stats && gameState.souls !== undefined) {
-            // Always show the real souls value — it is already being updated 10x/sec
-            // by the game loop, we just re-read it at 60fps so the display is live
             el.innerText = formatNumber(D(gameState.souls));
+            el.style.color = gameState.isTranscended ? '#c8b4ff' : '';
         }
         requestAnimationFrame(rafSoulsLoop);
     }
@@ -10920,6 +11006,12 @@ function renderMinions() {
     const grid = document.getElementById('minion-grid');
     if (!grid) return;
     grid.innerHTML = '';
+
+    // If transcended, show Guardian minions instead of dark minions
+    if (gameState.isTranscended) {
+        renderGuardianMinions(grid);
+        return;
+    }
 
     // World-based color themes
     const worldColors = {
@@ -11087,6 +11179,112 @@ function confirmPrestige() {
     closePrestigeConfirm();
     if (_prestigeConfirmType === 'ascend') executeAscension();
     else if (_prestigeConfirmType === 'collapse') executeCollapse();
+}
+
+// ── GUARDIAN MINIONS RENDER (Light Souls layer) ────────────────────────────
+function buyGuardianMinion(id) {
+    if (!gameState.isTranscended) return;
+    if (!gameState.guardianMinions[id]) gameState.guardianMinions[id] = { level: 0, cost: D(guardianMinions[id].cost), promotionTier: 0 };
+    const gm = gameState.guardianMinions[id];
+    const gd = guardianMinions[id];
+    const cost = D(gm.cost || gd.cost);
+    if (D(gameState.souls).lt(cost)) return;
+    gameState.souls = D(gameState.souls).sub(cost);
+    gameState.soulsSpent = D(gameState.soulsSpent || 0).add(cost);
+    gm.level = (gm.level || 0) + 1;
+    // Update cost with multiplier
+    gm.cost = cost.mul(D(gd.multiplier || 1.15));
+    calculateStats();
+    renderMinions();
+    saveGame();
+}
+
+function renderGuardianMinions(grid) {
+    const lightWorldColors = {
+        celestial_threshold: { color:'#c8b4ff', glow:'#c8b4ff22' },
+        radiant_expanse:     { color:'#ffe88a', glow:'#ffe88a22' },
+        the_shining_deep:    { color:'#88eeff', glow:'#88eeff22' },
+        empyrean_void:       { color:'#aaaaff', glow:'#aaaaff22' },
+        the_first_light:     { color:'#ffffff', glow:'#ffffff22' },
+        crystal_heaven:      { color:'#88ffee', glow:'#88ffee22' },
+        throne_of_genesis:   { color:'#ffcc44', glow:'#ffcc4422' },
+        the_light_forge:     { color:'#ff8844', glow:'#ff884422' },
+        sanctum_of_eternity: { color:'#cc88ff', glow:'#cc88ff22' },
+        apex_of_light:       { color:'#ffff88', glow:'#ffff8822' },
+        the_resonant_choir:  { color:'#ff88cc', glow:'#ff88cc22' },
+        the_convergence:     { color:'#44ffcc', glow:'#44ffcc22' },
+        pure_genesis:        { color:'#ffffff', glow:'#ffffff22' },
+        the_infinite_beyond: { color:'#aa88ff', glow:'#aa88ff22' },
+        the_absolute:        { color:'#c8b4ff', glow:'#c8b4ff33' },
+    };
+
+    let anyRendered = false;
+    for (const id in guardianMinions) {
+        const gd = guardianMinions[id];
+        const worldUnlocked = gameState.unlockedLightWorlds?.includes(gd.requiredWorld);
+        if (!worldUnlocked) continue;
+
+        if (!gameState.guardianMinions[id]) gameState.guardianMinions[id] = { level: 0, cost: D(gd.cost), promotionTier: 0 };
+        const gm = gameState.guardianMinions[id];
+        const isPurchased = gm.level > 0;
+        if (!isPurchased && gd.requiredWorld !== gameState.currentWorld) continue;
+
+        anyRendered = true;
+        const theme = lightWorldColors[gd.requiredWorld] || { color:'#c8b4ff', glow:'#c8b4ff22' };
+        const cost = D(gm.cost || gd.cost);
+        const canAfford = D(gameState.souls).gte(cost);
+
+        // Research tier progress
+        const researchTiers = gd.researchTiers || [];
+        const currentTier = researchTiers.filter(t => gm.level >= t.level).length;
+        const nextTier = researchTiers[currentTier];
+        const progressPct = nextTier ? Math.min(100, Math.round((gm.level / nextTier.level) * 100)) : 100;
+
+        const tierDots = researchTiers.map((t, i) => {
+            const done = i < currentTier;
+            return `<div title="${t.desc}" style="width:8px;height:8px;border-radius:50%;background:${done?theme.color:'#1a1030'};border:1px solid ${done?theme.color:'#2a1a3a'};"></div>`;
+        }).join('');
+
+        grid.innerHTML += `
+        <div style="background:linear-gradient(135deg,#0a0818,#140a28); border:1px solid ${theme.color}44; border-top:3px solid ${theme.color}; border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:6px; box-shadow:0 0 20px ${theme.glow};">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="font-size:2em; filter:drop-shadow(0 0 8px ${theme.color}88);">${gd.icon}</div>
+                <div style="flex:1;">
+                    <div style="color:${theme.color}; font-weight:bold; font-size:0.95em;">${gd.name}</div>
+                    <div style="color:#555; font-size:0.72em;">Level ${gm.level} · ${formatNumber(D(gd.baseSps).mul(gm.level||1))} LPS</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:${theme.color}; font-size:0.7em; text-transform:uppercase;">Tier</div>
+                    <div style="color:${theme.color}; font-weight:bold;">${currentTier}/${researchTiers.length}</div>
+                </div>
+            </div>
+            <p style="color:#4a3870; font-size:0.75em; font-style:italic; margin:0; line-height:1.35;">${gd.lore}</p>
+            ${nextTier ? `<div style="margin:4px 0 2px;">
+                <div style="display:flex;justify-content:space-between;font-size:0.68em;color:#555;margin-bottom:3px;"><span>Next: Lv${nextTier.level}</span><span>${progressPct}%</span></div>
+                <div style="background:#0a0812;border-radius:3px;height:4px;overflow:hidden;"><div style="height:100%;width:${progressPct}%;background:linear-gradient(90deg,${theme.color}88,${theme.color});border-radius:3px;"></div></div>
+                <div style="color:#4a3870;font-size:0.68em;margin-top:3px;">${nextTier.desc}</div>
+            </div>` : `<div style="color:${theme.color};font-size:0.7em;text-align:center;">✦ All research unlocked ✦</div>`}
+            <div style="display:flex;gap:4px;align-items:center;">
+                <span style="color:#444;font-size:0.65em;text-transform:uppercase;letter-spacing:1px;">Research</span>
+                <div style="display:flex;gap:3px;">${tierDots}</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+                <div style="color:${canAfford?'#c8b4ff':'#ff4444'};font-size:0.82em;font-weight:bold;">✦ ${formatNumber(cost)} Light Souls</div>
+                <button onclick="buyGuardianMinion('${id}')" ${canAfford?'':'disabled'}
+                    style="background:${canAfford?`linear-gradient(135deg,${theme.color}22,transparent)`:'transparent'};border:1px solid ${theme.color}${canAfford?'88':'22'};border-radius:8px;padding:6px 14px;color:${canAfford?theme.color:'#333'};cursor:${canAfford?'pointer':'default'};font-family:var(--font-title);font-size:0.75em;letter-spacing:1px;">
+                    ${canAfford?'✦ Summon':'⚠ Need Souls'}
+                </button>
+            </div>
+        </div>`;
+    }
+
+    if (!anyRendered) {
+        grid.innerHTML = `<div style="color:#4a3870;text-align:center;padding:40px;grid-column:1/-1;">
+            <div style="font-size:2em;margin-bottom:10px;">✦</div>
+            <div style="color:#c8b4ff;font-family:var(--font-title);font-size:0.9em;letter-spacing:2px;">CELESTIAL THRESHOLD</div>
+            <div style="color:#4a3870;font-size:0.82em;margin-top:8px;">No Guardian worlds unlocked yet. Travel to the Map and unlock your first Light World.</div>
+        </div>`;
+    }
 }
 
 function renderBestiary() {
@@ -11601,7 +11799,9 @@ function renderArtifacts() {
         const baseCost = a.shardsCost || a.cost;
         const costType = a.shardsCost ? 'shards' : 'essence';
         const costMultiplier = a.costMultiplier || 1.5;
-        const nextLevelCost = D(baseCost).mul(D(costMultiplier).pow(level)).floor();
+        // Transcended players pay 3× more for artifacts — everything is harder in the Light layer
+        const transcendCostMul = gameState.isTranscended ? 3 : 1;
+        const nextLevelCost = D(baseCost).mul(D(costMultiplier).pow(level)).mul(transcendCostMul).floor();
         const canAfford = costType === 'shards' ? D(gameState.abyssalShards).gte(nextLevelCost) : D(gameState.darkEssence).gte(nextLevelCost);
 
         const costColor = costType === 'shards' ? '#44aaff' : '#9944cc';
@@ -13401,6 +13601,16 @@ function hardReset() {
                 arenaState.playerUnits = [];
                 arenaState.pointsSpent = 0;
             }
+            // Reset main button back to normal souls
+            const _btn = document.getElementById('main-action-btn');
+            if (_btn) {
+                _btn.textContent = 'Harvest Soul';
+                _btn.style.background = '';
+                _btn.style.color = '';
+                _btn.style.borderColor = '';
+                _btn.style.boxShadow = '';
+                _btn.onclick = function() { mainActionClick(); };
+            }
             window.location.reload();
         }
     }
@@ -13503,7 +13713,8 @@ function renderRituals() {
         const r = rituals[id];
         const ritualState = gameState.activeRituals[id];
         const isOnCooldown = ritualState && Date.now() < ritualState.cooldownEndTime;
-        const cannotAfford = D(gameState.souls).lt(D(r.cost));
+        const effectiveCost = D(r.cost).mul(gameState.isTranscended ? 3 : 1);
+        const cannotAfford = D(gameState.souls).lt(effectiveCost);
         const RITUAL_FRAG_COSTS = { blood_frenzy:5, demonic_horde:5, soul_sear:5, essence_theft:5, unholy_power:5, devils_bargain:5, glacial_freeze:5, divine_curse:10, void_rupture:15, entropic_cascade:20, ascendants_echo:25, reality_fracture:30, void_resonance:30, singularity_pulse:35, horizon_collapse:40, event_loop:30, temporal_rift:50, genesis_surge:50, primal_harvest:40, first_breath:60, godfire:75, ash_resurrection:60, divine_mandate:100, time_shatter:80, chronos_debt:70, age_of_ruin:100, omega_convergence:90, final_theorem:120, point_of_no_return:100, infinite_hunger:150, beyond_everything:200, the_last_ritual:250 };
         const fragCost = RITUAL_FRAG_COSTS[id] || 0;
         const cannotAffordFrags = fragCost > 0 && D(gameState.corruptedFragments || 0).lt(fragCost);
@@ -13545,7 +13756,7 @@ function renderRituals() {
                     🕐 Cooldown: ${r.cooldown >= 3600 ? (r.cooldown/3600)+'h' : r.cooldown >= 60 ? (r.cooldown/60)+'m' : r.cooldown+'s'}
                 </div>
                 <div style="font-size:0.88em; color:${cannotAfford && !isOnCooldown ? '#ff4444' : '#e8c46a'}; font-weight:bold;">
-                    Cost: ${formatNumber(r.cost)} souls${fragCost > 0 ? ` <span style="color:${cannotAffordFrags ? '#ff4444' : '#aa44ff'};">+ ${fragCost} 🔮</span>` : ''}
+                    Cost: ${formatNumber(gameState.isTranscended ? D(r.cost).mul(3) : r.cost)} souls${gameState.isTranscended ? '<span style="color:#c8b4ff;font-size:0.8em;"> ×3</span>' : ''}${fragCost > 0 ? ` <span style="color:${cannotAffordFrags ? '#ff4444' : '#aa44ff'};">+ ${fragCost} 🔮</span>` : ''}
                 </div>
             </div>
             <button id="ritual-btn-${id}" class="upgrade-btn" onclick="activateRitual('${id}')" ${btnDisabled}
@@ -13567,6 +13778,12 @@ function renderMap() {
     const grid = document.getElementById('map-grid');
     if (!grid) return;
     grid.innerHTML = '';
+
+    // If transcended, show Light Worlds
+    if (gameState.isTranscended) {
+        renderLightWorldMap(grid);
+        return;
+    }
 
     // World themes — icon, colour, tier label
     const worldThemes = {
@@ -13720,7 +13937,130 @@ function travelToWorld(id)
 	saveGame();
 }
 
-function showLore(worldId) { const lore = worlds[worldId].lore; if (!lore) return; document.getElementById('lore-modal-title').innerText = `Welcome to ${worlds[worldId].name}`; document.getElementById('lore-modal-text').innerText = lore; document.getElementById('lore-modal-overlay').style.display = 'flex'; }
+function showLore(worldId) { const lore = worlds[worldId]?.lore || lightWorlds[worldId]?.lore; if (!lore) return; document.getElementById('lore-modal-title').innerText = `Welcome to ${worlds[worldId]?.name || lightWorlds[worldId]?.name}`; document.getElementById('lore-modal-text').innerText = lore; document.getElementById('lore-modal-overlay').style.display = 'flex'; }
+
+// ── LIGHT WORLD MAP ────────────────────────────────────────────────────────
+function unlockLightWorld(worldId) {
+    if (!gameState.isTranscended) return;
+    const w = lightWorlds[worldId];
+    if (!w) return;
+    if (gameState.unlockedLightWorlds?.includes(worldId)) return;
+
+    // Parse cost — light world costs are prefixed 'lt_1eXXX'
+    const costStr = String(w.unlockCost);
+    if (costStr.startsWith('lt_')) {
+        const costVal = D(costStr.slice(3));
+        if (D(gameState.souls).lt(costVal)) {
+            Toastify({ text: `✦ Need ${formatNumber(costVal)} Light Souls to unlock ${w.name}.`, duration: 3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#220066)'} }).showToast();
+            return;
+        }
+        gameState.souls = D(gameState.souls).sub(costVal);
+        gameState.soulsSpent = D(gameState.soulsSpent || 0).add(costVal);
+    }
+
+    if (!gameState.unlockedLightWorlds) gameState.unlockedLightWorlds = ['celestial_threshold'];
+    gameState.unlockedLightWorlds.push(worldId);
+    gameState.currentWorld = worldId;
+
+    // Apply world bonus
+    const bonus = w.bonus;
+    if (bonus.type === 'collapse_unlock') { /* future */ }
+
+    calculateStats();
+    renderAll();
+    saveGame();
+
+    Toastify({ text: `✦ ${w.name} unlocked! ${w.perk}`, duration: 5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#220066,#0a0020)'} }).showToast();
+}
+
+function travelToLightWorld(worldId) {
+    if (!gameState.isTranscended) return;
+    if (!gameState.unlockedLightWorlds?.includes(worldId)) return;
+    gameState.currentWorld = worldId;
+    calculateStats();
+    renderAll();
+    saveGame();
+}
+
+function renderLightWorldMap(grid) {
+    const lightWorldThemes = {
+        celestial_threshold: { icon:'🌅', color:'#c8b4ff', tier:'Gateway'         },
+        radiant_expanse:     { icon:'✨', color:'#ffe88a', tier:'Inner Light'      },
+        the_shining_deep:    { icon:'🌊', color:'#88eeff', tier:'Inner Light'      },
+        empyrean_void:       { icon:'🌌', color:'#aaaaff', tier:'Inner Light'      },
+        the_first_light:     { icon:'💡', color:'#ffffff', tier:'Celestial'        },
+        crystal_heaven:      { icon:'🔷', color:'#88ffee', tier:'Celestial'        },
+        throne_of_genesis:   { icon:'👑', color:'#ffcc44', tier:'Celestial'        },
+        the_light_forge:     { icon:'⚙️', color:'#ff8844', tier:'Divine'           },
+        sanctum_of_eternity: { icon:'⌛', color:'#cc88ff', tier:'Divine'           },
+        apex_of_light:       { icon:'⭐', color:'#ffff88', tier:'Divine'           },
+        the_resonant_choir:  { icon:'🎼', color:'#ff88cc', tier:'Transcendent'     },
+        the_convergence:     { icon:'🌀', color:'#44ffcc', tier:'Transcendent'     },
+        pure_genesis:        { icon:'💫', color:'#ffffff', tier:'Transcendent'     },
+        the_infinite_beyond: { icon:'♾️', color:'#aa88ff', tier:'Absolute'         },
+        the_absolute:        { icon:'🕊️', color:'#c8b4ff', tier:'Absolute'         },
+    };
+
+    const bonusLabel = (bonus) => {
+        if (!bonus || bonus.type === 'none') return null;
+        const map = {
+            sps_multiplier:    v => `×${v} Light Soul/sec`,
+            spc_multiplier:    v => `×${v} Light Soul/click`,
+            global_all_multiplier: v => `×${v} All Gains`,
+            essence_multiplier: v => `×${v} Dark Essence`,
+            ascension_shard_bonus: v => `+${Math.round((v-1)*100)}% Abyssal Shards`,
+            aether_gain_multiplier: v => `×${v} Aether Gains`,
+            ritual_duration:   v => `×${v} Ritual Duration`,
+            minion_cost_reducer: v => `${Math.round((1-v)*100)}% cheaper Guardians`,
+            gain_exponent_flat: v => `All gains ^${v}`,
+        };
+        const fn = map[bonus.type];
+        return fn ? fn(bonus.value) : bonus.type.replace(/_/g,' ');
+    };
+
+    let lastTier = null;
+    const worldKeys = Object.keys(lightWorlds);
+
+    worldKeys.forEach((id, index) => {
+        const w = lightWorlds[id];
+        const theme = lightWorldThemes[id] || { icon:'✦', color:'#c8b4ff', tier:'Unknown' };
+        const isUnlocked = gameState.unlockedLightWorlds?.includes(id);
+        const isActive = gameState.currentWorld === id;
+        const costStr = String(w.unlockCost);
+        const cost = costStr.startsWith('lt_') ? D(costStr.slice(3)) : D(0);
+        const canAfford = D(gameState.souls).gte(cost);
+        const bonus = bonusLabel(w.bonus);
+
+        if (theme.tier !== lastTier) {
+            lastTier = theme.tier;
+            if (index > 0) grid.innerHTML += `<div style="height:1px;background:linear-gradient(90deg,transparent,#4422aa44,transparent);margin:6px 0;"></div>`;
+            grid.innerHTML += `<div style="color:#4a3870;font-size:0.7em;text-transform:uppercase;letter-spacing:3px;text-align:center;padding:4px 0;">${theme.tier}</div>`;
+        }
+
+        let borderColor = isActive ? theme.color : (isUnlocked ? theme.color+'88' : '#2a1a4a');
+        let bgGrad = isActive ? `linear-gradient(135deg,${theme.color}18,#0e0a1a)` : (isUnlocked ? 'linear-gradient(135deg,#0a0818,#0e0a1a)' : '#08060e');
+        let opacity = isUnlocked || canAfford ? '1' : '0.5';
+
+        grid.innerHTML += `
+        <li style="background:${bgGrad}; border:1px solid ${borderColor}; border-left:3px solid ${theme.color}; border-radius:10px; padding:12px 16px; margin-bottom:8px; opacity:${opacity}; transition:all 0.2s;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:1.4em;">${theme.icon}</span>
+                    <div>
+                        <div style="color:${theme.color};font-weight:bold;font-size:0.95em;">${w.name}</div>
+                        <div style="color:#555;font-size:0.7em;">${theme.tier}</div>
+                    </div>
+                </div>
+                ${isActive ? `<span style="color:${theme.color};font-size:0.7em;letter-spacing:2px;text-transform:uppercase;">✦ Current</span>`
+                : isUnlocked ? `<button onclick="travelToLightWorld('${id}')" style="background:${theme.color}22;border:1px solid ${theme.color}66;border-radius:8px;padding:5px 14px;color:${theme.color};cursor:pointer;font-family:var(--font-title);font-size:0.75em;">Travel</button>`
+                : `<button onclick="unlockLightWorld('${id}')" ${canAfford?'':'disabled'} style="background:${canAfford?`linear-gradient(135deg,${theme.color}22,transparent)`:'transparent'};border:1px solid ${theme.color}${canAfford?'66':'22'};border-radius:8px;padding:5px 14px;color:${canAfford?theme.color:'#333'};cursor:${canAfford?'pointer':'default'};font-family:var(--font-title);font-size:0.75em;">${canAfford?`✦ ${formatNumber(cost)}`:`✦ ${formatNumber(cost)} needed`}</button>`}
+            </div>
+            ${bonus ? `<div style="color:#4a3870;font-size:0.75em;margin-top:6px;">⚡ ${bonus}</div>` : ''}
+            <div style="color:#3a2860;font-size:0.72em;font-style:italic;margin-top:4px;line-height:1.35;">${w.perk}</div>
+        </li>`;
+    });
+}
+
 function renderAscensionScreen() {
     const hasWorld = gameState.unlockedWorlds.includes('void_threshold');
     const ASCEND_WORLDS = ['nether_plains','ashen_wastes','stygian_depths','burning_hells','frozen_abyss','celestial_ruins','void_threshold'];
@@ -13836,7 +14176,11 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
             totalAetherEarned: gameState.totalAetherEarned,
             pvpWins:           gameState.pvpWins,
             pvpLosses:         gameState.pvpLosses,
-            totalCollapses:    gameState.totalCollapses
+            totalCollapses:    gameState.totalCollapses,
+            isTranscended:     gameState.isTranscended || false,
+            lightSoulsLog:     gameState.isTranscended && D(gameState.lifetimeSouls).gt(0)
+                                   ? parseFloat(D(gameState.lifetimeSouls).log10().toNumber().toFixed(6))
+                                   : 0,
         };
         if (localPlayerIdx >= 0) {
             // Merge — use local value if Supabase has 0 or null for pvpWins
@@ -13861,7 +14205,10 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
 
             let valueHTML;
             if (type === 'lifetimeSouls') {
-                valueHTML = formatSoulsLeaderboard(player.lifetimeSouls, player.soulsLog);
+                const baseHTML = formatSoulsLeaderboard(player.lifetimeSouls, player.isTranscended ? player.lightSoulsLog : player.soulsLog);
+                valueHTML = player.isTranscended
+                    ? `<span style="color:#c8b4ff;">${baseHTML} <span style="font-size:0.7em;color:#9966ff;">✦ Light</span></span>`
+                    : baseHTML;
             } else if (type === 'aether') {
                 const c = player.totalCollapses || 0;
                 const a = player.totalAetherEarned || player.aether || 0;
@@ -16226,25 +16573,42 @@ function initializeChat() {
                     if (text === '!light1') {
                         if (window._scIsDev && window._scIsDev(uid)) {
                             window._devTranscendTest = true;
-                            const endTime = Date.now() + 15 * 60 * 1000;
-                            window._devTranscendTestEnd = endTime;
-                            checkTranscendenceUnlock();
-                            // Force show the button
-                            const btn = document.getElementById('main-action-btn');
-                            if (btn) {
-                                btn.textContent = '✦ TRANSCEND';
-                                btn.style.background = 'linear-gradient(160deg,#0a0a2a 0%,#1a0a4a 45%,#0a0a2a 100%)';
-                                btn.style.color = '#c8b4ff';
-                                btn.style.borderColor = '#4422aa';
-                                btn.style.boxShadow = '0 0 40px rgba(100,50,255,0.6),inset 0 0 20px rgba(0,0,0,0.7)';
-                                btn.onclick = () => confirmTranscendence();
+                            // Save original state so we can restore
+                            window._preTranscendBackup = {
+                                isTranscended: gameState.isTranscended,
+                                unlockedLightWorlds: gameState.unlockedLightWorlds ? [...gameState.unlockedLightWorlds] : [],
+                                guardianMinions: JSON.parse(JSON.stringify(gameState.guardianMinions || {})),
+                                currentWorld: gameState.currentWorld,
+                            };
+                            // Enable transcended state for testing
+                            gameState.isTranscended = true;
+                            if (!gameState.unlockedLightWorlds || gameState.unlockedLightWorlds.length === 0) {
+                                gameState.unlockedLightWorlds = ['celestial_threshold'];
                             }
+                            if (!gameState.guardianMinions || Object.keys(gameState.guardianMinions).length === 0) {
+                                gameState.guardianMinions = {};
+                                for (const id in guardianMinions) {
+                                    gameState.guardianMinions[id] = { level: 0, cost: D(guardianMinions[id].cost), promotionTier: 0 };
+                                }
+                            }
+                            gameState.currentWorld = gameState.unlockedLightWorlds[gameState.unlockedLightWorlds.length - 1];
+                            calculateStats();
+                            renderAll();
+                            checkTranscendenceUnlock();
                             setTimeout(() => {
                                 window._devTranscendTest = false;
-                                checkTranscendenceUnlock();
-                                Toastify({ text: '🔧 DEV: !light1 test mode expired.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
+                                // Restore original state
+                                if (window._preTranscendBackup) {
+                                    gameState.isTranscended = window._preTranscendBackup.isTranscended;
+                                    gameState.unlockedLightWorlds = window._preTranscendBackup.unlockedLightWorlds;
+                                    gameState.guardianMinions = window._preTranscendBackup.guardianMinions;
+                                    gameState.currentWorld = window._preTranscendBackup.currentWorld;
+                                    calculateStats();
+                                    renderAll();
+                                }
+                                Toastify({ text: '🔧 DEV: !light1 test mode expired. Restored to normal.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
                             }, 15 * 60 * 1000);
-                            Toastify({ text: '🔧 DEV: Transcendence test mode ON for 15 minutes. TRANSCEND button is now active.', duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)' } }).showToast();
+                            Toastify({ text: '🔧 DEV: Light mode ON for 15 min.\n✦ Guardian minions visible in Minions tab\n✦ Light Worlds visible in Map tab\n✦ Stats show Light Souls', duration: 8000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)', whiteSpace:'pre-line' } }).showToast();
                         } else {
                             Toastify({ text: '⛔ Dev-only command.', duration: 2000, gravity: 'top', position: 'center' }).showToast();
                         }
@@ -16315,25 +16679,40 @@ function initializeChat() {
                         return;
                     }
                     // Dev command: /clear
-                    // Dev command: !light1 — temporarily unlock transcendence test mode for 15 min
+                    // Dev command: !light1 — full light mode test for 15 min
                     if (text === '!light1') {
                         if (window._scIsDev && window._scIsDev(uid)) {
                             window._devTranscendTest = true;
+                            window._preTranscendBackup = {
+                                isTranscended: gameState.isTranscended,
+                                unlockedLightWorlds: gameState.unlockedLightWorlds ? [...gameState.unlockedLightWorlds] : [],
+                                guardianMinions: JSON.parse(JSON.stringify(gameState.guardianMinions || {})),
+                                currentWorld: gameState.currentWorld,
+                            };
+                            gameState.isTranscended = true;
+                            if (!gameState.unlockedLightWorlds || gameState.unlockedLightWorlds.length === 0) {
+                                gameState.unlockedLightWorlds = ['celestial_threshold'];
+                            }
+                            if (!gameState.guardianMinions || Object.keys(gameState.guardianMinions).length === 0) {
+                                gameState.guardianMinions = {};
+                                for (const id in guardianMinions) {
+                                    gameState.guardianMinions[id] = { level: 0, cost: D(guardianMinions[id].cost), promotionTier: 0 };
+                                }
+                            }
+                            gameState.currentWorld = gameState.unlockedLightWorlds[gameState.unlockedLightWorlds.length - 1];
+                            calculateStats(); renderAll(); checkTranscendenceUnlock();
                             setTimeout(() => {
                                 window._devTranscendTest = false;
-                                if (typeof checkTranscendenceUnlock === 'function') checkTranscendenceUnlock();
-                                Toastify({ text: '🔧 DEV: !light1 test mode expired.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
+                                if (window._preTranscendBackup) {
+                                    gameState.isTranscended = window._preTranscendBackup.isTranscended;
+                                    gameState.unlockedLightWorlds = window._preTranscendBackup.unlockedLightWorlds;
+                                    gameState.guardianMinions = window._preTranscendBackup.guardianMinions;
+                                    gameState.currentWorld = window._preTranscendBackup.currentWorld;
+                                    calculateStats(); renderAll();
+                                }
+                                Toastify({ text: '🔧 DEV: !light1 expired. Restored.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
                             }, 15 * 60 * 1000);
-                            const btn = document.getElementById('main-action-btn');
-                            if (btn) {
-                                btn.textContent = '✦ TRANSCEND';
-                                btn.style.background = 'linear-gradient(160deg,#0a0a2a 0%,#1a0a4a 45%,#0a0a2a 100%)';
-                                btn.style.color = '#c8b4ff';
-                                btn.style.borderColor = '#4422aa';
-                                btn.style.boxShadow = '0 0 40px rgba(100,50,255,0.6),inset 0 0 20px rgba(0,0,0,0.7)';
-                                btn.onclick = () => confirmTranscendence();
-                            }
-                            Toastify({ text: '🔧 DEV: Transcendence test mode ON for 15 minutes.', duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)' } }).showToast();
+                            Toastify({ text: '🔧 DEV: Light mode ON 15min\n✦ Minions tab: Guardian minions\n✦ Map tab: Light Worlds\n✦ Stats: Light Souls', duration: 8000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)', whiteSpace:'pre-line' } }).showToast();
                         } else {
                             Toastify({ text: '⛔ Dev-only command.', duration: 2000, gravity: 'top', position: 'center' }).showToast();
                         }

@@ -9373,6 +9373,12 @@ function executeAscension() {
           .then(() => console.log('[Ascend] Arena defense cleared — must be rebuilt with new minions'));
   }
 
+  // Clear local arena state so old defense can't be re-saved
+  if (typeof arenaState !== 'undefined') {
+      arenaState.playerUnits = [];
+      arenaState.pointsSpent = 0;
+  }
+
   calculateStats();
   renderAll();
   showScreen('altar');
@@ -9469,8 +9475,7 @@ function executeCollapse() {
     if (supabaseClient && _collapseName && _collapseName !== 'Unnamed') {
         supabaseClient.from('arena_defenses').delete().eq('player_name', _collapseName)
             .then(() => console.log('[Collapse] Arena defense cleared'));
-        supabaseClient.from('barter_listings')
-            .select('id, offer_type').eq('poster_name', _collapseName).eq('is_complete', false)
+        supabaseClient.from('barter_listings')            .select('id, offer_type').eq('poster_name', _collapseName).eq('is_complete', false)
             .then(({ data: ls }) => {
                 if (!ls || !ls.length) return;
                 const ml = ls.filter(l => l.offer_type && l.offer_type.startsWith('minion:'));
@@ -9478,6 +9483,12 @@ function executeCollapse() {
                 supabaseClient.from('barter_listings').delete().in('id', ml.map(l => l.id))
                     .then(() => console.log('[Collapse] Forfeited', ml.length, 'minion listing(s)'));
             });
+    }
+
+    // Clear local arena state so old defense can't be re-saved
+    if (typeof arenaState !== 'undefined') {
+        arenaState.playerUnits = [];
+        arenaState.pointsSpent = 0;
     }
 
     calculateStats();
@@ -12653,6 +12664,11 @@ function hardReset() {
                 supabaseClient.from('barter_listings').delete().eq('poster_name', gameState.playerName).eq('is_complete', false).then(() => {
                     console.log('[HardReset] Open barter listings deleted');
                 });
+            }
+            // Clear local arena state
+            if (typeof arenaState !== 'undefined') {
+                arenaState.playerUnits = [];
+                arenaState.pointsSpent = 0;
             }
             window.location.reload();
         }

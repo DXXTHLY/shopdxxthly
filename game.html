@@ -12625,6 +12625,35 @@ function hardReset() {
                 const uid = window._scFirebase.auth.currentUser.uid;
                 window._scFirebase.db.ref('gameSaves/' + uid).remove();
             }
+            // Clean up pact membership in Supabase so the player isn't stuck as a ghost member
+            if (supabaseClient && window.playerPact && gameState.playerName) {
+                const pact = window.playerPact;
+                const members = (pact.members || []).filter(m => m !== gameState.playerName);
+                if (members.length === 0) {
+                    supabaseClient.from('pacts').delete().eq('id', pact.id).then(() => {
+                        console.log('[HardReset] Pact disbanded — no members left');
+                    });
+                } else {
+                    // If they were the owner, transfer ownership to first remaining member
+                    const updates = { members };
+                    if (pact.owner === gameState.playerName) updates.owner = members[0];
+                    supabaseClient.from('pacts').update(updates).eq('id', pact.id).then(() => {
+                        console.log('[HardReset] Removed from pact, transferred ownership if needed');
+                    });
+                }
+            }
+            // Delete Supabase player row so leaderboard and PvP are clean
+            if (supabaseClient && gameState.playerName && gameState.playerName !== 'Unnamed') {
+                supabaseClient.from('players').delete().eq('name', gameState.playerName).then(() => {
+                    console.log('[HardReset] Supabase player row deleted');
+                });
+                supabaseClient.from('arena_defenses').delete().eq('player_name', gameState.playerName).then(() => {
+                    console.log('[HardReset] Arena defense deleted');
+                });
+                supabaseClient.from('barter_listings').delete().eq('poster_name', gameState.playerName).eq('is_complete', false).then(() => {
+                    console.log('[HardReset] Open barter listings deleted');
+                });
+            }
             window.location.reload();
         }
     }

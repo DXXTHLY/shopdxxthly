@@ -15445,6 +15445,23 @@ function initializeChat() {
                         return;
                     }
                     // Dev command: /clear — wipes slitherChat
+                    // Dev command: !remove — toggle mod-removal mode
+                    if (text === '!remove') {
+                        if (window._scIsDev && window._scIsDev(uid)) {
+                            window._devRemoveMode = !window._devRemoveMode;
+                            if (window._devRemoveMode) {
+                                window._injectRemoveButtons && window._injectRemoveButtons();
+                                Toastify({ text: '🔧 DEV: Remove mode ON — ✕ buttons visible on listings & PvP defenses', duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#2a0000,#aa0000)' } }).showToast();
+                            } else {
+                                window._removeRemoveButtons && window._removeRemoveButtons();
+                                Toastify({ text: '🔧 DEV: Remove mode OFF', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
+                            }
+                        } else {
+                            Toastify({ text: '⛔ Dev-only command.', duration: 2000, gravity: 'top', position: 'center' }).showToast();
+                        }
+                        e.target.value = '';
+                        return;
+                    }
                     if (text === '/clear') {
                     if (window._scIsDev && window._scIsDev(uid)) {
                         if (confirm('Clear all chat messages? This wipes the entire slitherChat log.')) {
@@ -15509,6 +15526,23 @@ function initializeChat() {
                         return;
                     }
                     // Dev command: /clear
+                    // Dev command: !remove — toggle mod-removal mode
+                    if (text === '!remove') {
+                        if (window._scIsDev && window._scIsDev(uid)) {
+                            window._devRemoveMode = !window._devRemoveMode;
+                            if (window._devRemoveMode) {
+                                window._injectRemoveButtons && window._injectRemoveButtons();
+                                Toastify({ text: '🔧 DEV: Remove mode ON — ✕ buttons visible on listings & PvP defenses', duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#2a0000,#aa0000)' } }).showToast();
+                            } else {
+                                window._removeRemoveButtons && window._removeRemoveButtons();
+                                Toastify({ text: '🔧 DEV: Remove mode OFF', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
+                            }
+                        } else {
+                            Toastify({ text: '⛔ Dev-only command.', duration: 2000, gravity: 'top', position: 'center' }).showToast();
+                        }
+                        input.value = '';
+                        return;
+                    }
                     if (text === '/clear') {
                         if (window._scIsDev && window._scIsDev(uid)) {
                             if (confirm('Clear all chat messages?')) {
@@ -19039,6 +19073,51 @@ function getBarterTypeInfo(type, amt, listing) {
 let barterPage = 0;
 const BARTER_PAGE_SIZE = 8;
 
+// ── DEV REMOVE MODE ──────────────────────────────────────────────────
+// Toggled by !remove in chat — only works for dev UIDs
+window._devRemoveMode = false;
+
+window._injectRemoveButtons = function() {
+    // Remove buttons on barter listings
+    document.querySelectorAll('[data-listing-id]').forEach(el => {
+        if (el.querySelector('.dev-remove-btn')) return;
+        const id = el.dataset.listingId;
+        const btn = document.createElement('button');
+        btn.className = 'dev-remove-btn';
+        btn.textContent = '✕ DEV REMOVE';
+        btn.style.cssText = 'background:#aa000033; border:1px solid #ff000066; color:#ff4444; font-size:0.65em; padding:3px 8px; border-radius:5px; cursor:pointer; margin-left:8px; font-family:inherit;';
+        btn.onclick = async (e) => {
+            e.stopPropagation();
+            if (!confirm('DEV: Delete this barter listing?')) return;
+            await supabaseClient.from('barter_listings').delete().eq('id', id);
+            el.remove();
+            Toastify({ text: '🔧 DEV: Listing removed.', duration: 2000, gravity:'top', position:'center', style:{background:'#aa0000'} }).showToast();
+        };
+        el.appendChild(btn);
+    });
+    // Remove buttons on arena defense entries
+    document.querySelectorAll('[data-defense-player]').forEach(el => {
+        if (el.querySelector('.dev-remove-btn')) return;
+        const playerName = el.dataset.defensePlayer;
+        const btn = document.createElement('button');
+        btn.className = 'dev-remove-btn';
+        btn.textContent = '✕ DEV REMOVE';
+        btn.style.cssText = 'background:#aa000033; border:1px solid #ff000066; color:#ff4444; font-size:0.65em; padding:3px 8px; border-radius:5px; cursor:pointer; margin-left:8px; font-family:inherit;';
+        btn.onclick = async (e) => {
+            e.stopPropagation();
+            if (!confirm(`DEV: Delete PvP defense for "${playerName}"?`)) return;
+            await supabaseClient.from('arena_defenses').delete().eq('player_name', playerName);
+            el.remove();
+            Toastify({ text: `🔧 DEV: "${playerName}" defense removed.`, duration: 2000, gravity:'top', position:'center', style:{background:'#aa0000'} }).showToast();
+        };
+        el.appendChild(btn);
+    });
+};
+
+window._removeRemoveButtons = function() {
+    document.querySelectorAll('.dev-remove-btn').forEach(btn => btn.remove());
+};
+
 async function fetchBarterListings(page) {
     if (page !== undefined) barterPage = page;
     const list = document.getElementById('barter-listing-list');
@@ -19088,6 +19167,7 @@ async function fetchBarterListings(page) {
         list.innerHTML = '';
         sorted.forEach(listing => {
             const li   = document.createElement('li');
+            li.dataset.listingId = listing.id;
             const isMe = listing.poster_name === gameState.playerName;
             const canFill = !isMe && hasEnough(listing.want_type, listing.want_amt);
 
@@ -19273,14 +19353,17 @@ async function claimPendingBarterPayouts() {
                 .update({ payout_claimed: true })
                 .eq('id', row.id);
             addCurrency(row.payout_type, row.payout_amt);
-            totalPayouts.push(`+${formatNumber(row.payout_amt)} ${BARTER_LABELS[row.payout_type]}`);
+            const buyer = row.accepted_by || 'Someone';
+            const soldLabel = BARTER_LABELS[row.offer_type] || row.offer_type;
+            const paidLabel = BARTER_LABELS[row.payout_type] || row.payout_type;
+            totalPayouts.push(`💰 ${buyer} bought your ${formatNumber(row.offer_amt)} ${soldLabel} for ${formatNumber(row.payout_amt)} ${paidLabel}`);
         }
         calculateStats(); renderAll(); saveGame();
         if (totalPayouts.length > 0) {
             Toastify({
-                text: `💰 Trade payouts claimed!\n${totalPayouts.join('\n')}`,
-                duration: 7000, gravity:'top', position:'center',
-                style: { background: 'linear-gradient(135deg,#0a2a0a,#1a6a1a)' }
+                text: `🏪 Market Sales!\n${totalPayouts.join('\n')}`,
+                duration: 8000, gravity:'top', position:'center',
+                style: { background: 'linear-gradient(135deg,#0a2a0a,#1a6a1a)', whiteSpace:'pre-line' }
             }).showToast();
         }
     } catch(e) { console.warn('Payout claim error:', e); }
@@ -19999,6 +20082,7 @@ async function arenaFetchOpponents(page) {
             const defenseIcons = units.slice(0, 6).map(u => u.icon || '👿').join(' ');
 
             const li = document.createElement('div');
+            li.dataset.defensePlayer = opponent.player_name;
             li.style.cssText = `background:linear-gradient(135deg,${alreadyBeaten ? '#0a0a0a' : '#0e0a1a'},${alreadyBeaten ? '#111' : '#1a0a0a'}); border:1px solid ${alreadyBeaten ? '#22222244' : '#ff444433'}; border-left:3px solid ${alreadyBeaten ? '#333' : '#ff4444'}; border-radius:10px; padding:12px 14px; opacity:${alreadyBeaten ? '0.4' : '1'}; margin-bottom:8px;`;
             li.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -20011,8 +20095,9 @@ async function arenaFetchOpponents(page) {
                 <div style="color:#666; font-size:1.2em; margin-bottom:10px; letter-spacing:4px;">${defenseIcons || '???'}</div>
                 <button onclick='${alreadyBeaten ? '' : `arenaSetupAttack(${JSON.stringify(opponent)})`}'
                     ${alreadyBeaten ? 'disabled' : ''}
-                    style="width:100%; background:${alreadyBeaten ? 'transparent' : 'linear-gradient(135deg,#330000,#1a0000)'}; border:1px solid ${alreadyBeaten ? '#222' : '#ff444455'}; border-radius:7px; padding:8px; color:${alreadyBeaten ? '#333' : '#ff6666'}; cursor:${alreadyBeaten ? 'default' : 'pointer'}; font-family:inherit; font-size:0.8em; font-weight:bold;"
-                    ${alreadyBeaten ? '' : `onmouseover="this.style.background='linear-gradient(135deg,#550000,#220000)'; this.style.borderColor='#ff444499';" onmouseout="this.style.background='linear-gradient(135deg,#330000,#1a0000)'; this.style.borderColor='#ff444455';"`}>
+                    style="width:100%; background:${alreadyBeaten ? 'transparent' : 'linear-gradient(135deg,#3a0808,#c41818)'}; border:1px solid ${alreadyBeaten ? '#22222244' : '#ff444466'}; border-radius:8px; padding:10px; color:${alreadyBeaten ? '#333' : '#fff'}; font-family:var(--font-title); font-size:0.78em; cursor:${alreadyBeaten ? 'default' : 'pointer'}; letter-spacing:1px;"
+                    ${alreadyBeaten ? '' : `onmouseover="this.style.background='linear-gradient(135deg,#550a0a,#e42020)'" onmouseout="this.style.background='linear-gradient(135deg,#3a0808,#c41818)'"`}
+                >
                     ${alreadyBeaten ? '✓ Already challenged today' : '⚔ Challenge'}
                 </button>`;
             list.appendChild(li);

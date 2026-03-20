@@ -2594,6 +2594,22 @@ text-decoration: underline; /* Adds an underline on hover */
             </div>
         </div>
     <div id="game-container" style="display: none;">
+
+        <!-- ================================================================= -->
+        <!-- UNLINKED ACCOUNT WARNING BANNER -->
+        <!-- ================================================================= -->
+        <div id="unlinked-account-banner" style="display:none; align-items:center; justify-content:space-between; gap:10px; background:linear-gradient(90deg,#1a0800,#2a1000); border-bottom:2px solid #ff6600; padding:9px 16px; font-size:0.82em; flex-wrap:wrap; z-index:10;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.3em;">⚠️</span>
+                <span style="color:#ff9944; font-weight:bold;">Your progress is not saved to an account.</span>
+                <span style="color:#cc7733;">Clearing your browser or switching devices will permanently erase your save — including your SPS, minions, and currencies.</span>
+            </div>
+            <div style="display:flex; gap:8px; flex-shrink:0;">
+                <button onclick="openAccountModal()" style="background:linear-gradient(135deg,#ff6600,#cc4400); border:none; border-radius:6px; padding:6px 14px; color:#fff; font-weight:bold; cursor:pointer; font-family:inherit; font-size:0.9em; white-space:nowrap;">🔒 Link Account</button>
+                <button onclick="dismissUnlinkedBanner()" style="background:transparent; border:1px solid #553322; border-radius:6px; padding:6px 10px; color:#554433; cursor:pointer; font-family:inherit; font-size:0.85em;" title="Dismiss (will show again next session)">✕</button>
+            </div>
+        </div>
+
         <!-- ================================================================= -->
         <!-- NEW, TWO-LINE PLAYER STATS HEADER -->
         <!-- ================================================================= -->
@@ -14403,6 +14419,8 @@ function dismissAccountPopup() {
     document.getElementById('account-reminder-popup').style.display   = 'none';
     document.getElementById('account-reminder-overlay').style.display = 'none';
     localStorage.setItem('sc_account_popup_dismissed', '1');
+    // Re-check banner — if they just linked, hide it
+    setTimeout(checkUnlinkedBanner, 500);
 }
 
 async function attachAccount() {
@@ -14878,6 +14896,21 @@ function repairNegativeValues() {
     }
 }
 
+function dismissUnlinkedBanner() {
+    const b = document.getElementById('unlinked-account-banner');
+    if (b) b.style.display = 'none';
+    sessionStorage.setItem('sc_banner_dismissed', '1');
+}
+
+function checkUnlinkedBanner() {
+    if (sessionStorage.getItem('sc_banner_dismissed')) return;
+    const user = window._scFirebase?.auth?.currentUser;
+    const isLinked = user && !user.isAnonymous && user.email;
+    const banner = document.getElementById('unlinked-account-banner');
+    if (!banner) return;
+    banner.style.display = isLinked ? 'none' : 'flex';
+}
+
 function enterGame() {
     hideAuthScreen();
     document.getElementById('game-container').style.display = 'block';
@@ -14886,6 +14919,8 @@ function enterGame() {
     repairNegativeValues(); // Fix any saves broken by Charon's Oar bug
     calculateStats();
     renderAll();
+    // Show banner if player has no linked email account
+    setTimeout(checkUnlinkedBanner, 1500);
     initializeChat();
     setTimeout(() => refreshMarketTicker(), 2000);
     // Keep retrying until ticker actually has scrolling content (in case Supabase is slow)
@@ -28002,12 +28037,14 @@ async function renderGifs(q) {
 }
 
 function sendGifToChat(url) {
-    if (typeof db === 'undefined' || !window._chatUid) return;
+    // Use the globally-stored chat db reference — not the closure-scoped local `db`
+    const chatDb = window._chatDb || window._scFirebase?.chatDb;
+    if (!chatDb || !window._chatUid) return;
     const name = localStorage.getItem('slitherChatNickname') || 'Anon';
     const col  = localStorage.getItem('slitherChatNameColor') || '#c8a800';
-    db.ref('slitherChat').push({
+    chatDb.ref('slitherChat').push({
         uid: window._chatUid, name, chatNameColor: col,
-        time: firebase && firebase.database ? firebase.database.ServerValue.TIMESTAMP : Date.now(),
+        time: (typeof firebase !== 'undefined' && firebase.database) ? firebase.database.ServerValue.TIMESTAMP : Date.now(),
         gif: url, text: ''
     });
     toggleGifPicker();

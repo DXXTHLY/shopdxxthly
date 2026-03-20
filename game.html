@@ -895,6 +895,28 @@
         .chat-modal-content { padding: 0; background: linear-gradient(160deg, #06040f, #0e0a1a); border: 1px solid #3a1a5a; border-top: 3px solid #c41818; border-radius: 16px; text-align: left; box-shadow: 0 0 60px rgba(196,24,24,0.2), 0 0 30px rgba(80,0,140,0.3); min-width: 420px; max-width: 460px; width: 92%; overflow: hidden; }
         .chat-modal-content h2 { text-align: center; margin: 0; padding: 22px 28px 18px; font-family: var(--font-title); font-size: 0.95em; letter-spacing: 3px; color: var(--primary-color); text-transform: uppercase; border-bottom: 1px solid #1a0d26; text-shadow: 0 0 20px rgba(196,24,24,0.5); }
         .chat-modal-body { padding: 24px 28px; }
+        /* ── Animated Profile Backgrounds ───────────────────────────────── */
+        @keyframes anim-void    { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+        @keyframes anim-fire    { 0%{background-position:0% 0%}  100%{background-position:100% 100%} }
+        @keyframes anim-stars   { 0%{opacity:0.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.02)} 100%{opacity:0.6;transform:scale(1)} }
+        @keyframes anim-pulse   { 0%{box-shadow:inset 0 0 20px #aa44ff44} 50%{box-shadow:inset 0 0 50px #aa44ffaa} 100%{box-shadow:inset 0 0 20px #aa44ff44} }
+        @keyframes anim-aurora  { 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(360deg)} }
+        @keyframes anim-blood   { 0%{background-position:50% 0%} 50%{background-position:50% 100%} 100%{background-position:50% 0%} }
+        @keyframes anim-gold    { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+        @keyframes anim-ice     { 0%{filter:brightness(1) hue-rotate(0deg)} 50%{filter:brightness(1.3) hue-rotate(20deg)} 100%{filter:brightness(1) hue-rotate(0deg)} }
+        @keyframes anim-inferno { 0%{background-position:0% 0%} 100%{background-position:200% 200%} }
+        @keyframes anim-cosmic  { 0%{filter:hue-rotate(0deg) saturate(1.5)} 100%{filter:hue-rotate(360deg) saturate(2)} }
+        .profile-bg-void    { background:linear-gradient(135deg,#0a0020,#1a0040,#0a0020,#3a0060); background-size:400% 400%; animation:anim-void 4s ease infinite; }
+        .profile-bg-fire    { background:linear-gradient(135deg,#1a0000,#ff2200,#ff6600,#1a0000); background-size:300% 300%; animation:anim-fire 2s ease infinite; }
+        .profile-bg-stars   { background:radial-gradient(ellipse at 20% 30%,#ffffff08 1px,transparent 1px),radial-gradient(ellipse at 80% 70%,#ffffff10 1px,transparent 1px),linear-gradient(135deg,#000010,#0a0020,#050030); background-size:50px 50px,80px 80px,100% 100%; animation:anim-stars 3s ease infinite; }
+        .profile-bg-aurora  { background:linear-gradient(135deg,#001a10,#004420,#00aa44,#001a10); background-size:200% 200%; animation:anim-aurora 6s linear infinite; }
+        .profile-bg-blood   { background:linear-gradient(180deg,#0a0000,#440000,#880000,#440000,#0a0000); background-size:100% 300%; animation:anim-blood 3s ease infinite; }
+        .profile-bg-gold    { background:linear-gradient(135deg,#1a0a00,#c8a800,#ffdd00,#c8a800,#1a0a00); background-size:300% 300%; animation:anim-gold 3s ease infinite; }
+        .profile-bg-ice     { background:linear-gradient(135deg,#001a2a,#004488,#44aaff,#004488,#001a2a); animation:anim-ice 3s ease infinite; }
+        .profile-bg-inferno { background:repeating-linear-gradient(45deg,#1a0000,#660000 20px,#ff2200 40px,#1a0000 60px); background-size:100px 100px; animation:anim-inferno 2s linear infinite; }
+        .profile-bg-cosmic  { background:linear-gradient(135deg,#0a001a,#200040,#400080,#200040,#0a001a); animation:anim-cosmic 8s linear infinite; }
+        .profile-bg-none    { background:linear-gradient(135deg,#0a0812,#150a1a); }
+
         .settings-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
         .settings-field label { font-size: 0.72em; text-transform: uppercase; letter-spacing: 2px; color: #555; font-family: var(--font-title); }
         .settings-field input[type="text"] { background: #08050f; border: 1px solid #2a1a3a; border-radius: 8px; color: #ddd; padding: 10px 14px; font-family: var(--font-body); font-size: 0.9em; outline: none; transition: border-color 0.2s; }
@@ -926,7 +948,18 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
-        .profile-popup-header { padding: 24px 20px 16px; border-bottom: 1px solid #1a1030; position: relative; }
+        .profile-popup-header { padding: 24px 20px 16px; border-bottom: 1px solid #1a1030; position: relative; overflow: hidden; }
+        .profile-popup-header::before { content:''; position:absolute; inset:0; opacity:0.55; z-index:0; pointer-events:none; }
+        .profile-popup-header > * { position: relative; z-index: 1; }
+        .profile-bg-void    .profile-popup-header::before { background:linear-gradient(135deg,#0a0020,#1a0040,#0a0020,#3a0060); background-size:400% 400%; animation:anim-void 4s ease infinite; }
+        .profile-bg-fire    .profile-popup-header::before { background:linear-gradient(135deg,#1a0000,#ff2200,#ff6600,#1a0000); background-size:300% 300%; animation:anim-fire 2s ease infinite; }
+        .profile-bg-stars   .profile-popup-header::before { background:radial-gradient(ellipse at 20% 30%,#ffffff08 1px,transparent 1px),radial-gradient(ellipse at 80% 70%,#ffffff10 1px,transparent 1px),linear-gradient(135deg,#000010,#0a0020,#050030); background-size:50px 50px,80px 80px,100% 100%; animation:anim-stars 3s ease infinite; }
+        .profile-bg-aurora  .profile-popup-header::before { background:linear-gradient(135deg,#001a10,#004420,#00aa44,#001a10); background-size:200% 200%; animation:anim-aurora 6s linear infinite; }
+        .profile-bg-blood   .profile-popup-header::before { background:linear-gradient(180deg,#0a0000,#440000,#880000,#440000,#0a0000); background-size:100% 300%; animation:anim-blood 3s ease infinite; }
+        .profile-bg-gold    .profile-popup-header::before { background:linear-gradient(135deg,#1a0a00,#c8a800,#ffdd00,#c8a800,#1a0a00); background-size:300% 300%; animation:anim-gold 3s ease infinite; }
+        .profile-bg-ice     .profile-popup-header::before { background:linear-gradient(135deg,#001a2a,#004488,#44aaff,#004488,#001a2a); animation:anim-ice 3s ease infinite; }
+        .profile-bg-inferno .profile-popup-header::before { background:repeating-linear-gradient(45deg,#1a0000,#660000 20px,#ff2200 40px,#1a0000 60px); background-size:100px 100px; animation:anim-inferno 2s linear infinite; }
+        .profile-bg-cosmic  .profile-popup-header::before { background:linear-gradient(135deg,#0a001a,#200040,#400080,#200040,#0a001a); animation:anim-cosmic 8s linear infinite; }
         .profile-popup .avatar { width: 72px; height: 72px; border-radius: 50%; border: 3px solid var(--accent-color); margin-bottom: 10px; box-shadow: 0 0 20px rgba(200,168,0,0.3); }
         .profile-popup .close-btn { position: absolute; top: 10px; right: 14px; background: none; border: none; color: #444; font-size: 1.4rem; cursor: pointer; transition: color 0.2s; }
         .profile-popup .close-btn:hover { color: #aaa; }
@@ -3965,6 +3998,14 @@ text-decoration: underline; /* Adds an underline on hover */
             </div>
                         <!-- Screen 11: Settings -->
             <div id="settings-screen" class="screen">
+            <!-- Abyssal Scroll toggle at top of settings -->
+            <div style="background:#0d0a1a; border:1px solid #3a1a5a; border-radius:10px; padding:14px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between;">
+                <div>
+                    <div style="color:#c8b4ff; font-weight:bold; font-size:0.95em;">📜 Abyssal Scroll</div>
+                    <div style="color:#666; font-size:0.78em; margin-top:3px;">A floating notepad — jot down notes, builds, goals. Saves locally on your device.</div>
+                </div>
+                <button onclick="toggleAbyssalScroll()" style="background:linear-gradient(135deg,#1a0a2a,#2a1040); border:1px solid #6a3a8a; border-radius:8px; color:#c8b4ff; padding:7px 14px; cursor:pointer; font-size:0.82em;">Open Scroll</button>
+            </div>
                 <h2 style="letter-spacing:3px; color:#aa44ff;">⚙️ SETTINGS ⚙️</h2>
                 <p style="color:var(--dim-color); max-width:500px; margin:0 auto 28px;">Customize your experience in the abyss.</p>
 
@@ -8509,8 +8550,9 @@ const potions = {
         desc: "Instantly gain 2,500 Dark Essence and 500 Corrupted Fragments.",
         marketOnly: true,
         shopPrice: 160,
-        effect: { type: 'gain_essence_flat', value: 2500 }
-    },
+        effect: { type: 'gain_essence_flat', value: 2500 },
+         effect2: { type: 'gain_fragments_uncapped', value: 500 }
+     },
     brew_of_echoing_void: {
         name: "Brew of Echoing Void",
         desc: "For 5 minutes, clicking the altar fires 25 additional auto-clicks at full SPC.",
@@ -8815,10 +8857,10 @@ const potions = {
     },
     fusion_crystal_storm: {
         name: "⚗️ Crystal Storm",
-        desc: "Instantly gain 25% of your next Ascension shards AND 200 Corrupted Fragments.",
+        desc: "Instantly gain 25% of your next Ascension shards AND 30 Corrupted Fragments.",
         fusedOnly: true,
         effect:  { type: 'gain_shards_no_reset_flat', value: 0.25 },
-        effect2: { type: 'gain_fragments_flat', value: 200 }
+        effect2: { type: 'gain_fragments_flat', value: 30 }
     },
     fusion_aether_lattice: {
         name: "⚗️ Aether Lattice",
@@ -8881,7 +8923,8 @@ const potions = {
         desc: "Instantly: 50 Aether, 50% of next ascension shards, 1000 fragments, and SPS ×500 for 5min.",
         fusedOnly: true,
         effect:  { type: 'gain_aether_no_reset_flat', value: 50 },
-        effect2: { type: 'sps_multiplier_flat', value: 500, duration: 300 }
+        effect2: { type: 'sps_multiplier_flat', value: 500, duration: 300 },
+        effect3: { type: 'gain_fragments_uncapped', value: 1000 }
     },
 
     // ── LEGEND TIER: Fused + Market ───────────────────────────────────────
@@ -9030,7 +9073,7 @@ const expeditions = {
         cost: 1000,
         costType: 'souls',
         rewards: [
-             { type: 'chance', item: 'corruptedFragments', chance: 0.08, min: 1, max: 4 },
+             { type: 'guaranteed', item: 'corruptedFragments', min: 1, max: 4 },
             { type: 'chance', item: 'common_item', chance: 0.10 } // 10% chance
         ]
     },
@@ -9043,7 +9086,7 @@ const expeditions = {
         cost: 50000,
         costType: 'souls',
         rewards: [
-             { type: 'chance', item: 'corruptedFragments', chance: 0.12, min: 2, max: 6 },
+             { type: 'guaranteed', item: 'corruptedFragments', min: 2, max: 6 },
             { type: 'chance', item: 'uncommon_item', chance: 0.05 }
         ]
     },
@@ -9058,7 +9101,7 @@ const expeditions = {
         cost: 500000,
         costType: 'souls',
         rewards: [
-             { type: 'chance', item: 'corruptedFragments', chance: 0.20, min: 2, max: 8 },
+             { type: 'guaranteed', item: 'corruptedFragments', min: 2, max: 8 },
             { type: 'chance', item: 'uncommon_item', chance: 0.20 }
         ]
     },
@@ -9071,7 +9114,7 @@ const expeditions = {
         cost: 1000000,
         costType: 'souls',
         rewards: [
-             { type: 'chance', item: 'corruptedFragments', chance: 0.30, min: 4, max: 10 },
+             { type: 'guaranteed', item: 'corruptedFragments', min: 4, max: 10 },
             { type: 'chance', item: 'epic_item', chance: 0.02 }
         ]
     },
@@ -10583,8 +10626,8 @@ function executeTranscendence() {
     renderAll();
     showScreen('altar');
     saveGame();
-
-    // Flash the transcendence event
+    // Switch music to light theme
+    if (typeof checkLightMusicSwitch === 'function') checkLightMusicSwitch();
     Toastify({
         text: '✦ TRANSCENDED ✦\nYou have crossed into the Light.\nSecret minions carry your legacy forward.',
         duration: 8000, gravity: 'top', position: 'center',
@@ -11111,11 +11154,29 @@ function calculateStats() {
 
     for (const id in gameState.activeItemBuffs) {
         const buff = gameState.activeItemBuffs[id];
-        if (Date.now() < buff.buffEndTime) {
-            const effect = buff.effect;
-            if (effect.type === 'global_multiplier_flat') {
-                global_multiplier = _gm_mul(D(effect.value));
+        // Support both buffEndTime (item abilities) and expiresAt (pact buffs)
+        const buffExpiry = buff.expiresAt || buff.buffEndTime || 0;
+        if (Date.now() < buffExpiry) {
+            // Item ability effects (use buff.effect)
+            if (buff.effect) {
+                const effect = buff.effect;
+                if (effect.type === 'global_multiplier_flat') global_multiplier = _gm_mul(D(effect.value));
+                if (effect.type === 'sps_multiplier_flat')    sps_multiplier = sps_multiplier.mul(D(effect.value));
+                if (effect.type === 'spc_multiplier_flat')    spc_multiplier = spc_multiplier.mul(D(effect.value));
             }
+            // Pact buff effects (type/value are directly on the buff object)
+            if (id === 'pact_buff' && buff.type) {
+                if (buff.type === 'sps_multiplier')    sps_multiplier = sps_multiplier.mul(D(buff.value || 1));
+                if (buff.type === 'spc_multiplier')    spc_multiplier = spc_multiplier.mul(D(buff.value || 1));
+                if (buff.type === 'global_multiplier') global_multiplier = _gm_mul(D(buff.value || 1));
+                if (buff.type === 'sps_flat_bonus')    sps = sps.add(D(buff.value || 0));
+                if (buff.type === 'essence_multiplier') essenceMultiplier = (essenceMultiplier || 1) * (buff.value || 1);
+                if (buff.type === 'minion_cost')       tempMinionCostFactor *= (buff.value || 1);
+                // ascension_shard_bonus_temp is applied at ascension time, not here
+            }
+        } else if (buffExpiry > 0 && Date.now() >= buffExpiry) {
+            // Clean up expired buffs
+            delete gameState.activeItemBuffs[id];
         }
     }
 
@@ -11145,6 +11206,32 @@ function calculateStats() {
             if (effect.type === 'light_sps_triple')                sps_multiplier = sps_multiplier.mul(3);
             if (effect.type === 'light_guardian_cost_halve')       tempMinionCostFactor *= 0.5;
             if (effect.type === 'light_mega_boost')                { sps_multiplier = sps_multiplier.mul(5); spc_multiplier = spc_multiplier.mul(5); }
+            // Effect2 keys stored as id+'_sps', id+'_haste', etc.
+            if (potionId.endsWith('_sps')) {
+                const baseId = potionId.slice(0, -4);
+                const e2 = potions[baseId]?.effect2;
+                if (e2?.type === 'sps_multiplier_flat') sps_multiplier = sps_multiplier.mul(D(e2.value));
+            }
+            if (potionId.endsWith('_e2')) {
+                const baseId = potionId.slice(0, -3);
+                const e2 = potions[baseId]?.effect2;
+                if (e2?.type === 'global_multiplier_flat') global_multiplier = _gm_mul(D(e2.value));
+            }
+            if (potionId.endsWith('_spc')) {
+                const baseId = potionId.slice(0, -4);
+                const e2 = potions[baseId]?.effect2;
+                if (e2?.type === 'spc_multiplier_flat') spc_multiplier = spc_multiplier.mul(D(e2.value));
+            }
+            if (potionId.endsWith('_cost')) {
+                const baseId = potionId.slice(0, -5);
+                const e2 = potions[baseId]?.effect2;
+                if (e2?.type === 'temp_minion_cost_reducer_flat') tempMinionCostFactor *= e2.value;
+            }
+            if (potionId.endsWith('_pres')) {
+                const baseId = potionId.slice(0, -5);
+                const e2 = potions[baseId]?.effect2;
+                if (e2?.type === 'prestige_bonus_squared_flat') { const _pb2 = D(1).add(D(gameState.abyssalShards||0).add(1).log10().mul(0.5)); global_multiplier = _gm_mul(_pb2); }
+            }
         }
     }
     // ── Prayer buffs (_prayerBuffs) ─────────────────────────────────────
@@ -12524,7 +12611,7 @@ function renderArtifacts() {
             </div>
             <p style="color:#aaa; font-size:0.82em; margin:0; line-height:1.4;">${a.desc}</p>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px; flex-wrap:wrap; gap:6px;">
-                <div style="font-size:0.8em; color:${canAfford ? costColor : '#555'}; font-weight:bold;">${costIcon} ${formatNumber(nextLevelCost)} ${costType === 'shards' ? 'Shards' : 'Dark Essence'} &nbsp;<span style="color:${D(gameState.corruptedFragments||0).gte(1)?'#22c55e':'#ff4444'}; font-size:0.9em;">🔮 1</span></div>
+                <div style="font-size:0.8em; color:${canAfford ? costColor : '#555'}; font-weight:bold;">${costIcon} ${formatNumber(nextLevelCost)} ${costType === 'shards' ? 'Shards' : 'Dark Essence'} &nbsp;<span style="color:${D(gameState.corruptedFragments||0).gte(1+Math.floor(level/5))?'#22c55e':'#ff4444'}; font-size:0.9em;">🔮 ${1+Math.floor(level/5)} Frag${1+Math.floor(level/5)>1?'s':''}</span></div>
                 ${level > 0 ? `<div style="font-size:0.72em; color:#555;">Next: ${formatNumber(D(nextLevelCost).mul(costMultiplier).floor())}</div>` : ''}
             </div>
             <button id="artifact-btn-${id}" class="upgrade-btn" onclick="buyArtifact('${id}')" ${(!canAfford||!D(gameState.corruptedFragments||0).gte(1+Math.floor(level/5))||(_artifactCooldowns[id]&&Date.now()<_artifactCooldowns[id]))?'disabled':''}
@@ -13121,7 +13208,8 @@ function updateEffectTimers(now) {
     }
 
     for (const id in gameState.activeItemBuffs) {
-        if (now >= gameState.activeItemBuffs[id].buffEndTime) {
+        const buffExpiry = gameState.activeItemBuffs[id].expiresAt || gameState.activeItemBuffs[id].buffEndTime || 0;
+        if (buffExpiry > 0 && now >= buffExpiry) {
             delete gameState.activeItemBuffs[id];
             shouldRecalculate = true;
         }
@@ -13130,6 +13218,16 @@ function updateEffectTimers(now) {
     return shouldRecalculate; 
 }
 
+
+// Fragment grant helper — use capped=true for expeditions/raids/potions (max 100 per grant)
+// Use capped=false for donations, vault withdrawals, dev rewards, and special rare potions
+function _addFragments(amount, capped = true) {
+    let n;
+    try { n = (amount instanceof Decimal) ? amount.toNumber() : Number(amount); } catch(e) { return; }
+    if (!isFinite(n) || isNaN(n) || n <= 0) return;
+    if (capped) n = Math.min(n, 100);
+    gameState.corruptedFragments = D(gameState.corruptedFragments || 0).add(n);
+}
 
 function brewPotion(id) {
     const p = potions[id];
@@ -13318,7 +13416,7 @@ function usePotion(id) {
         }
         if (effect.type === 'gain_fragments_per_ascension_flat') {
             const frags = Math.floor(effect.value * (gameState.ascensions || 1));
-            _safeAddCur("corruptedFragments", frags);
+            _addFragments(frags, true);
             Toastify({ text: `🔮 Gained ${formatNumber(frags)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
         }
 
@@ -13345,6 +13443,64 @@ function usePotion(id) {
                 const gained = Math.floor(calculateShardsOnAscend() * effect2.value);
                 _safeAddCur("abyssalShards", isFinite(gained) ? gained : 0);
                 Toastify({ text: `💎 Also gained ${formatNumber(gained)} Abyssal Shards!`, duration:3000, gravity:'top', position:'center' }).showToast();
+            }
+            if (effect2.type === 'gain_fragments_flat') {
+                _addFragments(effect2.value, true);
+                Toastify({ text: `🔮 Gained ${formatNumber(Math.min(effect2.value, 100))} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
+            }
+            if (effect2.type === 'gain_fragments_per_ascension_flat') {
+                const frags2 = Math.floor(effect2.value * (gameState.ascensions || 1));
+                _addFragments(frags2, true);
+                Toastify({ text: `🔮 Gained ${formatNumber(frags2)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
+            }
+            if (effect2.type === 'sps_multiplier_flat' && effect2.duration) {
+                gameState.activePotions[id + '_sps'] = Date.now() + (effect2.duration * 1000);
+            }
+            if (effect2.type === 'cooldown_haste' && effect2.duration) {
+                gameState.activePotions[id + '_haste'] = Date.now() + (effect2.duration * 1000);
+            }
+            if (effect2.type === 'click_chain_flat' && effect2.duration) {
+                gameState.activePotions[id + '_chain'] = Date.now() + (effect2.duration * 1000);
+            }
+            if (effect2.type === 'rare_item_luck_flat' && effect2.duration) {
+                gameState.activePotions[id + '_luck'] = Date.now() + (effect2.duration * 1000);
+            }
+            if (effect2.type === 'gain_sps_seconds_flat') {
+                const gain2 = D(gameState.stats.sps).mul(effect2.value);
+                gameState.souls = D(gameState.souls).add(gain2);
+                gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(gain2);
+                Toastify({ text: `⚗️ Also gained ${formatNumber(gain2)} souls!`, duration:3000, gravity:'top', position:'center' }).showToast();
+            }
+            if (effect2.type === 'reset_all_cooldowns_flat') {
+                for (const rid in gameState.activeRituals) {
+                    if (gameState.activeRituals[rid].cooldownEndTime) gameState.activeRituals[rid].cooldownEndTime = 0;
+                }
+                for (const iid in gameState.itemCooldowns) gameState.itemCooldowns[iid] = 0;
+                gameState.nextCacheTime = 0;
+                Toastify({ text: `⏳ ALL cooldowns reset!`, duration:4000, gravity:'top', position:'center' }).showToast();
+            }
+            if (effect2.type === 'gain_aether_no_reset_flat') {
+                const gained2 = Math.floor(calculateAetherOnCollapse() * effect2.value);
+                _safeAddCur("aether", gained2);
+                Toastify({ text: `⚡ Also gained ${formatNumber(gained2)} Aether!`, duration:3000, gravity:'top', position:'center' }).showToast();
+            }
+            if (effect2.type === 'gain_fragments_uncapped') {
+                _addFragments(effect2.value, false);
+                Toastify({ text: `🔮 Gained ${formatNumber(effect2.value)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
+            }
+        }
+
+        // ── FUSED POTION: THIRD INSTANT EFFECT ──────────────────────────────
+        const effect3 = potions[id]?.effect3;
+        if (effect3) {
+            if (effect3.type === 'gain_fragments_uncapped') {
+                _addFragments(effect3.value, false);
+                Toastify({ text: `🔮 Gained ${formatNumber(effect3.value)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
+            }
+            if (effect3.type === 'gain_shards_no_reset_flat') {
+                const gained3 = Math.floor(calculateShardsOnAscend() * effect3.value);
+                _safeAddCur("abyssalShards", isFinite(gained3) ? gained3 : 0);
+                Toastify({ text: `💎 Also gained ${formatNumber(gained3)} Abyssal Shards!`, duration:3000, gravity:'top', position:'center' }).showToast();
             }
         }
 
@@ -17142,11 +17298,14 @@ function initializeChat() {
 
                 const chatInput = document.getElementById('chat-input');
                 if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
+                const gifBtn = document.getElementById('chat-gif-btn');
+                if (gifBtn) gifBtn.disabled = false;
+                window._chatUid = uid;
                 if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
 
                 const userRef = db.ref("onlineUsers/" + uid);
                 userRef.onDisconnect().remove();
-                const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "" };
+                const localData = { name: nickname, chatNameColor: localStorage.getItem("slitherChatNameColor") || '#FFD700', profileAvatar: localStorage.getItem("slitherChatAvatar") || "", profileMotto: localStorage.getItem("slitherChatMotto") || "", profileBg: localStorage.getItem("slitherChatProfileBg") || "none" };
 
                 // Build public stats snapshot — shown when others click your name
                 function buildPublicStats() {
@@ -17353,6 +17512,16 @@ function initializeChat() {
 
             // --- 3. HANDLE MESSAGE CONTENT (IMAGES, HTML, ETC.) ---
             let finalMessage = '';
+            // ── GIF messages ──────────────────────────────────────────────
+            if (msg.gif) {
+                const el2 = document.createElement('div');
+                el2.className = 'chat-msg' + (msg.uid === currentUid ? ' msg-mine' : '');
+                const ts2 = new Date(msg.time).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+                el2.innerHTML = `<span class="chat-msg-time">[${ts2}]</span><b>${nameHtml}${roleTagHTML}:</b><br><img src="${msg.gif}" style="max-width:90%;border-radius:8px;margin-top:4px;cursor:pointer;" onclick="window.open('${msg.gif}','_blank')">`;
+                chatBodyElement.appendChild(el2);
+                if (shouldScroll || chatBodyElement.scrollTop >= chatBodyElement.scrollHeight - chatBodyElement.clientHeight - 150) chatBodyElement.scrollTop = chatBodyElement.scrollHeight;
+                return;
+            }
             const imageRegex = /(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif|webp))/i;
             const imageMatch = msg.text ? msg.text.match(imageRegex) : null;
 
@@ -17556,6 +17725,9 @@ function initializeChat() {
 
                 const popup = document.createElement('div');
                 popup.className = 'profile-popup';
+                // Apply animated background style
+                const bgClass = userData.profileBg ? 'profile-bg-' + userData.profileBg : 'profile-bg-none';
+                popup.classList.add(bgClass);
                 popup.innerHTML = popupHTML;
                 document.body.appendChild(popup);
 
@@ -17839,10 +18011,14 @@ function initializeChat() {
                 document.getElementById('settings-name-color').value = localStorage.getItem("slitherChatNameColor") || '#FFD700';
                 document.getElementById('settings-avatar').value = localStorage.getItem("slitherChatAvatar") || '';
                 document.getElementById('settings-motto').value = localStorage.getItem("slitherChatMotto") || '';
+                _initProfileBgPicker();
                 settingsOverlay.style.display = 'flex';
             });
             document.getElementById('settings-cancel-btn').addEventListener('click', () => settingsOverlay.style.display = 'none');
-            document.getElementById('settings-save-btn').addEventListener('click', () => { const newData = { name: document.getElementById('settings-nickname').value.trim().slice(0, 20) || 'Anon', chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: document.getElementById('settings-avatar').value.trim(), profileMotto: document.getElementById('settings-motto').value.trim() }; localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto); db.ref("onlineUsers/" + uid).update(newData); settingsOverlay.style.display = 'none'; });
+            document.getElementById('settings-save-btn').addEventListener('click', () => { const newData = { name: document.getElementById('settings-nickname').value.trim().slice(0, 20) || 'Anon', chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: document.getElementById('settings-avatar').value.trim(), profileMotto: document.getElementById('settings-motto').value.trim() }; localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto);
+                    const selBg = document.querySelector('#profile-bg-picker .bg-opt-selected');
+                    if (selBg) { newData.profileBg = selBg.dataset.bg; localStorage.setItem('slitherChatProfileBg', selBg.dataset.bg); }
+                    db.ref("onlineUsers/" + uid).update(newData); settingsOverlay.style.display = 'none'; });
             document.getElementById('chat-hide-btn').addEventListener('click', () => document.getElementById('chat-container').style.display = 'none');
             document.body.addEventListener('click', e => { const userElement = e.target.closest('.chat-username'); if (userElement) showUserProfile(db, userElement.dataset.uid); });
             makeDraggable(document.getElementById('chat-container'), document.getElementById('chat-header'));
@@ -18152,7 +18328,7 @@ function endBreach(isVictory) {
         const _btome = gameState.equipped.tome;
         const _bMult = (_btome && items[_btome] && items[_btome].bonus.type === 'expedition_fragment_multiplier') ? items[_btome].bonus.value : 1.0;
         const bonusFrags = Math.floor(15 * _bMult);
-        _safeAddCur("corruptedFragments", bonusFrags);
+        _addFragments(bonusFrags, true);
         // Light Essence bonus when transcended
         if (gameState.isTranscended) {
             const leReward = Math.floor(1 + Math.random() * 3); // 1–3 LE per breach
@@ -18206,7 +18382,7 @@ function completeExpedition(id) {
         fragmentsGained = Math.floor(fragmentsGained * items[tomeId].bonus.value);
     }
 
-    _safeAddCur("corruptedFragments", fragmentsGained);
+    _addFragments(fragmentsGained, true);
     if (fragmentsGained > 0) rewardText += `Found ${fragmentsGained} Corrupted Fragments!`;
     
     data.rewards.forEach(reward => {
@@ -18589,7 +18765,7 @@ const breachMinionAbilities = {
 // SOUL RAIDS — PVE Dungeon Grid
 // =================================================================
 
-const RAID_COOLDOWN_MS = () => (3 + Math.random() * 3) * 60 * 60 * 1000; // Random 3–6 hours
+const RAID_COOLDOWN_MS = () => (10 + Math.random() * 110) * 60 * 1000; // Random 10–120 minutes
 const RAID_GRID_SIZE   = 7;
 const RAID_MAX_ENERGY  = 20;
 const RAID_PARTY_SIZE  = 3;
@@ -19424,7 +19600,7 @@ function endRaid(survived) {
 
     // Cooldowns for dead minions
     raidState.party.forEach(p=>{
-        if (p.hp<=0) gameState.soulRaids.minionCooldowns[p.minionId] = now + 2*60*60*1000;
+        if (p.hp<=0) gameState.soulRaids.minionCooldowns[p.minionId] = now + 45*60*1000; // 45 min
     });
 
     const frags = Math.max(0, raidState.loot.fragments);
@@ -19847,7 +20023,7 @@ function resolveTileEvent(tile) {
             const _ttome = gameState.equipped.tome;
             const _tMult = (_ttome && items[_ttome] && items[_ttome].bonus.type === 'expedition_fragment_multiplier') ? items[_ttome].bonus.value : 1.0;
             const fragments = Math.floor((Math.floor(Math.random() * 4) + 2) * _tMult);
-            _safeAddCur("corruptedFragments", fragments);
+            _addFragments(fragments, true);
             let msg = `💰 Treasure! +${fragments} Corrupted Fragments.${_tMult > 1 ? ' (Codex)' : ''}`;
             if (Math.random() < 0.25) {
                 const possibleItems = Object.keys(items).filter(itemId => items[itemId].rarity === 'common');
@@ -21891,6 +22067,7 @@ Your listing will remain until someone accepts it or it expires.`;
         <div id="online-users"></div>
         <div id="chat-input-container">
             <input id="chat-input" type="text" placeholder="Speak into the abyss..." disabled>
+            <button id="chat-gif-btn" title="Send a GIF" style="background:transparent;border:none;color:#9944cc;font-size:0.8em;font-weight:bold;cursor:pointer;padding:0 5px;opacity:0.7;" disabled>GIF</button>
             <button id="chat-send-btn" title="Send">↵</button>
         </div>
     </div>
@@ -21918,6 +22095,11 @@ Your listing will remain until someone accepts it or it expires.`;
             <div class="settings-field">
                 <label>Profile Motto</label>
                 <input type="text" id="settings-motto" maxlength="60" placeholder="Something memorable...">
+            </div>
+            <div class="settings-field">
+                <label>Profile Background Style</label>
+                <div id="profile-bg-picker" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;"></div>
+                <div id="profile-bg-preview" style="height:48px;border-radius:8px;margin-top:8px;border:1px solid #2a1a3a;transition:all 0.4s;"></div>
             </div>
         </div>
         <div class="modal-buttons">
@@ -23492,7 +23674,7 @@ const CODEX_CHAPTERS = [
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px;">
                     <div style="color:#ff6644; font-size:0.78em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Secret Minions</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">There are <strong style="color:#ff44cc;">9 hidden minions</strong> in the game that cannot be purchased from the Minions screen. They appear in the Bestiary as ??? until discovered. Each has unique research bonuses.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">There are <strong style="color:#ff44cc;">20 hidden minions</strong> in the game that cannot be purchased from the Minions screen. They appear in the Bestiary as ??? until discovered. Each has unique research bonuses.</div>
                 </div>
             </div>
             ${secretSection}
@@ -23566,7 +23748,7 @@ const CODEX_CHAPTERS = [
                          <span style="color:#44cc88;">✔</span> All Artifacts (levels reset, but you still own them)<br>
                          <span style="color:#44cc88;">✔</span> All Inventory items &amp; equipped gear<br>
                          <span style="color:#44cc88;">✔</span> Aether &amp; Aether Upgrades<br>
-                         <span style="color:#44cc88;">✔</span> Minion Research Bonuses (levels 5, 15, 30)<br>
+                         <span style="color:#44cc88;">✔</span> Minion Research Bonuses (levels 25, 50, 100)<br>
                          <span style="color:#44cc88;">✔</span> PvP record, Pact membership<br>
                          <span style="color:#44cc88;">✔</span> Banked Souls, Banked Fragments, Banked Essence<br>
                          <span style="color:#44cc88;">✔</span> Secret Minions you've discovered<br>
@@ -23756,7 +23938,7 @@ const CODEX_CHAPTERS = [
 
             <div style="background:#0a0812; border:1px solid #c8a80022; border-left:3px solid #c8a800; border-radius:8px; padding:12px 16px;">
                 <div style="color:#c8a800; font-size:0.78em; margin-bottom:4px;">🏪 The Marketplace & Hourly Shop</div>
-                <div style="color:#666; font-size:0.82em; line-height:1.5;">The Marketplace is a live player economy — list your items for Essence, buy rare gear from other collectors. The Hourly Shop refreshes every hour with exclusive potions, items, and occasionally secret minions that cannot be obtained anywhere else (at very low chance).</div>
+                <div style="color:#666; font-size:0.82em; line-height:1.5;">The Marketplace is a live player economy — list your items for Essence + Corrupted Fragments, buy rare gear from other collectors. Fragment costs are shown on each item. The Hourly Shop refreshes every hour with exclusive potions, items, and occasionally secret minions that cannot be obtained anywhere else (at very low chance).</div>
             </div>
         `
     },
@@ -23831,11 +24013,11 @@ const CODEX_CHAPTERS = [
             const r = gameState.soulRaids || {};
             const completed = r.completedRaids || 0;
             const cdLeft = Math.max(0, (r.cooldownUntil||0) - Date.now());
-            const cdStr = cdLeft > 0 ? `Next raid in ${Math.floor(cdLeft/3600000)}h ${Math.floor((cdLeft%3600000)/60000)}m` : 'Ready now';
+            const cdStr = cdLeft > 0 ? `Next raid in ${cdLeft > 3600000 ? Math.floor(cdLeft/3600000)+'h ' : ''}${Math.floor((cdLeft%3600000)/60000)}m` : 'Ready now';
             return `
             <div style="color:#ff6644; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">INTO THE ABYSS DUNGEON</div>
             <p style="color:#aaa; margin-bottom:14px;">Descend into a fog-shrouded dungeon with a party of 3 minions. Explore a 7×7 grid across 3 floors — enemies lurk hidden until you step on them. Fight with momentum, roles, and abilities. Flee any time and keep everything you've found.</p>
-            <p style="color:#555; margin-bottom:18px; font-size:0.88em;">Raids completed: <strong style="color:#ff6644;">${completed}</strong> &nbsp;·&nbsp; ${cdStr} &nbsp;·&nbsp; Cooldown: random 3–6 hours per raid</p>
+            <p style="color:#555; margin-bottom:18px; font-size:0.88em;">Raids completed: <strong style="color:#ff6644;">${completed}</strong> &nbsp;·&nbsp; ${cdStr} &nbsp;·&nbsp; Cooldown: random 10–120 minutes per raid</p>
 
             <div style="display:grid; gap:10px; margin-bottom:18px;">
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px 16px;">
@@ -23861,7 +24043,7 @@ const CODEX_CHAPTERS = [
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px 16px;">
                     <div style="color:#ff6644; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🏆 Rewards</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.6;">🔮 <strong style="color:#ddd;">Corrupted Fragments</strong> — earned from every enemy killed and treasure found<br>📿 <strong style="color:#ddd;">Raid Echo items</strong> — exclusive legendary gear (weapon, idol, sigil, helm, tome) only found here<br>💀 Minions that die in a raid are on a <strong style="color:#ddd;">2-hour cooldown</strong> before they can raid again</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.6;">🔮 <strong style="color:#ddd;">Corrupted Fragments</strong> — earned from every enemy killed and treasure found<br>📿 <strong style="color:#ddd;">Raid Echo items</strong> — exclusive legendary gear (weapon, idol, sigil, helm, tome) only found here<br>💀 Minions that die in a raid are on a <strong style="color:#ddd;">45-minute cooldown</strong> before they can raid again</div>
                 </div>
                 <div style="background:#0a0508; border:1px solid #ff664433; border-left:3px solid #ff6644; border-radius:8px; padding:12px 16px;">
                     <div style="color:#ff6644; font-size:0.78em; margin-bottom:4px;">⚠ Difficulty scales with your power</div>
@@ -26787,7 +26969,8 @@ async function confirmDonationClaim() {
 
         // ── Grant rewards ──────────────────────────────────────
         const frags = reward.fragments || 10000;
-        _safeAddCur('corruptedFragments', frags);
+        // Donation reward — uncapped, donors deserve their full 10,000 fragments
+        _addFragments(frags, false);
 
         // Secret Minions — 2 completely random picks from ALL secret minions, repeats possible
         const allSecretIds = Object.keys(minions || {}).filter(id => minions[id]?.secret);
@@ -26839,5 +27022,213 @@ document.addEventListener('click', e => {
 });
 </script>
 
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- ABYSSAL SCROLL — floating resizable notepad, persists via localStorage -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="abyssal-scroll" style="display:none;position:fixed;top:80px;right:20px;width:280px;height:320px;background:linear-gradient(135deg,#0d0a1a,#1a0a2a);border:1px solid #4a2a6a;border-radius:12px;z-index:8888;box-shadow:0 4px 32px #00000099;display:flex;flex-direction:column;resize:both;overflow:auto;min-width:200px;min-height:150px;">
+    <div id="scroll-header" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:linear-gradient(135deg,#1a0a2a,#2a1040);border-radius:12px 12px 0 0;cursor:move;user-select:none;border-bottom:1px solid #3a1a5a;flex-shrink:0;">
+        <span style="color:#c8b4ff;font-size:0.8em;font-weight:bold;letter-spacing:1px;">📜 ABYSSAL SCROLL</span>
+        <button onclick="toggleAbyssalScroll()" style="background:transparent;border:none;color:#664466;font-size:1.1em;cursor:pointer;padding:0 4px;" title="Close">✕</button>
+    </div>
+    <textarea id="scroll-text" placeholder="Jot down your notes, goals, coordinates, build ideas..." style="flex:1;background:transparent;border:none;color:#ccaaff;font-size:0.82em;padding:10px;resize:none;outline:none;line-height:1.6;font-family:inherit;"></textarea>
+</div>
+
+<script>
+// ─── ABYSSAL SCROLL ────────────────────────────────────────────────────────
+function toggleAbyssalScroll() {
+    const el = document.getElementById('abyssal-scroll');
+    if (!el) return;
+    const showing = el.style.display !== 'none' && el.style.display !== '';
+    el.style.display = showing ? 'none' : 'flex';
+    localStorage.setItem('scrollOpen', showing ? '0' : '1');
+}
+
+(function initScroll() {
+    const el = document.getElementById('abyssal-scroll');
+    const ta = document.getElementById('scroll-text');
+    if (!el || !ta) return;
+    // Restore saved text
+    ta.value = localStorage.getItem('abyssalScrollText') || '';
+    ta.addEventListener('input', () => localStorage.setItem('abyssalScrollText', ta.value));
+    // Restore open state
+    if (localStorage.getItem('scrollOpen') === '1') el.style.display = 'flex';
+    else el.style.display = 'none';
+    // Make draggable
+    const hdr = document.getElementById('scroll-header');
+    let dragging = false, startX, startY, origLeft, origTop;
+    hdr.addEventListener('mousedown', (e) => {
+        if (e.target.tagName === 'BUTTON') return;
+        dragging = true;
+        const rect = el.getBoundingClientRect();
+        startX = e.clientX; startY = e.clientY;
+        origLeft = rect.left; origTop = rect.top;
+        el.style.left = origLeft + 'px'; el.style.top = origTop + 'px';
+        el.style.right = 'auto'; el.style.bottom = 'auto';
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        el.style.left = (origLeft + e.clientX - startX) + 'px';
+        el.style.top = (origTop + e.clientY - startY) + 'px';
+    });
+    document.addEventListener('mouseup', () => { dragging = false; });
+})();
+
+// ─── GIPHY GIF PICKER ──────────────────────────────────────────────────────
+const GIPHY_KEY = 'xWBhUx8jBtCxxjPHvtUzHLZlPGYBUTFq';
+let _gifPickerOpen = false;
+let _gifSearchTimeout = null;
+
+async function searchGifs(q) {
+    const url = q
+        ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(q)}&limit=12&rating=pg-13`
+        : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_KEY}&limit=12&rating=pg-13`;
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        return data.data || [];
+    } catch(e) { return []; }
+}
+
+async function renderGifs(q) {
+    const grid = document.getElementById('gif-results');
+    if (!grid) return;
+    grid.innerHTML = '<div style="color:#555;font-size:0.8em;padding:20px;text-align:center;grid-column:1/-1;">Loading...</div>';
+    const gifs = await searchGifs(q);
+    if (!gifs.length) { grid.innerHTML = '<div style="color:#555;font-size:0.8em;padding:20px;text-align:center;grid-column:1/-1;">No GIFs found</div>'; return; }
+    grid.innerHTML = gifs.map(g => {
+        const preview = g.images.fixed_height_small.url;
+        const full = g.images.fixed_height.url;
+        return `<img src="${preview}" data-full="${full}" style="width:100%;border-radius:6px;cursor:pointer;border:1px solid #2a1a3a;" title="Send GIF" onclick="sendGifToChat('${full}')">`;
+    }).join('');
+}
+
+function sendGifToChat(url) {
+    if (typeof db === 'undefined' || !window._chatUid) return;
+    const name = localStorage.getItem('slitherChatNickname') || 'Anon';
+    const col  = localStorage.getItem('slitherChatNameColor') || '#c8a800';
+    db.ref('slitherChat').push({
+        uid: window._chatUid, name, chatNameColor: col,
+        time: firebase && firebase.database ? firebase.database.ServerValue.TIMESTAMP : Date.now(),
+        gif: url, text: ''
+    });
+    toggleGifPicker();
+}
+
+function toggleGifPicker() {
+    const picker = document.getElementById('gif-picker');
+    if (!picker) return;
+    _gifPickerOpen = !_gifPickerOpen;
+    picker.style.display = _gifPickerOpen ? 'block' : 'none';
+    if (_gifPickerOpen) renderGifs('');
+}
+
+(function initGifPicker() {
+    const btn = document.getElementById('chat-gif-btn');
+    const search = document.getElementById('gif-search');
+    if (btn) btn.addEventListener('click', toggleGifPicker);
+    if (search) search.addEventListener('input', (e) => {
+        clearTimeout(_gifSearchTimeout);
+        _gifSearchTimeout = setTimeout(() => renderGifs(e.target.value), 400);
+    });
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+        const picker = document.getElementById('gif-picker');
+        if (_gifPickerOpen && picker && !picker.contains(e.target) && e.target.id !== 'chat-gif-btn') {
+            _gifPickerOpen = false; picker.style.display = 'none';
+        }
+    });
+})();
+
+// Enable GIF button when chat connects (alongside chat-send-btn enable)
+const _origEnableChat = window._enableChat;
+window._enableGifBtn = function() {
+    const btn = document.getElementById('chat-gif-btn');
+    if (btn) btn.disabled = false;
+};
+
+// ─── ANIMATED PROFILE BACKGROUND PICKER ───────────────────────────────────
+const PROFILE_BACKGROUNDS = [
+    { id: 'none',    label: 'Default',    emoji: '⬛' },
+    { id: 'void',    label: 'Void',       emoji: '🌌' },
+    { id: 'fire',    label: 'Hellfire',   emoji: '🔥' },
+    { id: 'blood',   label: 'Blood',      emoji: '🩸' },
+    { id: 'stars',   label: 'Starfield',  emoji: '✨' },
+    { id: 'aurora',  label: 'Aurora',     emoji: '🌿' },
+    { id: 'gold',    label: 'Gold',       emoji: '💛' },
+    { id: 'ice',     label: 'Ice',        emoji: '❄️' },
+    { id: 'inferno', label: 'Inferno',    emoji: '😈' },
+    { id: 'cosmic',  label: 'Cosmic',     emoji: '🔮' },
+];
+
+function _initProfileBgPicker() {
+    const grid = document.getElementById('profile-bg-picker');
+    const preview = document.getElementById('profile-bg-preview');
+    if (!grid) return;
+    const saved = localStorage.getItem('slitherChatProfileBg') || 'none';
+    grid.innerHTML = '';
+    PROFILE_BACKGROUNDS.forEach(bg => {
+        const btn = document.createElement('button');
+        btn.dataset.bg = bg.id;
+        const isSelected = bg.id === saved;
+        btn.className = isSelected ? 'bg-opt-selected' : '';
+        btn.style.cssText = `
+            background: transparent;
+            border: 2px solid ${isSelected ? '#aa44ff' : '#2a1a3a'};
+            border-radius: 8px; padding: 7px 4px; cursor: pointer;
+            font-size: 0.8em; color: ${isSelected ? '#c8b4ff' : '#666'};
+            font-family: inherit; transition: all 0.2s; display: flex;
+            flex-direction: column; align-items: center; gap: 3px;
+        `;
+        btn.innerHTML = `<span style="font-size:1.3em">${bg.emoji}</span><span style="font-size:0.68em;letter-spacing:0.5px">${bg.label}</span>`;
+        btn.addEventListener('click', () => {
+            grid.querySelectorAll('button').forEach(b => {
+                b.className = '';
+                b.style.borderColor = '#2a1a3a';
+                b.style.color = '#666';
+            });
+            btn.className = 'bg-opt-selected';
+            btn.style.borderColor = '#aa44ff';
+            btn.style.color = '#c8b4ff';
+            if (preview) {
+                preview.className = '';
+                preview.classList.add('profile-bg-' + bg.id);
+                preview.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:0.75em;color:#ffffff55;letter-spacing:1px;">${bg.label}</div>`;
+            }
+        });
+        if (isSelected && preview) {
+            preview.className = '';
+            preview.classList.add('profile-bg-' + bg.id);
+            preview.innerHTML = `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:0.75em;color:#ffffff55;letter-spacing:1px;">${bg.label}</div>`;
+        }
+        grid.appendChild(btn);
+    });
+}
+
+// When transcended, BGM switches to a celestial ambient track and loops
+// YouTube links can't be streamed directly — using a hosted MP3
+// Replace the URL below with your own hosted version of the track if desired
+const LIGHT_MUSIC_URL = 'https://files.catbox.moe/imz7m2.mp3'; // Light souls transcendence theme
+const DARK_MUSIC_URL  = 'https://files.catbox.moe/usk1qh.mp3'; // original dark bgm
+let _isPlayingLightMusic = false;
+
+function checkLightMusicSwitch() {
+    if (!audio || !audio.bgm) return;
+    const shouldBeLight = !!(gameState && gameState.isTranscended);
+    if (shouldBeLight === _isPlayingLightMusic) return; // no change
+    const wasMuted = audio.bgm.muted;
+    const wasPlaying = !audio.bgm.paused;
+    _isPlayingLightMusic = shouldBeLight;
+    const newSrc = shouldBeLight ? LIGHT_MUSIC_URL : DARK_MUSIC_URL;
+    if (audio.bgm.src !== newSrc) {
+        audio.bgm.pause();
+        audio.bgm.src = newSrc;
+        audio.bgm.muted = wasMuted;
+        audio.bgm.loop = true;
+        audio.bgm.volume = 0.2;
+        if (wasPlaying && !wasMuted) audio.bgm.play().catch(()=>{});
+    }
+}
+</script>
 </body>
 </html>

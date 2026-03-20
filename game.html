@@ -17469,27 +17469,29 @@ const antiCheatCodeAsString = `(function() {
     if (antiCheatState.isLockedOut) return;
 
     const now = Date.now();
-    
-    // Spam Check
+
+    // Spam Check — more than 20 clicks/sec is physically impossible for humans
     antiCheatState.clickTimestamps.push(now);
     const oneSecondAgo = now - 1000;
     antiCheatState.clickTimestamps = antiCheatState.clickTimestamps.filter(t => t >= oneSecondAgo);
-    if (antiCheatState.clickTimestamps.length > 25) {
+    if (antiCheatState.clickTimestamps.length > 20) {
         punishPlayer();
         return;
     }
 
-    // Rhythm Check
+    // Rhythm Check — auto clickers have machine-perfect timing (stdDev < 10ms).
+    // Real human clicks vary by at least 20-30ms even when trying to be consistent.
     if (antiCheatState.clickTimestamps.length < 2) return;
     const lastClickTime = antiCheatState.clickTimestamps[antiCheatState.clickTimestamps.length - 2];
     const interval = now - lastClickTime;
     antiCheatState.clickIntervals.push(interval);
-    if (antiCheatState.clickIntervals.length > 10) {
+    if (antiCheatState.clickIntervals.length > 12) {
         antiCheatState.clickIntervals.shift();
         const n = antiCheatState.clickIntervals.length;
         const mean = antiCheatState.clickIntervals.reduce((a, b) => a + b) / n;
         const stdDev = Math.sqrt(antiCheatState.clickIntervals.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
-        if (stdDev < 3) {
+        // Flag if interval is suspiciously short AND unnaturally consistent
+        if (mean < 100 && stdDev < 10) {
             punishPlayer();
         }
     }
@@ -17520,32 +17522,35 @@ function punishPlayer(isSevere = false) {
     antiCheatState.isLockedOut = true;
     antiCheatState.punishmentLevel++;
 
-    let lockoutTime = 5000 * antiCheatState.punishmentLevel;
-    let alertMessage = `An unstable connection to the abyss has been detected. Harvesting disabled for ${lockoutTime / 1000} seconds.`;
+    // Escalating lockout: 30s, 2min, 5min, 10min, then permanent until reload
+    const softTimes = [30000, 120000, 300000, 600000];
+    let lockoutTime = softTimes[Math.min(antiCheatState.punishmentLevel - 1, softTimes.length - 1)];
+    const isPermanent = antiCheatState.punishmentLevel >= 4;
 
-    if (isSevere) {
-        lockoutTime = 60000 * antiCheatState.punishmentLevel;
+    let alertMessage = `⚠ Automated clicking detected. Soul harvesting suspended for ${lockoutTime / 1000} seconds.`;
+
+    if (isSevere || isPermanent) {
+        lockoutTime = Infinity;
         gameState.souls = D(0);
-        alertMessage = `A hostile entity has corrupted your soul stream! Your current souls have been lost and harvesting is disabled for ${lockoutTime / 1000} seconds. This realm will now collapse.`;
-        setTimeout(() => window.location.reload(), 3000);
+        alertMessage = `☠ Automated clicking repeatedly detected. Your souls have been lost. Please reload the page to continue.`;
+        setTimeout(() => window.location.reload(), 4000);
     }
 
     alert(alertMessage);
 
     const btn = document.querySelector('.action-btn');
-    if(btn) {
-        const originalText = btn.innerText;
-        btn.innerText = "CONNECTION CORRUPTED";
+    if (btn) {
+        btn.innerText = "SUSPENDED";
         btn.disabled = true;
-    
+    }
+
+    if (!isPermanent && !isSevere) {
         setTimeout(() => {
             antiCheatState.isLockedOut = false;
-            if (btn && !isSevere) {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
             antiCheatState.clickTimestamps = [];
             antiCheatState.clickIntervals = [];
+            const btn2 = document.querySelector('.action-btn');
+            if (btn2) { btn2.innerText = 'Harvest Souls'; btn2.disabled = false; }
         }, lockoutTime);
     }
 }

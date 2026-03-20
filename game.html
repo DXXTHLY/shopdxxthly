@@ -4948,6 +4948,12 @@ function formatNumber(num) {
 // DECIMAL HELPERS — break_infinity.js wrapper for overflow-safe arithmetic
 // Supports numbers up to 10^(9×10^15) — effectively infinite for any game.
 // =================================================================
+// Global HTML escaper — safe to call from anywhere
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function D(x) {
     if (x instanceof Decimal) return x;
     if (x === null || x === undefined) return new Decimal(0);
@@ -22951,11 +22957,6 @@ Your listing will remain until someone accepts it or it expires.`;
         <div id="chat-body"></div>
         <div id="online-users"></div>
         <div id="chat-input-container" style="position:relative;">
-            <!-- GIF Picker panel -->
-            <div id="gif-picker" style="display:none;position:absolute;bottom:44px;left:0;right:0;background:#0d0a18;border:1px solid #3d2a4a;border-radius:10px;padding:10px;z-index:9999;box-shadow:0 -4px 20px rgba(0,0,0,0.8);">
-                <input id="gif-search" type="text" placeholder="Search GIFs..." style="width:100%;box-sizing:border-box;background:#080510;border:1px solid #2a1a3a;color:#ddd;padding:7px 10px;border-radius:7px;font-family:inherit;font-size:0.8em;margin-bottom:8px;">
-                <div id="gif-results" style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-height:200px;overflow-y:auto;"></div>
-            </div>
             <input id="chat-input" type="text" placeholder="Speak into the abyss..." disabled>
             <button id="chat-gif-btn" title="Send a GIF" style="background:transparent;border:none;color:#9944cc;font-size:0.8em;font-weight:bold;cursor:pointer;padding:0 5px;opacity:0.7;" disabled>GIF</button>
             <button id="chat-send-btn" title="Send">↵</button>
@@ -28011,10 +28012,33 @@ function sendGifToChat(url) {
 
 function toggleGifPicker() {
     const picker = document.getElementById('gif-picker');
+    const btn    = document.getElementById('chat-gif-btn');
     if (!picker) return;
     _gifPickerOpen = !_gifPickerOpen;
-    picker.style.display = _gifPickerOpen ? 'block' : 'none';
-    if (_gifPickerOpen) renderGifs('');
+    if (_gifPickerOpen) {
+        // Position the picker above the GIF button, anchored to viewport
+        if (btn) {
+            const r = btn.getBoundingClientRect();
+            picker.style.left   = Math.max(4, r.left - 280) + 'px';
+            picker.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+            picker.style.top    = 'auto';
+        }
+        picker.style.display = 'block';
+        renderGifs('');
+        // Re-bind event delegation each time picker opens (grid innerHTML resets)
+        const grid = document.getElementById('gif-results');
+        if (grid && !grid._gifClickBound) {
+            grid._gifClickBound = true;
+            grid.addEventListener('click', (e) => {
+                const img = e.target.closest('img[data-full]');
+                if (!img) return;
+                const url = img.dataset.full;
+                if (url) sendGifToChat(url);
+            });
+        }
+    } else {
+        picker.style.display = 'none';
+    }
 }
 
 function initGifPicker() {
@@ -28031,17 +28055,7 @@ function initGifPicker() {
         };
         search.addEventListener('input', search._gifHandler);
     }
-    // Event delegation for gif clicks — avoids inline-onclick URL encoding issues
-    const grid = document.getElementById('gif-results');
-    if (grid && !grid._gifClickBound) {
-        grid._gifClickBound = true;
-        grid.addEventListener('click', (e) => {
-            const img = e.target.closest('img[data-full]');
-            if (!img) return;
-            const url = img.dataset.full;
-            if (url) sendGifToChat(url);
-        });
-    }
+    // Event delegation for gif clicks is set up in toggleGifPicker (called each open)
     // Close on outside click
     if (!document._gifOutsideListenerAdded) {
         document._gifOutsideListenerAdded = true;
@@ -28384,5 +28398,10 @@ setTimeout(() => {
     }
 }, 3000);
 </script>
+<!-- GIF Picker — lives on body to avoid overflow:hidden clipping inside chat -->
+<div id="gif-picker" style="display:none;position:fixed;background:#0d0a18;border:1px solid #3d2a4a;border-radius:10px;padding:10px;z-index:100000;box-shadow:0 -4px 20px rgba(0,0,0,0.9);width:320px;">
+    <input id="gif-search" type="text" placeholder="Search GIFs..." style="width:100%;box-sizing:border-box;background:#080510;border:1px solid #2a1a3a;color:#ddd;padding:7px 10px;border-radius:7px;font-family:inherit;font-size:0.8em;margin-bottom:8px;">
+    <div id="gif-results" style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-height:220px;overflow-y:auto;"></div>
+</div>
 </body>
 </html>

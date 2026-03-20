@@ -4764,8 +4764,9 @@ window.onload = function() {
                 gameState.bankedShards = D(gameState.bankedShards).add(perSecShards);
             }
 
+            // Always recalculate stats every second — keeps SPS fresh even when no buffs expire
+            calculateStats();
             if(statsChanged) {
-                calculateStats();
                 renderAll();
             } else {
                 checkButtons();
@@ -11165,6 +11166,10 @@ function calculateShardsOnAscend() {
     if (sigilId && items[sigilId]?.bonus.type === 'resonance_bonus_enhancer') {
         resonanceEffectiveness *= (1 + items[sigilId].bonus.value);
     }
+    // Apply Deific Remnant resonance_effectiveness_per_level bonus
+    if (gameState._resonanceEffectBonus && gameState._resonanceEffectBonus > 1) {
+        resonanceEffectiveness *= gameState._resonanceEffectBonus;
+    }
     let resonanceBonus = 1 + (gameState.upgrades.resonance.level * resonanceEffectiveness);
 
     // 3. Apply all multipliers.
@@ -11206,9 +11211,15 @@ function calculateShardsOnAscend() {
         totalShards *= (1 + items[idolId].bonus.value);
     }
     
+    // Apply Alpha & Omega ascension_shard_bonus_per_level
+    if (gameState._minionShardBonusMult && gameState._minionShardBonusMult > 1)
+        totalShards *= gameState._minionShardBonusMult;
     // Apply challenge shard bonus
     if (gameState._chalBonusShard && gameState._chalBonusShard > 1)
         totalShards *= gameState._chalBonusShard;
+    // Apply Alpha & Omega ascension_shard_bonus_per_level bonus
+    if (gameState._minionShardBonusMult && gameState._minionShardBonusMult > 1)
+        totalShards *= gameState._minionShardBonusMult;
     // Final safety check to prevent NaN or negative numbers.
     return isFinite(totalShards) ? Math.floor(totalShards) : Number.MAX_VALUE;
 }
@@ -11248,6 +11259,10 @@ function calculateStats() {
     gameState._aetherGainMultiplier = 1;
     gameState._ritualCooldownFactor = 1;
     gameState._ritualDurationFactor = 1;
+    gameState._minionShardBonusMult = 1;
+    gameState._resonanceEffectBonus = 1;
+    gameState._minionShardBonusMult = 1;
+    gameState._resonanceEffectBonus = 1;
 
     // =================================================================
     // 2. APPLY PERMANENT BONUSES (PUZZLES, RESEARCH, ARTIFACTS, ITEMS)
@@ -11315,6 +11330,16 @@ function calculateStats() {
                 if (bonus.type === 'essence_multiplier') essence_multiplier *= value;
                 if (bonus.type === 'global_spc_multiplier') spc_multiplier = spc_multiplier.mul(D(value));
                 if (bonus.type === 'click_upgrade_cost_reducer') clickUpgradeCostFactor *= value;
+                // ── Previously unhandled research tier bonus types (now fixed) ──
+                if (bonus.type === 'global_minion_sps_multiplier') sps_multiplier = sps_multiplier.mul(D(value));
+                if (bonus.type === 'sps_multiplier_by_unique_minions') {
+                    const _uMin = Object.values(gameState.minions).filter(m => m.level > 0).length;
+                    if (_uMin > 0) sps_multiplier = sps_multiplier.mul(D(_uMin));
+                }
+                if (bonus.type === 'sps_multiplier_by_collapses') {
+                    const _col = Math.max(1, gameState.totalCollapses || 0);
+                    sps_multiplier = sps_multiplier.mul(D(_col));
+                }
             }
         }
     }
@@ -11497,6 +11522,45 @@ function calculateStats() {
                 minionSps = minionSps.mul(D(minionData.promotions[i].multiplier));
             }
             sps = sps.add(minionSps);
+
+            // ── Previously unhandled top-level minion bonus types (now fixed) ──
+            // global_sps_multiplier_per_level: e.g. Glacial Titan, Nightmare Weaver
+            if (minionData.bonus && minionData.bonus.type === 'global_sps_multiplier_per_level') {
+                // Check for special_minion_enhancer doubler in research tiers
+                let _perLvlMult = 1;
+                for (let i = 0; i < currentResearchTier && i < researchTiers.length; i++) {
+                    const rb = researchTiers[i].bonus;
+                    if (rb.type === 'special_minion_enhancer' && rb.target === id) _perLvlMult *= rb.multiplier;
+                }
+                const _perLvlBonus = 1 + (minionData.bonus.value * _perLvlMult * playerMinion.level);
+                sps_multiplier = sps_multiplier.mul(D(_perLvlBonus));
+            }
+            // final_observer_bonus: global SPS * 0.1% per level of The Final Observer
+            if (minionData.bonus && minionData.bonus.type === 'final_observer_bonus') {
+                const _fob = 1 + (minionData.bonus.value * playerMinion.level);
+                sps_multiplier = sps_multiplier.mul(D(_fob));
+            }
+            // essence_multiplier_per_level: e.g. Causal Predator — boosts dark essence gain
+            if (minionData.bonus && minionData.bonus.type === 'essence_multiplier_per_level') {
+                essence_multiplier *= (1 + minionData.bonus.value * playerMinion.level);
+            }
+            // ritual_cooldown_reducer_per_level: e.g. Time Leech
+            if (minionData.bonus && minionData.bonus.type === 'ritual_cooldown_reducer_per_level') {
+                if (!gameState._ritualCooldownFactor) gameState._ritualCooldownFactor = 1;
+                // Each level reduces cooldown by 0.1% (value=0.001), capped at 80% reduction
+                const _rcdFactor = Math.max(0.2, 1 - (minionData.bonus.value * playerMinion.level));
+                gameState._ritualCooldownFactor = Math.min(gameState._ritualCooldownFactor, _rcdFactor);
+            }
+            // ascension_shard_bonus_per_level: e.g. Alpha & Omega — stored for use in calculateShardsOnAscend
+            if (minionData.bonus && minionData.bonus.type === 'ascension_shard_bonus_per_level') {
+                if (!gameState._minionShardBonusMult) gameState._minionShardBonusMult = 1;
+                gameState._minionShardBonusMult *= (1 + minionData.bonus.value * playerMinion.level);
+            }
+            // resonance_effectiveness_per_level: e.g. Deific Remnant — stored for use in calculateShardsOnAscend
+            if (minionData.bonus && minionData.bonus.type === 'resonance_effectiveness_per_level') {
+                if (!gameState._resonanceEffectBonus) gameState._resonanceEffectBonus = 1;
+                gameState._resonanceEffectBonus *= (1 + minionData.bonus.value * playerMinion.level);
+            }
         }
     }
 
@@ -13594,7 +13658,7 @@ function updateEffectTimers(now) {
             }
             // --- END OF NEW LOGIC ---
 
-            //delete gameState.activeRituals[id];
+            delete gameState.activeRituals[id]; // clean up expired ritual so shouldRecalculate stays quiet
             shouldRecalculate = true; 
         }
     }
@@ -28276,6 +28340,9 @@ setTimeout(() => {
     if (typeof gameState !== 'undefined' && gameState.completedChallenges) {
         _reapplyChallengeRewards();
         checkChallenges();
+        // Recalculate immediately so challenge bonuses take effect on SPS display
+        if (typeof calculateStats === 'function') calculateStats();
+        if (typeof updateDynamicDisplays === 'function') updateDynamicDisplays();
     }
 }, 3000);
 </script>

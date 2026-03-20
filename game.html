@@ -16622,18 +16622,24 @@ function generateHourlyShopItems() {
         let finalPrice, fragmentCost = 0, lightSoulCost = 0;
         if (shopItem.id === 'mark_of_the_first') { finalPrice = 150; }
         else if (isLightPotion) {
-            // Light potions cost Light Essence (LE), not souls
-            // Tier by index in lightPotionKeys
             const leIdx = lightPotionKeys.findIndex(lp => lp.id === shopItem.id);
-            lightSoulCost = [5, 10, 20, 40, 80][leIdx] || 10; // LE cost per potion tier
-            finalPrice = 0; // no DE cost
+            lightSoulCost = [5, 10, 20, 40, 80][leIdx] || 10;
+            finalPrice = 0;
         }
         else if (shopItem.type === 'market_potion') { finalPrice = potions[shopItem.id]?.shopPrice || 50; }
         else if (shopItem.type === 'item') {
             const _r = itemData?.rarity || 'common';
-            finalPrice   = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400, heavenly:600, dark:500 }[_r] || 5;
-            fragmentCost = { common:0, uncommon:0, rare:0,  epic:5,  legendary:20,  forged:60,  heavenly:80,  dark:60  }[_r] || 0;
+            finalPrice = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400, heavenly:600, dark:500 }[_r] || 5;
         } else { finalPrice = ((seed + index * 13) % 20) + 1; }
+        // Fragment cost — MUST match buyHourlyShopItem's fragCost table exactly
+        if (!isLightPotion) {
+            if      (shopItem.type === 'item')          fragmentCost = ({common:0,uncommon:5,rare:15,epic:30,legendary:60,forged:100,heavenly:80,dark:60}[itemData?.rarity||'common']||0);
+            else if (shopItem.type === 'potion')        fragmentCost = 5;
+            else if (shopItem.type === 'market_potion') fragmentCost = 20;
+            else if (shopItem.type === 'artifact')      fragmentCost = 10;
+            else if (shopItem.type === 'secret_minion') fragmentCost = 50;
+            else if (shopItem.type === 'key')           fragmentCost = 25;
+        }
         const canAfford  = !soldOut && (isLightPotion
             ? D(gameState.lightEssence || 0).gte(lightSoulCost)
             : D(gameState.darkEssence).gte(finalPrice) && (fragmentCost === 0 || D(gameState.corruptedFragments || 0).gte(fragmentCost)));
@@ -22021,29 +22027,33 @@ function _getBundleTypeOptions() {
         { value: 'corruptedFragments', label: '🔮 Corrupted Fragments' },
         { value: 'aether',             label: '⚡ Aether' },
     ];
-    // Potions the player owns
-    const TI = {weapon:'⚔️',idol:'🗿',sigil:'✦',helm:'🪖',tome:'📖'};
-    for (const id in gameState.potions || {}) {
-        if ((gameState.potions[id] || 0) < 1) continue;
-        const _pm = typeof potionMeta !== 'undefined' ? potionMeta[id] : null;
-        const p = potions[id];
-        if (!p) continue;
-        opts.push({ value: 'potion:' + id, label: (_pm?.icon || '⚗️') + ' ' + (p.name || id) + ' ×' + gameState.potions[id] });
-    }
-    // Items the player owns
-    for (const slot in gameState.equipped || {}) {
-        const id = gameState.equipped[slot];
-        if (!id || !items[id]) continue;
-        const it = items[id];
-        opts.push({ value: 'item:' + id, label: (TI[it.type] || '🎁') + ' ' + it.name });
-    }
-    if (gameState.inventory) {
-        for (const id of gameState.inventory) {
-            if (!items[id]) continue;
-            const it = items[id];
-            opts.push({ value: 'item:' + id, label: (TI[it.type] || '🎁') + ' ' + it.name });
+    try {
+        const TI = {weapon:'⚔️',idol:'🗿',sigil:'✦',helm:'🪖',tome:'📖'};
+        // Potions the player owns
+        for (const id in gameState.potions || {}) {
+            if ((gameState.potions[id] || 0) < 1) continue;
+            const _pm = typeof potionMeta !== 'undefined' ? potionMeta[id] : null;
+            const p = (typeof potions !== 'undefined') ? potions[id] : null;
+            if (!p) continue;
+            opts.push({ value: 'potion:' + id, label: (_pm?.icon || '⚗️') + ' ' + (p.name || id) + ' ×' + gameState.potions[id] });
         }
-    }
+        // Items the player owns
+        for (const slot in gameState.equipped || {}) {
+            const id = gameState.equipped[slot];
+            if (!id || !(typeof items !== 'undefined' && items[id])) continue;
+            const it = items[id];
+            if (!opts.find(o => o.value === 'item:' + id))
+                opts.push({ value: 'item:' + id, label: (TI[it.type] || '🎁') + ' ' + it.name });
+        }
+        if (gameState.inventory) {
+            for (const id of gameState.inventory) {
+                if (!(typeof items !== 'undefined' && items[id])) continue;
+                const it = items[id];
+                if (!opts.find(o => o.value === 'item:' + id))
+                    opts.push({ value: 'item:' + id, label: (TI[it.type] || '🎁') + ' ' + it.name });
+            }
+        }
+    } catch(e) { console.warn('[Bundle] _getBundleTypeOptions error:', e); }
     return opts;
 }
 
@@ -22064,39 +22074,50 @@ function removeBundleSlot(side, idx) {
 }
 
 function renderBundleSlots() {
-    const opts = _getBundleTypeOptions();
-    const optHtml = opts.map(o => `<option value="${escapeHTML(o.value)}">${escapeHTML(o.label)}</option>`).join('');
+    try {
+        const opts = _getBundleTypeOptions();
+        const optHtml = opts.map(o => `<option value="${escapeHTML(o.value)}">${escapeHTML(o.label)}</option>`).join('');
 
-    ['offer', 'want'].forEach(side => {
-        const container = document.getElementById('bundle-' + side + '-slots');
-        const arr = side === 'offer' ? _bundleOfferSlots : _bundleWantSlots;
-        const addBtn = document.getElementById('bundle-add-' + side);
-        if (!container) return;
-        if (addBtn) addBtn.style.display = arr.length >= 4 ? 'none' : 'block';
+        ['offer', 'want'].forEach(side => {
+            const container = document.getElementById('bundle-' + side + '-slots');
+            const arr = side === 'offer' ? _bundleOfferSlots : _bundleWantSlots;
+            const addBtn = document.getElementById('bundle-add-' + side);
+            if (!container) return;
+            if (addBtn) addBtn.style.display = arr.length >= 4 ? 'none' : 'block';
 
-        container.innerHTML = arr.map((slot, i) => {
-            const isCurrency = !slot.type.startsWith('potion:') && !slot.type.startsWith('item:') && !slot.type.startsWith('minion:');
-            return `<div style="display:flex; gap:5px; align-items:center; background:#0d0a18; border:1px solid #2a1a3a; border-radius:7px; padding:6px 8px;">
-                <select data-side="${side}" data-idx="${i}" onchange="updateBundleSlot(this)"
-                    style="flex:2; background:#0a0812; border:1px solid #2a1a3a; color:#ddd; padding:5px 6px; border-radius:5px; font-family:inherit; font-size:0.75em;">${optHtml}</select>
-                ${isCurrency
-                    ? `<input type="number" min="1" value="${slot.amt||1}" data-side="${side}" data-idx="${i}" oninput="updateBundleAmt(this)"
-                        style="width:80px; background:#0a0812; border:1px solid #2a1a3a; color:#ddd; padding:5px; border-radius:5px; font-family:inherit; font-size:0.75em;">`
-                    : `<span style="color:#555; font-size:0.72em; padding:0 4px; white-space:nowrap;">×${slot.amt||1}</span>`
-                }
-                <button onclick="removeBundleSlot('${side}',${i})" style="background:transparent; border:none; color:#555; cursor:pointer; font-size:1em; padding:0 2px;">✕</button>
-            </div>`;
-        }).join('');
+            container.innerHTML = arr.map((slot, i) => {
+                const isCurrency = !slot.type.startsWith('potion:') && !slot.type.startsWith('item:') && !slot.type.startsWith('minion:');
+                return `<div style="display:flex; gap:5px; align-items:center; background:#0d0a18; border:1px solid #2a1a3a; border-radius:7px; padding:6px 8px;">
+                    <select data-side="${side}" data-idx="${i}"
+                        style="flex:2; background:#0a0812; border:1px solid #2a1a3a; color:#ddd; padding:5px 6px; border-radius:5px; font-family:inherit; font-size:0.75em;">${optHtml}</select>
+                    ${isCurrency
+                        ? `<input type="number" min="1" value="${slot.amt||1}" data-side="${side}" data-idx="${i}"
+                            style="width:80px; background:#0a0812; border:1px solid #2a1a3a; color:#ddd; padding:5px; border-radius:5px; font-family:inherit; font-size:0.75em;">`
+                        : `<span style="color:#555; font-size:0.72em; padding:0 4px; white-space:nowrap;">×${slot.amt||1}</span>`
+                    }
+                    <button data-remove-side="${side}" data-remove-idx="${i}" style="background:transparent; border:none; color:#555; cursor:pointer; font-size:1em; padding:0 2px;">✕</button>
+                </div>`;
+            }).join('');
 
-        // Restore selections
-        container.querySelectorAll('select[data-side]').forEach(sel => {
-            const idx = parseInt(sel.dataset.idx);
-            const val = (side === 'offer' ? _bundleOfferSlots : _bundleWantSlots)[idx]?.type;
-            if (val) sel.value = val;
+            // Restore selections and wire events via event delegation (no inline handlers)
+            container.querySelectorAll('select[data-side]').forEach(sel => {
+                const idx = parseInt(sel.dataset.idx);
+                const val = (side === 'offer' ? _bundleOfferSlots : _bundleWantSlots)[idx]?.type;
+                if (val) sel.value = val;
+                sel.addEventListener('change', () => updateBundleSlot(sel));
+            });
+            container.querySelectorAll('input[data-side]').forEach(inp => {
+                inp.addEventListener('input', () => updateBundleAmt(inp));
+            });
+            container.querySelectorAll('button[data-remove-side]').forEach(btn => {
+                btn.addEventListener('click', () => removeBundleSlot(btn.dataset.removeSide, parseInt(btn.dataset.removeIdx)));
+            });
         });
-    });
 
-    updateBundlePreview();
+        updateBundlePreview();
+    } catch(e) {
+        console.error('[Bundle] renderBundleSlots error:', e);
+    }
 }
 
 function updateBundleSlot(sel) {
@@ -27964,9 +27985,10 @@ async function renderGifs(q) {
     const gifs = await searchGifs(q);
     if (!gifs.length) { grid.innerHTML = '<div style="color:#555;font-size:0.8em;padding:20px;text-align:center;grid-column:1/-1;">No GIFs found</div>'; return; }
     grid.innerHTML = gifs.map(g => {
-        const preview = g.images.fixed_height_small.url;
-        const full = g.images.fixed_height.url;
-        return `<img src="${preview}" data-full="${full}" style="width:100%;border-radius:6px;cursor:pointer;border:1px solid #2a1a3a;" title="Send GIF" onclick="sendGifToChat('${full}')">`;
+        const preview = g.images?.fixed_height_small?.url || g.images?.fixed_height?.url || '';
+        const full = g.images?.fixed_height?.url || preview;
+        // No inline onclick — event delegation handles clicks (avoids URL special-char issues)
+        return `<img src="${preview}" data-full="${full}" style="width:100%;border-radius:6px;cursor:pointer;border:1px solid #2a1a3a;transition:opacity 0.15s;" title="Send GIF">`;
     }).join('');
 }
 
@@ -28003,6 +28025,17 @@ function initGifPicker() {
             _gifSearchTimeout = setTimeout(() => renderGifs(e.target.value), 400);
         };
         search.addEventListener('input', search._gifHandler);
+    }
+    // Event delegation for gif clicks — avoids inline-onclick URL encoding issues
+    const grid = document.getElementById('gif-results');
+    if (grid && !grid._gifClickBound) {
+        grid._gifClickBound = true;
+        grid.addEventListener('click', (e) => {
+            const img = e.target.closest('img[data-full]');
+            if (!img) return;
+            const url = img.dataset.full;
+            if (url) sendGifToChat(url);
+        });
     }
     // Close on outside click
     if (!document._gifOutsideListenerAdded) {

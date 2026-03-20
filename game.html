@@ -3290,23 +3290,55 @@ text-decoration: underline; /* Adds an underline on hover */
                             <span style="margin-left:auto; font-size:0.75em; color:#aa44ff88;">▼ expand</span>
                         </summary>
                         <div style="background:#0a0812; border:1px solid #3d2a4a; border-top:none; border-radius:0 0 10px 10px; padding:20px;">
-                            <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:start; margin-bottom:14px;">
-                                <div>
-                                    <label style="color:#888; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:6px;">I'm Offering</label>
-                                    <select id="barter-offer-type" onchange="updateBarterDropdowns()" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-bottom:8px;"></select>
-                                    <input id="barter-offer-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit;">
-                                </div>
-                                <div style="text-align:center; padding-top:28px; color:#555; font-size:1.4em;">⇄</div>
-                                <div>
-                                    <label style="color:#888; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:6px;">I Want In Return</label>
-                                    <select id="barter-want-type" onchange="updateBarterDropdowns()" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-bottom:8px;"></select>
-                                    <input id="barter-want-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit;">
-                                </div>
+
+                            <!-- Mode toggle -->
+                            <div style="display:flex; gap:8px; margin-bottom:16px;">
+                                <button id="barter-mode-simple" onclick="setBarterMode('simple')" style="flex:1; background:linear-gradient(135deg,#aa44ff44,#aa44ff11); border:2px solid #aa44ff99; border-radius:8px; padding:8px; color:#c8b4ff; font-family:inherit; font-size:0.78em; font-weight:bold; cursor:pointer; letter-spacing:1px;">⇄ SIMPLE TRADE</button>
+                                <button id="barter-mode-bundle" onclick="setBarterMode('bundle')" style="flex:1; background:transparent; border:2px solid #3d2a4a; border-radius:8px; padding:8px; color:#555; font-family:inherit; font-size:0.78em; font-weight:bold; cursor:pointer; letter-spacing:1px;">📦 BUNDLE TRADE</button>
                             </div>
-                            <div id="barter-offer-preview" style="color:#aaa; font-size:0.78em; margin-bottom:12px; min-height:16px; background:#ffffff05; border-radius:6px; padding:6px 10px;"></div>
-                            <button class="upgrade-btn" onclick="postBarterListing()" style="width:100%; border-color:#aa44ff66; background:linear-gradient(135deg,#aa44ff22,#aa44ff08); padding:12px;">
-                                <span style="color:#aa44ff; font-size:1em;">📜 Post Trade Offer</span>
-                            </button>
+
+                            <!-- SIMPLE MODE -->
+                            <div id="barter-simple-mode">
+                                <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:start; margin-bottom:14px;">
+                                    <div>
+                                        <label style="color:#888; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:6px;">I'm Offering</label>
+                                        <select id="barter-offer-type" onchange="updateBarterDropdowns()" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-bottom:8px;"></select>
+                                        <input id="barter-offer-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit;">
+                                    </div>
+                                    <div style="text-align:center; padding-top:28px; color:#555; font-size:1.4em;">⇄</div>
+                                    <div>
+                                        <label style="color:#888; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:6px;">I Want In Return</label>
+                                        <select id="barter-want-type" onchange="updateBarterDropdowns()" style="width:100%; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit; margin-bottom:8px;"></select>
+                                        <input id="barter-want-amt" type="number" min="1" placeholder="Amount..." style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #3d2a4a; color:#fff; padding:8px; border-radius:6px; font-family:inherit;">
+                                    </div>
+                                </div>
+                                <div id="barter-offer-preview" style="color:#aaa; font-size:0.78em; margin-bottom:12px; min-height:16px; background:#ffffff05; border-radius:6px; padding:6px 10px;"></div>
+                                <button class="upgrade-btn" onclick="postBarterListing()" style="width:100%; border-color:#aa44ff66; background:linear-gradient(135deg,#aa44ff22,#aa44ff08); padding:12px;">
+                                    <span style="color:#aa44ff; font-size:1em;">📜 Post Trade Offer</span>
+                                </button>
+                            </div>
+
+                            <!-- BUNDLE MODE -->
+                            <div id="barter-bundle-mode" style="display:none;">
+                                <div style="display:grid; grid-template-columns:1fr 36px 1fr; gap:10px; align-items:start;">
+                                    <div>
+                                        <label style="color:#aa44ff; font-size:0.72em; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:8px;">📦 I'm Offering (up to 4)</label>
+                                        <div id="bundle-offer-slots" style="display:flex; flex-direction:column; gap:6px;"></div>
+                                        <button onclick="addBundleSlot('offer')" id="bundle-add-offer" style="margin-top:6px; width:100%; background:#aa44ff11; border:1px dashed #aa44ff44; border-radius:7px; padding:7px; color:#aa44ff88; cursor:pointer; font-family:inherit; font-size:0.75em;">+ Add Item</button>
+                                    </div>
+                                    <div style="display:flex; align-items:center; justify-content:center; padding-top:24px; color:#444; font-size:1.3em;">⇄</div>
+                                    <div>
+                                        <label style="color:#44cc88; font-size:0.72em; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:8px;">🎯 I Want (up to 4)</label>
+                                        <div id="bundle-want-slots" style="display:flex; flex-direction:column; gap:6px;"></div>
+                                        <button onclick="addBundleSlot('want')" id="bundle-add-want" style="margin-top:6px; width:100%; background:#44cc8811; border:1px dashed #44cc8844; border-radius:7px; padding:7px; color:#44cc8888; cursor:pointer; font-family:inherit; font-size:0.75em;">+ Add Item</button>
+                                    </div>
+                                </div>
+                                <div id="bundle-preview" style="margin-top:12px; background:#ffffff05; border-radius:8px; padding:10px 12px; font-size:0.78em; color:#888; min-height:32px; line-height:1.6;"></div>
+                                <button class="upgrade-btn" onclick="postBundleListing()" style="width:100%; margin-top:10px; border-color:#c8a80066; background:linear-gradient(135deg,#c8a80022,#c8a80008); padding:12px;">
+                                    <span style="color:#c8a800; font-size:1em;">📦 Post Bundle Trade</span>
+                                </button>
+                            </div>
+
                             <div id="barter-post-msg" style="color:#ff9944; margin-top:10px; font-size:0.85em; text-align:center;"></div>
                         </div>
                     </details>
@@ -4101,6 +4133,26 @@ text-decoration: underline; /* Adds an underline on hover */
                             <button onclick="openDonationClaim()" style="flex:1; min-width:160px; background:linear-gradient(135deg,#aa44ff22,transparent); border:1px solid #aa44ff44; border-radius:10px; padding:12px 18px; color:#aa44ff; font-family:var(--font-title); font-size:0.82em; letter-spacing:1px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='#aa44ff88'" onmouseout="this.style.borderColor='#aa44ff44'">
                                 🎁 CLAIM REWARD
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- 🏆 Challenges / Achievements -->
+                    <div style="background:linear-gradient(135deg,#0e0a00,#1a1200); border:1px solid #c8a80044; border-top:3px solid #c8a800; border-radius:14px; padding:20px 24px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                            <h3 style="margin:0; color:#c8a800; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">🏆 Challenges</h3>
+                            <span id="chal-count-badge" style="background:#1a1000;border:1px solid #c8a80044;border-radius:20px;padding:3px 12px;font-size:0.75em;color:#c8a800;">0 / 50</span>
+                        </div>
+                        <p style="color:#555; font-size:0.78em; margin:0 0 14px;">Complete challenges to earn permanent stat bonuses. Progress saves automatically.</p>
+                        <button onclick="document.getElementById('challenges-panel').style.display=document.getElementById('challenges-panel').style.display==='none'?'block':'none'; renderChallengesPanel(); updateChalBadge();"
+                            style="width:100%; background:linear-gradient(135deg,#1a1000,#0e0a00); border:1px solid #c8a80055; border-radius:10px; padding:12px 18px; cursor:pointer; font-family:inherit; text-align:left; display:flex; align-items:center; gap:12px; transition:all 0.2s;" onmouseover="this.style.borderColor='#c8a800aa'" onmouseout="this.style.borderColor='#c8a80055'">
+                            <span style="font-size:1.6em;">🏆</span>
+                            <div>
+                                <div style="color:#c8a800; font-weight:bold; font-size:0.88em;">View All Challenges</div>
+                                <div style="color:#555; font-size:0.75em; margin-top:2px;">Earn permanent bonuses by completing goals</div>
+                            </div>
+                        </button>
+                        <div id="challenges-panel" style="display:none; margin-top:14px; max-height:500px; overflow-y:auto; padding-right:4px;">
+                            <div id="challenges-panel-content"></div>
                         </div>
                     </div>
 
@@ -5005,6 +5057,17 @@ const fusionRecipes = [
     // Fragment market potions = Fragment Supernova
     { a: 'rift_serum',                 b: 'phial_of_world_shattering',   result: 'fusion_fragment_nova' },
     { a: 'rift_serum',                 b: 'shardbreaker_tonic',          result: 'fusion_fragment_nova' },
+    // New raid + general fusions
+    { a: 'minor_healing_flask',        b: 'battle_serum',                result: 'fusion_raid_titan' },
+    { a: 'healing_draught',            b: 'vial_of_momentum',            result: 'fusion_momentum_surge' },
+    { a: 'elixir_of_the_abyss_mend',  b: 'guardian_elixir',             result: 'fusion_the_great_heal' },
+    { a: 'tacticians_brew',            b: 'commanders_draught',           result: 'fusion_proving_edge' },
+    { a: 'void_essence_flask',         b: 'essence_compress',            result: 'fusion_essence_torrent' },
+    { a: 'vial_of_stolen_time',        b: 'ritual_catalyst',             result: 'fusion_ritual_master' },
+    { a: 'soul_spring_water',          b: 'ichor_of_the_cosmos',         result: 'fusion_dark_harvest' },
+    { a: 'void_tonic',                 b: 'flask_of_the_void_king',      result: 'fusion_void_amplifier' },
+    { a: 'venom_of_collapsed_stars',   b: 'aether_concentrate',          result: 'fusion_aether_engine' },
+    { a: 'shard_concentrate',          b: 'soul_compressor',             result: 'fusion_grand_shard_burst' },
 
     // Infinite hunger + dimension = Infinite Loop
     { a: 'elixir_of_infinite_hunger',  b: 'draught_of_dimensional_rift', result: 'fusion_infinite_loop' },
@@ -7921,6 +7984,45 @@ const items = {
     diadem_of_omniscience:{ name:"Diadem of Omniscience", type:"helm",  rarity:"legendary", desc:"SPS ×2, SPC ×2, minion costs -20%, and potions last 25% longer.", bonus:{type:'sps_multiplier',value:2.0,and:{type:'buff_duration_multiplier',value:1.25}} },
     skull_of_the_abyss:   { name:"Skull of the Abyss",   type:"helm",   rarity:"legendary", desc:"For every unique minion you own, all minions gain +15% SPS. PvP offense doubled.", bonus:{type:'sps_multiplier_per_unique_minion',value:1.15,and:{type:'pvp_offense',value:2.0}} },
 
+    // ══════════════════════════════════════════════════════════════
+    // HEAVENLY ITEMS — drop in Hourly Market, transcendence tier
+    // ══════════════════════════════════════════════════════════════
+    celestial_edge:         { name:"Celestial Edge",         type:"weapon", rarity:"heavenly", desc:"SPC ×8. Clicks have 10% chance to fire a Light Burst dealing 5× SPC to all raid enemies.", bonus:{type:'spc_multiplier',value:8.0} },
+    dawn_reaper:            { name:"Dawn Reaper",            type:"weapon", rarity:"heavenly", desc:"SPC ×6. Every click restores 2% HP to your active raid minion.", bonus:{type:'spc_multiplier',value:6.0} },
+    spear_of_ascendance:    { name:"Spear of Ascendance",    type:"weapon", rarity:"heavenly", desc:"SPC ×7. Each ascension permanently adds +0.5% to SPC.", bonus:{type:'spc_multiplier',value:7.0,and:{type:'spc_per_ascension',value:0.005}} },
+    idol_of_eternity:       { name:"Idol of Eternity",       type:"idol",   rarity:"heavenly", desc:"SPS ×8. Ritual durations doubled.", bonus:{type:'sps_multiplier',value:8.0,and:{type:'buff_duration_multiplier',value:2.0}} },
+    prism_of_dawn:          { name:"Prism of Dawn",          type:"idol",   rarity:"heavenly", desc:"Global ×3. Each world unlocked adds +0.5% permanent SPS.", bonus:{type:'sps_multiplier',value:3.0,and:{type:'global_multiplier_per_world',value:0.005}} },
+    eye_of_the_beyond:      { name:"Eye of the Beyond",      type:"idol",   rarity:"heavenly", desc:"SPS ×6. Expedition rewards ×3 and complete 30% faster.", bonus:{type:'sps_multiplier',value:6.0,and:{type:'expedition_fragment_multiplier',value:3.0}} },
+    sigil_of_the_cosmos:    { name:"Sigil of the Cosmos",    type:"sigil",  rarity:"heavenly", desc:"+200% Abyssal Shards on Ascension. Essence gain ×3.", bonus:{type:'ascension_shard_bonus',value:2.0,and:{type:'essence_multiplier',value:3.0}} },
+    mark_of_the_celestial:  { name:"Mark of the Celestial",  type:"sigil",  rarity:"heavenly", desc:"Your first TWO minion purchases per run are free.", bonus:{type:'first_minion_free',value:2} },
+    seal_of_the_infinite:   { name:"Seal of the Infinite",   type:"sigil",  rarity:"heavenly", desc:"Soul Resonance 100% more effective. Raid minions start battles with full HP.", bonus:{type:'resonance_bonus_enhancer',value:1.0} },
+    halo_of_the_fallen:     { name:"Halo of the Fallen",     type:"helm",   rarity:"heavenly", desc:"All equipped items 150% more effective. Start each run with 1 trillion souls.", bonus:{type:'meta_item_enhancer',value:2.5,and:{type:'ascension_start_souls',value:1e12}} },
+    crown_of_light:         { name:"Crown of Light",         type:"helm",   rarity:"heavenly", desc:"SPS ×4, SPC ×4. Raid minions deal +50% damage and take −25% damage.", bonus:{type:'sps_multiplier',value:4.0} },
+    tiara_of_transcendence: { name:"Tiara of Transcendence", type:"helm",   rarity:"heavenly", desc:"Every 10 ascensions permanently increases all stats by 1%.", bonus:{type:'sps_per_10_ascensions',value:0.01} },
+    tome_of_the_divine:     { name:"Tome of the Divine",     type:"tome",   rarity:"heavenly", desc:"Retain 40% Essence AND 25% Shards on Ascension.", bonus:{type:'essence_retention_on_ascend',value:0.40,and:{type:'ascension_shard_bonus',value:1.0}} },
+    codex_of_creation:      { name:"Codex of Creation",      type:"tome",   rarity:"heavenly", desc:"All breach rewards ×4. Expedition loot quality always max tier.", bonus:{type:'expedition_fragment_multiplier',value:4.0} },
+    scripture_of_infinity:  { name:"Scripture of Infinity",  type:"tome",   rarity:"heavenly", desc:"World costs −50%. Each world owned adds +1% SPS permanently.", bonus:{type:'world_cost_reducer',value:0.50,and:{type:'global_multiplier_per_world',value:0.01}} },
+
+    // ══════════════════════════════════════════════════════════════
+    // DARK ITEMS — drop in Hourly Market, corruption tier
+    // ══════════════════════════════════════════════════════════════
+    void_executioner:       { name:"Void Executioner",       type:"weapon", rarity:"dark",     desc:"SPC ×10. Each kill in combat has 5% chance to instantly end the fight.", bonus:{type:'spc_multiplier',value:10.0} },
+    blade_of_despair:       { name:"Blade of Despair",       type:"weapon", rarity:"dark",     desc:"SPC ×8. Raid ATK scales with enemy max HP (+2% enemy HP added to ATK).", bonus:{type:'spc_multiplier',value:8.0} },
+    dagger_of_the_abyss:    { name:"Dagger of the Abyss",    type:"weapon", rarity:"dark",     desc:"SPC ×7. Crits occur 25% more often and deal 3× instead of 2×.", bonus:{type:'spc_multiplier',value:7.0} },
+    effigy_of_ruin:         { name:"Effigy of Ruin",         type:"idol",   rarity:"dark",     desc:"SPS ×10. Every collapse permanently adds +2% to all future SPS.", bonus:{type:'sps_multiplier',value:10.0} },
+    idol_of_corruption:     { name:"Idol of Corruption",     type:"idol",   rarity:"dark",     desc:"SPS ×7. Dark Essence generates 1% additional SPS per 1,000 DE owned.", bonus:{type:'sps_multiplier',value:7.0} },
+    dark_heart:             { name:"Dark Heart",              type:"idol",   rarity:"dark",     desc:"Global ×5. Raid minions regenerate 3% HP each combat turn.", bonus:{type:'sps_multiplier',value:5.0} },
+    seal_of_damnation:      { name:"Seal of Damnation",      type:"sigil",  rarity:"dark",     desc:"+300% Shards on Ascension. Essence gain ×4.", bonus:{type:'ascension_shard_bonus',value:3.0,and:{type:'essence_multiplier',value:4.0}} },
+    mark_of_the_condemned:  { name:"Mark of the Condemned",  type:"sigil",  rarity:"dark",     desc:"Minion costs −40%. Each raid minion death gives your party +5% ATK.", bonus:{type:'minion_cost_reducer',value:0.60} },
+    brand_of_the_void:      { name:"Brand of the Void",      type:"sigil",  rarity:"dark",     desc:"Soul Resonance 200% more effective. +10% extra Shards per ascension.", bonus:{type:'resonance_bonus_enhancer',value:2.0,and:{type:'ascension_shard_bonus',value:0.10}} },
+    crown_of_the_damned:    { name:"Crown of the Damned",    type:"helm",   rarity:"dark",     desc:"All equipped items 200% more effective. Raid deaths don't trigger minion cooldown.", bonus:{type:'meta_item_enhancer',value:3.0} },
+    mask_of_the_void:       { name:"Mask of the Void",       type:"helm",   rarity:"dark",     desc:"SPS ×6, SPC ×6. Raid minions have 50% more HP and deal 30% more damage.", bonus:{type:'sps_multiplier',value:6.0} },
+    skull_crown:            { name:"Skull Crown",             type:"helm",   rarity:"dark",     desc:"Each collapse permanently increases SPS by 0.5% (stacks).", bonus:{type:'sps_per_collapse',value:0.005} },
+    grimoire_of_the_damned: { name:"Grimoire of the Damned", type:"tome",   rarity:"dark",     desc:"Retain 50% Essence AND 35% Shards on Ascension.", bonus:{type:'essence_retention_on_ascend',value:0.50,and:{type:'ascension_shard_bonus',value:1.5}} },
+    tome_of_annihilation:   { name:"Tome of Annihilation",   type:"tome",   rarity:"dark",     desc:"World costs −60%. Breach rewards ×6.", bonus:{type:'world_cost_reducer',value:0.40} },
+    the_black_codex:        { name:"The Black Codex",         type:"tome",   rarity:"dark",     desc:"Every raid victory permanently adds +0.3% global SPS (stacks infinitely).", bonus:{type:'sps_multiplier',value:1.0} },
+
+
 };
 
 const potions = {
@@ -8086,6 +8188,13 @@ const potions = {
         raidOnly: true,
         effect: { type: 'raid_heal', value: 0.30 }
     },
+    vial_of_the_scout: {
+        name: "Vial of the Scout",
+        rarity: "rare",
+        desc: "RAID: Reveals all 8 surrounding tiles without stepping on them. Useful in the dark corridors.",
+        raidOnly: true,
+        effect: { type: 'raid_scout_reveal' }
+    },
     healing_draught: {
         name: "Healing Draught",
         desc: "Raid only — Restores 55% HP to your entire raid party and grants +2 momentum. Stackable. No cooldown.",
@@ -8105,8 +8214,146 @@ const potions = {
         effect: { type: 'raid_heal', value: 1.0 }
     },
 
+    // ── RAID SUPPORT POTIONS ─────────────────────────────────────────
+    // Strategic potions usable in Soul Raids — no healing cheats
+    draught_of_iron_will: {
+        name: "Draught of Iron Will",
+        desc: "RAID: For 3 turns, all incoming damage is reduced by 50%. Stack with Defend for near immunity.",
+        cost: 5e14,
+        raidOnly: true,
+        effect: { type: 'raid_damage_reduction', value: 0.50, turns: 3 }
+    },
+    battle_serum: {
+        name: "Battle Serum",
+        desc: "RAID: For 3 turns, your minion's ATK is doubled and crits deal 4× instead of 2×.",
+        cost: 5e15,
+        costType: 'souls_and_shards',
+        shardsCost: 10,
+        raidOnly: true,
+        effect: { type: 'raid_atk_boost', value: 2.0, turns: 3 }
+    },
+    vial_of_momentum: {
+        name: "Vial of Momentum",
+        desc: "RAID: Instantly sets your momentum to maximum (6). Perfect for opening with burst damage.",
+        cost: 1e14,
+        raidOnly: true,
+        effect: { type: 'raid_set_momentum', value: 6 }
+    },
+    guardian_elixir: {
+        name: "Guardian Elixir",
+        desc: "RAID: Your minion gains 5 armor stacks — next 5 hits deal −70% damage. Stacks with Iron Wall.",
+        cost: 2e16,
+        costType: 'souls_and_shards',
+        shardsCost: 15,
+        raidOnly: true,
+        effect: { type: 'raid_armor_stacks', value: 5, reduction: 0.70 }
+    },
+    berserker_tonic: {
+        name: "Berserker Tonic",
+        desc: "RAID: For 5 turns, every attack ignores enemy armor and deals +25% bonus true damage.",
+        cost: 5e16,
+        costType: 'souls_and_shards',
+        shardsCost: 20,
+        raidOnly: true,
+        effect: { type: 'raid_true_damage', value: 0.25, turns: 5 }
+    },
+    greater_healing_flask: {
+        name: "Greater Healing Flask",
+        desc: "RAID: Restores 75% HP to your frontline minion and removes all debuffs. Requires real resources.",
+        cost: 2e15,
+        costType: 'souls_and_shards',
+        shardsCost: 25,
+        raidOnly: true,
+        cooldown: 600,
+        effect: { type: 'raid_heal', value: 0.75 }
+    },
+
+    // ── PROVING GROUNDS SUPPORT POTIONS ──────────────────────────────
+    // Help in strategic battles — do NOT bypass challenge mechanics
+    tacticians_brew: {
+        name: "Tactician's Brew",
+        desc: "Proving Grounds: Your units deal +20% damage for the next battle. Does not refund losses or auto-win.",
+        cost: 1e16,
+        pgOnly: true,
+        effect: { type: 'pg_unit_damage_bonus', value: 1.20 }
+    },
+    commanders_draught: {
+        name: "Commander's Draught",
+        desc: "Proving Grounds: All your units gain +1 armor stat for the next battle. Tactical edge only.",
+        cost: 2e16,
+        costType: 'souls_and_shards',
+        shardsCost: 30,
+        pgOnly: true,
+        effect: { type: 'pg_unit_armor_bonus', value: 1 }
+    },
+    strategists_elixir: {
+        name: "Strategist's Elixir",
+        desc: "Proving Grounds: Grants +3 deployment points for your next puzzle attempt. Skill still required.",
+        cost: 5e17,
+        costType: 'souls_and_shards',
+        shardsCost: 50,
+        pgOnly: true,
+        cooldown: 3600,
+        effect: { type: 'pg_bonus_points', value: 3 }
+    },
+
+    // ── GENERAL HEALTH & UTILITY POTIONS ──────────────────────────────
+    // Work everywhere — quality of life, not game-breaking
+    elixir_of_renewal: {
+        name: "Elixir of Renewal",
+        desc: "Restores your active raid party to full HP. Can only be used OUT of combat (between fights).",
+        cost: 1e18,
+        costType: 'souls_and_shards',
+        shardsCost: 100,
+        raidOutOfCombat: true,
+        effect: { type: 'raid_full_heal_out_of_combat' }
+    },
+    soul_spring_water: {
+        name: "Soul Spring Water",
+        desc: "Instantly gain 1 hour of SPS. Simple, reliable, no tricks.",
+        cost: 5e18,
+        effect: { type: 'gain_sps_seconds_flat', value: 3600 }
+    },
+    essence_compress: {
+        name: "Essence Compress",
+        desc: "Instantly gain 1,000 Dark Essence. No strings attached.",
+        cost: 1e20,
+        effect: { type: 'gain_essence_flat', value: 1000 }
+    },
+    shard_concentrate: {
+        name: "Shard Concentrate",
+        desc: "Instantly gain 25 Abyssal Shards.",
+        cost: 1e20,
+        effect: { type: 'gain_shards_bonus_flat', value: 25 }
+    },
+    void_tonic: {
+        name: "Void Tonic",
+        desc: "For 10 minutes, SPS ×5 and SPC ×3. Simple and clean.",
+        cost: 1e22,
+        effect: { type: 'sps_multiplier_flat', value: 5, duration: 600 },
+        effect2: { type: 'spc_multiplier_flat', value: 3, duration: 600 }
+    },
+    ritual_catalyst: {
+        name: "Ritual Catalyst",
+        desc: "Reduces ALL active ritual cooldowns by 2 hours instantly.",
+        cost: 5e21,
+        cooldown: 14400,
+        effect: { type: 'ritual_cooldown_reduction_flat', value: 7200 }
+    },
+    aether_concentrate: {
+        name: "Aether Concentrate",
+        desc: "Instantly gain 3 Aether without triggering a Collapse.",
+        cost: 1e25,
+        costType: 'souls_and_shards',
+        shardsCost: 500,
+        cooldown: 86400,
+        effect: { type: 'gain_aether_no_reset_flat', value: 3 }
+    },
+
     // ── LIGHT SOUL POTIONS ─────────────────────────────────────────
     // These potions are labeled as "light" — they work normally when transcended.
+    // When used on the dark side, their effect is reversed (souls divided, never below 0).
+
     // When used on the dark side, their effect is reversed (souls divided, never below 0).
 
     phial_of_radiance: {
@@ -8155,6 +8402,85 @@ const potions = {
     // ── NEUTRAL FUSION POTIONS (Light × Dark) ────────────────────────────
     // Created only by fusing a light potion with any dark/standard potion.
     // Balanced effect — no dark penalty, no transcendence bonus. Works on both sides.
+    // ── NEW FUSED COMBINATIONS ─────────────────────────────────────
+    fusion_raid_titan: {
+        name: "⚗️ Raid Titan Brew",
+        desc: "RAID: Your frontline gets +3 armor stacks, ATK doubled for 4 turns, and crit chance +30%.",
+        fusedOnly: true,
+        raidOnly: true,
+        effect: { type: 'raid_armor_stacks', value: 3, reduction: 0.60 },
+        effect2: { type: 'raid_atk_boost', value: 2.0, turns: 4 }
+    },
+    fusion_momentum_surge: {
+        name: "⚗️ Surge Elixir",
+        desc: "RAID: Set momentum to max AND your minion's next 3 attacks deal +60% bonus damage.",
+        fusedOnly: true,
+        raidOnly: true,
+        effect: { type: 'raid_set_momentum', value: 6 },
+        effect2: { type: 'raid_true_damage', value: 0.60, turns: 3 }
+    },
+    fusion_essence_torrent: {
+        name: "⚗️ Essence Torrent",
+        desc: "Instantly gain 5,000 Dark Essence AND SPS ×10 for 8 minutes.",
+        fusedOnly: true,
+        effect: { type: 'gain_essence_flat', value: 5000 },
+        effect2: { type: 'sps_multiplier_flat', value: 10, duration: 480 }
+    },
+    fusion_aether_engine: {
+        name: "⚗️ Aether Engine",
+        desc: "Instantly gain 10 Aether AND SPS ×50 for 5 minutes AND all cooldowns reset.",
+        fusedOnly: true,
+        cooldown: 86400,
+        effect: { type: 'gain_aether_no_reset_flat', value: 10 },
+        effect2: { type: 'sps_multiplier_flat', value: 50, duration: 300 },
+        effect3: { type: 'reset_all_cooldowns_flat', value: 1 }
+    },
+    fusion_ritual_master: {
+        name: "⚗️ Ritual Master's Flask",
+        desc: "All ritual cooldowns reset to zero AND ritual effects last 50% longer for the next 24 hours.",
+        fusedOnly: true,
+        effect: { type: 'reset_all_cooldowns_flat' },
+        effect2: { type: 'ritual_duration_mult_flat', value: 1.50, duration: 86400 }
+    },
+    fusion_void_amplifier: {
+        name: "⚗️ Void Amplifier",
+        desc: "For 15 minutes: SPS ×100, artifact bonuses doubled, and minion costs −80%.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'sps_multiplier_flat', value: 100, duration: 900 },
+        effect2: { type: 'temp_minion_cost_reducer_flat', value: 0.20, duration: 900 }
+    },
+    fusion_the_great_heal: {
+        name: "⚗️ The Grand Restoration",
+        desc: "RAID: Fully restores ALL party members and grants 5 armor stacks to each. Expensive to fuse.",
+        fusedOnly: true,
+        raidOnly: true,
+        effect: { type: 'raid_heal', value: 1.0 },
+        effect2: { type: 'raid_armor_stacks', value: 5, reduction: 0.70 }
+    },
+    fusion_proving_edge: {
+        name: "⚗️ Proving Edge",
+        desc: "Proving Grounds: +5 deployment points AND units deal +30% damage next battle.",
+        fusedOnly: true,
+        pgOnly: true,
+        cooldown: 7200,
+        effect: { type: 'pg_bonus_points', value: 5 },
+        effect2: { type: 'pg_unit_damage_bonus', value: 1.30 }
+    },
+    fusion_dark_harvest: {
+        name: "⚗️ Dark Harvest",
+        desc: "Instantly gain 100 hours of SPS AND 10,000 Dark Essence AND 50 Shards.",
+        fusedOnly: true, marketFusion: true,
+        effect: { type: 'gain_sps_seconds_flat', value: 360000 },
+        effect2: { type: 'gain_essence_flat', value: 10000 }
+    },
+    fusion_grand_shard_burst: {
+        name: "⚗️ Shard Storm",
+        desc: "Instantly gain 30% of next Ascension Shards AND 3 Aether AND all Ritual cooldowns halved.",
+        fusedOnly: true,
+        effect: { type: 'gain_shards_no_reset_flat', value: 0.30 },
+        effect2: { type: 'gain_aether_no_reset_flat', value: 3 }
+    },
+
     fusion_neutral_balance: {
         name: "Equilibrium Draught",
         desc: "The light and dark cancel perfectly. Grants 10 minutes of 1.5× SPS and 1.5× SPC. Works on any side.",
@@ -8408,11 +8734,12 @@ const potions = {
     },
     rift_serum: {
         name: "Rift Serum",
-        desc: "Instantly gain Corrupted Fragments equal to 10x your current Ascension count.",
+        desc: "Instantly gain Corrupted Fragments equal to 5× your Ascension count (capped at 100).",
         cost: 1e25,
         marketOnly: true,
         shopPrice: 60,
-        effect: { type: 'gain_fragments_per_ascension_flat', value: 10 }
+        cooldown: 7200,
+        effect: { type: 'gain_fragments_per_ascension_flat', value: 5 }
     },
     essence_of_collapse: {
         name: "Essence of Collapse",
@@ -9044,9 +9371,10 @@ const potions = {
     },
     fusion_fragment_nova: {
         name: "⚗️ Fragment Supernova",
-        desc: "Gain 200 Corrupted Fragments per Ascension AND 10,000 Dark Essence instantly.",
+        desc: "Gain 50 Corrupted Fragments per Ascension AND 10,000 Dark Essence instantly.",
         fusedOnly: true, marketFusion: true,
-        effect: { type: 'gain_fragments_per_ascension_flat', value: 200 },
+        cooldown: 86400,
+        effect: { type: 'gain_fragments_per_ascension_flat', value: 50 },
         effect2: { type: 'gain_essence_flat', value: 10000 }
     },
     fusion_infinite_loop: {
@@ -9412,6 +9740,7 @@ function getDefaultGameState() {
         },
         itemDurability: {}, // { itemId: currentDurability } — tracked per item instance
         completedPuzzles: [],
+        completedChallenges: {},
         activeExpeditions: {}, 
         anomalyTimers: {},
         breachesCompleted: 0,
@@ -9967,7 +10296,9 @@ function buyUpgrade(type) {
                 }
             }
 
-            // 5. Add the final calculated amount to the player's total.
+            // 5. Apply challenge DE bonus and add to player's total.
+            if (gameState._chalBonusDe && gameState._chalBonusDe > 1)
+                essenceGain *= gameState._chalBonusDe;
             _safeAddCur("darkEssence", Math.floor(essenceGain));
             gameState.essenceGainedThisRun += Math.floor(essenceGain); // <<< ADD THIS LINE
             upgrade.cost = D(upgrade.cost).mul(1.15).floor();
@@ -9991,9 +10322,23 @@ function buyMinion(id) {
   const minionData = minions[id];
   const playerMinion = gameState.minions[id];
 
-  if (D(gameState.souls).gte(D(playerMinion.cost))) {
-    gameState.souls = D(gameState.souls).sub(D(playerMinion.cost));
-    gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(playerMinion.cost));
+  // Check Mark of the First — first purchase of each minion per run is free
+  const _markOfFirst = gameState.equipped && Object.values(gameState.equipped).some(sl =>
+    sl && items[sl]?.bonus?.type === 'first_minion_free'
+  );
+  const _isFirstPurchase = _markOfFirst && (playerMinion.level || 0) === 0
+    && !(gameState._markUsed || {})[id];
+  const effectiveCost = _isFirstPurchase ? 0 : playerMinion.cost;
+
+  if (_isFirstPurchase || D(gameState.souls).gte(D(playerMinion.cost))) {
+    if (!_isFirstPurchase) {
+      gameState.souls = D(gameState.souls).sub(D(playerMinion.cost));
+      gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(playerMinion.cost));
+    } else {
+      if (!gameState._markUsed) gameState._markUsed = {};
+      gameState._markUsed[id] = true;
+      Toastify({ text: `✦ Mark of the First: ${minions[id]?.name} is free!`, duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0a2a,#aa44ff66)' } }).showToast();
+    }
     playerMinion.level++;
     // Achievement Check
     if (id === 'imp' && playerMinion.level === 1) {
@@ -10138,6 +10483,7 @@ function buyArtifact(id) {
         calculateStats();
         renderArtifacts();
         saveGame();
+        if (typeof checkChallenges === 'function') setTimeout(checkChallenges, 200);
     }
 }
 
@@ -10414,6 +10760,8 @@ function executeAscension() {
   gameState.hasWithdrawnEssence    = false;
   gameState.hasWithdrawnShards     = false;
   gameState.ascensions = oldAscensions + 1;
+   gameState._markUsed = {}; // reset Mark of the First per run
+  if (typeof checkChallenges === 'function') setTimeout(checkChallenges, 500);
   gameState.abyssalShards = D(oldAbyssalShards).add(D(shardsGained));
   gameState.totalShardsEarned = (isFinite(oldTotalShardsEarned) ? oldTotalShardsEarned : 0) + (isFinite(shardsGained) ? shardsGained : 0);
   gameState.darkEssence = D(essenceToRetain || 0);
@@ -10425,6 +10773,7 @@ function executeAscension() {
   gameState.inventory = inventory;
   gameState.equipped = equipped;
   gameState.totalCollapses = collappses;
+  if (typeof checkChallenges === 'function') setTimeout(checkChallenges, 500);
   // Ascending drops you back to Dark Souls — transcendence must be re-earned
   gameState.isTranscended = false;
   gameState.unlockedLightWorlds = [];
@@ -10667,8 +11016,8 @@ function renderTranscendenceIndicator() {
 function calculateAetherOnCollapse() {
     const base = Math.floor(5 * Math.pow(Math.log10(D(gameState.abyssalShards).toNumber() + 1) / 10, 2));
     const multiplier = gameState._aetherGainMultiplier || 1;
-    const aether = Math.floor(base * multiplier);
-    return isNaN(aether) ? 0 : aether;
+    const chalMult = (gameState._chalBonusAether && gameState._chalBonusAether > 1) ? gameState._chalBonusAether : 1;
+    const aether = Math.floor(base * multiplier * chalMult);
 }
 
 function updateCollapsePreview() {
@@ -10845,6 +11194,9 @@ function calculateShardsOnAscend() {
         totalShards *= (1 + items[idolId].bonus.value);
     }
     
+    // Apply challenge shard bonus
+    if (gameState._chalBonusShard && gameState._chalBonusShard > 1)
+        totalShards *= gameState._chalBonusShard;
     // Final safety check to prevent NaN or negative numbers.
     return isFinite(totalShards) ? Math.floor(totalShards) : Number.MAX_VALUE;
 }
@@ -11358,6 +11710,11 @@ function calculateStats() {
         final_spc_D = final_spc_D.mul(_warMult);
     }
     // Store as Decimal — unbounded, same as souls/essence/shards
+    // ── Apply challenge reward multipliers (persistent bonuses from achievements) ──
+    if (gameState._chalBonusSps   && gameState._chalBonusSps   > 1) final_sps_D = final_sps_D.mul(gameState._chalBonusSps);
+    if (gameState._chalBonusSpc   && gameState._chalBonusSpc   > 1) final_spc_D = final_spc_D.mul(gameState._chalBonusSpc);
+    if (gameState._chalBonusGlobal && gameState._chalBonusGlobal > 1) { final_sps_D = final_sps_D.mul(gameState._chalBonusGlobal); final_spc_D = final_spc_D.mul(gameState._chalBonusGlobal); }
+    if (gameState._chalBonusMinion && gameState._chalBonusMinion > 1) final_sps_D = final_sps_D.mul(gameState._chalBonusMinion);
     gameState.stats.sps = final_sps_D.gt(0) ? final_sps_D : D(0);
     gameState.stats.spc = final_spc_D.gt(0) ? final_spc_D : D(1);
 
@@ -11381,6 +11738,7 @@ function calculateStats() {
 // =================================================================
 function renderAll() {
   if (!gameState || !gameState.currentWorld) return;
+  if (typeof updateChalBadge === 'function') updateChalBadge();
 
   document.getElementById('playerName-display').innerText = gameState.playerName;
   document.getElementById('world-title').innerText = worlds[gameState.currentWorld]?.name || (lightWorlds[gameState.currentWorld]?.name || gameState.currentWorld);
@@ -11649,8 +12007,10 @@ function renderMinions() {
         // Secret minions are never shown in the purchase grid
         if (m.secret) continue;
         
-        // Show if: purchased (always) OR in current world OR world not unlocked yet (do not show locked worlds at all)
-        if (!worldUnlocked) continue;
+        // Show if: purchased/owned (always visible) OR current world (not yet purchased)
+        // Owned via trade/market = visible but locked-world badge shown
+        if (!worldUnlocked && !isPurchased) continue;
+        if (!isPurchased && !worldUnlocked) continue; // double guard
         if (!isPurchased && m.requiredWorld !== gameState.currentWorld) continue;
         
         anyRendered = true;
@@ -12320,7 +12680,7 @@ function renderInventory() {
     const inventoryGrid = document.getElementById('inventory-items-grid');
     if (!equippedGrid || !inventoryGrid) return;
 
-    const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+    const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
     const rarityGlow  = { common:'#aaaaaa22', uncommon:'#44cc4422', rare:'#4488ff22', epic:'#aa44ff22', legendary:'#ffaa0022', forged:'#ff444422' };
     const typeIcon    = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
 
@@ -12671,6 +13031,33 @@ const potionMeta = {
     fusion_neutral_balance:        { icon:'☯️', color:'#aaaacc', rarity:'fused', glow:'#aaaacc44' },
     fusion_neutral_convergence:    { icon:'🌗', color:'#88aacc', rarity:'fused', glow:'#88aacc44' },
     fusion_neutral_harmony:        { icon:'🎭', color:'#ccaaff', rarity:'fused', glow:'#ccaaff44' },
+    // New potions meta
+    draught_of_iron_will:          { icon:'🛡', color:'#4488ff', rarity:'rare' },
+    battle_serum:                  { icon:'⚔', color:'#ff4444', rarity:'rare' },
+    vial_of_momentum:              { icon:'⚡', color:'#ffcc00', rarity:'uncommon' },
+    guardian_elixir:               { icon:'🏰', color:'#44cc88', rarity:'epic' },
+    berserker_tonic:               { icon:'💢', color:'#ff6644', rarity:'epic' },
+    greater_healing_flask:         { icon:'💊', color:'#44cc88', rarity:'rare' },
+    tacticians_brew:               { icon:'🎯', color:'#cc8844', rarity:'uncommon' },
+    commanders_draught:            { icon:'🎖', color:'#c8a800', rarity:'rare' },
+    strategists_elixir:            { icon:'♟', color:'#aa44ff', rarity:'epic' },
+    elixir_of_renewal:             { icon:'💚', color:'#44cc88', rarity:'epic' },
+    soul_spring_water:             { icon:'💧', color:'#44aaff', rarity:'common' },
+    essence_compress:              { icon:'🌑', color:'#c8a800', rarity:'uncommon' },
+    shard_concentrate:             { icon:'💎', color:'#4488ff', rarity:'uncommon' },
+    void_tonic:                    { icon:'🌀', color:'#aa44ff', rarity:'rare' },
+    ritual_catalyst:               { icon:'🔮', color:'#ff44aa', rarity:'rare' },
+    aether_concentrate:            { icon:'✨', color:'#00e5ff', rarity:'legendary' },
+    fusion_raid_titan:             { icon:'🏰', color:'#4488ff', rarity:'fused', glow:'#4488ff44' },
+    fusion_momentum_surge:         { icon:'⚡', color:'#ffcc00', rarity:'fused', glow:'#ffcc0044' },
+    fusion_essence_torrent:        { icon:'🌊', color:'#c8a800', rarity:'fused', glow:'#c8a80044' },
+    fusion_aether_engine:          { icon:'⚙', color:'#00e5ff', rarity:'fused-legendary', glow:'#00e5ff88' },
+    fusion_ritual_master:          { icon:'🎭', color:'#ff44aa', rarity:'fused', glow:'#ff44aa44' },
+    fusion_void_amplifier:         { icon:'🔊', color:'#aa44ff', rarity:'fused-legendary', glow:'#aa44ff88' },
+    fusion_the_great_heal:         { icon:'💚', color:'#44cc88', rarity:'fused', glow:'#44cc8844' },
+    fusion_proving_edge:           { icon:'⚔', color:'#c8a800', rarity:'fused', glow:'#c8a80044' },
+    fusion_dark_harvest:           { icon:'🌑', color:'#ff4444', rarity:'fused-legendary', glow:'#ff444488' },
+    fusion_grand_shard_burst:      { icon:'💎', color:'#4488ff', rarity:'fused', glow:'#4488ff44' },
     fusion_neutral_void:           { icon:'🌀', color:'#8888bb', rarity:'fused', glow:'#8888bb44' },
     fusion_neutral_zenith:         { icon:'⚖️', color:'#ffddaa', rarity:'fused', glow:'#ffddaa44' },
     // New standard brewed
@@ -13417,6 +13804,7 @@ function usePotion(id) {
         if (effect.type === 'gain_fragments_per_ascension_flat') {
             const frags = Math.floor(effect.value * (gameState.ascensions || 1));
             _addFragments(frags, true);
+    if (typeof checkChallenges === 'function') setTimeout(checkChallenges, 200);
             Toastify({ text: `🔮 Gained ${formatNumber(frags)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
         }
 
@@ -13793,7 +14181,7 @@ function openAbyssalCacheSilent() {
 function openItemModal(itemId) {
     const item = items[itemId];
     if (!item) return;
-    const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+    const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
     const typeIcon = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
     const rc = rarityColor[item.rarity] || '#aaa';
 
@@ -15078,6 +15466,7 @@ function travelToWorld(id)
 	calculateStats();
 	renderAll();
 	saveGame();
+    if (typeof checkChallenges === 'function') setTimeout(checkChallenges, 200);
 }
 
 function showLore(worldId) { const lore = worlds[worldId]?.lore || lightWorlds[worldId]?.lore; if (!lore) return; document.getElementById('lore-modal-title').innerText = `Welcome to ${worlds[worldId]?.name || lightWorlds[worldId]?.name}`; document.getElementById('lore-modal-text').innerText = lore; document.getElementById('lore-modal-overlay').style.display = 'flex'; }
@@ -15943,7 +16332,7 @@ function renderStatsPage() {
             ['Time Played',         formatTime(gs.playTime || 0)],
             ['Current World',       worlds[gs.currentWorld]?.name || '–'],
             ['Worlds Unlocked',     `${worldsUnlocked} / ${totalWorlds}`, worldPct + ' complete'],
-            ['Challenges Cleared',  `${gs.completedPuzzles?.length || 0} / ${Object.keys(window.puzzles||{}).length || 50}`],
+            ['Challenges Cleared',  `<span id="pg-chal-text">${Object.keys(gs.completedChallenges||{}).length} / ${typeof CHALLENGES !== 'undefined' ? CHALLENGES.length : 50}</span>`],
             ['Breaches Completed',  formatNumber(gs.breachesCompleted || 0)],
         ]),
 
@@ -16075,7 +16464,7 @@ function generateHourlyShopItems() {
         market_potion: { icon:'🔥',  color:'#ff6644', label:'Rare Potion'   },
         light_potion:  { icon:'✦',   color:'#c8b4ff', label:'Light Potion'  },
     };
-    const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+    const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
 
     shopItems.forEach((shopItem, index) => {
         const { id, type } = shopItem;
@@ -16166,8 +16555,8 @@ function generateHourlyShopItems() {
         else if (shopItem.type === 'market_potion') { finalPrice = potions[shopItem.id]?.shopPrice || 50; }
         else if (shopItem.type === 'item') {
             const _r = itemData?.rarity || 'common';
-            finalPrice   = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400 }[_r] || 5;
-            fragmentCost = { common:0, uncommon:0, rare:0,  epic:5,  legendary:20,  forged:60  }[_r] || 0;
+            finalPrice   = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400, heavenly:600, dark:500 }[_r] || 5;
+            fragmentCost = { common:0, uncommon:0, rare:0,  epic:5,  legendary:20,  forged:60,  heavenly:80,  dark:60  }[_r] || 0;
         } else { finalPrice = ((seed + index * 13) % 20) + 1; }
         const canAfford  = !soldOut && (isLightPotion
             ? D(gameState.lightEssence || 0).gte(lightSoulCost)
@@ -16851,7 +17240,7 @@ async function cancelMarketListing(listingId) {
 function renderSellableInventory() {
     const grid = document.getElementById('market-sell-grid');
     if (!grid) return;
-    const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+    const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
     const typeIcon    = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
     if (gameState.inventory.length === 0) {
         grid.innerHTML = `<div style="color:#444; text-align:center; padding:30px; grid-column:1/-1; font-size:0.85em;">Your inventory is empty. Open Abyssal Caches to get items to sell.</div>`;
@@ -16885,7 +17274,7 @@ function promptSellItem(itemId) {
     const item = items[itemId];
     if (!item) return;
     _sellItemId = itemId;
-    const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+    const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
     const typeIcon    = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
     document.getElementById('sell-modal-icon').textContent = typeIcon[item.type] || '🔮';
     document.getElementById('sell-modal-name').textContent = item.name;
@@ -17299,8 +17688,9 @@ function initializeChat() {
                 const chatInput = document.getElementById('chat-input');
                 if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
                 const gifBtn = document.getElementById('chat-gif-btn');
-                if (gifBtn) gifBtn.disabled = false;
+                if (gifBtn) { gifBtn.disabled = false; }
                 window._chatUid = uid;
+                setTimeout(initGifPicker, 200); // re-init now button is enabled
                 if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
 
                 const userRef = db.ref("onlineUsers/" + uid);
@@ -18348,6 +18738,8 @@ function endBreach(isVictory) {
     if(activeExp) {
         activeExp.breachIsReady = false;
         activeExp.breachesCompleted++;
+        gameState.breachesCompleted = (gameState.breachesCompleted||0) + 1;
+        if (typeof checkChallenges === 'function') setTimeout(checkChallenges, 500);
         const nextRandomDelay = (180 + Math.random() * 300) * 1000;
         gameState.anomalyTimers[breachState.expeditionId] = Date.now() + nextRandomDelay;
     }
@@ -18524,7 +18916,7 @@ function renderSoulForge() {
     const rarities = ['common', 'uncommon', 'epic', 'legendary'];
     const nextRarity  = { common:'uncommon', uncommon:'epic', epic:'legendary', legendary:'forged' };
     const costs       = { common:{souls:100000,fragments:5}, uncommon:{souls:1000000,fragments:15}, epic:{souls:50000000,fragments:50}, legendary:{souls:1e9,fragments:100} };
-    const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444' };
+    const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
     const rarityEmoji = { common:'⬜', uncommon:'🟩', epic:'🟣', legendary:'🟡', forged:'🔴' };
 
     rarities.forEach(rarity => {
@@ -19099,7 +19491,7 @@ function renderRaidDungeon() {
         const role = fBm ? (fBm.atk > fBm.hp * 0.12 ? 'striker' : fBm.hp > fBm.atk * 10 ? 'tank' : 'duelist') : 'duelist';
         const roleLabel = { striker:'⚔ Striker', tank:'🪨 Tank', duelist:'🌀 Duelist' }[role];
         const abCd = raidState._abilityCooldown||0;
-        const raidHealIds = ['elixir_of_the_abyss_mend', 'healing_draught', 'minor_healing_flask'];
+        const raidHealIds = ['elixir_of_the_abyss_mend', 'healing_draught', 'minor_healing_flask', 'greater_healing_flask'];
         const bestRaidPotion = raidHealIds.find(id => (gameState.potions[id]||0) > 0);
         const hasPotion = bestRaidPotion || Object.values(gameState.potions||{}).some(c=>c>0);
         const potionLabel = bestRaidPotion
@@ -19110,7 +19502,7 @@ function renderRaidDungeon() {
         const momLabel = mom <= 1 ? '⚠ ENEMY PRESSURE' : mom >= 5 ? '✨ YOUR MOMENTUM' : '⚖ NEUTRAL';
         const momColor = mom <= 1 ? '#ff4444' : mom >= 5 ? '#44cc88' : '#c8a800';
         const momBarLeft  = Math.round((mom/6)*100); // player momentum fills left to right
-        const abilityName = { striker:'Berserker Rush — AoE + Burn', tank:'Iron Wall — heal+armor+taunt', duelist:'Feint — dodge+2.5× counter' }[role];
+        const abilityName = { striker:'Berserker Rush — AoE + Burn', tank:'Iron Wall — 3-hit armor + taunt', duelist:'Feint — dodge+2.5× counter' }[role];
 
         // Party queue
         const partyQueue = raidState.party.map((p,idx) => {
@@ -19165,7 +19557,8 @@ function renderRaidDungeon() {
                 <button onclick="raidCombatAction(&quot;ability&quot;)" style="background:linear-gradient(135deg,${abCd>0?'#22220a':'#ffaa4422'},transparent);border:1px solid ${abilityBdr};border-radius:8px;padding:10px 6px;color:${abilityCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${abilityCur};">${abilityLabel}<div style="font-size:.58em;color:${abCd>0?'#333':'#886622'};margin-top:2px;">${abilityName}</div></button>
                 <button onclick="raidCombatAction(&quot;swap&quot;)" style="background:linear-gradient(135deg,${canSwap?'#44cc8811':'transparent'},transparent);border:1px solid ${swapBdr};border-radius:8px;padding:10px 6px;color:${swapCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${swapCur};">🔄 SWAP<div style="font-size:.62em;color:${canSwap?'#226644':'#222'};margin-top:2px;">${canSwap?'change frontliner (enemy free hit)':'no reserves'}</div></button>
             </div>
-            ${hasPotion ? `<button onclick="raidCombatAction(&quot;potion&quot;)" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#44cc8811,transparent);border:1px solid #44cc8844;border-radius:8px;padding:8px;color:#88ffaa;font-family:var(--font-title);font-size:.7em;cursor:pointer;">${potionLabel}</button>` : ''}
+            ${hasPotion ? `${(gameState.potions['vial_of_the_scout']||0) > 0 ? '<button onclick="raidCombatAction(\'scout\')" style="background:linear-gradient(135deg,#4488aa11,transparent);border:1px solid #4488aa44;border-radius:8px;padding:8px 5px;color:#88ccff;font-family:var(--font-title);font-size:.65em;letter-spacing:1px;cursor:pointer;"><div>🔍 SCOUT</div><div style="font-size:.62em;color:#4466aa;margin-top:2px;">Reveal surroundings</div></button>' : ''}
+                <button onclick="raidCombatAction(&quot;potion&quot;)" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#44cc8811,transparent);border:1px solid #44cc8844;border-radius:8px;padding:8px;color:#88ffaa;font-family:var(--font-title);font-size:.7em;cursor:pointer;">${potionLabel}</button>` : ''}
         </div>`;
     }
     roomEl.innerHTML = html;
@@ -19307,6 +19700,7 @@ window.raidCombatAction = function(action) {
 
     // ── Player action ────────────────────────────────────────────
     if (action === 'attack') {
+        raidState._consecutiveDefends = 0; // reset defend spam tracker
         let dmg = frontliner.atk;
 
         // Momentum bonus/penalty on attack
@@ -19328,28 +19722,36 @@ window.raidCombatAction = function(action) {
         if (enemy._weakened > 0) { enemy._weakened--; }
 
     } else if (action === 'defend') {
-        // Defend is NOT just "take less damage this turn" — it BUILDS momentum and can stagger the enemy
-        raidState._defending = true;
-        enemyMomShift = +2; // big momentum swing toward player
+        // Track consecutive defends — spamming defend gets punished
+        raidState._consecutiveDefends = (raidState._consecutiveDefends || 0) + 1;
+        const spamPenalty = raidState._consecutiveDefends >= 3;
 
-        // Stagger chance: 40% to make enemy skip their turn entirely
-        if (Math.random() < 0.40) {
+        raidState._defending = true;
+        enemyMomShift = spamPenalty ? 0 : +2; // no momentum gain if spamming
+
+        if (spamPenalty) {
+            // Enemy sees through the turtling — hits HARDER
+            logLines.push(`😤 Enemy <b>breaks through</b> your stalling — defend penalty active!`);
+            logLines.push(`⚠️ Enemy dmg +50% this turn for consecutive defending.`);
+            raidState._defendBreakthrough = true; // used in enemy attack phase
+        } else if (Math.random() < 0.40) {
             skipEnemyTurn = true;
-            enemy._weakened = (enemy._weakened||0) + 1; // weakens enemy next attack too
-            logLines.push(`🛡 <b>Perfect guard!</b> Enemy staggered — their attack is cancelled!`);
+            enemy._weakened = (enemy._weakened||0) + 1;
+            logLines.push(`🛡 <b>Perfect guard!</b> Enemy staggered — attack cancelled!`);
             logLines.push(`💢 Enemy is <b>weakened</b> next turn (−30% atk).`);
         } else {
             logLines.push(`🛡 <b>${bm?.name}</b> braces. Incoming dmg −65%. Momentum building...`);
         }
 
-        // Tank special: counter-strike on defend
-        if (role === 'tank') {
+        // Tank special: counter-strike on defend (only first 2 consecutive)
+        if (role === 'tank' && !spamPenalty) {
             const counterDmg = Math.ceil(frontliner.atk * 0.4);
             enemy.hp = Math.max(0, enemy.hp - counterDmg);
             logLines.push(`🪨 Tank counter-strike for <b>${counterDmg}</b>!`);
         }
 
     } else if (action === 'ability') {
+        raidState._consecutiveDefends = 0; // reset defend spam tracker
         if ((raidState._abilityCooldown||0) > 0) {
             logLines.push(`⏳ Ability on cooldown — <b>${raidState._abilityCooldown}</b> turns left.`);
         } else {
@@ -19367,13 +19769,11 @@ window.raidCombatAction = function(action) {
                 logLines.push(`🔥 <b>Berserker Rush!</b> ${aoeDmg} dmg to all enemies + <b>Burn</b> (2 turns)!`);
                 enemyMomShift = +1;
             } else if (role === 'tank') {
-                // Iron Wall — heal 45% HP, gain +3 momentum, taunt 2 turns, reduce own dmg-taken next 2 hits
-                const healed = Math.floor(frontliner.maxHp * 0.45);
-                frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + healed);
+                // Iron Wall — gain +3 momentum, taunt 2 turns, armor for 2 hits (no heal — use potions)
                 raidState._tauntTurns = 2;
-                raidState._armorStack = 2; // next 2 incoming hits do −50% dmg
+                raidState._armorStack = 3; // next 3 incoming hits do −60% dmg (buffed slightly to compensate)
                 enemyMomShift = +3;
-                logLines.push(`🏰 <b>Iron Wall!</b> Healed <b>${healed} HP</b>, taunt active, armor for 2 hits!`);
+                logLines.push(`🏰 <b>Iron Wall!</b> Taunt active (2 turns) + heavy armor for <b>3 hits</b> (−60% dmg)!`);
             } else {
                 // Duelist Feint — guaranteed dodge + 2.5× counter
                 const counterDmg = Math.ceil(frontliner.atk * 2.5);
@@ -19405,6 +19805,27 @@ window.raidCombatAction = function(action) {
             return;
         }
 
+    } else if (action === 'scout') {
+        // Vial of the Scout — reveal all 8 surrounding tiles
+        const scoutPotion = 'vial_of_the_scout';
+        if ((gameState.potions[scoutPotion]||0) > 0) {
+            gameState.potions[scoutPotion]--;
+            const {px, py} = raidState.player;
+            let revealed = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = px+dx, ny = py+dy;
+                    if (nx < 0 || ny < 0 || nx >= raidState.cols || ny >= raidState.rows) continue;
+                    const tile = raidState.grid[ny]?.[nx];
+                    if (tile && !tile._revealed) { tile._revealed = true; revealed++; }
+                }
+            }
+            logLines.push(`🔍 <b>Scout Flare!</b> Revealed ${revealed} surrounding tiles!`);
+            saveGame();
+        } else {
+            logLines.push(`❌ No Scout potions available.`);
+        }
     } else if (action === 'potion') {
         // Prioritise dedicated raid heal potions, fall back to any potion
         const raidHealIds = ['elixir_of_the_abyss_mend', 'healing_draught', 'minor_healing_flask'];
@@ -19441,7 +19862,9 @@ window.raidCombatAction = function(action) {
 
         const defending   = raidState._defending;
         const hasArmor    = (raidState._armorStack||0) > 0;
+        const breakthrough = raidState._defendBreakthrough || false;
         raidState._defending = false;
+        raidState._defendBreakthrough = false;
         if (hasArmor) raidState._armorStack--;
 
         // Enemy momentum multiplier: at mom 0-1 enemy hits hardest, at 5-6 you have pressure
@@ -19450,8 +19873,11 @@ window.raidCombatAction = function(action) {
         // Weakened debuff
         const weakMult = (enemy._weakened > 0) ? 0.7 : 1.0;
 
-        let incomingDmg = Math.max(1, Math.floor(enemy.atk * momMult * weakMult
-            * (defending ? 0.35 : 1.0)
+        // Breakthrough: enemy ignores defend penalty and hits +50% harder
+        const breakthroughMult = breakthrough ? 1.5 : 1.0;
+
+        let incomingDmg = Math.max(1, Math.floor(enemy.atk * momMult * weakMult * breakthroughMult
+            * (defending && !breakthrough ? 0.35 : 1.0)
             * (hasArmor  ? 0.5  : 1.0)));
 
         // Burn tick on enemy
@@ -21444,6 +21870,328 @@ async function fetchPactLeaderboard() {
 }
 
 // =================================================================
+// 📦 BUNDLE TRADE SYSTEM
+// Players can compose up to 4 items per side (item + potion + currency etc)
+// Stored as offer_type = 'bundle:' + JSON.stringify(slots[])
+// Each slot: { type, amt, label, icon }
+// =================================================================
+
+let _bundleMode = 'simple';
+let _bundleOfferSlots = [];  // [{type, amt}]
+let _bundleWantSlots  = [];
+
+function setBarterMode(mode) {
+    _bundleMode = mode;
+    const simpleBtn  = document.getElementById('barter-mode-simple');
+    const bundleBtn  = document.getElementById('barter-mode-bundle');
+    const simpleDiv  = document.getElementById('barter-simple-mode');
+    const bundleDiv  = document.getElementById('barter-bundle-mode');
+    if (!simpleBtn || !bundleBtn) return;
+
+    if (mode === 'bundle') {
+        simpleBtn.style.background  = 'transparent';
+        simpleBtn.style.borderColor = '#3d2a4a';
+        simpleBtn.style.color       = '#555';
+        bundleBtn.style.background  = 'linear-gradient(135deg,#c8a80044,#c8a80011)';
+        bundleBtn.style.borderColor = '#c8a80099';
+        bundleBtn.style.color       = '#c8b060';
+        if (simpleDiv) simpleDiv.style.display = 'none';
+        if (bundleDiv) bundleDiv.style.display = 'block';
+        // Init with one slot each side if empty
+        if (_bundleOfferSlots.length === 0) addBundleSlot('offer');
+        if (_bundleWantSlots.length  === 0) addBundleSlot('want');
+        renderBundleSlots();
+    } else {
+        simpleBtn.style.background  = 'linear-gradient(135deg,#aa44ff44,#aa44ff11)';
+        simpleBtn.style.borderColor = '#aa44ff99';
+        simpleBtn.style.color       = '#c8b4ff';
+        bundleBtn.style.background  = 'transparent';
+        bundleBtn.style.borderColor = '#3d2a4a';
+        bundleBtn.style.color       = '#555';
+        if (simpleDiv) simpleDiv.style.display = 'block';
+        if (bundleDiv) bundleDiv.style.display = 'none';
+    }
+}
+
+function _getBundleTypeOptions() {
+    // Build all tradeable types for bundle dropdowns
+    const opts = [
+        { value: 'souls',              label: '👻 Souls' },
+        { value: 'darkEssence',        label: '🌑 Dark Essence' },
+        { value: 'abyssalShards',      label: '💎 Abyssal Shards' },
+        { value: 'corruptedFragments', label: '🔮 Corrupted Fragments' },
+        { value: 'aether',             label: '⚡ Aether' },
+    ];
+    // Potions the player owns
+    const TI = {weapon:'⚔️',idol:'🗿',sigil:'✦',helm:'🪖',tome:'📖'};
+    for (const id in gameState.potions || {}) {
+        if ((gameState.potions[id] || 0) < 1) continue;
+        const _pm = typeof potionMeta !== 'undefined' ? potionMeta[id] : null;
+        const p = potions[id];
+        if (!p) continue;
+        opts.push({ value: 'potion:' + id, label: (_pm?.icon || '⚗️') + ' ' + (p.name || id) + ' ×' + gameState.potions[id] });
+    }
+    // Items the player owns
+    for (const slot in gameState.equipped || {}) {
+        const id = gameState.equipped[slot];
+        if (!id || !items[id]) continue;
+        const it = items[id];
+        opts.push({ value: 'item:' + id, label: (TI[it.type] || '🎁') + ' ' + it.name });
+    }
+    if (gameState.inventory) {
+        for (const id of gameState.inventory) {
+            if (!items[id]) continue;
+            const it = items[id];
+            opts.push({ value: 'item:' + id, label: (TI[it.type] || '🎁') + ' ' + it.name });
+        }
+    }
+    return opts;
+}
+
+function addBundleSlot(side) {
+    const arr = side === 'offer' ? _bundleOfferSlots : _bundleWantSlots;
+    if (arr.length >= 4) {
+        Toastify({ text: '📦 Max 4 items per side', duration:2000, gravity:'top', position:'center', style:{background:'#330033'} }).showToast();
+        return;
+    }
+    arr.push({ type: 'souls', amt: 1 });
+    renderBundleSlots();
+}
+
+function removeBundleSlot(side, idx) {
+    const arr = side === 'offer' ? _bundleOfferSlots : _bundleWantSlots;
+    arr.splice(idx, 1);
+    renderBundleSlots();
+}
+
+function renderBundleSlots() {
+    const opts = _getBundleTypeOptions();
+    const optHtml = opts.map(o => `<option value="${escapeHTML(o.value)}">${escapeHTML(o.label)}</option>`).join('');
+
+    ['offer', 'want'].forEach(side => {
+        const container = document.getElementById('bundle-' + side + '-slots');
+        const arr = side === 'offer' ? _bundleOfferSlots : _bundleWantSlots;
+        const addBtn = document.getElementById('bundle-add-' + side);
+        if (!container) return;
+        if (addBtn) addBtn.style.display = arr.length >= 4 ? 'none' : 'block';
+
+        container.innerHTML = arr.map((slot, i) => {
+            const isCurrency = !slot.type.startsWith('potion:') && !slot.type.startsWith('item:') && !slot.type.startsWith('minion:');
+            return `<div style="display:flex; gap:5px; align-items:center; background:#0d0a18; border:1px solid #2a1a3a; border-radius:7px; padding:6px 8px;">
+                <select data-side="${side}" data-idx="${i}" onchange="updateBundleSlot(this)"
+                    style="flex:2; background:#0a0812; border:1px solid #2a1a3a; color:#ddd; padding:5px 6px; border-radius:5px; font-family:inherit; font-size:0.75em;">${optHtml}</select>
+                ${isCurrency
+                    ? `<input type="number" min="1" value="${slot.amt||1}" data-side="${side}" data-idx="${i}" oninput="updateBundleAmt(this)"
+                        style="width:80px; background:#0a0812; border:1px solid #2a1a3a; color:#ddd; padding:5px; border-radius:5px; font-family:inherit; font-size:0.75em;">`
+                    : `<span style="color:#555; font-size:0.72em; padding:0 4px; white-space:nowrap;">×${slot.amt||1}</span>`
+                }
+                <button onclick="removeBundleSlot('${side}',${i})" style="background:transparent; border:none; color:#555; cursor:pointer; font-size:1em; padding:0 2px;">✕</button>
+            </div>`;
+        }).join('');
+
+        // Restore selections
+        container.querySelectorAll('select[data-side]').forEach(sel => {
+            const idx = parseInt(sel.dataset.idx);
+            const val = (side === 'offer' ? _bundleOfferSlots : _bundleWantSlots)[idx]?.type;
+            if (val) sel.value = val;
+        });
+    });
+
+    updateBundlePreview();
+}
+
+function updateBundleSlot(sel) {
+    const side = sel.dataset.side;
+    const idx  = parseInt(sel.dataset.idx);
+    const arr  = side === 'offer' ? _bundleOfferSlots : _bundleWantSlots;
+    if (!arr[idx]) return;
+    arr[idx].type = sel.value;
+    // Auto-set amt for non-currency
+    if (sel.value.startsWith('potion:')) {
+        arr[idx].amt = 1; // default 1 potion
+    } else if (sel.value.startsWith('item:')) {
+        arr[idx].amt = 1;
+    }
+    renderBundleSlots();
+}
+
+function updateBundleAmt(inp) {
+    const side = inp.dataset.side;
+    const idx  = parseInt(inp.dataset.idx);
+    const arr  = side === 'offer' ? _bundleOfferSlots : _bundleWantSlots;
+    if (!arr[idx]) return;
+    arr[idx].amt = Math.max(1, parseInt(inp.value) || 1);
+    updateBundlePreview();
+}
+
+function updateBundlePreview() {
+    const prev = document.getElementById('bundle-preview');
+    if (!prev) return;
+    const _fmtSlot = (slot) => {
+        const info = getBarterTypeInfo(slot.type, slot.amt, null);
+        return `<span style="color:${info.color||'#aaa'}">${info.icon} ${info.name}</span> <span style="color:#666">×${formatNumber(slot.amt)}</span>`;
+    };
+    const offerStr = _bundleOfferSlots.length ? _bundleOfferSlots.map(_fmtSlot).join(' <span style="color:#333">+</span> ') : '<span style="color:#333">nothing yet</span>';
+    const wantStr  = _bundleWantSlots.length  ? _bundleWantSlots.map(_fmtSlot).join(' <span style="color:#333">+</span> ')  : '<span style="color:#333">nothing yet</span>';
+    prev.innerHTML = `📦 ${offerStr} <span style="color:#555; margin:0 6px">⇄</span> 🎯 ${wantStr}`;
+}
+
+async function postBundleListing() {
+    const statusEl = document.getElementById('barter-post-msg');
+    if (_bundleOfferSlots.length === 0 || _bundleWantSlots.length === 0) {
+        if (statusEl) statusEl.textContent = 'Add at least one item to each side.'; return;
+    }
+
+    // Validate offer side — player must own what they're offering
+    for (const slot of _bundleOfferSlots) {
+        if (!hasEnough(slot.type, slot.amt)) {
+            const info = getBarterTypeInfo(slot.type, slot.amt, null);
+            if (statusEl) statusEl.textContent = `You don't have enough ${info.name} (need ${formatNumber(slot.amt)}).`;
+            return;
+        }
+    }
+
+    // Deduct all offered items upfront (escrow)
+    for (const slot of _bundleOfferSlots) {
+        deductCurrency(slot.type, slot.amt);
+    }
+    calculateStats(); renderAll();
+
+    const bundleOfferJson = JSON.stringify(_bundleOfferSlots);
+    const bundleWantJson  = JSON.stringify(_bundleWantSlots);
+
+    try {
+        const { error } = await supabaseClient.from('barter_listings').insert({
+            poster_name: gameState.playerName,
+            offer_type:  'bundle:' + bundleOfferJson,
+            offer_amt:   _bundleOfferSlots.length,    // slot count for display
+            want_type:   'bundle:' + bundleWantJson,
+            want_amt:    _bundleWantSlots.length,
+            is_complete: false,
+            offer_note:  JSON.stringify({ isBundle: true, offerSlots: _bundleOfferSlots, wantSlots: _bundleWantSlots })
+        });
+        if (error) {
+            // Refund on failure
+            for (const slot of _bundleOfferSlots) addCurrency(slot.type, slot.amt);
+            calculateStats(); renderAll();
+            throw error;
+        }
+
+        saveGame();
+        if (statusEl) statusEl.textContent = '';
+        // Reset bundle slots
+        _bundleOfferSlots = [];
+        _bundleWantSlots  = [];
+        renderBundleSlots();
+        Toastify({ text: `📦 Bundle posted! Waiting for a taker...`, duration: 4000, gravity:'top', position:'center',
+            style:{background:'linear-gradient(135deg,#1a1000,#c8a80066)', border:'1px solid #c8a800'} }).showToast();
+        fetchBarterListings();
+        refreshMarketTicker();
+
+    } catch(e) {
+        if (statusEl) statusEl.textContent = 'Failed to post bundle: ' + (e.message || e);
+    }
+}
+
+// Accept a bundle listing
+async function acceptBundleListing(listingId, offerSlots, wantSlots, posterName) {
+    // Check buyer has everything in wantSlots (what poster wants = what buyer pays)
+    for (const slot of wantSlots) {
+        if (!hasEnough(slot.type, slot.amt)) {
+            const info = getBarterTypeInfo(slot.type, slot.amt, null);
+            Toastify({ text: `❌ You need ${formatNumber(slot.amt)}× ${info.name}`, duration:3000, gravity:'top', position:'center', style:{background:'#330000'} }).showToast();
+            return;
+        }
+    }
+
+    const myName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
+
+    // Deduct buyer's payment
+    for (const slot of wantSlots) {
+        deductCurrency(slot.type, slot.amt);
+    }
+    calculateStats(); renderAll();
+
+    try {
+        const { error } = await supabaseClient.from('barter_listings').update({ is_complete: true }).eq('id', listingId);
+        if (error) {
+            for (const slot of wantSlots) addCurrency(slot.type, slot.amt);
+            calculateStats(); renderAll();
+            throw error;
+        }
+
+        // Grant buyer the offered items
+        for (const slot of offerSlots) {
+            addCurrency(slot.type, slot.amt);
+        }
+        calculateStats(); renderAll(); saveGame();
+
+        Toastify({ text: `📦 Bundle accepted! Items received.`, duration: 4000, gravity:'top', position:'center',
+            style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'} }).showToast();
+
+        fetchBarterListings();
+    } catch(e) {
+        Toastify({ text: `❌ Bundle accept failed: ${e.message||e}`, duration:4000, gravity:'top', position:'center', style:{background:'#330000'} }).showToast();
+    }
+}
+
+// Render a bundle listing card
+function renderBundleListingCard(listing) {
+    let offerSlots = [], wantSlots = [];
+    try {
+        const note = JSON.parse(listing.offer_note || '{}');
+        offerSlots = note.offerSlots || [];
+        wantSlots  = note.wantSlots  || [];
+    } catch(e) { return ''; }
+
+    const myName = gameState.playerName || '';
+    const isMine = listing.poster_name === myName;
+
+    const _slotHtml = (slots) => slots.map(slot => {
+        const info = getBarterTypeInfo(slot.type, slot.amt, listing);
+        return `<div style="display:flex;align-items:center;gap:5px;background:#ffffff06;border-radius:6px;padding:4px 8px;border:1px solid ${info.color||'#333'}22;">
+            <span style="font-size:1.1em">${info.icon}</span>
+            <div>
+                <div style="color:${info.color||'#ddd'};font-size:0.78em;font-weight:bold;">${escapeHTML(info.name)}</div>
+                <div style="color:#666;font-size:0.68em;">${info.subtitle || '×'+formatNumber(slot.amt)}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    const offerHtml = _slotHtml(offerSlots);
+    const wantHtml  = _slotHtml(wantSlots);
+
+    const canAfford = wantSlots.every(s => hasEnough(s.type, s.amt));
+
+    return `<div style="background:linear-gradient(135deg,#0e0a1a,#1a1228);border:1px solid #c8a80033;border-top:3px solid #c8a800;border-radius:10px;padding:14px 16px;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+            <span style="background:#c8a80022;border:1px solid #c8a80044;border-radius:12px;padding:2px 8px;font-size:0.68em;color:#c8a800;letter-spacing:1px;font-weight:bold;">📦 BUNDLE</span>
+            <span style="color:#555;font-size:0.72em;">${escapeHTML(listing.poster_name)}</span>
+            ${isMine ? '<span style="color:#aa44ff;font-size:0.68em;margin-left:auto;">YOUR LISTING</span>' : ''}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:10px;">
+            <div>
+                <div style="color:#888;font-size:0.65em;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">📦 Offering</div>
+                <div style="display:flex;flex-direction:column;gap:4px;">${offerHtml}</div>
+            </div>
+            <div style="color:#444;font-size:1.2em;text-align:center;">⇄</div>
+            <div>
+                <div style="color:#888;font-size:0.65em;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;">🎯 Wants</div>
+                <div style="display:flex;flex-direction:column;gap:4px;">${wantHtml}</div>
+            </div>
+        </div>
+        ${isMine
+            ? `<button onclick="cancelBarterListing(${listing.id})" style="width:100%;background:#ff444411;border:1px solid #ff444433;border-radius:7px;padding:8px;color:#ff8888;cursor:pointer;font-family:inherit;font-size:0.8em;">✕ Cancel Listing</button>`
+            : `<button onclick="acceptBundleListing(${listing.id},${JSON.stringify(offerSlots)},${JSON.stringify(wantSlots)},${JSON.stringify(listing.poster_name)})"
+                style="width:100%;background:${canAfford?'linear-gradient(135deg,#c8a80033,#c8a80011)':'#ffffff08'};border:1px solid ${canAfford?'#c8a80066':'#2a2a2a'};border-radius:7px;padding:10px;color:${canAfford?'#c8a800':'#444'};cursor:${canAfford?'pointer':'default'};font-family:inherit;font-size:0.82em;font-weight:bold;"
+                ${canAfford?'':'disabled'}>
+                ${canAfford ? '📦 Accept Bundle' : '❌ Can\'t Afford'}
+            </button>`
+        }
+    </div>`;
+}
+
+// =================================================================
 // 🔀 ABYSS BARTER MARKET
 // =================================================================
 const BARTER_LABELS = {
@@ -21627,6 +22375,15 @@ async function fetchBarterListings(page) {
             const li   = document.createElement('li');
             li.dataset.listingId = listing.id;
             const isMe = listing.poster_name === gameState.playerName;
+
+            // ── Bundle listings get their own renderer ─────────────────────
+            if (listing.offer_type && listing.offer_type.startsWith('bundle:')) {
+                li.style.listStyle = 'none';
+                li.innerHTML = renderBundleListingCard(listing);
+                list.appendChild(li);
+                return;
+            }
+
             const canFill = !isMe && hasEnough(listing.want_type, listing.want_amt);
 
             const offerInfo = getBarterTypeInfo(listing.offer_type, listing.offer_amt, listing);
@@ -25259,8 +26016,11 @@ function pwRenderMap() {
                     : 'Strength: ' + (nodeRef.strength||0) + '%';
                 var tt = document.createElement('div');
                 tt.id = 'pw-tooltip';
-                var tipX = Math.min(W-160, x + sz/2 + 8);
-                tt.style.cssText = 'position:absolute;left:'+tipX.toFixed(0)+'px;top:'+(y-35).toFixed(0)+'px;'
+                // Smart positioning: center on node, flip left if near right edge
+                var tipW = 170, tipH = 90;
+                var tipX = (x + sz/2 + 10 + tipW > W) ? Math.max(4, x - sz/2 - tipW - 6) : x + sz/2 + 10;
+                var tipY = Math.max(4, Math.min(H - tipH - 4, y - tipH/2));
+                tt.style.cssText = 'position:absolute;left:'+tipX.toFixed(0)+'px;top:'+tipY.toFixed(0)+'px;'
                     + 'background:linear-gradient(135deg,#1a0a2a,#0a0812);border:1px solid '+col+'66;'
                     + 'border-radius:8px;padding:8px 12px;font-size:0.72em;color:#ddd;z-index:100;'
                     + 'pointer-events:none;white-space:nowrap;min-width:140px;box-shadow:0 4px 20px rgba(0,0,0,0.8);';
@@ -27123,22 +27883,34 @@ function toggleGifPicker() {
     if (_gifPickerOpen) renderGifs('');
 }
 
-(function initGifPicker() {
+function initGifPicker() {
     const btn = document.getElementById('chat-gif-btn');
     const search = document.getElementById('gif-search');
-    if (btn) btn.addEventListener('click', toggleGifPicker);
-    if (search) search.addEventListener('input', (e) => {
-        clearTimeout(_gifSearchTimeout);
-        _gifSearchTimeout = setTimeout(() => renderGifs(e.target.value), 400);
-    });
+    if (!btn) return; // DOM not ready yet — will be called again after chat loads
+    btn.removeEventListener('click', toggleGifPicker);
+    btn.addEventListener('click', toggleGifPicker);
+    if (search) {
+        search.removeEventListener('input', search._gifHandler);
+        search._gifHandler = (e) => {
+            clearTimeout(_gifSearchTimeout);
+            _gifSearchTimeout = setTimeout(() => renderGifs(e.target.value), 400);
+        };
+        search.addEventListener('input', search._gifHandler);
+    }
     // Close on outside click
-    document.addEventListener('click', (e) => {
-        const picker = document.getElementById('gif-picker');
-        if (_gifPickerOpen && picker && !picker.contains(e.target) && e.target.id !== 'chat-gif-btn') {
-            _gifPickerOpen = false; picker.style.display = 'none';
-        }
-    });
-})();
+    if (!document._gifOutsideListenerAdded) {
+        document._gifOutsideListenerAdded = true;
+        document.addEventListener('click', (e) => {
+            const picker = document.getElementById('gif-picker');
+            if (_gifPickerOpen && picker && !picker.contains(e.target) && e.target.id !== 'chat-gif-btn') {
+                _gifPickerOpen = false; picker.style.display = 'none';
+            }
+        });
+    }
+}
+// Try init now, and again when chat connects
+document.addEventListener('DOMContentLoaded', () => setTimeout(initGifPicker, 500));
+setTimeout(initGifPicker, 1000);
 
 // Enable GIF button when chat connects (alongside chat-send-btn enable)
 const _origEnableChat = window._enableChat;
@@ -27229,6 +28001,240 @@ function checkLightMusicSwitch() {
         if (wasPlaying && !wasMuted) audio.bgm.play().catch(()=>{});
     }
 }
+</script>
+<script>
+// =================================================================
+// 🏆 SOUL COLLECTOR — CHALLENGE / ACHIEVEMENT SYSTEM
+// 50 real trackable achievements that check live gameState
+// =================================================================
+
+const CHALLENGES = [
+    // ── ASCENSION ──────────────────────────────────────────────────
+    { id:'asc1',    cat:'Ascension', icon:'🔄', name:'First Ascension',       desc:'Ascend for the first time.',              check: gs => (gs.ascensions||0) >= 1,     reward:'+5% global SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.05; } },
+    { id:'asc2',    cat:'Ascension', icon:'🔄', name:'Seasoned Soul',          desc:'Ascend 5 times.',                         check: gs => (gs.ascensions||0) >= 5,     reward:'+5% global SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.05; } },
+    { id:'asc3',    cat:'Ascension', icon:'🔄', name:'Cycle of Rebirth',       desc:'Ascend 10 times.',                        check: gs => (gs.ascensions||0) >= 10,    reward:'+10% global SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.10; } },
+    { id:'asc4',    cat:'Ascension', icon:'🔄', name:'Endless Loop',           desc:'Ascend 25 times.',                        check: gs => (gs.ascensions||0) >= 25,    reward:'+15% global SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.15; } },
+    { id:'asc5',    cat:'Ascension', icon:'🔄', name:'The Eternal Ascendant',  desc:'Ascend 50 times.',                        check: gs => (gs.ascensions||0) >= 50,    reward:'+25% global SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.25; } },
+
+    // ── COLLAPSE ───────────────────────────────────────────────────
+    { id:'col1',    cat:'Collapse',  icon:'💥', name:'First Collapse',         desc:'Collapse for the first time.',            check: gs => (gs.totalCollapses||0) >= 1,  reward:'+5% Aether gain', rewardFn: gs => { gs._chalBonusAether = (gs._chalBonusAether||1) * 1.05; } },
+    { id:'col2',    cat:'Collapse',  icon:'💥', name:'Reality Shattered',      desc:'Collapse 5 times.',                       check: gs => (gs.totalCollapses||0) >= 5,  reward:'+10% Aether gain', rewardFn: gs => { gs._chalBonusAether = (gs._chalBonusAether||1) * 1.10; } },
+    { id:'col3',    cat:'Collapse',  icon:'💥', name:'Void Walker',            desc:'Collapse 15 times.',                      check: gs => (gs.totalCollapses||0) >= 15, reward:'+20% Aether gain', rewardFn: gs => { gs._chalBonusAether = (gs._chalBonusAether||1) * 1.20; } },
+
+    // ── SOULS ──────────────────────────────────────────────────────
+    { id:'souls1',  cat:'Souls',     icon:'👻', name:'First Harvest',          desc:'Harvest your first soul.',                check: gs => D(gs.lifetimeSouls||0).gte(1),       reward:'+2% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.02; } },
+    { id:'souls2',  cat:'Souls',     icon:'👻', name:'Soul Hoarder',           desc:'Accumulate 1 billion lifetime souls.',    check: gs => D(gs.lifetimeSouls||0).gte(1e9),     reward:'+5% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.05; } },
+    { id:'souls3',  cat:'Souls',     icon:'👻', name:'Soul Ocean',             desc:'Accumulate 1e30 lifetime souls.',         check: gs => D(gs.lifetimeSouls||0).gte(1e30),    reward:'+10% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.10; } },
+    { id:'souls4',  cat:'Souls',     icon:'👻', name:'The Infinite Well',      desc:'Accumulate 1e100 lifetime souls.',        check: gs => D(gs.lifetimeSouls||0).gte(1e100),   reward:'+15% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.15; } },
+    { id:'souls5',  cat:'Souls',     icon:'👻', name:'Beyond Comprehension',   desc:'Accumulate 1e500 lifetime souls.',        check: gs => D(gs.lifetimeSouls||0).gte('1e500'), reward:'+25% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.25; } },
+
+    // ── DARK ESSENCE ───────────────────────────────────────────────
+    { id:'de1',     cat:'Essence',   icon:'🌑', name:'Dark Awakening',         desc:'Earn 100 Dark Essence.',                  check: gs => D(gs.darkEssence||0).gte(100),       reward:'+5% Essence rate', rewardFn: gs => { gs._chalBonusDe = (gs._chalBonusDe||1) * 1.05; } },
+    { id:'de2',     cat:'Essence',   icon:'🌑', name:'Essence Addict',         desc:'Earn 10,000 Dark Essence.',               check: gs => D(gs.darkEssence||0).gte(10000),     reward:'+10% Essence rate', rewardFn: gs => { gs._chalBonusDe = (gs._chalBonusDe||1) * 1.10; } },
+    { id:'de3',     cat:'Essence',   icon:'🌑', name:'Void Drinker',           desc:'Earn 1,000,000 Dark Essence.',            check: gs => D(gs.darkEssence||0).gte(1e6),       reward:'+2% global SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.02; } },
+
+    // ── MINIONS ────────────────────────────────────────────────────
+    { id:'min1',    cat:'Minions',   icon:'👿', name:'First General',          desc:'Purchase your first minion.',             check: gs => Object.values(gs.minions||{}).some(m => (m.level||0) >= 1),  reward:'+2% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.02; } },
+    { id:'min2',    cat:'Minions',   icon:'👿', name:'Legion Builder',         desc:'Have 5 different minion types.',          check: gs => Object.values(gs.minions||{}).filter(m => (m.level||0) >= 1).length >= 5,  reward:'+5% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.05; } },
+    { id:'min3',    cat:'Minions',   icon:'👿', name:'Army of Darkness',       desc:'Have 15 different minion types at Lv.1+.', check: gs => Object.values(gs.minions||{}).filter(m => (m.level||0) >= 1).length >= 15, reward:'+8% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.08; } },
+    { id:'min4',    cat:'Minions',   icon:'👿', name:'The Endless Horde',      desc:'Reach level 50 on any minion.',           check: gs => Object.values(gs.minions||{}).some(m => (m.level||0) >= 50),  reward:'+10% minion SPS', rewardFn: gs => { gs._chalBonusMinion = (gs._chalBonusMinion||1) * 1.10; } },
+    { id:'min5',    cat:'Minions',   icon:'👿', name:'Undying Champion',       desc:'Promote any minion once.',                check: gs => Object.values(gs.minions||{}).some(m => (m.promotionTier||0) >= 1),  reward:'+5% minion SPS', rewardFn: gs => { gs._chalBonusMinion = (gs._chalBonusMinion||1) * 1.05; } },
+
+    // ── WORLDS ─────────────────────────────────────────────────────
+    { id:'world1',  cat:'Worlds',    icon:'🌍', name:'First Step',             desc:'Unlock your second world.',               check: gs => Object.keys(gs.unlockedWorlds||{}).length >= 2 || (gs.unlockedWorlds||[]).length >= 2,  reward:'+3% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.03; } },
+    { id:'world2',  cat:'Worlds',    icon:'🌍', name:'World Traveler',         desc:'Unlock 7 worlds.',                        check: gs => (gs.unlockedWorlds||[]).length >= 7,  reward:'+5% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.05; } },
+    { id:'world3',  cat:'Worlds',    icon:'🌍', name:'Realm Conqueror',        desc:'Unlock 15 worlds.',                       check: gs => (gs.unlockedWorlds||[]).length >= 15, reward:'+10% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.10; } },
+    { id:'world4',  cat:'Worlds',    icon:'🌍', name:'Master of All Realms',   desc:'Unlock all 21 worlds.',                   check: gs => (gs.unlockedWorlds||[]).length >= 21, reward:'+20% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.20; } },
+
+    // ── SHARDS ─────────────────────────────────────────────────────
+    { id:'shard1',  cat:'Shards',    icon:'💎', name:'Crystal Seed',           desc:'Earn 100 Abyssal Shards.',                check: gs => D(gs.abyssalShards||0).gte(100),   reward:'+5% Shard gain', rewardFn: gs => { gs._chalBonusShard = (gs._chalBonusShard||1) * 1.05; } },
+    { id:'shard2',  cat:'Shards',    icon:'💎', name:'Shard Magnate',          desc:'Earn 10,000 Abyssal Shards.',             check: gs => D(gs.abyssalShards||0).gte(10000), reward:'+2% global SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.02; } },
+    { id:'shard3',  cat:'Shards',    icon:'💎', name:'Shard Overlord',         desc:'Earn 1,000,000 Abyssal Shards.',          check: gs => D(gs.abyssalShards||0).gte(1e6),   reward:'+5% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.05; } },
+
+    // ── FRAGMENTS ──────────────────────────────────────────────────
+    { id:'frag1',   cat:'Fragments', icon:'🔮', name:'Fragment Finder',        desc:'Collect 10 Corrupted Fragments.',         check: gs => D(gs.corruptedFragments||0).gte(10),   reward:'+2% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.02; } },
+    { id:'frag2',   cat:'Fragments', icon:'🔮', name:'Shard Collector',        desc:'Collect 500 Corrupted Fragments.',        check: gs => D(gs.corruptedFragments||0).gte(500),  reward:'+5% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.05; } },
+    { id:'frag3',   cat:'Fragments', icon:'🔮', name:'Fragment Hoarder',       desc:'Collect 5,000 Corrupted Fragments.',      check: gs => D(gs.corruptedFragments||0).gte(5000), reward:'+3% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.03; } },
+
+    // ── ARTIFACTS ──────────────────────────────────────────────────
+    { id:'art1',    cat:'Artifacts', icon:'✨', name:'Relic Hunter',           desc:'Own your first artifact.',                check: gs => Object.keys(gs.ownedArtifacts||{}).length >= 1,   reward:'+5% artifact effect', rewardFn: gs => { gs._chalBonusArt = (gs._chalBonusArt||1) * 1.05; } },
+    { id:'art2',    cat:'Artifacts', icon:'✨', name:'Artifact Collector',     desc:'Own 5 artifacts.',                        check: gs => Object.keys(gs.ownedArtifacts||{}).length >= 5,   reward:'+10% artifact effect', rewardFn: gs => { gs._chalBonusArt = (gs._chalBonusArt||1) * 1.10; } },
+    { id:'art3',    cat:'Artifacts', icon:'✨', name:'Master Archaeologist',   desc:'Own 15 artifacts.',                       check: gs => Object.keys(gs.ownedArtifacts||{}).length >= 15,  reward:'+5% global SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.05; } },
+    { id:'art4',    cat:'Artifacts', icon:'✨', name:'Complete Collection',    desc:'Own all 26 artifacts.',                   check: gs => Object.keys(gs.ownedArtifacts||{}).length >= 26,  reward:'+15% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.15; } },
+
+    // ── RAIDS ──────────────────────────────────────────────────────
+    { id:'raid1',   cat:'Raids',     icon:'⚔', name:'First Blood',            desc:'Complete your first Soul Raid.',          check: gs => (gs.soulRaids?.completedRaids||0) >= 1,   reward:'+5% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.05; } },
+    { id:'raid2',   cat:'Raids',     icon:'⚔', name:'Dungeon Crawler',        desc:'Complete 10 Soul Raids.',                 check: gs => (gs.soulRaids?.completedRaids||0) >= 10,  reward:'+10% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.10; } },
+    { id:'raid3',   cat:'Raids',     icon:'⚔', name:'Raid Legend',            desc:'Complete 50 Soul Raids.',                 check: gs => (gs.soulRaids?.completedRaids||0) >= 50,  reward:'+5% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.05; } },
+
+    // ── BREACHES ───────────────────────────────────────────────────
+    { id:'breach1', cat:'Breaches',  icon:'⚡', name:'Void Breacher',          desc:'Complete your first Abyssal Breach.',     check: gs => (gs.breachesCompleted||0) >= 1,   reward:'+5% SPC', rewardFn: gs => { gs._chalBonusSpc = (gs._chalBonusSpc||1) * 1.05; } },
+    { id:'breach2', cat:'Breaches',  icon:'⚡', name:'Breach Veteran',         desc:'Complete 10 Abyssal Breaches.',           check: gs => (gs.breachesCompleted||0) >= 10,  reward:'+10% SPC', rewardFn: gs => { gs._chalBonusSpc = (gs._chalBonusSpc||1) * 1.10; } },
+    { id:'breach3', cat:'Breaches',  icon:'⚡', name:'Rift Master',            desc:'Complete 50 Abyssal Breaches.',           check: gs => (gs.breachesCompleted||0) >= 50,  reward:'+5% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.05; } },
+
+    // ── PVP ────────────────────────────────────────────────────────
+    { id:'pvp1',    cat:'PvP',       icon:'🏆', name:'First Victory',          desc:'Win your first PvP battle.',              check: gs => (gs.pvpWins||0) >= 1,   reward:'+3% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.03; } },
+    { id:'pvp2',    cat:'PvP',       icon:'🏆', name:'Warlord',                desc:'Win 25 PvP battles.',                     check: gs => (gs.pvpWins||0) >= 25,  reward:'+5% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.05; } },
+    { id:'pvp3',    cat:'PvP',       icon:'🏆', name:'Unstoppable',            desc:'Win 100 PvP battles.',                    check: gs => (gs.pvpWins||0) >= 100, reward:'+10% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.10; } },
+
+    // ── POTIONS ────────────────────────────────────────────────────
+    { id:'pot1',    cat:'Alchemy',   icon:'⚗️', name:'Apprentice Brewer',      desc:'Use your first potion.',                  check: gs => (gs._totalPotionsUsed||0) >= 1,   reward:'+2% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.02; } },
+    { id:'pot2',    cat:'Alchemy',   icon:'⚗️', name:'Master Alchemist',       desc:'Use 50 potions.',                         check: gs => (gs._totalPotionsUsed||0) >= 50,  reward:'+5% SPS', rewardFn: gs => { gs._chalBonusSps = (gs._chalBonusSps||1) * 1.05; } },
+    { id:'pot3',    cat:'Alchemy',   icon:'⚗️', name:'Void Pharmacist',        desc:'Use 200 potions.',                        check: gs => (gs._totalPotionsUsed||0) >= 200, reward:'+5% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.05; } },
+
+    // ── AETHER ─────────────────────────────────────────────────────
+    { id:'aeth1',   cat:'Aether',    icon:'✨', name:'Aether Spark',           desc:'Earn your first Aether.',                 check: gs => D(gs.aether||0).gte(1),     reward:'+5% Aether gain', rewardFn: gs => { gs._chalBonusAether = (gs._chalBonusAether||1) * 1.05; } },
+    { id:'aeth2',   cat:'Aether',    icon:'✨', name:'Aether Storm',           desc:'Accumulate 1,000 Aether.',                check: gs => D(gs.aether||0).gte(1000),  reward:'+10% global mult', rewardFn: gs => { gs._chalBonusGlobal = (gs._chalBonusGlobal||1) * 1.10; } },
+
+    // ── TRANSCENDENCE ──────────────────────────────────────────────
+    { id:'trans1',  cat:'Hidden',   icon:'❓', name:'???',                  desc:'A secret achievement. Keep pushing...',      check: gs => gs.isTranscended || (gs.transcendenceCount||0) >= 1,  reward:'Secret reward', rewardFn: gs => { gs._chalBonusLight = (gs._chalBonusLight||1) * 1.20; }, hidden: true },
+    { id:'trans2',  cat:'Hidden',   icon:'❓', name:'???',                  desc:'An even deeper secret.',                     check: gs => (gs.transcendenceCount||0) >= 3,                      reward:'Secret reward', rewardFn: gs => { gs._chalBonusLight = (gs._chalBonusLight||1) * 1.30; }, hidden: true },
+];
+
+// ─── Check & grant challenge rewards ──────────────────────────────────────────
+let _challengeCheckScheduled = false;
+function updateChalBadge() {
+    const badge = document.getElementById('chal-count-badge');
+    const count = Object.keys(gameState.completedChallenges||{}).length;
+    const total = CHALLENGES.length;
+    if (badge) badge.textContent = count + ' / ' + total;
+    // Also update progress screen
+    const pgText = document.getElementById('pg-chal-text');
+    const pgFill = document.getElementById('pg-chal-fill');
+    if (pgText) pgText.textContent = count + ' / ' + total;
+    if (pgFill) pgFill.style.width = Math.round(count/total*100) + '%';
+    // Update the settings screen badge too
+    const settBadge = document.getElementById('settings-chal-badge');
+    if (settBadge) settBadge.textContent = count + ' / ' + total;
+}
+function checkChallenges() {
+    if (!gameState.completedChallenges) gameState.completedChallenges = {};
+    let newlyCompleted = 0;
+    for (const ch of CHALLENGES) {
+        if (gameState.completedChallenges[ch.id]) continue;
+        try {
+            if (ch.check(gameState)) {
+                gameState.completedChallenges[ch.id] = Date.now();
+                ch.rewardFn(gameState);
+                newlyCompleted++;
+                Toastify({
+                    text: `🏆 Challenge: ${ch.name} — ${ch.reward}`,
+                    duration: 5000, gravity: 'top', position: 'center',
+                    style: { background: 'linear-gradient(135deg,#1a1000,#c8a80088)', border: '1px solid #c8a800', fontWeight: 'bold' }
+                }).showToast();
+            }
+        } catch(e) { /* skip bad checks */ }
+    }
+    if (newlyCompleted) { calculateStats(); saveGame(); updateChalBadge(); }
+    updateChalBadge();
+}
+
+// Hook challenge checks into key game events
+const _origCalculateStats = typeof calculateStats === 'function' ? calculateStats : null;
+// Schedule periodic checks — every 10 seconds and on key events
+setInterval(() => {
+    if (typeof gameState !== 'undefined' && typeof CHALLENGES !== 'undefined') {
+        checkChallenges();
+    }
+}, 5000);
+
+// Challenge bonuses now applied inside calculateStats directly
+
+// Track potion usage
+const _origUsePotionChal = window.usePotion;
+if (typeof window.usePotion === 'function') {
+    window.usePotion = function(id) {
+        _origUsePotionChal(id);
+        if (!gameState._totalPotionsUsed) gameState._totalPotionsUsed = 0;
+        gameState._totalPotionsUsed++;
+        checkChallenges();
+    };
+}
+
+// ─── Rebuild cumulative bonuses from saved completedChallenges on load ────────
+function _reapplyChallengeRewards() {
+    if (!gameState.completedChallenges) return;
+    // Reset bonus fields before reapplying to avoid stacking on reload
+    gameState._chalBonusSps    = 1;
+    gameState._chalBonusSpc    = 1;
+    gameState._chalBonusGlobal = 1;
+    gameState._chalBonusDe     = 1;
+    gameState._chalBonusShard  = 1;
+    gameState._chalBonusAether = 1;
+    gameState._chalBonusArt    = 1;
+    gameState._chalBonusMinion = 1;
+    gameState._chalBonusLight  = 1;
+    for (const ch of CHALLENGES) {
+        if (gameState.completedChallenges[ch.id]) {
+            try { ch.rewardFn(gameState); } catch(e) {}
+        }
+    }
+}
+
+// ─── UI: renderChallengesPanel ─────────────────────────────────────────────────
+function renderChallengesPanel() {
+    const el = document.getElementById('challenges-panel-content');
+    if (!el) return;
+    if (!gameState.completedChallenges) gameState.completedChallenges = {};
+    const completed = Object.keys(gameState.completedChallenges).length;
+    const total = CHALLENGES.length;
+
+    // Group by category
+    const cats = {};
+    CHALLENGES.forEach(ch => {
+        if (!cats[ch.cat]) cats[ch.cat] = [];
+        cats[ch.cat].push(ch);
+    });
+
+    let html = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+            <div style="color:#c8a800;font-family:var(--font-title);font-size:0.9em;letter-spacing:2px;">🏆 ACHIEVEMENTS — ${completed} / ${total} CLEARED</div>
+            <div style="background:#1a1000;border:1px solid #c8a80044;border-radius:20px;padding:4px 14px;font-size:0.8em;color:#c8a800;">${Math.round(completed/total*100)}% complete</div>
+        </div>
+        <div style="background:#0a0800;border-radius:8px;height:8px;margin-bottom:20px;overflow:hidden;">
+            <div style="height:100%;width:${Math.round(completed/total*100)}%;background:linear-gradient(90deg,#c8a800,#ffdd00);border-radius:8px;transition:width 0.5s;"></div>
+        </div>`;
+
+    for (const [cat, chals] of Object.entries(cats)) {
+        // Skip "Hidden" category header entirely — hidden challenges show minimally
+        if (cat === 'Hidden') {
+            const anyDone = chals.some(c => gameState.completedChallenges[c.id]);
+            if (!anyDone) continue; // Don't show section at all until one is earned
+        }
+        const catDone = chals.filter(c => gameState.completedChallenges[c.id]).length;
+        const catLabel = cat === 'Hidden' ? '❓ Secrets' : `${chals[0].icon} ${cat}`;
+        html += `<div style="margin-bottom:18px;">
+            <div style="color:#666;font-size:0.7em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">${catLabel} — ${catDone}/${chals.length}</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">`;
+        for (const ch of chals) {
+            const done = !!gameState.completedChallenges[ch.id];
+            const isHidden = ch.hidden && !done;
+            const displayName = isHidden ? '???' : ch.name;
+            const displayDesc = isHidden ? 'A secret achievement — keep pushing...' : ch.desc;
+            const displayReward = isHidden ? '???' : ch.reward;
+            html += `<div style="background:${done?'linear-gradient(135deg,#1a1200,#2a1800)':'#09080f'};border:1px solid ${done?'#c8a80066':'#1a1030'};border-left:3px solid ${done?'#c8a800':'#2a1040'};border-radius:8px;padding:10px 12px;transition:all 0.2s;">
+                <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
+                    <span style="font-size:1.1em;${done?'':'filter:grayscale(1);opacity:0.4;'}">${ch.icon}</span>
+                    <span style="color:${done?'#c8a800':'#555'};font-weight:bold;font-size:0.8em;">${displayName}</span>
+                    ${done?'<span style="margin-left:auto;color:#44cc88;font-size:0.75em;">✓</span>':''}
+                </div>
+                <div style="color:#555;font-size:0.72em;line-height:1.4;">${displayDesc}</div>
+                <div style="color:${done?'#c8a80088':'#333'};font-size:0.68em;margin-top:4px;">🎁 ${displayReward}</div>
+            </div>`;
+        }
+        html += '</div></div>';
+    }
+
+    el.innerHTML = html;
+}
+
+// Call reapply on load after a delay to let gameState load
+setTimeout(() => {
+    if (typeof gameState !== 'undefined' && gameState.completedChallenges) {
+        _reapplyChallengeRewards();
+        checkChallenges();
+    }
+}, 3000);
 </script>
 </body>
 </html>

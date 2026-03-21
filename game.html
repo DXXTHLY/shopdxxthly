@@ -18353,9 +18353,11 @@ function initializeChat() {
                 chatBody.innerHTML = '';
                 chatMessagesArray.forEach(msg => renderChatMessage(msg, chatBody, currentUid));
                 chatBody.scrollTop = chatBody.scrollHeight;
-                db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded + 1).on("child_added", (newSnapshot) => {
+                // Use startAt(latestTimeLoaded) and deduplicate by key — avoids missing messages
+                // when server timestamp == latestTimeLoaded exactly
+                db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded).on("child_added", (newSnapshot) => {
                     const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
-                    if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
+                    if (chatMessagesArray.some(m => m.key === newMsg.key)) return; // dedup
                     chatMessagesArray.push(newMsg);
                     if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
                     while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); }

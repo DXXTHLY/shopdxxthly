@@ -16539,7 +16539,13 @@ function renderStatsPage() {
 
     const topMinions = Object.entries(gs.minions)
         .filter(([id, d]) => d.level > 0 && minions[id])
-        .sort(([,a],[,b]) => b.level - a.level)
+        .sort(([idA, a], [idB, b]) => {
+            // leaderboardMinion (God/Satan) always shown first
+            const lbA = minions[idA]?.leaderboardMinion ? 1 : 0;
+            const lbB = minions[idB]?.leaderboardMinion ? 1 : 0;
+            if (lbB !== lbA) return lbB - lbA;
+            return b.level - a.level;
+        })
         .slice(0, 3)
         .map(([id, d]) => [minions[id].name, `Lv ${d.level}`, `${minions[id].icon || '👿'} Tier ${d.promotionTier || 0}`]);
 
@@ -17960,12 +17966,16 @@ function initializeChat() {
                             cost:       bm?.cost  || null,
                             world:      md?.requiredWorld || null,
                             secret:     md?.secret || false,
+                            leaderboardMinion: md?.leaderboardMinion || false,
                             barterLevels: pm.barterLevels || 0,
                         });
                     }
-                    // Sort by world order then level desc
+                    // Sort: leaderboardMinions (God/Satan) first, then by world order, then level desc
                     const WORLD_ORDER = ['nether_plains','ashen_wastes','stygian_depths','burning_hells','frozen_abyss','celestial_ruins','void_threshold'];
                     minionList.sort((a, b) => {
+                        const lbA = a.leaderboardMinion ? 1 : 0;
+                        const lbB = b.leaderboardMinion ? 1 : 0;
+                        if (lbB !== lbA) return lbB - lbA;
                         const wa = WORLD_ORDER.indexOf(a.world), wb = WORLD_ORDER.indexOf(b.world);
                         if (wa !== wb) return wa - wb;
                         return b.level - a.level;

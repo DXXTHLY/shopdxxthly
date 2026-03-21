@@ -13634,8 +13634,32 @@ function updateFusionUI() {
     if (cauldronEl) {
         if (fusionState.slotA && fusionState.slotB) {
             cauldronEl.classList.add('fusion-ready');
+            // Drive the RGB via JS interval so inline styles can't block it
+            if (!window._fusionRgbInterval) {
+                const _rgbColors = ['#ff0066','#ff6600','#ffcc00','#00ff88','#0088ff','#aa44ff','#ff44cc'];
+                let _rgbIdx = 0;
+                window._fusionRgbInterval = setInterval(() => {
+                    const el = document.getElementById('fusion-cauldron');
+                    if (!el || !el.classList.contains('fusion-ready')) {
+                        clearInterval(window._fusionRgbInterval);
+                        window._fusionRgbInterval = null;
+                        if (el) { el.style.boxShadow = ''; el.style.borderColor = '#7722cc66'; }
+                        return;
+                    }
+                    const c = _rgbColors[_rgbIdx % _rgbColors.length];
+                    el.style.boxShadow = `0 0 0 3px ${c}, 0 0 30px ${c}88, 0 0 70px ${c}33`;
+                    el.style.borderColor = c;
+                    _rgbIdx++;
+                }, 120);
+            }
         } else {
             cauldronEl.classList.remove('fusion-ready');
+            if (window._fusionRgbInterval) {
+                clearInterval(window._fusionRgbInterval);
+                window._fusionRgbInterval = null;
+                cauldronEl.style.boxShadow = '';
+                cauldronEl.style.borderColor = '#7722cc66';
+            }
         }
     }
 
@@ -13736,32 +13760,44 @@ Both potions will be consumed. Proceed?`;
 
     playSound('ascend');
 
-    // Particle burst effect on fusion
+    // Particle burst - fixed to viewport so renderBrewery() can't destroy them
     (function spawnFusionParticles() {
         const cauldron = document.getElementById('fusion-cauldron');
         if (!cauldron) return;
         const rect = cauldron.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
         const colors = ['#ff0066','#ff6600','#ffcc00','#00ff88','#0088ff','#aa44ff','#ff44cc','#ffffff'];
-        for (let i = 0; i < 40; i++) {
+        for (let i = 0; i < 50; i++) {
             const p = document.createElement('div');
-            p.className = 'fusion-particle';
-            const angle = (Math.PI * 2 * i) / 40 + Math.random() * 0.5;
-            const dist = 60 + Math.random() * 120;
+            const angle = (Math.PI * 2 * i) / 50 + Math.random() * 0.4;
+            const dist = 80 + Math.random() * 150;
+            const color = colors[i % colors.length];
+            const size = 6 + Math.random() * 8;
+            const delay = Math.random() * 200;
+            const dur = 700 + Math.random() * 600;
             p.style.cssText = `
-                left: ${rect.width/2 - 4}px;
-                top: ${rect.height/2 - 4}px;
-                background: ${colors[i % colors.length]};
-                --px: ${Math.cos(angle)*dist}px;
-                --py: ${Math.sin(angle)*dist}px;
-                animation-delay: ${Math.random()*0.3}s;
-                animation-duration: ${0.6 + Math.random()*0.5}s;
-                box-shadow: 0 0 6px ${colors[i % colors.length]};
-                z-index: 999;
+                position: fixed;
+                left: ${cx - size/2}px;
+                top: ${cy - size/2}px;
+                width: ${size}px;
+                height: ${size}px;
+                border-radius: 50%;
+                background: ${color};
+                box-shadow: 0 0 8px ${color};
+                pointer-events: none;
+                z-index: 99999;
+                transition: transform ${dur}ms ease-out ${delay}ms, opacity ${dur}ms ease-out ${delay}ms;
+                opacity: 1;
+                transform: translate(0,0) scale(1);
             `;
-            cauldron.style.position = 'relative';
-            cauldron.style.overflow = 'visible';
-            cauldron.appendChild(p);
-            setTimeout(() => p.remove(), 1200);
+            document.body.appendChild(p);
+            // Trigger the transition after a frame
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                p.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px) scale(0)`;
+                p.style.opacity = '0';
+            }));
+            setTimeout(() => p.remove(), dur + delay + 100);
         }
     })();
 

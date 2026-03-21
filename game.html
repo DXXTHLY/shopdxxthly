@@ -18194,6 +18194,44 @@ function initializeChat() {
             // Sign into chatforslither anonymously — powers online presence & chat
             chatAuth.signInAnonymously().catch(err => console.error("Chat anon sign-in error:", err));
 
+            // Set up the message listener ONCE — outside onAuthStateChanged — just like the Slither mod
+            // Uses chatAuth.currentUser?.uid for isMine so it works as soon as auth resolves
+            let _chatListenerSet = false;
+            function _setupChatListener() {
+                if (_chatListenerSet) return;
+                _chatListenerSet = true;
+                const chatBody = document.getElementById('chat-body');
+                let chatMessagesArray = [];
+                let latestTimeLoaded = 0;
+                db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
+                    if (snapshot.exists()) {
+                        snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
+                        chatMessagesArray.sort((a, b) => a.time - b.time);
+                        if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
+                        if (chatBody) {
+                            chatBody.innerHTML = '';
+                            for (const msg of chatMessagesArray) {
+                                renderChatMessage(msg, chatBody, chatAuth.currentUser?.uid);
+                            }
+                            chatBody.scrollTop = chatBody.scrollHeight;
+                        }
+                    }
+                    // Always set up child_added listener even if chat is empty
+                    db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded + 1).on("child_added", (newSnapshot) => {
+                        const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
+                        if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
+                        chatMessagesArray.push(newMsg);
+                        if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
+                        if (chatBody) {
+                            while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); }
+                            renderChatMessage(newMsg, chatBody, chatAuth.currentUser?.uid, true);
+                        }
+                    });
+                });
+            }
+            // Start listener immediately — don't wait for auth
+            _setupChatListener();
+
             chatAuth.onAuthStateChanged(user => {
                 if (!user) return;
                 const uid = user.uid;
@@ -18207,7 +18245,6 @@ function initializeChat() {
                 if (gifBtn) { gifBtn.disabled = false; }
                 window._chatUid = uid;
                 setTimeout(initGifPicker, 200); // re-init now button is enabled
-                if (document.getElementById('chat-body')) document.getElementById('chat-body').innerHTML = '';
 
                 const userRef = db.ref("onlineUsers/" + uid);
                 userRef.onDisconnect().remove();
@@ -18296,7 +18333,6 @@ function initializeChat() {
                 // Refresh stats + heartbeat every 3 min
                 setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP, stats: buildPublicStats() }), 30 * 1000);
 
-                listenForChatMessages(db, uid);
                 listenForOnlineUsers(db);
                 setupEventListeners(db, uid);
                 window._chatDb = db; window._chatUid = uid;
@@ -18339,43 +18375,7 @@ function initializeChat() {
         document.getElementById('toc-send').addEventListener('click',function(){if(!sc){var sel=document.getElementById('toc-selected');sel.style.display='block';sel.style.color='#ff4444';sel.textContent='Please select what you are offering first.';setTimeout(function(){sel.style.color='#44cc88';},1500);return;}var oba;if(sc.isCurrency){var iv=parseFloat(document.getElementById('toc-amt').value)||0;if(iv<1||iv>sc.maxAmt){var ai=document.getElementById('toc-amt');ai.style.borderColor='#ff4444';setTimeout(function(){ai.style.borderColor='#44cc8866';},1500);return;}oba=iv;}else{oba=sc.maxAmt;}var ol=sc.isCurrency?(sc.icon+' '+formatNumber(oba)+' '+sc.label.split(' ').slice(1).join(' ')):(sc.icon+' '+sc.label);var cd=_getChatDb();var u2=_getChatUid();if(!cd||!u2){alert('Chat not connected.');return;}var myName=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';var col=localStorage.getItem('slitherChatNameColor')||'#c8a800';var tid='tr_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);var mn2=null;if(sc.barterType&&sc.barterType.startsWith('minion:')){var mid=sc.barterType.slice(7);var gm2=gameState.minions[mid];var bm2=typeof battleMinions!=='undefined'?battleMinions[mid]:null;if(gm2&&bm2){var lv2=gm2.level||0,pr2=gm2.promotionTier||0,t2=(1+(Math.floor(lv2/25)*0.05))*(1+(pr2*0.20));mn2={level:lv2,promoTier:pr2,scaledHp:Math.ceil(bm2.hp*t2),scaledAtk:Math.ceil(bm2.atk*t2)};}}var fp={id:tid,from:myName,fromUid:u2,to:targetName,wantType:wantType,wantName:wantName,wantIcon:wantIcon,wantAmt:wantAmt,offerText:ol,offerIcon:sc.icon,offerBarterType:sc.barterType,offerBarterAmt:oba};if(mn2)fp.minionNote=mn2;_tradeCache[tid]=fp;cd.ref('pact_buffs/trade_'+tid).set(fp);cd.ref('slitherChat').push({uid:u2,name:myName,chatNameColor:col,time:firebase.database.ServerValue.TIMESTAMP,text:TRADE_PREFIX+tid+TRADE_SUFFIX});ov.remove();if(typeof Toastify!=='undefined'){Toastify({text:'📨 Trade offer sent to '+targetName+'!',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();}});};
         window._respondToTrade=async function(tid,acc,fromName,wi,wn,ot,wt,wa,obt,oba){var cd=_getChatDb();var u2=_getChatUid();if(!cd||!u2)return;var mn=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';if(!acc){cd.ref('slitherChat').push({uid:u2,name:'Trade System',chatNameColor:'#ff4444',time:firebase.database.ServerValue.TIMESTAMP,text:'❌ '+mn+' declined the trade from '+fromName+'.'});return;}var ap=false;if(typeof supabaseClient!=='undefined'&&supabaseClient&&wt&&obt){try{var la=Math.max(1,Math.round(Number(wa)||1));var wa2=Math.max(1,Math.round(Number(oba)||1));if(typeof hasEnough==='function'&&hasEnough(wt,la)){deductCurrency(wt,la);calculateStats();renderAll();var res=await supabaseClient.from('barter_listings').insert({poster_name:mn,offer_type:wt,offer_amt:la,want_type:obt,want_amt:wa2,is_complete:false,offer_note:JSON.stringify({tradeId:tid,reservedFor:fromName,autoTrade:true})});if(!res.error){ap=true;if(typeof fetchBarterListings==='function')fetchBarterListings();if(typeof refreshMarketTicker==='function')refreshMarketTicker();saveGame();cd.ref('pact_buffs/trade_'+tid).remove();}else{addCurrency(wt,la);calculateStats();renderAll();}}}catch(e){console.warn('Auto-list failed:',e);}}var st=ap?'✅ '+mn+' accepted! Listed in Market: '+wi+' '+wn+' for '+ot+' — '+fromName+', check the Market tab!':'✅ '+mn+' accepted from '+fromName+'! ('+wi+' '+wn+' ⇄ '+ot+') — coordinate directly.';cd.ref('slitherChat').push({uid:u2,name:'Trade System',chatNameColor:'#44cc88',time:firebase.database.ServerValue.TIMESTAMP,text:st});if(typeof Toastify!=='undefined'){Toastify({text:ap?'✅ Listed in Market!':'✅ Accepted!',duration:8000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a0a,#1a5a1a)'}}).showToast();}};
 
-                let _chatListenerRef = null; // track active child_added ref so we can detach
 
-                function listenForChatMessages(db, currentUid) {
-            const chatBody = document.getElementById('chat-body');
-
-            // Detach any existing child_added listener before setting up a new one
-            // This prevents stacking duplicate listeners on reconnect
-            if (_chatListenerRef) {
-                try { _chatListenerRef.off(); } catch(e) {}
-                _chatListenerRef = null;
-            }
-
-            let chatMessagesArray = [];
-            let latestTimeLoaded = 0;
-            // Load existing messages first, then ALWAYS set up the child_added listener
-            // (even if slitherChat is empty — otherwise new messages never appear after a clear)
-            db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
-                if (snapshot.exists()) {
-                    snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
-                    chatMessagesArray.sort((a, b) => a.time - b.time);
-                    if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
-                    chatBody.innerHTML = '';
-                    chatMessagesArray.forEach(msg => renderChatMessage(msg, chatBody, currentUid));
-                    chatBody.scrollTop = chatBody.scrollHeight;
-                }
-                // Always attach child_added listener regardless of whether history exists
-                _chatListenerRef = db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded);
-                _chatListenerRef.on("child_added", (newSnapshot) => {
-                    const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
-                    if (chatMessagesArray.some(m => m.key === newMsg.key)) return; // dedup
-                    chatMessagesArray.push(newMsg);
-                    if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
-                    while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); }
-                    renderChatMessage(newMsg, chatBody, currentUid, true);
-                });
-            }).catch(function(e){console.error('Chat load error:',e);});
-        }
         
        
         function renderChatMessage(msg, chatBodyElement, currentUid, shouldScroll = false) {

@@ -26437,7 +26437,7 @@ function pwRenderMap() {
 // Tier 3: needs 2 pact members to commit within 3 min window
 // Tier 4: needs 3 pact members
 // Tier 5 (Omega): needs ALL pact members
-const PW_MEMBERS_REQUIRED = [0, 1, 1, 2, 3, 999]; // by tier
+const PW_MEMBERS_REQUIRED = [0, 1, 1, 2, 3, 5]; // by tier — tier 5 needs 5 (or full pact if smaller)
 
 let _pwRallyChannel = null; // Supabase realtime channel
 
@@ -26491,12 +26491,10 @@ function pwShowInitiateModal(nodeIdx, isMine, isOwned, tier, needed, pactSize) {
 
     title.textContent = name;
 
-    const tieredNeeded = needed; // raw tier requirement before capping at pactSize
+    const tieredNeeded = Math.min(needed, Math.max(1, pactSize)); // cap at actual pact size
     const requirementBadge = actualNeeded <= 1
         ? `<span style="color:#44cc88; background:#44cc8818; border:1px solid #44cc8844; border-radius:6px; padding:2px 8px; font-size:0.8em;">Solo action</span>`
-        : pactSize < tieredNeeded
-            ? `<span style="color:#ff6644; background:#ff664418; border:1px solid #ff664444; border-radius:6px; padding:2px 8px; font-size:0.8em;">⚔ Needs ${tieredNeeded} members (you have ${pactSize})</span>`
-            : `<span style="color:${tc}; background:${tc}18; border:1px solid ${tc}44; border-radius:6px; padding:2px 8px; font-size:0.8em;">⚔ Needs ${tieredNeeded} members</span>`;
+        : `<span style="color:${tc}; background:${tc}18; border:1px solid ${tc}44; border-radius:6px; padding:2px 8px; font-size:0.8em;">⚔ Needs ${tieredNeeded} members</span>`;
 
     if (isMine) {
         desc.innerHTML = `<span style="color:#44cc88;">Your territory.</span> Reinforce to resist attacks. ${requirementBadge}`;

@@ -18345,16 +18345,18 @@ function initializeChat() {
             const chatBody = document.getElementById('chat-body');
             let chatMessagesArray = [];
             let latestTimeLoaded = 0;
+            // Load existing messages first, then ALWAYS set up the child_added listener
+            // (even if slitherChat is empty — otherwise new messages never appear after a clear)
             db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
-                if (!snapshot.exists()) return;
-                snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
-                chatMessagesArray.sort((a, b) => a.time - b.time);
-                if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
-                chatBody.innerHTML = '';
-                chatMessagesArray.forEach(msg => renderChatMessage(msg, chatBody, currentUid));
-                chatBody.scrollTop = chatBody.scrollHeight;
-                // Use startAt(latestTimeLoaded) and deduplicate by key — avoids missing messages
-                // when server timestamp == latestTimeLoaded exactly
+                if (snapshot.exists()) {
+                    snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
+                    chatMessagesArray.sort((a, b) => a.time - b.time);
+                    if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
+                    chatBody.innerHTML = '';
+                    chatMessagesArray.forEach(msg => renderChatMessage(msg, chatBody, currentUid));
+                    chatBody.scrollTop = chatBody.scrollHeight;
+                }
+                // Always attach child_added listener regardless of whether history exists
                 db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded).on("child_added", (newSnapshot) => {
                     const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
                     if (chatMessagesArray.some(m => m.key === newMsg.key)) return; // dedup
@@ -18363,7 +18365,7 @@ function initializeChat() {
                     while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); }
                     renderChatMessage(newMsg, chatBody, currentUid, true);
                 });
-            }).catch(function(e){console.error('Profile load error:',e);});
+            }).catch(function(e){console.error('Chat load error:',e);});
         }
         
        

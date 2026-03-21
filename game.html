@@ -14706,6 +14706,10 @@ async function settingsSignIn() {
         const { auth, db } = window._scFirebase;
         const cred = await auth.signInWithEmailAndPassword(email, password);
         await loadGameFromCloud(cred.user.uid, db);
+        // Re-register accountNames so it stays populated after any wipe
+        if (gameState.playerName && gameState.playerName !== 'Unnamed') {
+            db.ref('accountNames/' + gameState.playerName.toLowerCase()).set(cred.user.uid).catch(() => {});
+        }
         closeAccountModal();
         updateAccountBtn();
     } catch(e) {
@@ -14763,14 +14767,22 @@ function loadAuthFirebase() {
                     if (user) {
                         const authScreenVisible = document.getElementById('auth-screen') &&
                             document.getElementById('auth-screen').style.display !== 'none';
+                        const _writeAccountName = () => {
+                            if (gameState.playerName && gameState.playerName !== 'Unnamed') {
+                                saveDb.ref('accountNames/' + gameState.playerName.toLowerCase()).set(user.uid).catch(() => {});
+                            }
+                        };
                         if (authScreenVisible) {
                             // Normal login flow — load cloud save
-                            loadGameFromCloud(user.uid, saveDb);
+                            loadGameFromCloud(user.uid, saveDb).then(_writeAccountName).catch(() => {});
                         } else if (window._saveWasCorrupted) {
                             // Save was corrupted — force fresh cloud load even though game is showing
                             console.warn('🔄 Forcing cloud reload to fix corrupted save...');
                             window._saveWasCorrupted = false;
-                            loadGameFromCloud(user.uid, saveDb);
+                            loadGameFromCloud(user.uid, saveDb).then(_writeAccountName).catch(() => {});
+                        } else {
+                            // Already in-game session — just write accountNames to keep it fresh
+                            setTimeout(_writeAccountName, 3000);
                         }
                     }
                     updateAccountBtn();
@@ -14830,6 +14842,10 @@ async function authLogin() {
         const { auth, db } = window._scFirebase;
         const cred = await auth.signInWithEmailAndPassword(email, password);
         await loadGameFromCloud(cred.user.uid, db);
+        // Re-register accountNames so it stays populated
+        if (gameState.playerName && gameState.playerName !== 'Unnamed') {
+            db.ref('accountNames/' + gameState.playerName.toLowerCase()).set(cred.user.uid).catch(() => {});
+        }
     } catch (e) {
         const msgs = {
             'auth/user-not-found':            'No account found with that email.',
@@ -15037,6 +15053,10 @@ async function loadGameFromCloud(uid, db) {
 
             gameState = deepMerge(defaultState, chosenState);
             gameState.firebaseUid = uid;
+            // Re-register accountNames whenever save is loaded — keeps the list alive after any wipe
+            if (gameState.playerName && gameState.playerName !== 'Unnamed') {
+                db.ref('accountNames/' + gameState.playerName.toLowerCase()).set(uid).catch(() => {});
+            }
             // Restore ALL Decimal fields — D() now handles {m,e} objects from old corrupted saves
             gameState.souls              = D(gameState.souls              || 0);
             gameState.lifetimeSouls      = D(gameState.lifetimeSouls      || 0);

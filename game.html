@@ -2393,26 +2393,39 @@ text-decoration: underline; /* Adds an underline on hover */
 
     /* Fusion cauldron */
     #fusion-cauldron { padding: 14px 12px; }
-    @keyframes fusionRgbBorder {
-        0%   { border-color: #ff0066; box-shadow: 0 0 18px #ff006688, 0 0 40px #ff006633; }
-        16%  { border-color: #ff6600; box-shadow: 0 0 18px #ff660088, 0 0 40px #ff660033; }
-        33%  { border-color: #ffcc00; box-shadow: 0 0 18px #ffcc0088, 0 0 40px #ffcc0033; }
-        50%  { border-color: #00ff88; box-shadow: 0 0 18px #00ff8888, 0 0 40px #00ff8833; }
-        66%  { border-color: #0088ff; box-shadow: 0 0 18px #0088ff88, 0 0 40px #0088ff33; }
-        83%  { border-color: #aa44ff; box-shadow: 0 0 18px #aa44ff88, 0 0 40px #aa44ff33; }
-        100% { border-color: #ff0066; box-shadow: 0 0 18px #ff006688, 0 0 40px #ff006633; }
+    @keyframes fusionRgbGlow {
+        0%   { box-shadow: 0 0 0 3px #ff0066, 0 0 25px #ff006688, 0 0 60px #ff006633; }
+        16%  { box-shadow: 0 0 0 3px #ff6600, 0 0 25px #ff660088, 0 0 60px #ff660033; }
+        33%  { box-shadow: 0 0 0 3px #ffcc00, 0 0 25px #ffcc0088, 0 0 60px #ffcc0033; }
+        50%  { box-shadow: 0 0 0 3px #00ff88, 0 0 25px #00ff8888, 0 0 60px #00ff8833; }
+        66%  { box-shadow: 0 0 0 3px #0088ff, 0 0 25px #0088ff88, 0 0 60px #0088ff33; }
+        83%  { box-shadow: 0 0 0 3px #aa44ff, 0 0 25px #aa44ff88, 0 0 60px #aa44ff33; }
+        100% { box-shadow: 0 0 0 3px #ff0066, 0 0 25px #ff006688, 0 0 60px #ff006633; }
     }
     @keyframes fusionSlotPulse {
         0%,100% { transform: scale(1); }
         50%      { transform: scale(1.04); }
     }
+    @keyframes fusionSlotRgb {
+        0%   { box-shadow: 0 0 0 2px #ff006688; }
+        33%  { box-shadow: 0 0 0 2px #00ff8888; }
+        66%  { box-shadow: 0 0 0 2px #0088ff88; }
+        100% { box-shadow: 0 0 0 2px #ff006688; }
+    }
     #fusion-cauldron.fusion-ready {
-        animation: fusionRgbBorder 2s linear infinite;
-        border-width: 2px;
+        animation: fusionRgbGlow 2s linear infinite !important;
     }
     #fusion-cauldron.fusion-ready #fusion-slot-a,
     #fusion-cauldron.fusion-ready #fusion-slot-b {
-        animation: fusionSlotPulse 1.2s ease-in-out infinite;
+        animation: fusionSlotPulse 1.2s ease-in-out infinite, fusionSlotRgb 2s linear infinite;
+    }
+    @keyframes fusionParticle {
+        0%   { transform: translate(0,0) scale(1); opacity: 1; }
+        100% { transform: translate(var(--px), var(--py)) scale(0); opacity: 0; }
+    }
+    .fusion-particle {
+        position: absolute; width: 8px; height: 8px; border-radius: 50%;
+        pointer-events: none; animation: fusionParticle 0.8s ease-out forwards;
     }
 
     /* Hide drag handle hint on mobile */
@@ -10497,6 +10510,22 @@ function buyMinion(id) {
   const minionData = minions[id];
   const playerMinion = gameState.minions[id];
 
+  // ── Bulk-buy cooldown: 100 levels per 30 seconds ──────────────────
+  const _now = Date.now();
+  if (!gameState._minionBuyCooldowns) gameState._minionBuyCooldowns = {};
+  if (!gameState._minionBuyCount) gameState._minionBuyCount = {};
+  const _cdEntry = gameState._minionBuyCooldowns[id] || { count: 0, windowStart: _now };
+  // Reset window if 30s have passed
+  if (_now - _cdEntry.windowStart >= 30000) {
+      _cdEntry.count = 0;
+      _cdEntry.windowStart = _now;
+  }
+  if (_cdEntry.count >= 100) {
+      const _secsLeft = Math.ceil((30000 - (_now - _cdEntry.windowStart)) / 1000);
+      Toastify({ text: `⏳ Slow down! 100 levels purchased — wait ${_secsLeft}s before buying more ${minions[id]?.name}.`, duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0a00,#442200)' } }).showToast();
+      return;
+  }
+
   // Check Mark of the First — first purchase of each minion per run is free
   const _markOfFirst = gameState.equipped && Object.values(gameState.equipped).some(sl =>
     sl && items[sl]?.bonus?.type === 'first_minion_free'
@@ -10515,6 +10544,9 @@ function buyMinion(id) {
       Toastify({ text: `✦ Mark of the First: ${minions[id]?.name} is free!`, duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0a2a,#aa44ff66)' } }).showToast();
     }
     playerMinion.level++;
+    // Track buy count for cooldown
+    _cdEntry.count++;
+    gameState._minionBuyCooldowns[id] = _cdEntry;
     // Achievement Check
     if (id === 'imp' && playerMinion.level === 1) {
         unlockAchievement('ACH_FIRST_MINION');
@@ -13703,6 +13735,35 @@ Both potions will be consumed. Proceed?`;
     }).showToast();
 
     playSound('ascend');
+
+    // Particle burst effect on fusion
+    (function spawnFusionParticles() {
+        const cauldron = document.getElementById('fusion-cauldron');
+        if (!cauldron) return;
+        const rect = cauldron.getBoundingClientRect();
+        const colors = ['#ff0066','#ff6600','#ffcc00','#00ff88','#0088ff','#aa44ff','#ff44cc','#ffffff'];
+        for (let i = 0; i < 40; i++) {
+            const p = document.createElement('div');
+            p.className = 'fusion-particle';
+            const angle = (Math.PI * 2 * i) / 40 + Math.random() * 0.5;
+            const dist = 60 + Math.random() * 120;
+            p.style.cssText = `
+                left: ${rect.width/2 - 4}px;
+                top: ${rect.height/2 - 4}px;
+                background: ${colors[i % colors.length]};
+                --px: ${Math.cos(angle)*dist}px;
+                --py: ${Math.sin(angle)*dist}px;
+                animation-delay: ${Math.random()*0.3}s;
+                animation-duration: ${0.6 + Math.random()*0.5}s;
+                box-shadow: 0 0 6px ${colors[i % colors.length]};
+                z-index: 999;
+            `;
+            cauldron.style.position = 'relative';
+            cauldron.style.overflow = 'visible';
+            cauldron.appendChild(p);
+            setTimeout(() => p.remove(), 1200);
+        }
+    })();
 
     // Set fusion cooldown timestamp
     gameState.lastFusionTime = Date.now();
@@ -20110,7 +20171,7 @@ function renderRaidDungeon() {
     const CELL = Math.min(72, Math.floor((roomEl.offsetWidth||450) / G));
 
     const tileColors = { empty:'#06040e', enemy:'#1a0505', treasure:'#1a1400', fountain:'#00101a', chest:'#0a0018', boss:'#1a0008', exit:'#001a0a' };
-    const tileIcons  = { treasure:'💰', fountain:'💧', chest:'📦', boss:'👑', exit:'🚪' };
+    const tileIcons  = { treasure:'💰', fountain:'💧', chest:'📦', boss:'❓', exit:'🚪' };
 
     let html = `<div style="display:inline-grid;grid-template-columns:repeat(${G},${CELL}px);grid-template-rows:repeat(${G},${CELL}px);gap:2px;background:#0a0812;padding:8px;border-radius:8px;user-select:none;">`;
 
@@ -20321,7 +20382,35 @@ window.moveRaidPlayer = function(x, y) {
             renderRaidDungeon();
             return;
         }
-        // Cannot exit if the floor boss is still alive
+        // If boss tile still exists on the grid — player avoided it — force the fight now
+        let bossTileX = -1, bossTileY = -1;
+        if (raidState.grid) {
+            for (let gy = 0; gy < raidState.grid.length; gy++) {
+                for (let gx = 0; gx < (raidState.grid[gy]?.length||0); gx++) {
+                    if (raidState.grid[gy][gx]?.type === RTILE.BOSS) { bossTileX = gx; bossTileY = gy; }
+                }
+            }
+        }
+        if (bossTileX >= 0) {
+            // Boss tile still exists — spawn it and force combat
+            const pool = RAID_ENEMY_POOLS[raidState.tier];
+            const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
+            const bossId = pool[pool.length-1];
+            const bm2 = battleMinions[bossId];
+            const partyAtk2 = raidState.party.reduce((s,p)=>s+(p.atk||1),0)/Math.max(1,raidState.party.length);
+            const playerMult2 = Math.max(1, (partyAtk2 / Math.max(1, bm2.atk)) * 0.65);
+            const scale2 = tierData.enemyScale * (1+raidState.floor*.4) * 3 * playerMult2;
+            const forcedBoss = { id:'boss', minionId:bossId, x:bossTileX, y:bossTileY, hp:Math.ceil(bm2.hp*scale2), maxHp:Math.ceil(bm2.hp*scale2), atk:Math.ceil(bm2.atk*scale2), isBoss:true };
+            raidState.grid[bossTileY][bossTileX].type = RTILE.EMPTY;
+            raidState.inCombat = true;
+            raidState.combatEnemy = forcedBoss;
+            if (!raidState.enemies) raidState.enemies = [];
+            if (!raidState.enemies.some(e => e.isBoss)) raidState.enemies.push(forcedBoss);
+            raidLog('👑 <b>The Floor Boss leaps from the shadows — you cannot flee!</b>', '#ffcc00');
+            renderRaidDungeon();
+            return;
+        }
+        // Check if boss was spawned but still alive
         const bossAlive = (raidState.enemies && raidState.enemies.some(e => e.isBoss && e.hp > 0))
                        || (raidState.combatEnemy && raidState.combatEnemy.isBoss && raidState.combatEnemy.hp > 0);
         if (bossAlive) {

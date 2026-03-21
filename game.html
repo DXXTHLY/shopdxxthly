@@ -6089,9 +6089,9 @@ const minions = {
         icon: '☀️',
         promotions: [],
         researchTiers: [
-            { level: 5,  desc: "God grants +25% Abyssal Shard gains while you hold #1 Light Souls.", bonus: { type: 'ascension_shard_bonus', value: 1.25 } },
-            { level: 15, desc: "Divine authority: all Light World unlock costs -30%.", bonus: { type: 'minion_cost_reducer', value: 0.70 } },
-            { level: 30, desc: "Omnipotence: all Guardian minion research bonuses doubled.", bonus: { type: 'meta_research_doubler', value: 2 } }
+            { level: 25,  desc: "God grants +25% Abyssal Shard gains while you hold #1 Light Souls.", bonus: { type: 'ascension_shard_bonus', value: 1.25 } },
+            { level: 50,  desc: "Divine authority: all Light World unlock costs -30%.", bonus: { type: 'minion_cost_reducer', value: 0.70 } },
+            { level: 100, desc: "Omnipotence: all Guardian minion research bonuses doubled.", bonus: { type: 'meta_research_doubler', value: 2 } }
         ]
     },
 
@@ -6103,9 +6103,9 @@ const minions = {
         icon: '😈',
         promotions: [],
         researchTiers: [
-            { level: 5,  desc: "Satan grants +25% global SPS while you hold #1 Dark Souls.", bonus: { type: 'global_sps_multiplier', value: 1.25 } },
-            { level: 15, desc: "Infernal dominion: all ritual cooldowns -25%.", bonus: { type: 'ritual_cooldown_reducer', value: 0.75 } },
-            { level: 30, desc: "The devil's deal: all secret minion SPS ×3.", bonus: { type: 'secret_minion_sps_doubler', value: 3 } }
+            { level: 25,  desc: "Satan grants +25% global SPS while you hold #1 Dark Souls.", bonus: { type: 'global_sps_multiplier', value: 1.25 } },
+            { level: 50,  desc: "Infernal dominion: all ritual cooldowns -25%.", bonus: { type: 'ritual_cooldown_reducer', value: 0.75 } },
+            { level: 100, desc: "The devil's deal: all secret minion SPS ×3.", bonus: { type: 'secret_minion_sps_doubler', value: 3 } }
         ]
     },
 };
@@ -11358,8 +11358,21 @@ function calculateStats() {
                 if (bonus.type === 'spc_add_flat') spc_add_flat += (bonus.value * meta_research_doubler);
                 if (bonus.type === 'global_sps_multiplier') sps_multiplier = sps_multiplier.mul(D(value));
                 if (bonus.type === 'essence_multiplier') essence_multiplier *= value;
+                if (bonus.type === 'secret_minion_sps_doubler') {
+                    // Applied as a post-multiplier on secret minion SPS — accumulate here
+                    if (!gameState._secretMinionSpsMult) gameState._secretMinionSpsMult = 1;
+                    gameState._secretMinionSpsMult *= value;
+                }
                 if (bonus.type === 'global_spc_multiplier') spc_multiplier = spc_multiplier.mul(D(value));
                 if (bonus.type === 'click_upgrade_cost_reducer') clickUpgradeCostFactor *= value;
+                if (bonus.type === 'ritual_cooldown_reducer') {
+                    if (!gameState._ritualCooldownFactor) gameState._ritualCooldownFactor = 1;
+                    gameState._ritualCooldownFactor *= value;
+                }
+                if (bonus.type === 'ascension_shard_bonus') {
+                    if (!gameState._minionShardBonusMult) gameState._minionShardBonusMult = 1;
+                    gameState._minionShardBonusMult *= value;
+                }
                 // ── Previously unhandled research tier bonus types (now fixed) ──
                 if (bonus.type === 'global_minion_sps_multiplier') sps_multiplier = sps_multiplier.mul(D(value));
                 if (bonus.type === 'sps_multiplier_by_unique_minions') {
@@ -11524,6 +11537,7 @@ function calculateStats() {
     // =================================================================
     // 3. MINION BASE SPS CALCULATION
     // =================================================================
+    gameState._secretMinionSpsMult = 1; // reset before minion loop — rebuilt from research tiers above
     for (const id in gameState.minions) {
         const playerMinion = gameState.minions[id];
         const minionData = minions[id];
@@ -11550,6 +11564,10 @@ function calculateStats() {
 
             for (let i = 0; i < playerMinion.promotionTier; i++) {
                 minionSps = minionSps.mul(D(minionData.promotions[i].multiplier));
+            }
+            // Apply secret minion SPS multiplier if this is a secret minion
+            if (minionData.secret && minionData.baseSps > 0 && (gameState._secretMinionSpsMult || 1) > 1) {
+                minionSps = minionSps.mul(D(gameState._secretMinionSpsMult || 1));
             }
             sps = sps.add(minionSps);
 
@@ -12349,6 +12367,54 @@ function renderGuardianMinions(grid) {
             <div style="color:#c8b4ff;font-family:var(--font-title);font-size:0.9em;letter-spacing:2px;">CELESTIAL THRESHOLD</div>
             <div style="color:#4a3870;font-size:0.82em;margin-top:8px;">No Guardian worlds unlocked yet. Travel to the Map and unlock your first Light World.</div>
         </div>`;
+    }
+
+    // ── Show secret minions (including God/Satan) for transcended players too ──
+    const secretIdsForTranscended = Object.keys(minions).filter(id => minions[id].secret);
+    const ownedSecrets = secretIdsForTranscended.filter(id => gameState.minions[id]?.level > 0);
+    if (ownedSecrets.length > 0) {
+        const secHeader = document.createElement('div');
+        secHeader.style.cssText = 'display:flex; align-items:center; gap:10px; margin:24px 0 12px; padding:10px 16px; background:linear-gradient(135deg,#1a003322,transparent); border:1px solid #33003322; border-left:4px solid #aa44ff; border-radius:10px; grid-column:1/-1;';
+        secHeader.innerHTML = `<span style="font-size:1.4em;">🔮</span>
+            <div style="flex:1;">
+                <div style="color:#aa44ff; font-weight:bold; font-size:0.9em; letter-spacing:1px;">Secret Minions</div>
+                <div style="color:#444; font-size:0.7em;">${ownedSecrets.length} discovered · Carried through Transcendence</div>
+            </div>`;
+        grid.appendChild(secHeader);
+
+        ownedSecrets.forEach(id => {
+            const m = minions[id];
+            const pm = gameState.minions[id];
+            if (!pm || pm.level < 1) return;
+            const tc = m.leaderboardMinion ? (m.leaderboardTier === 'light' ? '#ffe066' : '#ff4444') : '#aa44ff';
+            const lbBadge = m.leaderboardMinion
+                ? `<div style="background:${tc}22; border:1px solid ${tc}44; border-radius:10px; padding:1px 8px; font-size:0.62em; color:${tc}; letter-spacing:1px; margin-bottom:4px;">${m.leaderboardTier === 'light' ? '☀️ LIGHT #1' : '😈 DARK #1'}</div>`
+                : `<div style="background:#aa44ff22; border:1px solid #aa44ff44; border-radius:10px; padding:1px 8px; font-size:0.62em; color:#aa44ff; letter-spacing:1px;">SECRET</div>`;
+            const currentTier = Math.floor(pm.level / 5);
+            const researchRows = m.researchTiers?.map((t, i) => {
+                const done = i < currentTier;
+                return `<div style="display:flex; align-items:flex-start; gap:8px; padding:4px 0; border-bottom:1px solid #0d0a18; opacity:${done ? 1 : 0.4};">
+                    <span style="color:${done ? tc : '#333'}; font-size:0.75em; flex-shrink:0;">◈ Lv${t.level}</span>
+                    <span style="color:${done ? '#aaa' : '#444'}; font-size:0.72em; line-height:1.3;">${t.desc}</span>
+                    ${done ? `<span style="color:${tc}; font-size:0.7em; margin-left:auto;">✔</span>` : ''}
+                </div>`;
+            }).join('') || '';
+
+            const card = document.createElement('div');
+            card.style.cssText = `background:linear-gradient(135deg,#0e0a1a,#1a0a2a); border:1px solid ${tc}22; border-top:3px solid ${tc}; border-radius:12px; padding:16px; position:relative;`;
+            card.innerHTML = `
+                <div style="position:absolute; top:8px; right:10px;">${lbBadge}</div>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <div style="font-size:2em; filter:drop-shadow(0 0 8px ${tc}88);">${m.icon}</div>
+                    <div>
+                        <div style="color:#ddd; font-weight:bold; font-size:0.88em;">${m.name}</div>
+                        <div style="color:#555; font-size:0.72em;">Level ${pm.level} · Tier ${currentTier}/${m.researchTiers?.length || 0}</div>
+                    </div>
+                </div>
+                <p style="color:#4a3870; font-size:0.72em; font-style:italic; margin:0 0 10px; line-height:1.35;">${m.lore}</p>
+                <div style="border-top:1px solid #1a1030; padding-top:8px; margin-top:4px;">${researchRows}</div>`;
+            grid.appendChild(card);
+        });
     }
 }
 
@@ -14946,32 +15012,58 @@ async function checkLeaderboardMinions() {
         const lightLeader = sorted.find(p => p.isTranscended);
         const darkLeader  = sorted.find(p => !p.isTranscended);
         const myName = gameState.playerName;
+        let needsRecalc = false;
 
         // ── God ──────────────────────────────────────────────────────────────
         if (!gameState.minions['god']) gameState.minions['god'] = { level: 0, cost: 0, promotionTier: 0 };
         const isLightLeader = lightLeader && lightLeader.name === myName;
-        if (isLightLeader && gameState.minions['god'].level === 0) {
-            gameState.minions['god'].level = 1;
-            Toastify({ text: '☀️ GOD has joined your side — you lead all Light Souls!', duration: 8000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)' } }).showToast();
-            calculateStats(); saveGame();
-        } else if (!isLightLeader && gameState.minions['god'].level > 0) {
+        if (isLightLeader) {
+            const curLvl = gameState.minions['god'].level || 0;
+            if (curLvl === 0) {
+                // Just became #1 — start at 1
+                gameState.minions['god'].level = 1;
+                Toastify({ text: '☀️ GOD has joined your side — you lead all Light Souls!', duration: 8000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)' } }).showToast();
+                needsRecalc = true;
+            } else if (curLvl < 100) {
+                // Level up by 1 every 5-minute check while holding #1 (max 100)
+                gameState.minions['god'].level = Math.min(100, curLvl + 1);
+                if (gameState.minions['god'].level === 25 || gameState.minions['god'].level === 50 || gameState.minions['god'].level === 100) {
+                    Toastify({ text: `☀️ GOD has reached Level ${gameState.minions['god'].level}! New power unlocked!`, duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#330088)' } }).showToast();
+                }
+                needsRecalc = true;
+            }
+        } else if (gameState.minions['god']?.level > 0) {
+            // Lost #1 — God leaves, level resets
             gameState.minions['god'].level = 0;
-            calculateStats(); saveGame();
+            Toastify({ text: '☀️ God has left your side — you are no longer #1 in Light Souls.', duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a1000,#332200)' } }).showToast();
+            needsRecalc = true;
         }
 
         // ── Satan ─────────────────────────────────────────────────────────────
         if (!gameState.minions['satan']) gameState.minions['satan'] = { level: 0, cost: 0, promotionTier: 0 };
         const isDarkLeader = darkLeader && darkLeader.name === myName;
-        // Same person cannot hold both — if they have God, they can't have Satan
-        const canHaveSatan = isDarkLeader && gameState.minions['god'].level === 0;
-        if (canHaveSatan && gameState.minions['satan'].level === 0) {
-            gameState.minions['satan'].level = 1;
-            Toastify({ text: '😈 SATAN has joined your side — you lead all Dark Souls!', duration: 8000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0000,#440000)' } }).showToast();
-            calculateStats(); saveGame();
-        } else if (!canHaveSatan && gameState.minions['satan'].level > 0) {
+        // Same person cannot hold both God and Satan
+        const canHaveSatan = isDarkLeader && (gameState.minions['god']?.level || 0) === 0;
+        if (canHaveSatan) {
+            const curLvl = gameState.minions['satan'].level || 0;
+            if (curLvl === 0) {
+                gameState.minions['satan'].level = 1;
+                Toastify({ text: '😈 SATAN has joined your side — you lead all Dark Souls!', duration: 8000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0000,#440000)' } }).showToast();
+                needsRecalc = true;
+            } else if (curLvl < 100) {
+                gameState.minions['satan'].level = Math.min(100, curLvl + 1);
+                if (gameState.minions['satan'].level === 25 || gameState.minions['satan'].level === 50 || gameState.minions['satan'].level === 100) {
+                    Toastify({ text: `😈 SATAN has reached Level ${gameState.minions['satan'].level}! New power unlocked!`, duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0000,#550000)' } }).showToast();
+                }
+                needsRecalc = true;
+            }
+        } else if (gameState.minions['satan']?.level > 0) {
             gameState.minions['satan'].level = 0;
-            calculateStats(); saveGame();
+            Toastify({ text: '😈 Satan has left your side — you are no longer #1 in Dark Souls.', duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0000,#220000)' } }).showToast();
+            needsRecalc = true;
         }
+
+        if (needsRecalc) { calculateStats(); saveGame(); }
     } catch(e) { /* silent fail — will retry in 5 min */ }
 }
 
@@ -22301,11 +22393,15 @@ function _getBundleTypeOptions() {
                 opts.push({ value: 'item:' + id, label: (TI[it.type] || '🎁') + ' ' + it.name });
         }
         if (gameState.inventory) {
-            for (const id of gameState.inventory) {
+            // Count duplicates to show quantity
+            const _invCounts = {};
+            for (const id of gameState.inventory) { _invCounts[id] = (_invCounts[id] || 0) + 1; }
+            for (const id of [...new Set(gameState.inventory)]) {
                 if (!(typeof items !== 'undefined' && items[id])) continue;
                 const it = items[id];
+                const count = _invCounts[id] || 1;
                 if (!opts.find(o => o.value === 'item:' + id))
-                    opts.push({ value: 'item:' + id, label: (TI[it.type] || '🎁') + ' ' + it.name });
+                    opts.push({ value: 'item:' + id, label: (TI[it.type] || '🎁') + ' ' + it.name + (count > 1 ? ' ×' + count : '') });
             }
         }
     } catch(e) { console.warn('[Bundle] _getBundleTypeOptions error:', e); }
@@ -22417,12 +22513,28 @@ async function postBundleListing() {
         if (statusEl) statusEl.textContent = 'Add at least one item to each side.'; return;
     }
 
-    // Validate offer side — player must own what they're offering
+    // Validate offer side — aggregate totals per type first (prevents offering same item twice)
+    const _offerTotals = {};
     for (const slot of _bundleOfferSlots) {
-        if (!hasEnough(slot.type, slot.amt)) {
-            const info = getBarterTypeInfo(slot.type, slot.amt, null);
-            if (statusEl) statusEl.textContent = `You don't have enough ${info.name} (need ${formatNumber(slot.amt)}).`;
-            return;
+        _offerTotals[slot.type] = (_offerTotals[slot.type] || 0) + (slot.amt || 1);
+    }
+    for (const [type, totalAmt] of Object.entries(_offerTotals)) {
+        // For items, check we have enough copies in inventory
+        if (type.startsWith('item:')) {
+            const id = type.slice(5);
+            const owned = gameState.inventory.filter(x => x === id).length
+                + (Object.values(gameState.equipped || {}).includes(id) ? 1 : 0);
+            if (owned < totalAmt) {
+                const it = (typeof items !== 'undefined') ? items[id] : null;
+                if (statusEl) statusEl.textContent = `You only have ${owned}× ${it?.name || id} but need ${totalAmt}.`;
+                return;
+            }
+        } else {
+            if (!hasEnough(type, totalAmt)) {
+                const info = getBarterTypeInfo(type, totalAmt, null);
+                if (statusEl) statusEl.textContent = `You don't have enough ${info.name} (need ${formatNumber(totalAmt)}).`;
+                return;
+            }
         }
     }
 

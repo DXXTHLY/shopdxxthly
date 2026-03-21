@@ -18319,7 +18319,6 @@ function initializeChat() {
 
                 listenForOnlineUsers(db);
                 setupEventListeners(db, uid);
-                listenForChatMessages(db, uid);
                 window._chatDb = db; window._chatUid = uid;
                 var REP_TIERS=[{min:0,title:'Newcomer',color:'#555555',icon:'👤'},{min:10,title:'Soul Lurker',color:'#888888',icon:'👻'},{min:50,title:'Void Whisperer',color:'#44cc88',icon:'🌿'},{min:150,title:'Shade Walker',color:'#4488ff',icon:'💧'},{min:400,title:'Rift Crawler',color:'#aa44ff',icon:'🔮'},{min:900,title:'Abyss Warden',color:'#c8a800',icon:'⚡'},{min:2000,title:'Demon Lord',color:'#ff6644',icon:'👹'},{min:5000,title:'Soul Sovereign',color:'#ff44aa',icon:'💀'}];
                 window._getRepTier=function(r){var t=REP_TIERS[0];for(var i=0;i<REP_TIERS.length;i++){if(r>=REP_TIERS[i].min)t=REP_TIERS[i];}return t;};
@@ -18441,27 +18440,28 @@ function initializeChat() {
                 if (shouldScroll || chatBodyElement.scrollTop >= chatBodyElement.scrollHeight - chatBodyElement.clientHeight - 150) chatBodyElement.scrollTop = chatBodyElement.scrollHeight;
                 return;
             }
+            const _msgText = msg.text || '';
             const imageRegex = /(https?:\/\/[^\s]+\.(?:png|jpg|jpeg|gif|webp))/i;
-            const imageMatch = msg.text ? msg.text.match(imageRegex) : null;
+            const imageMatch = _msgText ? _msgText.match(imageRegex) : null;
 
             if (imageMatch) {
-                const textPart = escapeHTML(msg.text.replace(imageRegex, '').trim());
+                const textPart = escapeHTML(_msgText.replace(imageRegex, '').trim());
                 finalMessage = `${textPart}<br><img src="${imageMatch[0]}" style="max-width:90%; border-radius:6px; margin-top:5px; cursor:pointer;" onclick="window.open('${imageMatch[0]}', '_blank')">`;
             } else if (isSystemMessage || isDev(msg.uid)) {
                 // Make URLs in dev/system messages clickable
                 const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
-                finalMessage = msg.text.replace(urlRegex, url =>
+                finalMessage = _msgText.replace(urlRegex, url =>
                     `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #ff4dd2; text-decoration: underline; font-weight: bold; text-shadow: 0 0 6px rgba(255,77,210,0.5);" onmouseover="this.style.color='#ff88e8'" onmouseout="this.style.color='#ff4dd2'">${url}</a>`
                 );
             } else {
                 const urlRegex = /(https?:\/\/[^\s]+)/g;
-                const hasLink = urlRegex.test(msg.text);
+                const hasLink = urlRegex.test(_msgText);
                 if (hasLink) {
-                    const safeText = escapeHTML(msg.text.replace(/(https?:\/\/[^\s]+)/g, '').trim());
+                    const safeText = escapeHTML(_msgText.replace(/(https?:\/\/[^\s]+)/g, '').trim());
                     const officialLinks = `<a href="https://dsc.gg/143X" target="_blank" rel="noopener noreferrer" style="color:var(--accent-color);font-weight:bold;">https://dsc.gg/143X</a> & <a href="https://dxxthly.com" target="_blank" rel="noopener noreferrer" style="color:var(--accent-color);font-weight:bold;">https://dxxthly.com</a>`;
                     finalMessage = (safeText ? safeText + ' ' : '') + officialLinks;
                 } else {
-                    finalMessage = escapeHTML(msg.text || '');
+                    finalMessage = escapeHTML(_msgText);
                 }
             }
 

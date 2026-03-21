@@ -28045,7 +28045,8 @@ function sendGifToChat(url) {
     chatDb.ref('slitherChat').push({
         uid: window._chatUid, name, chatNameColor: col,
         time: (typeof firebase !== 'undefined' && firebase.database) ? firebase.database.ServerValue.TIMESTAMP : Date.now(),
-        gif: url, text: ''
+        gif: url,
+        text: '[GIF]'  // non-empty so Firebase security rules don't reject the write
     });
     toggleGifPicker();
 }

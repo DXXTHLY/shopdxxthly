@@ -17328,7 +17328,7 @@ function withdrawEssence() {
     gameState.hasWithdrawnEssence = true;
     playSound('ascend');
     Toastify({ text: `🌑 Essence retrieved from the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0a00,#c8a800)'} }).showToast();
-    renderBank(); updateDynamicDisplays(); saveGame();
+    calculateStats(); renderBank(); updateDynamicDisplays(); saveGame();
 }
 
 function depositShards() {
@@ -17341,7 +17341,7 @@ function depositShards() {
     const _shR=D(_shC).sub(_cSh),depositAmt=_rSh.gt(_shR)?_shR:_rSh;
     gameState.darkEssence=D(gameState.darkEssence).sub(cost);gameState.abyssalShards=D(gameState.abyssalShards).sub(depositAmt);gameState.bankedShards=_cSh.add(depositAmt);
     playSound('upgrade');Toastify({text:`💎 ${formatNumber(depositAmt)} Shards secured!${depositAmt.lt(_rSh)?' (capped at 100k)':''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#001a2a,#4488ff)'}}).showToast();
-    renderBank(); updateDynamicDisplays(); saveGame();
+    calculateStats(); renderBank(); updateDynamicDisplays(); saveGame();
 }
 
 function withdrawShards() {
@@ -17361,7 +17361,7 @@ function withdrawShards() {
     gameState.hasWithdrawnShards = true;
     playSound('ascend');
     Toastify({ text: `💎 Shards retrieved from the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#001a2a,#4488ff)'} }).showToast();
-    renderBank(); updateDynamicDisplays(); saveGame();
+    calculateStats(); renderBank(); updateDynamicDisplays(); saveGame();
 }
 
 function depositSouls() {
@@ -17382,9 +17382,7 @@ function depositSouls() {
     const _rS=D(_sC).sub(_cB),_aD=depositAmt.gt(_rS)?_rS:depositAmt;
     gameState.souls=D(gameState.souls).sub(_aD);gameState.darkEssence=D(gameState.darkEssence).sub(essenceCost);gameState.bankedSouls=_cB.add(_aD);
     playSound('upgrade');Toastify({text:`🏦 ${formatNumber(_aD)} souls secured!${_aD.lt(depositAmt)?' (capped at 100k)':''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#2a1800,#c8a800)'}}).showToast();
-    renderBank();
-    updateDynamicDisplays();
-    saveGame();
+    calculateStats(); renderBank(); updateDynamicDisplays(); saveGame();
 }
 
 function depositFragments() {
@@ -17402,9 +17400,7 @@ function depositFragments() {
     const _rF=parseFloat(depositAmt.toString()),_aF=Math.min(_rF,_fC-_cF),_lF=_rF-_aF;
     gameState.darkEssence=D(gameState.darkEssence).sub(essenceCost);gameState.corruptedFragments=D(_lF);gameState.bankedFragments=_cF+_aF;
     playSound('upgrade');Toastify({text:`🔮 ${formatNumber(_aF)} fragments secured!${_aF<_rF?` (capped — ${formatNumber(_lF)} returned)`:''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'}}).showToast();
-    renderBank();
-    updateDynamicDisplays();
-    saveGame();
+    calculateStats(); renderBank(); updateDynamicDisplays(); saveGame();
 }
 
 function withdrawFragments() {
@@ -17427,9 +17423,7 @@ function withdrawFragments() {
     gameState.hasWithdrawnFragments = true;
     playSound('ascend');
     Toastify({ text: `🔮 Fragments retrieved from the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
-    renderBank();
-    updateDynamicDisplays();
-    saveGame();
+    calculateStats(); renderBank(); updateDynamicDisplays(); saveGame();
 }
 
 function withdrawSouls() {
@@ -17541,21 +17535,23 @@ function convertCurrency(from, to, amountIn, amountOut) {
     } else if (from === 'de' && to === 'shards') {
         if (D(gameState.darkEssence).gte(amountIn)) {
             gameState.darkEssence = D(gameState.darkEssence).sub(amountIn);
-            gameState.abyssalShards += amountOut;
+            gameState.abyssalShards = D(gameState.abyssalShards).add(amountOut);
             canAfford = true;
         }
     } else if (from === 'shards' && to === 'fragments') {
         if (D(gameState.abyssalShards).gte(amountIn)) {
             gameState.abyssalShards = D(gameState.abyssalShards).sub(amountIn);
-            gameState.corruptedFragments += amountOut;
+            gameState.corruptedFragments = D(gameState.corruptedFragments || 0).add(amountOut);
             canAfford = true;
         }
     }
 
     if (canAfford) {
         playSound('upgrade');
+        calculateStats();
         renderBank();
         updateDynamicDisplays();
+        renderAll();
         saveGame();
     } else {
         // Refund fragments if the main conversion failed

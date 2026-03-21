@@ -18191,46 +18191,35 @@ function initializeChat() {
                 }
             });
 
-            // Sign into chatforslither anonymously — powers online presence & chat
+            // Verbatim Slither mod pattern — listener array + child_added outside auth
+            let chatMessagesArray = [];
+            let latestTimeLoaded = 0;
+            const chatBody = document.getElementById('chat-body');
+
             chatAuth.signInAnonymously().catch(err => console.error("Chat anon sign-in error:", err));
 
-            // Set up the message listener ONCE — outside onAuthStateChanged — just like the Slither mod
-            // Uses chatAuth.currentUser?.uid for isMine so it works as soon as auth resolves
-            let _chatListenerSet = false;
-            function _setupChatListener() {
-                if (_chatListenerSet) return;
-                _chatListenerSet = true;
-                const chatBody = document.getElementById('chat-body');
-                let chatMessagesArray = [];
-                let latestTimeLoaded = 0;
-                db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
-                    if (snapshot.exists()) {
-                        snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
-                        chatMessagesArray.sort((a, b) => a.time - b.time);
-                        if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
-                        if (chatBody) {
-                            chatBody.innerHTML = '';
-                            for (const msg of chatMessagesArray) {
-                                renderChatMessage(msg, chatBody, chatAuth.currentUser?.uid);
-                            }
-                            chatBody.scrollTop = chatBody.scrollHeight;
-                        }
+            db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
+                if (snapshot.exists()) {
+                    snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
+                    chatMessagesArray.sort((a, b) => a.time - b.time);
+                    if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
+                    if (chatBody) {
+                        chatBody.innerHTML = '';
+                        for (const msg of chatMessagesArray) { renderChatMessage(msg, chatBody, chatAuth.currentUser?.uid); }
+                        chatBody.scrollTop = chatBody.scrollHeight;
                     }
-                    // Always set up child_added listener even if chat is empty
-                    db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded + 1).on("child_added", (newSnapshot) => {
-                        const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
-                        if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
-                        chatMessagesArray.push(newMsg);
-                        if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
-                        if (chatBody) {
-                            while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); }
-                            renderChatMessage(newMsg, chatBody, chatAuth.currentUser?.uid, true);
-                        }
-                    });
+                }
+                db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded + 1).on("child_added", (newSnapshot) => {
+                    const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
+                    if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
+                    chatMessagesArray.push(newMsg);
+                    if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
+                    if (chatBody) {
+                        while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); }
+                        renderChatMessage(newMsg, chatBody, chatAuth.currentUser?.uid, true);
+                    }
                 });
-            }
-            // Start listener immediately — don't wait for auth
-            _setupChatListener();
+            });
 
             chatAuth.onAuthStateChanged(user => {
                 if (!user) return;

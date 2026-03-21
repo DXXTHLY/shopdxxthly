@@ -14919,6 +14919,59 @@ function repairNegativeValues() {
     }
 }
 
+// ── Background God/Satan leaderboard check ──────────────────────────────────
+// Runs on login and every 5 minutes. Grants God to #1 light soul player,
+// Satan to #1 dark soul player. Independent of leaderboard screen being open.
+async function checkLeaderboardMinions() {
+    if (!supabaseClient || !gameState.playerName || gameState.playerName === 'Unnamed') return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('players')
+            .select('name,soulsLog,isTranscended,lightSoulsLog')
+            .order('soulsLog', { ascending: false })
+            .limit(25);
+        if (error || !data || !data.length) return;
+
+        // Sort: light (transcended) players by lightSoulsLog, dark by soulsLog
+        const sorted = [...data].sort((a, b) => {
+            const aT = a.isTranscended ? 1 : 0, bT = b.isTranscended ? 1 : 0;
+            if (aT !== bT) return bT - aT;
+            if (aT && bT) return (b.lightSoulsLog || 0) - (a.lightSoulsLog || 0);
+            return (b.soulsLog || 0) - (a.soulsLog || 0);
+        });
+
+        const lightLeader = sorted.find(p => p.isTranscended);
+        const darkLeader  = sorted.find(p => !p.isTranscended);
+        const myName = gameState.playerName;
+
+        // ── God ──────────────────────────────────────────────────────────────
+        if (!gameState.minions['god']) gameState.minions['god'] = { level: 0, cost: 0, promotionTier: 0 };
+        const isLightLeader = lightLeader && lightLeader.name === myName;
+        if (isLightLeader && gameState.minions['god'].level === 0) {
+            gameState.minions['god'].level = 1;
+            Toastify({ text: '☀️ GOD has joined your side — you lead all Light Souls!', duration: 8000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)' } }).showToast();
+            calculateStats(); saveGame();
+        } else if (!isLightLeader && gameState.minions['god'].level > 0) {
+            gameState.minions['god'].level = 0;
+            calculateStats(); saveGame();
+        }
+
+        // ── Satan ─────────────────────────────────────────────────────────────
+        if (!gameState.minions['satan']) gameState.minions['satan'] = { level: 0, cost: 0, promotionTier: 0 };
+        const isDarkLeader = darkLeader && darkLeader.name === myName;
+        // Same person cannot hold both — if they have God, they can't have Satan
+        const canHaveSatan = isDarkLeader && gameState.minions['god'].level === 0;
+        if (canHaveSatan && gameState.minions['satan'].level === 0) {
+            gameState.minions['satan'].level = 1;
+            Toastify({ text: '😈 SATAN has joined your side — you lead all Dark Souls!', duration: 8000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0000,#440000)' } }).showToast();
+            calculateStats(); saveGame();
+        } else if (!canHaveSatan && gameState.minions['satan'].level > 0) {
+            gameState.minions['satan'].level = 0;
+            calculateStats(); saveGame();
+        }
+    } catch(e) { /* silent fail — will retry in 5 min */ }
+}
+
 function dismissUnlinkedBanner() {
     const b = document.getElementById('unlinked-account-banner');
     if (b) b.style.display = 'none';
@@ -14988,6 +15041,10 @@ function enterGame() {
 
     // Show account reminder popup
     setTimeout(() => showAccountReminderPopup(), 2000);
+
+    // ── God/Satan leaderboard check — runs on login and every 5 minutes ──
+    setTimeout(() => checkLeaderboardMinions(), 5000);
+    setInterval(() => checkLeaderboardMinions(), 5 * 60 * 1000);
 
     // ── Dev command listener — watches devCommands/{uid} for fix commands issued by devs ──
     setTimeout(() => {
@@ -15955,38 +16012,9 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
         list.innerHTML = '';
 
         // ── Grant God/Satan to #1 players ─────────────────────────────
+        // Also trigger the background check to sync immediately
         if (type === 'lifetimeSouls' && players.length > 0) {
-            // #1 light souls player gets God
-            const lightLeader = players.find(p => p.isTranscended);
-            if (lightLeader && lightLeader.name === gameState.playerName) {
-                if (!gameState.minions['god']) gameState.minions['god'] = { level: 0, cost: 0, promotionTier: 0 };
-                if (gameState.minions['god'].level === 0) {
-                    gameState.minions['god'].level = 1;
-                    Toastify({ text: '☀️ GOD has joined your side — you lead all Light Souls!', duration:8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#220066)'} }).showToast();
-                    saveGame();
-                }
-            } else {
-                // Remove God if they lost #1
-                if (gameState.minions['god']?.level > 0) {
-                    gameState.minions['god'].level = 0;
-                    saveGame();
-                }
-            }
-            // #1 dark souls player (non-transcended) gets Satan
-            const darkLeader = players.find(p => !p.isTranscended);
-            if (darkLeader && darkLeader.name === gameState.playerName) {
-                if (!gameState.minions['satan']) gameState.minions['satan'] = { level: 0, cost: 0, promotionTier: 0 };
-                if (gameState.minions['satan'].level === 0) {
-                    gameState.minions['satan'].level = 1;
-                    Toastify({ text: '😈 SATAN has joined your side — you lead all Dark Souls!', duration:8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0000,#440000)'} }).showToast();
-                    saveGame();
-                }
-            } else {
-                if (gameState.minions['satan']?.level > 0) {
-                    gameState.minions['satan'].level = 0;
-                    saveGame();
-                }
-            }
+            checkLeaderboardMinions();
         }
 
         players.slice(0, 10).forEach((player, index) => {

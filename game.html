@@ -13775,9 +13775,21 @@ function renderBrewery() {
         const isActive = gameState.activePotions[id] && Date.now() < gameState.activePotions[id];
         const meta = getPotionMeta(id);
         const timeLeftActive = isActive ? Math.ceil((gameState.activePotions[id] - Date.now()) / 1000) : 0;
+
+        // Check use cooldown (separate from active buff duration)
+        const _cdEnd = gameState.potionCooldowns[id] || 0;
+        const isOnUseCooldown = _cdEnd > Date.now();
+        const _cdLeft = isOnUseCooldown ? Math.ceil((_cdEnd - Date.now()) / 1000) : 0;
+        const _cdHrs = Math.floor(_cdLeft / 3600);
+        const _cdMins = Math.floor((_cdLeft % 3600) / 60);
+        const _cdSecs = (_cdLeft % 60).toString().padStart(2, '0');
+        const _cdStr = _cdHrs > 0 ? `${_cdHrs}h ${_cdMins}m` : _cdMins > 0 ? `${_cdMins}m ${_cdSecs}s` : `${_cdSecs}s`;
+
         const statusText = isActive
             ? `<span style="color:${meta.color}; font-style:italic;">✦ Active — ${Math.floor(timeLeftActive/60)}:${(timeLeftActive%60).toString().padStart(2,'0')} left</span>`
-            : `<span style="color:#aaa;">Click to use</span>`;
+            : isOnUseCooldown
+                ? `<span style="color:#ff6644;">⏳ On cooldown — ${_cdStr} remaining</span>`
+                : `<span style="color:#aaa;">Click to use</span>`;
         if (potions[id]) {
             const p = potions[id];
             const rarity  = meta.rarity || 'common';
@@ -13787,8 +13799,10 @@ function renderBrewery() {
             const isMarketRarity = rarity.startsWith('market');
             const glowVal = meta.glow || (isActive ? `0 0 24px ${meta.color}55` : rs.glow);
             const topBorder = meta.color;
-            const sideBorder = isActive ? meta.color + 'cc' : rs.border;
-            const cooldownText = p.cooldown ? `🕐 ${p.cooldown >= 3600 ? (p.cooldown/3600)+'h cooldown' : (p.cooldown/60)+'m cooldown'}` : '';
+            const sideBorder = isActive ? meta.color + 'cc' : isOnUseCooldown ? '#ff664466' : rs.border;
+            const cooldownText = isOnUseCooldown
+                ? `🕐 ${_cdStr} remaining`
+                : p.cooldown ? `🕐 ${p.cooldown >= 3600 ? (p.cooldown/3600)+'h cooldown' : (p.cooldown/60)+'m cooldown'}` : '';
 
             // Fused potions get a special diagonal stripe pattern bg + animated border
             const fusedBg = isFused
@@ -13824,9 +13838,9 @@ function renderBrewery() {
                 <p style="color:${isFused?'#bbb':'#999'}; font-size:0.78em; margin:0; line-height:1.5; border-left:${isFused?'3':'2'}px solid ${meta.color}${isFused?'88':'66'}; padding-left:8px;">${p.desc}</p>
                 ${cooldownText ? `<div style="color:#555; font-size:0.7em;">${cooldownText}</div>` : ''}
                 <div style="font-size:0.82em;">${statusText}</div>
-                <button class="upgrade-btn" onclick="usePotion('${id}')" ${isActive || count === 0 ? 'disabled' : ''}
-                    style="width:100%; border-color:${meta.color}88; ${(!isActive && count > 0) ? `background:linear-gradient(135deg,${meta.color}${isFused?'33':'22'},transparent);box-shadow:0 0 ${isFused?'12':'8'}px ${meta.color}${isFused?'33':'22'};` : 'opacity:0.4;'}">
-                    ${isActive ? `<span style="color:#666;">Active</span>` : count === 0 ? `<span style="color:#444;">None in stock</span>` : `<span style="color:${meta.color}; text-shadow:0 0 6px ${meta.color}88;">${isFused?'⚗️':'⚡'} ${isFused?'Consume Fusion':'Use Potion'}</span>`}
+                <button class="upgrade-btn" onclick="usePotion('${id}')" ${isActive || count === 0 || isOnUseCooldown ? 'disabled' : ''}
+                    style="width:100%; border-color:${isOnUseCooldown ? '#ff664466' : meta.color+'88'}; ${(!isActive && count > 0 && !isOnUseCooldown) ? `background:linear-gradient(135deg,${meta.color}${isFused?'33':'22'},transparent);box-shadow:0 0 ${isFused?'12':'8'}px ${meta.color}${isFused?'33':'22'};` : 'opacity:0.4;'}">
+                    ${isActive ? `<span style="color:#666;">Active</span>` : count === 0 ? `<span style="color:#444;">None in stock</span>` : isOnUseCooldown ? `<span style="color:#ff6644;">⏳ Cooldown: ${_cdStr}</span>` : `<span style="color:${meta.color}; text-shadow:0 0 6px ${meta.color}88;">${isFused?'⚗️':'⚡'} ${isFused?'Consume Fusion':'Use Potion'}</span>`}
                 </button>
             </div>`;
         }
@@ -13950,6 +13964,14 @@ function brewPotion(id) {
 }
 // NEW, UPGRADED usePotion FUNCTION
 function usePotion(id) {
+    // Hard-block: enforce cooldown even if UI somehow showed the button
+    const _upCdEnd = gameState.potionCooldowns[id] || 0;
+    if (_upCdEnd > Date.now()) {
+        const _upLeft = Math.ceil((_upCdEnd - Date.now()) / 1000);
+        const _upM = Math.floor(_upLeft/60), _upS = (_upLeft%60).toString().padStart(2,'0');
+        Toastify({ text: `⏳ ${potions[id]?.name || 'Potion'} is on cooldown — ${_upM}:${_upS} remaining.`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0808,#440000)'} }).showToast();
+        return;
+    }
     if (gameState.potions[id] > 0) {
         gameState.potions[id]--;
         const effect = potions[id].effect;

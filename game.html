@@ -19148,11 +19148,14 @@ function confirmExpedition() {
 
     gameState.activeExpeditions[id] = {
         startTime: Date.now(),
-        endTime: Date.now() + finalDuration * 1000, // Now uses the new variable
+        endTime: Date.now() + finalDuration * 1000,
         sentMinions: sentMinions,
         breachesCompleted: 0,
         breachIsReady: false
     };
+    // Save party for repeat-expedition button
+    if (!gameState.lastExpeditionParties) gameState.lastExpeditionParties = {};
+    gameState.lastExpeditionParties[id] = { ...sentMinions };
     
     closeExpeditionModal();
     calculateStats();
@@ -19186,6 +19189,59 @@ function startBreachCheck(expeditionId) {
             gameState.anomalyTimers[expeditionId] = Date.now() + (30 + Math.random() * 30) * 1000;
         }
     }
+}
+
+function repeatExpedition(id) {
+    if (gameState.activeExpeditions[id]) return;
+    const data = expeditions[id];
+    const lastParty = gameState.lastExpeditionParties && gameState.lastExpeditionParties[id];
+    if (!lastParty) return;
+
+    const costType = data.costType || 'souls';
+    if (costType === 'souls' && D(gameState.souls).lt(D(data.cost))) {
+        Toastify({ text: "Not enough souls to repeat this expedition.", duration: 3000, gravity: "top", position: "center", style: { background: "linear-gradient(135deg,#1a0010,#440022)" } }).showToast();
+        return;
+    }
+    if (costType === 'essence' && D(gameState.darkEssence).lt(data.cost)) {
+        Toastify({ text: "Not enough Dark Essence to repeat this expedition.", duration: 3000, gravity: "top", position: "center", style: { background: "linear-gradient(135deg,#1a0010,#440022)" } }).showToast();
+        return;
+    }
+
+    // Check all minions are still available
+    let totalPower = 0;
+    for (const minionId in lastParty) {
+        const needed = lastParty[minionId];
+        const have = gameState.minions[minionId]?.level || 0;
+        if (have < needed) {
+            Toastify({ text: `Not enough ${minions[minionId]?.name || minionId} (need ${needed}, have ${have}). Open Assemble Party to adjust.`, duration: 5000, gravity: "top", position: "center", style: { background: "linear-gradient(135deg,#1a0010,#440022)" } }).showToast();
+            return;
+        }
+        totalPower += needed * (minions[minionId]?.baseSps || 0);
+    }
+    if (totalPower < data.powerReq) {
+        Toastify({ text: "Party power is too low — some minions may have leveled down. Open Assemble Party to adjust.", duration: 5000, gravity: "top", position: "center", style: { background: "linear-gradient(135deg,#1a0010,#440022)" } }).showToast();
+        return;
+    }
+
+    // Deduct cost + minion levels
+    if (costType === 'souls') gameState.souls = D(gameState.souls).sub(D(data.cost));
+    else gameState.darkEssence = D(gameState.darkEssence).sub(data.cost);
+    for (const minionId in lastParty) gameState.minions[minionId].level -= lastParty[minionId];
+
+    let finalDuration = data.duration;
+    const sigilId = gameState.equipped.sigil;
+    if (sigilId && items[sigilId] && items[sigilId].bonus.type === 'expedition_speed_and_loot') finalDuration /= items[sigilId].bonus.speed;
+
+    gameState.activeExpeditions[id] = {
+        startTime: Date.now(),
+        endTime: Date.now() + finalDuration * 1000,
+        sentMinions: { ...lastParty },
+        breachesCompleted: 0,
+        breachIsReady: false
+    };
+
+    calculateStats(); renderAll(); saveGame(); playSound('upgrade');
+    Toastify({ text: `↺ Expedition restarted with last party!`, duration: 3000, gravity: "top", position: "center", style: { background: "linear-gradient(135deg,#0a1a00,#1a4400)" } }).showToast();
 }
 
 function renderExpeditions() {
@@ -19306,10 +19362,20 @@ function renderExpeditions() {
             <!-- Rewards -->
             <div style="display:flex; gap:5px; flex-wrap:wrap;">${rewardPills}</div>
 
-            <button onclick="showExpeditionModal('${id}')" ${!canAfford ? 'disabled' : ''}
-                style="background:${canAfford?`linear-gradient(135deg,${theme.color}22,transparent)`:'transparent'}; border:1px solid ${canAfford?theme.color+'66':'#333'}; border-radius:8px; padding:9px; color:${canAfford?theme.color:'#444'}; cursor:${canAfford?'pointer':'not-allowed'}; font-family:inherit; font-weight:bold; font-size:0.85em; transition:all 0.2s; margin-top:2px;">
-                ${canAfford ? '⚔ Assemble Party' : '🔒 Cannot Afford'}
-            </button>
+            <div style="display:flex; gap:8px; margin-top:2px;">
+                <button onclick="showExpeditionModal('${id}')" ${!canAfford ? 'disabled' : ''}
+                    style="flex:1; background:${canAfford?`linear-gradient(135deg,${theme.color}22,transparent)`:'transparent'}; border:1px solid ${canAfford?theme.color+'66':'#333'}; border-radius:8px; padding:9px; color:${canAfford?theme.color:'#444'}; cursor:${canAfford?'pointer':'not-allowed'}; font-family:inherit; font-weight:bold; font-size:0.85em; transition:all 0.2s;">
+                    ${canAfford ? '⚔ Assemble Party' : '🔒 Cannot Afford'}
+                </button>
+                ${(gameState.lastExpeditionParties?.[id] && canAfford) ? `
+                <button onclick="repeatExpedition('${id}')"
+                    title="Repeat with: ${Object.entries((gameState.lastExpeditionParties?.[id])||{}).map(([m,c])=>(minions[m]?.icon||'👿')+' '+c+'x').join(', ')}"
+                    style="background:linear-gradient(135deg,#0a2200,#1a4400); border:1px solid #44cc6666; border-radius:8px; padding:9px 14px; color:#44cc66; cursor:pointer; font-family:inherit; font-weight:bold; font-size:0.85em; transition:all 0.2s; white-space:nowrap;"
+                    onmouseover="this.style.background='linear-gradient(135deg,#0a3300,#224400)'; this.style.borderColor='#44cc88';"
+                    onmouseout="this.style.background='linear-gradient(135deg,#0a2200,#1a4400)'; this.style.borderColor='#44cc6666';">
+                    ↺ Repeat
+                </button>` : ''}
+            </div>
         </div>`;
     }
 }

@@ -2393,6 +2393,27 @@ text-decoration: underline; /* Adds an underline on hover */
 
     /* Fusion cauldron */
     #fusion-cauldron { padding: 14px 12px; }
+    @keyframes fusionRgbBorder {
+        0%   { border-color: #ff0066; box-shadow: 0 0 18px #ff006688, 0 0 40px #ff006633; }
+        16%  { border-color: #ff6600; box-shadow: 0 0 18px #ff660088, 0 0 40px #ff660033; }
+        33%  { border-color: #ffcc00; box-shadow: 0 0 18px #ffcc0088, 0 0 40px #ffcc0033; }
+        50%  { border-color: #00ff88; box-shadow: 0 0 18px #00ff8888, 0 0 40px #00ff8833; }
+        66%  { border-color: #0088ff; box-shadow: 0 0 18px #0088ff88, 0 0 40px #0088ff33; }
+        83%  { border-color: #aa44ff; box-shadow: 0 0 18px #aa44ff88, 0 0 40px #aa44ff33; }
+        100% { border-color: #ff0066; box-shadow: 0 0 18px #ff006688, 0 0 40px #ff006633; }
+    }
+    @keyframes fusionSlotPulse {
+        0%,100% { transform: scale(1); }
+        50%      { transform: scale(1.04); }
+    }
+    #fusion-cauldron.fusion-ready {
+        animation: fusionRgbBorder 2s linear infinite;
+        border-width: 2px;
+    }
+    #fusion-cauldron.fusion-ready #fusion-slot-a,
+    #fusion-cauldron.fusion-ready #fusion-slot-b {
+        animation: fusionSlotPulse 1.2s ease-in-out infinite;
+    }
 
     /* Hide drag handle hint on mobile */
     #chat-header { touch-action: none; }
@@ -13573,6 +13594,16 @@ function updateFusionUI() {
             fusionBtn.innerHTML = `⚗️ Cooling Down (${sLeft}s)`;
         } else {
             fusionBtn.innerHTML = '⚗️ FUSE';
+        }
+    }
+
+    // Toggle RGB glow on the whole cauldron when both slots are filled
+    const cauldronEl = document.getElementById('fusion-cauldron');
+    if (cauldronEl) {
+        if (fusionState.slotA && fusionState.slotB) {
+            cauldronEl.classList.add('fusion-ready');
+        } else {
+            cauldronEl.classList.remove('fusion-ready');
         }
     }
 

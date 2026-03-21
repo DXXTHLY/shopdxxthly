@@ -18312,16 +18312,17 @@ function initializeChat() {
 
         let _chatListenerActive = false;
         function listenForChatMessages(db, currentUid) {
-            if (_chatListenerActive) return; // only ever set up once
+            if (_chatListenerActive) return;
             _chatListenerActive = true;
-            const chatBody = document.getElementById('chat-body');
             let chatMessagesArray = [];
-            let latestTimeLoaded = 0;
+            // Record the time BEFORE loading history — use this as the startAt for new messages
+            // This way we never miss a message due to server/client clock drift
+            const listenFromTime = Date.now() - 1000; // 1s buffer to catch any in-flight messages
+
             db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
                 if (snapshot.exists()) {
                     snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
                     chatMessagesArray.sort((a, b) => a.time - b.time);
-                    if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
                     const cb = document.getElementById('chat-body');
                     if (cb) {
                         cb.innerHTML = '';
@@ -18329,10 +18330,10 @@ function initializeChat() {
                         cb.scrollTop = cb.scrollHeight;
                     }
                 }
-                // child_added fires for every new message — always set up even if chat was empty
-                db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded + 1).on("child_added", (newSnapshot) => {
+                // Use listenFromTime (set before history load) — never misses new messages
+                db.ref("slitherChat").orderByChild("time").startAt(listenFromTime).on("child_added", (newSnapshot) => {
                     const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
-                    if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
+                    if (chatMessagesArray.some(m => m.key === newMsg.key)) return; // dedup with history
                     chatMessagesArray.push(newMsg);
                     if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
                     const cb = document.getElementById('chat-body');

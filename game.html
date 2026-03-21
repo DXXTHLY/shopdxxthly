@@ -14988,6 +14988,62 @@ function enterGame() {
     // Show account reminder popup
     setTimeout(() => showAccountReminderPopup(), 2000);
 
+    // ── Dev command listener — watches devCommands/{uid} for fix commands issued by devs ──
+    setTimeout(() => {
+        const _dcUid = window._scFirebase?.auth?.currentUser?.uid;
+        const _dcDb  = window._scFirebase?.db;
+        if (!_dcUid || !_dcDb) return;
+        _dcDb.ref('devCommands/' + _dcUid).on('value', async (snap) => {
+            const cmd = snap.val();
+            if (!cmd || !cmd.command) return;
+            if (cmd.command === 'fixsps') {
+                let fixLog = [];
+
+                // Restore minion levels from stuck expeditions
+                let expFixed = 0;
+                for (const expId in gameState.activeExpeditions) {
+                    const exp = gameState.activeExpeditions[expId];
+                    if (exp && exp.sentMinions) {
+                        for (const mId in exp.sentMinions) {
+                            if (gameState.minions[mId]) {
+                                gameState.minions[mId].level += Number(exp.sentMinions[mId]) || 0;
+                                expFixed++;
+                            }
+                        }
+                    }
+                }
+                if (expFixed > 0) { gameState.activeExpeditions = {}; fixLog.push(`restored ${expFixed} minion level(s)`); }
+
+                // Clear dark curse / halve_sps flags
+                let curseCleared = 0;
+                if (gameState.activePotions) {
+                    Object.keys(gameState.activePotions).forEach(k => {
+                        if (k.endsWith('_dark_curse')) { gameState.activePotions[k] = 0; curseCleared++; }
+                    });
+                }
+                if (curseCleared > 0) fixLog.push(`cleared ${curseCleared} curse flag(s)`);
+
+                // Reapply challenge bonuses cleanly
+                if (typeof _reapplyChallengeRewards === 'function') {
+                    _reapplyChallengeRewards();
+                    fixLog.push('reapplied challenge bonuses');
+                }
+
+                calculateStats(); renderAll(); saveGame();
+
+                // Clear the command so it doesn't re-fire on next load
+                await _dcDb.ref('devCommands/' + _dcUid).remove();
+
+                const summary = fixLog.length ? fixLog.join(', ') : 'no issues found';
+                Toastify({
+                    text: `🔧 Dev fix applied: ${summary}. Your SPS has been recalculated!`,
+                    duration: 8000, gravity: 'top', position: 'center',
+                    style: { background: 'linear-gradient(135deg,#001a00,#00aa44)' }
+                }).showToast();
+            }
+        });
+    }, 3000); // wait for Firebase auth to settle
+
     // Market ticker — refreshes every 2 minutes (initial load handled by enterGame)
     setInterval(() => refreshMarketTicker(), 60 * 1000);
 
@@ -18359,7 +18415,7 @@ function initializeChat() {
                 const text = e.target.value.trim(); 
                 if (text) {
                     // Dev command: !test — cuts all cooldowns/timers to 0 for fast testing
-                    // !fixsps @name — dev-only, fixes SPS/expeditions for a named player without touching anyone else
+                    // !fixsps @name — dev-only: pushes a fix command to Firebase that the target player's game picks up
                     if (text.startsWith('!fixsps')) {
                         if (window._scIsDev && window._scIsDev(uid)) {
                             const _fsParts = text.trim().split(/\s+/);
@@ -18371,106 +18427,33 @@ function initializeChat() {
                                 e.target.value = ''; return;
                             }
 
-                            // Show progress to dev only (no public chat message)
-                            Toastify({ text: `🔧 Looking up ${_fsName}...`, duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#001a00,#003300)' } }).showToast();
-
                             (async () => {
                                 try {
                                     const _fsDb = window._scFirebase?.db;
                                     if (!_fsDb) { Toastify({ text: '❌ Firebase not ready.', duration: 3000, gravity:'top', position:'center' }).showToast(); return; }
 
-                                    // 1. Resolve player name → UID via accountNames
-                                    // accountNames structure: { "playername": "uid" } — name IS the key
+                                    // Look up UID from accountNames (name is the key)
                                     let _fsUID = null;
-                                    // Try exact name first, then lowercase
                                     for (const nameVariant of [_fsName, _fsName.toLowerCase()]) {
-                                        const _fsNSnap = await _fsDb.ref('accountNames/' + nameVariant).once('value');
-                                        if (_fsNSnap.exists()) { _fsUID = _fsNSnap.val(); break; }
+                                        const _fsSnap = await _fsDb.ref('accountNames/' + nameVariant).once('value');
+                                        if (_fsSnap.exists()) { _fsUID = _fsSnap.val(); break; }
                                     }
                                     if (!_fsUID) {
                                         Toastify({ text: `❌ Player "${_fsName}" not found in Firebase.`, duration: 5000, gravity:'top', position:'center', style:{background:'#330000'} }).showToast();
                                         return;
                                     }
 
-                                    // 2. Load their save from Firebase
-                                    const _fsSaveSnap = await _fsDb.ref('gameSaves/' + _fsUID).once('value');
-                                    if (!_fsSaveSnap.exists()) {
-                                        Toastify({ text: `❌ No save found for "${_fsName}".`, duration: 5000, gravity:'top', position:'center', style:{background:'#330000'} }).showToast();
-                                        return;
-                                    }
-                                    const _fsSaveData = _fsSaveSnap.val();
-                                    let _fsState;
-                                    try { _fsState = JSON.parse(_fsSaveData.state); } catch(e2) {
-                                        Toastify({ text: `❌ Save for "${_fsName}" is corrupted (parse error).`, duration: 5000, gravity:'top', position:'center', style:{background:'#330000'} }).showToast();
-                                        return;
-                                    }
-
-                                    // 3. Apply fixes to their save
-                                    let _fsFixLog = [];
-
-                                    // Fix A: Force-complete stuck expeditions (restore minion levels)
-                                    let _fsExpFixed = 0;
-                                    if (_fsState.activeExpeditions && typeof _fsState.activeExpeditions === 'object') {
-                                        for (const expId in _fsState.activeExpeditions) {
-                                            const exp = _fsState.activeExpeditions[expId];
-                                            if (exp && exp.sentMinions) {
-                                                for (const mId in exp.sentMinions) {
-                                                    if (_fsState.minions && _fsState.minions[mId] != null) {
-                                                        const cur = Number(_fsState.minions[mId].level) || 0;
-                                                        _fsState.minions[mId].level = cur + Number(exp.sentMinions[mId]);
-                                                        _fsExpFixed++;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        _fsState.activeExpeditions = {};
-                                        if (_fsExpFixed > 0) _fsFixLog.push(`restored ${_fsExpFixed} minion level(s) from ${Object.keys(_fsSaveData.state.activeExpeditions||{}).length} expeditions`);
-                                    }
-
-                                    // Fix B: Clear dark curse / halve_sps penalty flags
-                                    if (_fsState.activePotions && typeof _fsState.activePotions === 'object') {
-                                        let _fsCurseCleared = 0;
-                                        Object.keys(_fsState.activePotions).forEach(k => {
-                                            if (k.endsWith('_dark_curse')) { _fsState.activePotions[k] = 0; _fsCurseCleared++; }
-                                        });
-                                        if (_fsCurseCleared > 0) _fsFixLog.push(`cleared ${_fsCurseCleared} dark curse flag(s)`);
-                                    }
-
-                                    // Fix C: Reset challenge bonus fields so they recalculate on next load
-                                    _fsState._chalBonusSps    = 1;
-                                    _fsState._chalBonusSpc    = 1;
-                                    _fsState._chalBonusGlobal = 1;
-                                    _fsState._chalBonusDe     = 1;
-                                    _fsState._chalBonusShard  = 1;
-                                    _fsState._chalBonusAether = 1;
-                                    _fsState._chalBonusArt    = 1;
-                                    _fsState._chalBonusMinion = 1;
-                                    _fsState._chalBonusLight  = 1;
-                                    if (_fsState.completedChallenges) {
-                                        const _fsChalIds = Object.keys(_fsState.completedChallenges);
-                                        if (typeof CHALLENGES !== 'undefined') {
-                                            for (const ch of CHALLENGES) {
-                                                if (_fsState.completedChallenges[ch.id]) {
-                                                    try { ch.rewardFn(_fsState); } catch(e3) {}
-                                                }
-                                            }
-                                        }
-                                        _fsFixLog.push(`reapplied ${_fsChalIds.length} challenge bonus(es)`);
-                                    }
-
-                                    // 4. Write fixed save back to Firebase
-                                    const _fsFixed = JSON.stringify(_fsState);
-                                    await _fsDb.ref('gameSaves/' + _fsUID).update({
-                                        state: _fsFixed,
-                                        savedAt: Date.now()
+                                    // Push a fix command to devCommands/{targetUID} — target player's game reads & applies it
+                                    await _fsDb.ref('devCommands/' + _fsUID).set({
+                                        command: 'fixsps',
+                                        issuedBy: gameState.playerName || 'dev',
+                                        issuedAt: Date.now()
                                     });
 
-                                    // 5. Report result to dev only (private Toastify — no public chat)
-                                    const _fsSummary = _fsFixLog.length ? _fsFixLog.join(', ') : 'no issues found';
                                     Toastify({
-                                        text: `✅ Fixed "${_fsName}": ${_fsSummary}. They need to reload the game.`,
-                                        duration: 10000, gravity: 'top', position: 'center',
-                                        style: { background: 'linear-gradient(135deg,#001a00,#00aa44)', maxWidth:'400px' }
+                                        text: `🔧 Fix command sent to "${_fsName}". They will be fixed next time their game ticks (within 1 second).`,
+                                        duration: 8000, gravity: 'top', position: 'center',
+                                        style: { background: 'linear-gradient(135deg,#001a00,#004400)' }
                                     }).showToast();
 
                                 } catch(e2) {
@@ -18478,7 +18461,7 @@ function initializeChat() {
                                 }
                             })();
                         } else {
-                            Toastify({ text: '⛔ Dev-only command.', duration: 2000, gravity: 'top', position: 'center' }).showToast();
+                            // Non-devs: silently ignore (no error shown, no hint the command exists)
                         }
                         e.target.value = ''; return;
                     }

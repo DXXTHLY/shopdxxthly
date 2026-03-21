@@ -6671,137 +6671,248 @@ const lightWorlds = {
 // INFERNAL PROVING GROUNDS - BATTLE DATA (FULL 22 MINION ROSTER)
 // =================================================================
 const battleMinions = {
-    // TIER 1: Low-Cost & Basic
-    soul_spark: { name: "Soul Spark", hp: 1, atk: 1, range: 1, cost: 0, icon: '✨' },
-    imp:      { name: "Imp",      hp: 10, atk: 3, range: 1, cost: 1, icon: '👿' },
-    ghoul:    { name: "Ghoul",    hp: 15, atk: 2, range: 1, cost: 2, icon: '🧟' },
-    demon:    { name: "Lesser Demon", hp: 20, atk: 5, range: 1, cost: 3, icon: '👹' },
-    
-    // TIER 2: Mid-Cost & Specialists
-    ash_golem:{ name: "Ash Golem",  hp: 40, atk: 4, range: 1, cost: 4, icon: '🗿' },
-    cinder_wraith: { name: "Cinder Wraith", hp: 15, atk: 6, range: 3, cost: 4, icon: '👻' },
-    abyssal_stalker: { name: "Abyssal Stalker", hp: 25, atk: 8, range: 1, cost: 5, icon: '🐙' },
-    frost_lich:      { name: "Frost Lich",      hp: 20, atk: 7, range: 4, cost: 6, icon: '💀' },
-    hellhound: { name: "Hellhound", hp: 45, atk: 12, range: 1, cost: 6, icon: '🐕' },
-    
-    // TIER 3: High-Cost & Elites (balanced buffs)
-    balrog:          { name: "Balrog",          hp: 65, atk: 10, range: 1, cost: 7, icon: '🔥' },
-    corrupted_cherub: { name: "Corrupted Cherub", hp: 35, atk: 10, range: 3, cost: 7, icon: '👼' },
-    shoggoth:         { name: "Shoggoth",         hp: 95, atk: 7, range: 1, cost: 7, icon: '🦠' },
-    river_hydra: { name: "River Hydra", hp: 80, atk: 7, range: 1, cost: 8, icon: '🐉' }, // toned down a bit
-    fallen_angel: { name: "Fallen Angel", hp: 45, atk: 16, range: 1, cost: 9, icon: '😇' },
-    pit_lord:  { name: "Pit Lord",  hp: 105, atk: 14, range: 1, cost: 10, icon: '🤴' },
-    spacetime_ghast:  { name: "Spacetime Ghast",  hp: 75, atk: 13, range: 3, cost: 11, icon: '⏳' },
-    
-    // TIER 4: God-Tier & Endgame (balanced buffs)
-    glacial_titan: { name: "Glacial Titan", hp: 150, atk: 11, range: 1, cost: 12, icon: '🏔️' },
-    reality_warper:   { name: "Reality Warper",   hp: 85, atk: 18, range: 1, cost: 13, icon: '✨' },
-    void_spawn: { name: "Void Spawn", hp: 55, atk: 17, range: 5, cost: 14, icon: '🌌' },
-    alpha_omega:      { name: "Alpha & Omega",      hp: 210, atk: 17, range: 1, cost: 16, icon: '♾️' },
-    god_eater: { name: "God Eater", hp: 125, atk: 26, range: 1, cost: 18, icon: '👑' },
-    the_final_observer: { name: "The Final Observer", hp: 65, atk: 22, range: 6, cost: 20, icon: '👁️' },
+    // ── ability field: { name, desc, cd, effect }
+    // effect types: burn, freeze, stun, lifesteal, aoe, weaken, regen, bleed,
+    //               execute, drain, berserk, void_strike, chain, purify,
+    //               radiance, consecrate, inspire, time_stop, echo, unwrite
 
-    // TIER 5: Singularity-era (Singularity / Event Horizon / Genesis worlds)
-    icefiend:       { name: "Icefiend",       hp: 55,  atk: 14, range: 2, cost: 8,  icon: '🥶' },
-    echo_of_nothing:{ name: "Echo of Nothing",hp: 40,  atk: 20, range: 3, cost: 15, icon: '⚫' },
-    causal_predator:{ name: "Causal Predator",hp: 70,  atk: 25, range: 2, cost: 17, icon: '⛓️' },
-    nebulous_entity:{ name: "Nebulous Entity",hp: 90,  atk: 19, range: 2, cost: 16, icon: '💫' },
-    creator_wisp:   { name: "Creator Wisp",   hp: 50,  atk: 28, range: 4, cost: 18, icon: '💡' },
+    // TIER 1: Low-Cost & Basic — DARK
+    soul_spark: { name: "Soul Spark", hp: 1, atk: 1, range: 1, cost: 0, icon: '✨',
+        ability: { name: "Soul Flare", desc: "Burns enemy for 3 turns.", cd: 3, effect: 'burn', turns: 3 } },
+    imp:      { name: "Imp",      hp: 10, atk: 3, range: 1, cost: 1, icon: '👿',
+        ability: { name: "Spite", desc: "Deals 2× ATK damage — pure malice.", cd: 3, effect: 'berserk', mult: 2.0, recoil: 0 } },
+    ghoul:    { name: "Ghoul",    hp: 15, atk: 2, range: 1, cost: 2, icon: '🧟',
+        ability: { name: "Infected Bite", desc: "Inflicts bleed — enemy takes 15% max HP damage over 3 turns.", cd: 3, effect: 'bleed', pct: 0.15, turns: 3 } },
+    demon:    { name: "Lesser Demon", hp: 20, atk: 5, range: 1, cost: 3, icon: '👹',
+        ability: { name: "Hellfire Burst", desc: "Deals 1.5× ATK to all enemies.", cd: 4, effect: 'aoe', mult: 1.5 } },
 
-    // TIER 6: Pantheon / Chronos / Omega era
-    deific_remnant: { name: "Deific Remnant", hp: 160, atk: 22, range: 1, cost: 19, icon: '🏛️' },
-    time_leech:     { name: "Time Leech",     hp: 80,  atk: 18, range: 3, cost: 18, icon: '🕰️' },
-    eon_devourer:   { name: "Eon Devourer",   hp: 200, atk: 20, range: 1, cost: 21, icon: '🌀' },
+    // TIER 2: Mid-Cost & Specialists — DARK
+    ash_golem:{ name: "Ash Golem",  hp: 40, atk: 4, range: 1, cost: 4, icon: '🗿',
+        ability: { name: "Stone Skin", desc: "Reduces incoming damage by 70% for 2 hits.", cd: 4, effect: 'shield', reduction: 0.70, hits: 2 } },
+    cinder_wraith: { name: "Cinder Wraith", hp: 15, atk: 6, range: 3, cost: 4, icon: '👻',
+        ability: { name: "Ember Storm", desc: "Burns all enemies for 2 turns.", cd: 4, effect: 'aoe_burn', turns: 2 } },
+    abyssal_stalker: { name: "Abyssal Stalker", hp: 25, atk: 8, range: 1, cost: 5, icon: '🐙',
+        ability: { name: "Ink Cloud", desc: "Blinds enemy — 50% miss chance for 2 turns.", cd: 4, effect: 'blind', turns: 2 } },
+    frost_lich:      { name: "Frost Lich",      hp: 20, atk: 7, range: 4, cost: 6, icon: '💀',
+        ability: { name: "Glacial Curse", desc: "Freezes enemy — skips their next 2 turns.", cd: 5, effect: 'freeze', turns: 2 } },
+    hellhound: { name: "Hellhound", hp: 45, atk: 12, range: 1, cost: 6, icon: '🐕',
+        ability: { name: "Savage Lunge", desc: "3× ATK burst but takes 10 recoil damage.", cd: 4, effect: 'berserk', mult: 3.0, recoil: 10 } },
 
-    // TIER 7: True Infinity / Akashic / Plane of Ideas era
-    concept_of_death:  { name: "Concept of Death",  hp: 110, atk: 30, range: 2, cost: 22, icon: '⚖️' },
-    the_last_question: { name: "The Last Question",  hp: 75,  atk: 35, range: 5, cost: 24, icon: '❓' },
-    lorekeeper:        { name: "Lorekeeper",         hp: 130, atk: 24, range: 3, cost: 22, icon: '📚' },
-    thought_form:      { name: "Thought-Form",       hp: 90,  atk: 32, range: 4, cost: 23, icon: '🧠' },
-    conceptual_golem:  { name: "Conceptual Golem",   hp: 250, atk: 20, range: 1, cost: 24, icon: '💡' },
-    eidos_demon:       { name: "Eidos Demon",        hp: 100, atk: 38, range: 2, cost: 25, icon: '🔷' },
+    // TIER 3: High-Cost & Elites — DARK
+    balrog:          { name: "Balrog",          hp: 65, atk: 10, range: 1, cost: 7, icon: '🔥',
+        ability: { name: "Inferno Slam", desc: "AoE 2× ATK + burn all enemies 3 turns.", cd: 4, effect: 'aoe_burn', mult: 2.0, turns: 3 } },
+    corrupted_cherub: { name: "Corrupted Cherub", hp: 35, atk: 10, range: 3, cost: 7, icon: '👼',
+        ability: { name: "Wicked Blessing", desc: "Heals frontliner for 40% of their max HP.", cd: 4, effect: 'regen_burst', pct: 0.40 } },
+    shoggoth:         { name: "Shoggoth",         hp: 95, atk: 7, range: 1, cost: 7, icon: '🦠',
+        ability: { name: "Absorb", desc: "Drains 25% of enemy current HP.", cd: 4, effect: 'drain', pct: 0.25 } },
+    river_hydra: { name: "River Hydra", hp: 80, atk: 7, range: 1, cost: 8, icon: '🐉',
+        ability: { name: "Multi-Head Frenzy", desc: "Attacks 3 times at 80% ATK each.", cd: 4, effect: 'multi_hit', hits: 3, mult: 0.80 } },
+    fallen_angel: { name: "Fallen Angel", hp: 45, atk: 16, range: 1, cost: 9, icon: '😇',
+        ability: { name: "Righteous Ruin", desc: "Deals 2× ATK. If enemy below 40% HP, instant execute.", cd: 4, effect: 'execute', mult: 2.0, threshold: 0.40 } },
+    pit_lord:  { name: "Pit Lord",  hp: 105, atk: 14, range: 1, cost: 10, icon: '🤴',
+        ability: { name: "Dominate", desc: "Weakens enemy ATK by 50% for 3 turns.", cd: 4, effect: 'weaken', reduction: 0.50, turns: 3 } },
+    spacetime_ghast:  { name: "Spacetime Ghast",  hp: 75, atk: 13, range: 3, cost: 11, icon: '⏳',
+        ability: { name: "Time Skip", desc: "Skips enemy's next 2 turns entirely.", cd: 5, effect: 'stun', turns: 2 } },
 
-    // TIER 8: The White Room / Nexus era
-    blank_slate:       { name: "Blank Slate",        hp: 180, atk: 28, range: 1, cost: 25, icon: '⬜' },
-    silence_incarnate: { name: "Silence Incarnate",  hp: 85,  atk: 40, range: 6, cost: 28, icon: '🤫' },
-    manifold_horror:   { name: "Manifold Horror",    hp: 300, atk: 25, range: 1, cost: 30, icon: '💠' },
+    // TIER 4: God-Tier & Endgame — DARK
+    glacial_titan: { name: "Glacial Titan", hp: 150, atk: 11, range: 1, cost: 12, icon: '🏔️',
+        ability: { name: "Permafrost", desc: "Freezes enemy AND all nearby — stuns 2 turns, reduces ATK 40%.", cd: 5, effect: 'freeze_weaken', turns: 2, reduction: 0.40 } },
+    reality_warper:   { name: "Reality Warper",   hp: 85, atk: 18, range: 1, cost: 13, icon: '✨',
+        ability: { name: "Unravelling", desc: "Reduces enemy max HP by 30% permanently this fight.", cd: 5, effect: 'void_strike', pct: 0.30 } },
+    void_spawn: { name: "Void Spawn", hp: 55, atk: 17, range: 5, cost: 14, icon: '🌌',
+        ability: { name: "Void Chain", desc: "Chains 1× ATK to every enemy on the floor.", cd: 4, effect: 'chain', mult: 1.0 } },
+    alpha_omega:      { name: "Alpha & Omega",      hp: 210, atk: 17, range: 1, cost: 16, icon: '♾️',
+        ability: { name: "Absolute Cycle", desc: "Heals for 50% of max HP AND deals 1.5× ATK.", cd: 5, effect: 'drain', pct: 0.50, also_attack: true, mult: 1.5 } },
+    god_eater: { name: "God Eater", hp: 125, atk: 26, range: 1, cost: 18, icon: '👑',
+        ability: { name: "Devour", desc: "Eats enemy's next attack: absorbs damage as HP instead.", cd: 5, effect: 'counter_absorb' } },
+    the_final_observer: { name: "The Final Observer", hp: 65, atk: 22, range: 6, cost: 20, icon: '👁️',
+        ability: { name: "Judgment Gaze", desc: "Reveals enemy weakness — next 3 attacks deal +50% dmg.", cd: 5, effect: 'expose', turns: 3, bonus: 0.50 } },
 
-    // TIER 9: Beyond Final worlds (Dreaming Dark / Shattered / Primordial)
-    nightmare_weaver:   { name: "Nightmare Weaver",   hp: 120, atk: 45, range: 3, cost: 32, icon: '🕷️' },
-    dreaming_leviathan: { name: "Dreaming Leviathan", hp: 400, atk: 30, range: 1, cost: 35, icon: '🌊' },
-    universe_shard:     { name: "Universe Shard",     hp: 150, atk: 50, range: 4, cost: 36, icon: '🔮' },
-    entropy_wraith:     { name: "Entropy Wraith",     hp: 200, atk: 42, range: 2, cost: 35, icon: '🌀' },
-    wound_tendril:      { name: "Wound Tendril",      hp: 500, atk: 35, range: 1, cost: 38, icon: '🩸' },
-    the_unwritten:      { name: "The Unwritten",      hp: 250, atk: 55, range: 5, cost: 40, icon: '📜' },
+    // TIER 5: Singularity-era — DARK
+    icefiend:       { name: "Icefiend",       hp: 55,  atk: 14, range: 2, cost: 8,  icon: '🥶',
+        ability: { name: "Deep Freeze", desc: "Freezes enemy for 2 turns.", cd: 4, effect: 'freeze', turns: 2 } },
+    echo_of_nothing:{ name: "Echo of Nothing",hp: 40,  atk: 20, range: 3, cost: 15, icon: '⚫',
+        ability: { name: "Null Echo", desc: "Copies last enemy ability — deals 2× ATK.", cd: 4, effect: 'berserk', mult: 2.0, recoil: 0 } },
+    causal_predator:{ name: "Causal Predator",hp: 70,  atk: 25, range: 2, cost: 17, icon: '⛓️',
+        ability: { name: "Causality Lock", desc: "Chains enemy — stuns 1 turn and bleeds for 3.", cd: 4, effect: 'bleed', pct: 0.20, turns: 3, also_stun: 1 } },
+    nebulous_entity:{ name: "Nebulous Entity",hp: 90,  atk: 19, range: 2, cost: 16, icon: '💫',
+        ability: { name: "Phase Shift", desc: "Dodges next hit guaranteed + 1.5× counter.", cd: 4, effect: 'phase_counter', mult: 1.5 } },
+    creator_wisp:   { name: "Creator Wisp",   hp: 50,  atk: 28, range: 4, cost: 18, icon: '💡',
+        ability: { name: "Spark Creation", desc: "Heals all living party members for 30% max HP.", cd: 5, effect: 'party_heal', pct: 0.30 } },
 
-    // SECRET MINIONS — unlockable via Hourly Shop, Abyssal Cache, or Breach Chests only
-    wraith_of_avarice:      { name: "Wraith of Avarice",      hp: 60,  atk: 30, range: 4, cost: 16, icon: '💰', secret: true },
-    hollow_sovereign:       { name: "Hollow Sovereign",       hp: 180, atk: 22, range: 1, cost: 20, icon: '👻', secret: true },
-    the_pale_accord:        { name: "The Pale Accord",        hp: 95,  atk: 38, range: 3, cost: 24, icon: '📋', secret: true },
-    the_devouring_silence:  { name: "The Devouring Silence",  hp: 110, atk: 35, range: 2, cost: 26, icon: '🕳️', secret: true },
-    eyeless_prophet:        { name: "Eyeless Prophet",        hp: 70,  atk: 42, range: 5, cost: 27, icon: '🔮', secret: true },
-    marrow_king:            { name: "Marrow King",            hp: 220, atk: 28, range: 1, cost: 28, icon: '👑', secret: true },
-    the_last_hymn:          { name: "The Last Hymn",          hp: 85,  atk: 45, range: 4, cost: 30, icon: '🎵', secret: true },
-    null_shepherd:          { name: "Null Shepherd",          hp: 150, atk: 38, range: 2, cost: 29, icon: '🌑', secret: true },
-    the_inverse:            { name: "The Inverse",            hp: 130, atk: 50, range: 3, cost: 32, icon: '🪞', secret: true },
+    // TIER 6: Pantheon / Chronos / Omega — DARK
+    deific_remnant: { name: "Deific Remnant", hp: 160, atk: 22, range: 1, cost: 19, icon: '🏛️',
+        ability: { name: "Ancient Rite", desc: "Reduces all cooldowns by 2 and heals 20% max HP.", cd: 5, effect: 'cd_reset', heal_pct: 0.20 } },
+    time_leech:     { name: "Time Leech",     hp: 80,  atk: 18, range: 3, cost: 18, icon: '🕰️',
+        ability: { name: "Time Drain", desc: "Steals enemy turn — they lose momentum and you gain it.", cd: 4, effect: 'time_stop', mom_steal: 2 } },
+    eon_devourer:   { name: "Eon Devourer",   hp: 200, atk: 20, range: 1, cost: 21, icon: '🌀',
+        ability: { name: "Epoch Crush", desc: "Deals 1.5× ATK, then drains 20% of enemy remaining HP.", cd: 5, effect: 'drain', pct: 0.20, also_attack: true, mult: 1.5 } },
 
-    // DONOR/RARE SECRET MINIONS — same pool as donation rewards
-    the_forgotten_god:   { name: "The Forgotten God",   hp: 170, atk: 54, range: 3, cost: 34, icon: '🗿',  secret: true },
-    the_wound_between:   { name: "The Wound Between",   hp: 200, atk: 60, range: 2, cost: 36, icon: '🌌',  secret: true },
-    echo_of_the_first:   { name: "Echo of the First",   hp: 140, atk: 62, range: 5, cost: 37, icon: '🔔',  secret: true },
-    the_last_dream:      { name: "The Last Dream",      hp: 220, atk: 58, range: 2, cost: 38, icon: '😴',  secret: true },
-    the_starving_dark:   { name: "The Starving Dark",   hp: 190, atk: 66, range: 3, cost: 40, icon: '🕳️', secret: true },
-    terminus:            { name: "Terminus",            hp: 250, atk: 70, range: 4, cost: 42, icon: '🚩',  secret: true },
+    // TIER 7: True Infinity / Akashic — DARK
+    concept_of_death:  { name: "Concept of Death",  hp: 110, atk: 30, range: 2, cost: 22, icon: '⚖️',
+        ability: { name: "Final Verdict", desc: "Executes enemy if below 35% HP. Otherwise deals 2× ATK.", cd: 5, effect: 'execute', mult: 2.0, threshold: 0.35 } },
+    the_last_question: { name: "The Last Question",  hp: 75,  atk: 35, range: 5, cost: 24, icon: '❓',
+        ability: { name: "Unanswerable", desc: "Bypasses all armor — deals exact ATK regardless of shields.", cd: 5, effect: 'armor_pierce', mult: 1.0 } },
+    lorekeeper:        { name: "Lorekeeper",         hp: 130, atk: 24, range: 3, cost: 22, icon: '📚',
+        ability: { name: "Forbidden Knowledge", desc: "Exposes weakness — all attacks deal +60% dmg for 3 turns.", cd: 5, effect: 'expose', turns: 3, bonus: 0.60 } },
+    thought_form:      { name: "Thought-Form",       hp: 90,  atk: 32, range: 4, cost: 23, icon: '🧠',
+        ability: { name: "Psychic Assault", desc: "Deals 2.5× ATK and inflicts confusion (enemy hits self once).", cd: 5, effect: 'confuse' } },
+    conceptual_golem:  { name: "Conceptual Golem",   hp: 250, atk: 20, range: 1, cost: 24, icon: '💡',
+        ability: { name: "Concept Shield", desc: "Absorbs next 3 hits at 80% reduction + heals for absorbed amount.", cd: 5, effect: 'shield', reduction: 0.80, hits: 3, heal_absorbed: true } },
+    eidos_demon:       { name: "Eidos Demon",        hp: 100, atk: 38, range: 2, cost: 25, icon: '🔷',
+        ability: { name: "Form Collapse", desc: "Collapses enemy form — reduces their max HP by 40%.", cd: 5, effect: 'void_strike', pct: 0.40 } },
 
-    // DONOR-EXCLUSIVE SECRET MINIONS — obtainable only via donation rewards
-    the_void_author:        { name: "The Void Author",        hp: 160, atk: 58, range: 4, cost: 36, icon: '🖋️', secret: true, donorOnly: true },
-    the_bleeding_throne:    { name: "The Bleeding Throne",    hp: 280, atk: 52, range: 2, cost: 38, icon: '🩸', secret: true, donorOnly: true },
-    the_unmaker:            { name: "The Unmaker",            hp: 200, atk: 65, range: 3, cost: 42, icon: '🌑', secret: true, donorOnly: true },
+    // TIER 8: The White Room — DARK
+    blank_slate:       { name: "Blank Slate",        hp: 180, atk: 28, range: 1, cost: 25, icon: '⬜',
+        ability: { name: "Overwrite", desc: "Removes all enemy buffs/status and deals 2× ATK.", cd: 5, effect: 'cleanse_enemy', mult: 2.0 } },
+    silence_incarnate: { name: "Silence Incarnate",  hp: 85,  atk: 40, range: 6, cost: 28, icon: '🤫',
+        ability: { name: "Total Silence", desc: "Stuns all enemies for 1 turn.", cd: 5, effect: 'stun_aoe', turns: 1 } },
+    manifold_horror:   { name: "Manifold Horror",    hp: 300, atk: 25, range: 1, cost: 30, icon: '💠',
+        ability: { name: "Manifest Terror", desc: "Weakens all enemies 60% ATK for 3 turns + bleeds frontliner.", cd: 5, effect: 'weaken_aoe', reduction: 0.60, turns: 3 } },
 
-    // GUARDIAN MINIONS — stronger combat stats than equivalent dark minion tiers
-    // Their base SPS is comparable to dark minions, but they excel in PvP/raids
-    luminary_sprite:     { name: "Luminary Sprite",     hp: 20,  atk: 7,  range: 3, cost: 3,  icon: '✨', secret: false },
-    dawn_sentinel:       { name: "Dawn Sentinel",       hp: 40,  atk: 12, range: 2, cost: 5,  icon: '🌅', secret: false },
-    aureate_angel:       { name: "Aureate Angel",       hp: 30,  atk: 16, range: 4, cost: 6,  icon: '😇', secret: false },
-    stellar_wraith:      { name: "Stellar Wraith",      hp: 22,  atk: 20, range: 5, cost: 7,  icon: '⭐', secret: false },
-    prism_golem:         { name: "Prism Golem",         hp: 70,  atk: 14, range: 1, cost: 8,  icon: '🔷', secret: false },
-    throne_guardian:     { name: "Throne Guardian",     hp: 110, atk: 16, range: 1, cost: 10, icon: '🛡️', secret: false },
-    void_seraph:         { name: "Void Seraph",         hp: 50,  atk: 24, range: 4, cost: 11, icon: '🌌', secret: false },
-    light_titan:         { name: "Light Titan",         hp: 130, atk: 20, range: 1, cost: 13, icon: '⚡', secret: false },
-    celestial_dragon:    { name: "Celestial Dragon",    hp: 90,  atk: 30, range: 3, cost: 14, icon: '🐉', secret: false },
-    radiant_oracle:      { name: "Radiant Oracle",      hp: 40,  atk: 36, range: 6, cost: 15, icon: '🔮', secret: false },
-    purity_engine:       { name: "Purity Engine",       hp: 145, atk: 22, range: 1, cost: 17, icon: '⚙️', secret: false },
-    genesis_herald:      { name: "Genesis Herald",      hp: 55,  atk: 40, range: 5, cost: 18, icon: '📯', secret: false },
-    infinite_warden:     { name: "Infinite Warden",     hp: 175, atk: 26, range: 1, cost: 20, icon: '👁️', secret: false },
-    the_first_guardian:  { name: "The First Guardian",  hp: 100, atk: 44, range: 3, cost: 21, icon: '🌟', secret: false },
-    the_undying_flame:   { name: "The Undying Flame",   hp: 70,  atk: 48, range: 2, cost: 22, icon: '🔥', secret: false },
-    genesis_spark:       { name: "Genesis Spark",       hp: 28,  atk: 52, range: 7, cost: 23, icon: '💫', secret: false },
-    solar_archon:        { name: "Solar Archon",        hp: 115, atk: 36, range: 2, cost: 25, icon: '☀️', secret: false },
-    harmonic_weaver:     { name: "Harmonic Weaver",     hp: 60,  atk: 56, range: 5, cost: 26, icon: '🎼', secret: false },
-    apex_herald:         { name: "Apex Herald",         hp: 90,  atk: 46, range: 4, cost: 27, icon: '📢', secret: false },
-    luminous_titan:      { name: "Luminous Titan",      hp: 200, atk: 32, range: 1, cost: 28, icon: '🌠', secret: false },
-    choir_seraph:        { name: "Choir Seraph",        hp: 75,  atk: 60, range: 6, cost: 30, icon: '🎙️', secret: false },
-    eternal_witness:     { name: "Eternal Witness",     hp: 130, atk: 48, range: 2, cost: 31, icon: '🔭', secret: false },
-    convergence_engine:  { name: "Convergence Engine",  hp: 230, atk: 36, range: 1, cost: 33, icon: '⚙️', secret: false },
-    void_architect:      { name: "Void Architect",      hp: 85,  atk: 66, range: 5, cost: 34, icon: '📐', secret: false },
-    absolute_guardian:   { name: "Absolute Guardian",   hp: 195, atk: 44, range: 1, cost: 35, icon: '⚜️', secret: false },
-    creation_wraith:     { name: "Creation Wraith",     hp: 70,  atk: 70, range: 4, cost: 36, icon: '🌊', secret: false },
-    infinity_herald:     { name: "Infinity Herald",     hp: 50,  atk: 78, range: 7, cost: 38, icon: '♾️', secret: false },
-    stellar_sovereign:   { name: "Stellar Sovereign",   hp: 265, atk: 40, range: 1, cost: 39, icon: '👑', secret: false },
-    the_last_angel:      { name: "The Last Angel",      hp: 110, atk: 74, range: 4, cost: 40, icon: '👼', secret: false },
-    pure_thought:        { name: "Pure Thought",        hp: 35,  atk: 85, range: 7, cost: 42, icon: '🧠', secret: false },
-    transcendent_core:   { name: "Transcendent Core",   hp: 310, atk: 48, range: 1, cost: 43, icon: '💎', secret: false },
-    omega_seraph:        { name: "Omega Seraph",        hp: 145, atk: 80, range: 5, cost: 44, icon: '🕊️', secret: false },
-    the_infinite_self:   { name: "The Infinite Self",   hp: 80,  atk: 88, range: 6, cost: 46, icon: '🪞', secret: false },
-    the_light_beyond:    { name: "The Light Beyond",    hp: 100, atk: 85, range: 4, cost: 47, icon: '✨', secret: false },
-    eternal_sovereign:   { name: "Eternal Sovereign",   hp: 340, atk: 52, range: 1, cost: 48, icon: '🏆', secret: false },
-    the_nameless_light:  { name: "The Nameless Light",  hp: 120, atk: 92, range: 5, cost: 50, icon: '🌟', secret: false },
-    genesis_prime:       { name: "Genesis Prime",       hp: 85,  atk: 96, range: 6, cost: 52, icon: '🌀', secret: false },
-    the_final_guardian:  { name: "The Final Guardian",  hp: 390, atk: 58, range: 1, cost: 55, icon: '🛡️', secret: false },
-    absolute_light:      { name: "Absolute Light",      hp: 130, atk: 100,range: 4, cost: 58, icon: '💡', secret: false },
+    // TIER 9: Beyond Final — DARK
+    nightmare_weaver:   { name: "Nightmare Weaver",   hp: 120, atk: 45, range: 3, cost: 32, icon: '🕷️',
+        ability: { name: "Web of Dread", desc: "Traps enemy — stunned 1 turn + bleeds 25% HP over 4 turns.", cd: 5, effect: 'bleed', pct: 0.25, turns: 4, also_stun: 1 } },
+    dreaming_leviathan: { name: "Dreaming Leviathan", hp: 400, atk: 30, range: 1, cost: 35, icon: '🌊',
+        ability: { name: "Tidal Crush", desc: "Massive slam: 2.5× ATK to all enemies.", cd: 5, effect: 'aoe', mult: 2.5 } },
+    universe_shard:     { name: "Universe Shard",     hp: 150, atk: 50, range: 4, cost: 36, icon: '🔮',
+        ability: { name: "Reality Fragment", desc: "Shatters reality — chains 1.5× ATK to all enemies + exposes for 2 turns.", cd: 5, effect: 'chain', mult: 1.5, expose_turns: 2 } },
+    entropy_wraith:     { name: "Entropy Wraith",     hp: 200, atk: 42, range: 2, cost: 35, icon: '🌀',
+        ability: { name: "Entropy Spiral", desc: "Drains 30% of all enemies' HP.", cd: 5, effect: 'drain_all', pct: 0.30 } },
+    wound_tendril:      { name: "Wound Tendril",      hp: 500, atk: 35, range: 1, cost: 38, icon: '🩸',
+        ability: { name: "Hemorrhage", desc: "Inflicts catastrophic bleed — 40% max HP over 5 turns.", cd: 5, effect: 'bleed', pct: 0.40, turns: 5 } },
+    the_unwritten:      { name: "The Unwritten",      hp: 250, atk: 55, range: 5, cost: 40, icon: '📜',
+        ability: { name: "Unwrite", desc: "Erases the enemy from existence — deals 3× ATK, ignores armor.", cd: 6, effect: 'armor_pierce', mult: 3.0 } },
+
+    // SECRET MINIONS — DARK
+    wraith_of_avarice:      { name: "Wraith of Avarice",      hp: 60,  atk: 30, range: 4, cost: 16, icon: '💰', secret: true,
+        ability: { name: "Gold Hunger", desc: "Lifesteal: heals for 60% of damage dealt.", cd: 4, effect: 'lifesteal', pct: 0.60 } },
+    hollow_sovereign:       { name: "Hollow Sovereign",       hp: 180, atk: 22, range: 1, cost: 20, icon: '👻', secret: true,
+        ability: { name: "Phantom Decree", desc: "Immune to next 2 attacks + counter at full ATK.", cd: 5, effect: 'counter_absorb', hits: 2 } },
+    the_pale_accord:        { name: "The Pale Accord",        hp: 95,  atk: 38, range: 3, cost: 24, icon: '📋', secret: true,
+        ability: { name: "Pact Seal", desc: "Binds enemy — weakens 40% ATK + reduces their max HP 20%.", cd: 5, effect: 'freeze_weaken', reduction: 0.40, turns: 3 } },
+    the_devouring_silence:  { name: "The Devouring Silence",  hp: 110, atk: 35, range: 2, cost: 26, icon: '🕳️', secret: true,
+        ability: { name: "Consume", desc: "Devours enemy voice — stuns 2 turns and drains 25% HP.", cd: 5, effect: 'drain', pct: 0.25, also_stun: 2 } },
+    eyeless_prophet:        { name: "Eyeless Prophet",        hp: 70,  atk: 42, range: 5, cost: 27, icon: '🔮', secret: true,
+        ability: { name: "Foreseen Strike", desc: "Attack can't miss — deals 2× ATK piercing armor.", cd: 4, effect: 'armor_pierce', mult: 2.0 } },
+    marrow_king:            { name: "Marrow King",            hp: 220, atk: 28, range: 1, cost: 28, icon: '👑', secret: true,
+        ability: { name: "Bone Throne", desc: "Full armor for 3 hits (−80%) + heals 30% HP.", cd: 5, effect: 'shield', reduction: 0.80, hits: 3, heal_pct: 0.30 } },
+    the_last_hymn:          { name: "The Last Hymn",          hp: 85,  atk: 45, range: 4, cost: 30, icon: '🎵', secret: true,
+        ability: { name: "Dying Chorus", desc: "Heals ALL party members for 35% max HP.", cd: 5, effect: 'party_heal', pct: 0.35 } },
+    null_shepherd:          { name: "Null Shepherd",          hp: 150, atk: 38, range: 2, cost: 29, icon: '🌑', secret: true,
+        ability: { name: "Void Herd", desc: "Reduces all enemies to 1 HP if below 20% HP, else deals 2× ATK.", cd: 6, effect: 'execute', mult: 2.0, threshold: 0.20, multi: true } },
+    the_inverse:            { name: "The Inverse",            hp: 130, atk: 50, range: 3, cost: 32, icon: '🪞', secret: true,
+        ability: { name: "Mirror Shatter", desc: "Reflects enemy's ATK back as damage to them × 2.", cd: 5, effect: 'reflect', mult: 2.0 } },
+
+    // DONOR/RARE SECRET MINIONS — DARK
+    the_forgotten_god:   { name: "The Forgotten God",   hp: 170, atk: 54, range: 3, cost: 34, icon: '🗿',  secret: true,
+        ability: { name: "Ancient Wrath", desc: "AoE 2.5× ATK + reduces all enemy max HP by 25%.", cd: 5, effect: 'aoe', mult: 2.5, void_pct: 0.25 } },
+    the_wound_between:   { name: "The Wound Between",   hp: 200, atk: 60, range: 2, cost: 36, icon: '🌌',  secret: true,
+        ability: { name: "Rift Tear", desc: "Opens a rift — enemy takes 3× ATK + bleeds 30% over 4 turns.", cd: 5, effect: 'bleed', pct: 0.30, turns: 4, also_hit: 3.0 } },
+    echo_of_the_first:   { name: "Echo of the First",   hp: 140, atk: 62, range: 5, cost: 37, icon: '🔔',  secret: true,
+        ability: { name: "Primal Echo", desc: "Resets all ability cooldowns to 0 + deals 2× ATK.", cd: 6, effect: 'cd_reset', mult: 2.0 } },
+    the_last_dream:      { name: "The Last Dream",      hp: 220, atk: 58, range: 2, cost: 38, icon: '😴',  secret: true,
+        ability: { name: "Dream Crush", desc: "Puts enemy to sleep — stunned 3 turns, takes 2× dmg while sleeping.", cd: 6, effect: 'freeze', turns: 3, dmg_mult: 2.0 } },
+    the_starving_dark:   { name: "The Starving Dark",   hp: 190, atk: 66, range: 3, cost: 40, icon: '🕳️', secret: true,
+        ability: { name: "Consume Light", desc: "Devours ALL enemy HP regen and heals self for it. Deals 2.5× ATK.", cd: 6, effect: 'drain', pct: 0.40, also_attack: true, mult: 2.5 } },
+    terminus:            { name: "Terminus",            hp: 250, atk: 70, range: 4, cost: 42, icon: '🚩',  secret: true,
+        ability: { name: "End of All", desc: "Instantly kills any enemy below 50% HP. Otherwise 3× ATK.", cd: 6, effect: 'execute', mult: 3.0, threshold: 0.50 } },
+
+    // DONOR-EXCLUSIVE SECRET MINIONS — DARK
+    the_void_author:        { name: "The Void Author",        hp: 160, atk: 58, range: 4, cost: 36, icon: '🖋️', secret: true, donorOnly: true,
+        ability: { name: "Rewrite", desc: "Rewrites the enemy's existence — 3× ATK, erases 35% max HP.", cd: 6, effect: 'armor_pierce', mult: 3.0, void_pct: 0.35 } },
+    the_bleeding_throne:    { name: "The Bleeding Throne",    hp: 280, atk: 52, range: 2, cost: 38, icon: '🩸', secret: true, donorOnly: true,
+        ability: { name: "Blood Dominion", desc: "Hemorrhages all enemies: 35% max HP bleed over 5 turns.", cd: 6, effect: 'bleed_all', pct: 0.35, turns: 5 } },
+    the_unmaker:            { name: "The Unmaker",            hp: 200, atk: 65, range: 3, cost: 42, icon: '🌑', secret: true, donorOnly: true,
+        ability: { name: "Unmake", desc: "Destroys enemy — reduces max HP by 60% + deals 3× ATK.", cd: 6, effect: 'void_strike', pct: 0.60, also_attack: true, mult: 3.0 } },
+
+    // ────────────────────────────────────────────────────────────────────
+    // GUARDIAN MINIONS — LIGHT SIDE
+    // ────────────────────────────────────────────────────────────────────
+    luminary_sprite:     { name: "Luminary Sprite",     hp: 20,  atk: 7,  range: 3, cost: 3,  icon: '✨', secret: false,
+        ability: { name: "Radiant Dust", desc: "Blinds enemy — 50% miss chance for 2 turns.", cd: 3, effect: 'blind', turns: 2 } },
+    dawn_sentinel:       { name: "Dawn Sentinel",       hp: 40,  atk: 12, range: 2, cost: 5,  icon: '🌅', secret: false,
+        ability: { name: "First Light", desc: "Heals frontliner 30% max HP + shields for 1 hit.", cd: 4, effect: 'regen_burst', pct: 0.30, shield_hits: 1 } },
+    aureate_angel:       { name: "Aureate Angel",       hp: 30,  atk: 16, range: 4, cost: 6,  icon: '😇', secret: false,
+        ability: { name: "Holy Smite", desc: "Consecrated attack — 2× ATK, ignores enemy armor.", cd: 4, effect: 'consecrate', mult: 2.0 } },
+    stellar_wraith:      { name: "Stellar Wraith",      hp: 22,  atk: 20, range: 5, cost: 7,  icon: '⭐', secret: false,
+        ability: { name: "Starfall", desc: "Rains stars — 1.5× ATK chain to all enemies.", cd: 4, effect: 'chain', mult: 1.5 } },
+    prism_golem:         { name: "Prism Golem",         hp: 70,  atk: 14, range: 1, cost: 8,  icon: '🔷', secret: false,
+        ability: { name: "Prismatic Wall", desc: "Creates light barrier — absorbs next 3 hits at −75% + reflects 30% back.", cd: 4, effect: 'shield', reduction: 0.75, hits: 3, reflect_pct: 0.30 } },
+    throne_guardian:     { name: "Throne Guardian",     hp: 110, atk: 16, range: 1, cost: 10, icon: '🛡️', secret: false,
+        ability: { name: "Sacred Guard", desc: "Full party shield for 2 hits each (−60%) + +3 momentum.", cd: 4, effect: 'party_shield', reduction: 0.60, hits: 2 } },
+    void_seraph:         { name: "Void Seraph",         hp: 50,  atk: 24, range: 4, cost: 11, icon: '🌌', secret: false,
+        ability: { name: "Void Purge", desc: "Removes all enemy buffs and deals 2× ATK.", cd: 4, effect: 'cleanse_enemy', mult: 2.0 } },
+    light_titan:         { name: "Light Titan",         hp: 130, atk: 20, range: 1, cost: 13, icon: '⚡', secret: false,
+        ability: { name: "Lightning Crash", desc: "Stuns enemy 2 turns + chains lightning to all for 1× ATK.", cd: 5, effect: 'stun', turns: 2, also_chain: 1.0 } },
+    celestial_dragon:    { name: "Celestial Dragon",    hp: 90,  atk: 30, range: 3, cost: 14, icon: '🐉', secret: false,
+        ability: { name: "Celestial Breath", desc: "AoE holy fire — 2× ATK to all + purifies party status.", cd: 5, effect: 'aoe', mult: 2.0, purify: true } },
+    radiant_oracle:      { name: "Radiant Oracle",      hp: 40,  atk: 36, range: 6, cost: 15, icon: '🔮', secret: false,
+        ability: { name: "Foresight", desc: "Predicts enemy — next 3 attacks deal +70% dmg.", cd: 5, effect: 'expose', turns: 3, bonus: 0.70 } },
+    purity_engine:       { name: "Purity Engine",       hp: 145, atk: 22, range: 1, cost: 17, icon: '⚙️', secret: false,
+        ability: { name: "Purification Wave", desc: "Heals all party members 40% max HP + removes all debuffs.", cd: 5, effect: 'party_heal', pct: 0.40, purify: true } },
+    genesis_herald:      { name: "Genesis Herald",      hp: 55,  atk: 40, range: 5, cost: 18, icon: '📯', secret: false,
+        ability: { name: "War Cry", desc: "Inspires party — all attacks deal +40% dmg for 2 turns.", cd: 5, effect: 'inspire', bonus: 0.40, turns: 2 } },
+    infinite_warden:     { name: "Infinite Warden",     hp: 175, atk: 26, range: 1, cost: 20, icon: '👁️', secret: false,
+        ability: { name: "Eternal Vigil", desc: "Absorbs next enemy attack completely + heals for absorbed amount.", cd: 5, effect: 'counter_absorb', full: true } },
+    the_first_guardian:  { name: "The First Guardian",  hp: 100, atk: 44, range: 3, cost: 21, icon: '🌟', secret: false,
+        ability: { name: "Prime Strike", desc: "3× ATK consecrated hit — always crits, ignores armor.", cd: 5, effect: 'consecrate', mult: 3.0 } },
+    the_undying_flame:   { name: "The Undying Flame",   hp: 70,  atk: 48, range: 2, cost: 22, icon: '🔥', secret: false,
+        ability: { name: "Immortal Pyre", desc: "Burns all enemies 4 turns + party regens 15% HP/turn for 2 turns.", cd: 5, effect: 'aoe_burn', turns: 4, party_regen: 0.15, regen_turns: 2 } },
+    genesis_spark:       { name: "Genesis Spark",       hp: 28,  atk: 52, range: 7, cost: 23, icon: '💫', secret: false,
+        ability: { name: "Creation Arc", desc: "Arcs 2.5× ATK through every enemy on the floor.", cd: 5, effect: 'chain', mult: 2.5 } },
+    solar_archon:        { name: "Solar Archon",        hp: 115, atk: 36, range: 2, cost: 25, icon: '☀️', secret: false,
+        ability: { name: "Solar Flare", desc: "Blinds all enemies 2 turns + deals 2× ATK AoE.", cd: 5, effect: 'aoe', mult: 2.0, blind_all: 2 } },
+    harmonic_weaver:     { name: "Harmonic Weaver",     hp: 60,  atk: 56, range: 5, cost: 26, icon: '🎼', secret: false,
+        ability: { name: "Harmonic Resonance", desc: "Party bonus: all next attacks deal +50% dmg for 3 turns.", cd: 5, effect: 'inspire', bonus: 0.50, turns: 3 } },
+    apex_herald:         { name: "Apex Herald",         hp: 90,  atk: 46, range: 4, cost: 27, icon: '📢', secret: false,
+        ability: { name: "Apex Call", desc: "Rallies — heals party 25% + +4 momentum.", cd: 5, effect: 'party_heal', pct: 0.25, mom_gain: 4 } },
+    luminous_titan:      { name: "Luminous Titan",      hp: 200, atk: 32, range: 1, cost: 28, icon: '🌠', secret: false,
+        ability: { name: "Stellar Impact", desc: "2.5× ATK slam + reduces enemy max HP by 20%.", cd: 5, effect: 'void_strike', pct: 0.20, also_attack: true, mult: 2.5 } },
+    choir_seraph:        { name: "Choir Seraph",        hp: 75,  atk: 60, range: 6, cost: 30, icon: '🎙️', secret: false,
+        ability: { name: "Choir Blast", desc: "Sonic wave — stuns all enemies 1 turn + deals 1.5× ATK AoE.", cd: 5, effect: 'stun_aoe', turns: 1, also_dmg: 1.5 } },
+    eternal_witness:     { name: "Eternal Witness",     hp: 130, atk: 48, range: 2, cost: 31, icon: '🔭', secret: false,
+        ability: { name: "Witness Mark", desc: "Marks enemy — takes +80% dmg from all sources for 2 turns.", cd: 5, effect: 'expose', turns: 2, bonus: 0.80 } },
+    convergence_engine:  { name: "Convergence Engine",  hp: 230, atk: 36, range: 1, cost: 33, icon: '⚙️', secret: false,
+        ability: { name: "Convergence Beam", desc: "Focuses all party ATK into one beam — 4× combined ATK to single target.", cd: 6, effect: 'berserk', mult: 4.0, recoil: 0 } },
+    void_architect:      { name: "Void Architect",      hp: 85,  atk: 66, range: 5, cost: 34, icon: '📐', secret: false,
+        ability: { name: "Architect's Wrath", desc: "Deconstructs enemy — 3× ATK + reduces max HP 30%.", cd: 6, effect: 'void_strike', pct: 0.30, also_attack: true, mult: 3.0 } },
+    absolute_guardian:   { name: "Absolute Guardian",   hp: 195, atk: 44, range: 1, cost: 35, icon: '⚜️', secret: false,
+        ability: { name: "Absolute Defense", desc: "Party is invincible for 1 full turn (all damage blocked).", cd: 6, effect: 'party_shield', reduction: 1.0, hits: 99, turns: 1 } },
+    creation_wraith:     { name: "Creation Wraith",     hp: 70,  atk: 70, range: 4, cost: 36, icon: '🌊', secret: false,
+        ability: { name: "Tidal Creation", desc: "Floods field — 2× ATK to all enemies + bleeds 20% for 3 turns.", cd: 6, effect: 'aoe', mult: 2.0, bleed_all: true, bleed_pct: 0.20, bleed_turns: 3 } },
+    infinity_herald:     { name: "Infinity Herald",     hp: 50,  atk: 78, range: 7, cost: 38, icon: '♾️', secret: false,
+        ability: { name: "Infinite Strike", desc: "Strikes every enemy simultaneously at 2× ATK.", cd: 6, effect: 'aoe', mult: 2.0 } },
+    stellar_sovereign:   { name: "Stellar Sovereign",   hp: 265, atk: 40, range: 1, cost: 39, icon: '👑', secret: false,
+        ability: { name: "Sovereign Command", desc: "Commands all allies: party heals 30% + +5 momentum.", cd: 6, effect: 'party_heal', pct: 0.30, mom_gain: 5 } },
+    the_last_angel:      { name: "The Last Angel",      hp: 110, atk: 74, range: 4, cost: 40, icon: '👼', secret: false,
+        ability: { name: "Final Grace", desc: "Heals party fully + deals 3× ATK consecrated strike.", cd: 6, effect: 'consecrate', mult: 3.0, party_heal: true } },
+    pure_thought:        { name: "Pure Thought",        hp: 35,  atk: 85, range: 7, cost: 42, icon: '🧠', secret: false,
+        ability: { name: "Conceptual Strike", desc: "Pure psychic force — 3.5× ATK, bypasses all defenses.", cd: 6, effect: 'armor_pierce', mult: 3.5 } },
+    transcendent_core:   { name: "Transcendent Core",   hp: 310, atk: 48, range: 1, cost: 43, icon: '💎', secret: false,
+        ability: { name: "Transcendence", desc: "Party becomes transcendent — immune 2 turns + heals to full.", cd: 7, effect: 'party_shield', reduction: 1.0, heal_full: true } },
+    omega_seraph:        { name: "Omega Seraph",        hp: 145, atk: 80, range: 5, cost: 44, icon: '🕊️', secret: false,
+        ability: { name: "Omega Radiance", desc: "Blinds all enemies permanently (rest of fight) + 3× ATK AoE.", cd: 7, effect: 'aoe', mult: 3.0, blind_all: 99 } },
+    the_infinite_self:   { name: "The Infinite Self",   hp: 80,  atk: 88, range: 6, cost: 46, icon: '🪞', secret: false,
+        ability: { name: "Infinite Mirror", desc: "Copies enemy's max HP as your ATK for 3 turns.", cd: 7, effect: 'expose', turns: 3, bonus: 1.0 } },
+    the_light_beyond:    { name: "The Light Beyond",    hp: 100, atk: 85, range: 4, cost: 47, icon: '✨', secret: false,
+        ability: { name: "Beyond Limit", desc: "Transcendent AoE — 3× ATK to all, purifies all party debuffs.", cd: 7, effect: 'aoe', mult: 3.0, purify: true } },
+    eternal_sovereign:   { name: "Eternal Sovereign",   hp: 340, atk: 52, range: 1, cost: 48, icon: '🏆', secret: false,
+        ability: { name: "Eternal Decree", desc: "Reduces all enemy HP to 50% of current, then deals 2× ATK.", cd: 7, effect: 'void_strike', pct: 0.50, also_attack: true, mult: 2.0 } },
+    the_nameless_light:  { name: "The Nameless Light",  hp: 120, atk: 92, range: 5, cost: 50, icon: '🌟', secret: false,
+        ability: { name: "Nameless Fury", desc: "Unnamed power — 4× ATK to all enemies.", cd: 7, effect: 'aoe', mult: 4.0 } },
+    genesis_prime:       { name: "Genesis Prime",       hp: 85,  atk: 96, range: 6, cost: 52, icon: '🌀', secret: false,
+        ability: { name: "Prime Genesis", desc: "Resets entire combat — restores party to full HP, resets all cooldowns.", cd: 8, effect: 'full_reset' } },
+    the_final_guardian:  { name: "The Final Guardian",  hp: 390, atk: 58, range: 1, cost: 55, icon: '🛡️', secret: false,
+        ability: { name: "Last Stand", desc: "Absorbs all damage for 2 turns + counterattacks for 5× ATK.", cd: 8, effect: 'counter_absorb', hits: 99, turns: 2, counter_mult: 5.0 } },
+    absolute_light:      { name: "Absolute Light",      hp: 130, atk: 100,range: 4, cost: 58, icon: '💡', secret: false,
+        ability: { name: "Absolute Radiance", desc: "The ultimate light — instantly kills enemies below 60% HP, deals 5× ATK to the rest.", cd: 8, effect: 'execute', mult: 5.0, threshold: 0.60, multi: true } },
+
     // Leaderboard minions
-    god:                 { name: "God",                 hp: 500, atk: 80, range: 5, cost: 50, icon: '☀️', secret: true },
-    satan:               { name: "Satan",               hp: 500, atk: 80, range: 5, cost: 50, icon: '😈', secret: true },
+    god:    { name: "God",   hp: 500, atk: 80, range: 5, cost: 50, icon: '☀️', secret: true,
+        ability: { name: "Divine Judgment", desc: "Instant kills ANY enemy. No threshold. Cooldown 6.", cd: 6, effect: 'execute', mult: 10.0, threshold: 1.0 } },
+    satan:  { name: "Satan", hp: 500, atk: 80, range: 5, cost: 50, icon: '😈', secret: true,
+        ability: { name: "Hell's Domain", desc: "Reduces ALL enemies to 1 HP + burns all for 5 turns.", cd: 6, effect: 'drain_all', pct: 0.999, also_burn: 5 } },
 };
 
 
@@ -19936,7 +20047,10 @@ function renderRaidDungeon() {
         const momLabel = mom <= 1 ? '⚠ ENEMY PRESSURE' : mom >= 5 ? '✨ YOUR MOMENTUM' : '⚖ NEUTRAL';
         const momColor = mom <= 1 ? '#ff4444' : mom >= 5 ? '#44cc88' : '#c8a800';
         const momBarLeft  = Math.round((mom/6)*100); // player momentum fills left to right
-        const abilityName = { striker:'Berserker Rush — AoE + Burn', tank:'Iron Wall — 3-hit armor + taunt', duelist:'Feint — dodge+2.5× counter' }[role];
+        const _minionAbility = bm?.ability;
+        const abilityName = _minionAbility
+            ? `${_minionAbility.name} — ${_minionAbility.desc}`
+            : { striker:'Berserker Rush — AoE + Burn', tank:'Iron Wall — 3-hit armor + taunt', duelist:'Feint — dodge+2.5× counter' }[role];
 
         // Party queue
         const partyQueue = raidState.party.map((p,idx) => {
@@ -20057,11 +20171,21 @@ window.moveRaidPlayer = function(x, y) {
         const boss = { id:'boss', minionId:bossId, x, y, hp:Math.ceil(bm.hp*scale), maxHp:Math.ceil(bm.hp*scale), atk:Math.ceil(bm.atk*scale), isBoss:true };
         raidState.inCombat = true;
         raidState.combatEnemy = boss;
+        // Add boss to enemies array so the exit-block check works
+        if (!raidState.enemies) raidState.enemies = [];
+        if (!raidState.enemies.some(e => e.isBoss)) raidState.enemies.push(boss);
         tile.type = RTILE.EMPTY;
         raidLog(`👑 THE FLOOR BOSS AWAKENS — ${bm.name}!`, '#ffcc00');
     } else if (tile.type === RTILE.EXIT) {
-        // Check if the floor boss is still alive — must defeat it first
-        const bossAlive = raidState.enemies && raidState.enemies.some(e => e.isBoss && e.hp > 0);
+        // Cannot exit while in combat
+        if (raidState.inCombat) {
+            raidLog('⚔️ <b>Finish the current fight before descending!</b>', '#ff6644');
+            renderRaidDungeon();
+            return;
+        }
+        // Cannot exit if the floor boss is still alive
+        const bossAlive = (raidState.enemies && raidState.enemies.some(e => e.isBoss && e.hp > 0))
+                       || (raidState.combatEnemy && raidState.combatEnemy.isBoss && raidState.combatEnemy.hp > 0);
         if (bossAlive) {
             raidLog('👑 <b>The Boss blocks your path — defeat it before descending!</b>', '#ffcc00');
             renderRaidDungeon();
@@ -20154,6 +20278,12 @@ window.raidCombatAction = function(action) {
 
         // Burn status: enemy takes 20% extra damage
         if (enemy._burning) { const bonus = Math.ceil(dmg * 0.2); dmg += bonus; logLines.push(`🔥 Burn: +${bonus} dmg!`); }
+        // Expose bonus (from Judgment Gaze, Foresight, etc)
+        if ((raidState._exposeTurns||0) > 0 && (raidState._exposeBonus||0) > 0) { const eb = Math.ceil(dmg * raidState._exposeBonus); dmg += eb; logLines.push(`🎯 Exposed: +${eb} dmg!`); }
+        // Inspire bonus (from War Cry, Harmonic Resonance, etc)
+        if ((raidState._inspireTurns||0) > 0 && (raidState._inspireBonus||0) > 0) { const ib = Math.ceil(dmg * raidState._inspireBonus); dmg += ib; logLines.push(`📯 Inspired: +${ib} dmg!`); }
+        // Frozen enemy takes double damage
+        if (enemy._frozenDmgMult && (enemy._stunTurns||0) > 0) { dmg = Math.ceil(dmg * enemy._frozenDmgMult); logLines.push(`🥶 Frozen target: ×${enemy._frozenDmgMult} dmg!`); }
 
         enemy.hp = Math.max(0, enemy.hp - dmg);
         logLines.push(`${bm?.icon} <b>${bm?.name}</b> hits for <b>${dmg}</b>!`);
@@ -20192,37 +20322,328 @@ window.raidCombatAction = function(action) {
         }
 
     } else if (action === 'ability') {
-        raidState._consecutiveDefends = 0; // reset defend spam tracker
-        if ((raidState._abilityCooldown||0) > 0) {
-            logLines.push(`⏳ Ability on cooldown — <b>${raidState._abilityCooldown}</b> turns left.`);
-        } else {
-            raidState._abilityCooldown = 3;
-            skipEnemyTurn = false;
+        raidState._consecutiveDefends = 0;
+        const abilityDef = bm?.ability;
+        const abCooldown = raidState._abilityCooldown || 0;
 
-            if (role === 'striker') {
-                // Berserker Rush — AoE 80% ATK + sets all enemies on fire
-                const aoeDmg = Math.ceil(frontliner.atk * 0.8);
-                const aoeTargets = raidState.enemies.filter(e=>e.hp>0);
-                aoeTargets.forEach(e => { e.hp = Math.max(0, e.hp - aoeDmg); e._burning = 2; });
-                raidState.enemies.filter(e=>e.hp<=0 && e!==enemy).forEach(e=>{
-                    if(raidState.grid[e.y]?.[e.x]) raidState.grid[e.y][e.x]={type:RTILE.EMPTY,enemy:null};
-                });
-                logLines.push(`🔥 <b>Berserker Rush!</b> ${aoeDmg} dmg to all enemies + <b>Burn</b> (2 turns)!`);
+        if (abCooldown > 0) {
+            logLines.push(`⏳ Ability on cooldown — <b>${abCooldown}</b> turns left.`);
+        } else if (!abilityDef) {
+            // Fallback generic ability for minions without one defined
+            const aoeDmg = Math.ceil(frontliner.atk * 0.8);
+            raidState.enemies.filter(e=>e.hp>0).forEach(e => { e.hp = Math.max(0, e.hp - aoeDmg); e._burning = 2; });
+            logLines.push(`🔥 <b>Generic Rush!</b> ${aoeDmg} dmg to all + Burn!`);
+            raidState._abilityCooldown = 3;
+        } else {
+            raidState._abilityCooldown = abilityDef.cd || 3;
+            const eff = abilityDef.effect;
+            const allEnemies = raidState.enemies.filter(e => e.hp > 0);
+            const aliveAll = raidState.party.filter(p => p.hp > 0);
+
+            // ── Helper: apply expose (damage bonus) ─────────────────
+            const applyExpose = (turns, bonus) => {
+                raidState._exposeBonus = (raidState._exposeBonus || 0) + bonus;
+                raidState._exposeTurns = Math.max(raidState._exposeTurns || 0, turns);
+            };
+
+            // ── Helper: apply bleed ──────────────────────────────────
+            const applyBleed = (target, pct, turns) => {
+                target._bleedDmg = Math.ceil(target.maxHp * pct);
+                target._bleedTurns = turns;
+            };
+
+            if (eff === 'burn') {
+                enemy._burning = abilityDef.turns || 2;
+                logLines.push(`🔥 <b>${abilityDef.name}!</b> Enemy burns for <b>${abilityDef.turns}</b> turns!`);
                 enemyMomShift = +1;
-            } else if (role === 'tank') {
-                // Iron Wall — gain +3 momentum, taunt 2 turns, armor for 2 hits (no heal — use potions)
-                raidState._tauntTurns = 2;
-                raidState._armorStack = 3; // next 3 incoming hits do −60% dmg (buffed slightly to compensate)
-                enemyMomShift = +3;
-                logLines.push(`🏰 <b>Iron Wall!</b> Taunt active (2 turns) + heavy armor for <b>3 hits</b> (−60% dmg)!`);
-            } else {
-                // Duelist Feint — guaranteed dodge + 2.5× counter
-                const counterDmg = Math.ceil(frontliner.atk * 2.5);
-                enemy.hp = Math.max(0, enemy.hp - counterDmg);
-                skipEnemyTurn = true;
+
+            } else if (eff === 'aoe_burn') {
+                const aoeDmg = abilityDef.mult ? Math.ceil(frontliner.atk * abilityDef.mult) : 0;
+                allEnemies.forEach(e => { if (aoeDmg) e.hp = Math.max(0, e.hp - aoeDmg); e._burning = abilityDef.turns || 2; });
+                logLines.push(`🔥 <b>${abilityDef.name}!</b> ${aoeDmg ? aoeDmg + ' AoE dmg + ' : ''}All enemies burn for <b>${abilityDef.turns}</b> turns!`);
+                if (abilityDef.party_regen) { raidState._partyRegen = abilityDef.party_regen; raidState._partyRegenTurns = abilityDef.regen_turns || 2; logLines.push(`💚 Party regens <b>${Math.round(abilityDef.party_regen*100)}% HP/turn</b> for ${abilityDef.regen_turns} turns!`); }
                 enemyMomShift = +2;
-                logLines.push(`🌀 <b>Feint!</b> Dodge + counter for <b>${counterDmg}</b> dmg!`);
+
+            } else if (eff === 'aoe') {
+                const aoeDmg = Math.ceil(frontliner.atk * (abilityDef.mult || 1.0));
+                allEnemies.forEach(e => {
+                    e.hp = Math.max(0, e.hp - aoeDmg);
+                    if (abilityDef.void_pct) e.maxHp = Math.max(1, Math.ceil(e.maxHp * (1 - abilityDef.void_pct)));
+                    if (abilityDef.blind_all) e._blinded = abilityDef.blind_all;
+                    if (abilityDef.bleed_all) { e._bleedDmg = Math.ceil(e.maxHp * (abilityDef.bleed_pct||0.15)); e._bleedTurns = abilityDef.bleed_turns || 3; }
+                });
+                logLines.push(`💥 <b>${abilityDef.name}!</b> <b>${aoeDmg}</b> dmg to all enemies!`);
+                if (abilityDef.bleed_all) logLines.push(`🩸 All enemies bleeding for ${abilityDef.bleed_turns} turns!`);
+                if (abilityDef.purify) { aliveAll.forEach(p => { delete p._burning; delete p._bleedTurns; }); logLines.push(`✨ Party debuffs purified!`); }
+                enemyMomShift = +2;
+
+            } else if (eff === 'bleed') {
+                if (abilityDef.also_hit) { const h = Math.ceil(frontliner.atk * abilityDef.also_hit); enemy.hp = Math.max(0, enemy.hp - h); logLines.push(`⚔ Hit for <b>${h}</b>!`); }
+                if (abilityDef.also_stun) { enemy._stunTurns = (enemy._stunTurns||0) + abilityDef.also_stun; skipEnemyTurn = true; logLines.push(`💤 Enemy stunned ${abilityDef.also_stun} turn(s)!`); }
+                applyBleed(enemy, abilityDef.pct || 0.15, abilityDef.turns || 3);
+                logLines.push(`🩸 <b>${abilityDef.name}!</b> Enemy bleeds <b>${Math.round((abilityDef.pct||0.15)*100)}% HP</b> over <b>${abilityDef.turns}</b> turns!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'bleed_all') {
+                allEnemies.forEach(e => applyBleed(e, abilityDef.pct || 0.15, abilityDef.turns || 3));
+                logLines.push(`🩸 <b>${abilityDef.name}!</b> All enemies bleed <b>${Math.round((abilityDef.pct||0.15)*100)}% HP</b> over <b>${abilityDef.turns}</b> turns!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'freeze') {
+                enemy._stunTurns = (enemy._stunTurns||0) + (abilityDef.turns || 2);
+                if (abilityDef.dmg_mult) enemy._frozenDmgMult = abilityDef.dmg_mult;
+                skipEnemyTurn = true;
+                logLines.push(`🥶 <b>${abilityDef.name}!</b> Enemy frozen for <b>${abilityDef.turns}</b> turns!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'freeze_weaken') {
+                enemy._stunTurns = (enemy._stunTurns||0) + (abilityDef.turns || 2);
+                enemy._weakened = (enemy._weakened||0) + (abilityDef.turns || 2);
+                if (abilityDef.reduction) enemy._atkReduction = Math.max(enemy._atkReduction || 1, abilityDef.reduction);
+                skipEnemyTurn = true;
+                logLines.push(`🥶 <b>${abilityDef.name}!</b> Frozen <b>${abilityDef.turns}t</b> + ATK −${Math.round((1-(abilityDef.reduction||0.4))*100)}%!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'stun') {
+                enemy._stunTurns = (enemy._stunTurns||0) + (abilityDef.turns || 2);
+                skipEnemyTurn = true;
+                if (abilityDef.also_chain) { const cDmg = Math.ceil(frontliner.atk * abilityDef.also_chain); allEnemies.forEach(e => { e.hp = Math.max(0, e.hp - cDmg); }); logLines.push(`⚡ Chain <b>${cDmg}</b> to all!`); }
+                logLines.push(`💤 <b>${abilityDef.name}!</b> Enemy stunned <b>${abilityDef.turns}</b> turns!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'stun_aoe') {
+                allEnemies.forEach(e => { e._stunTurns = (e._stunTurns||0) + (abilityDef.turns||1); });
+                skipEnemyTurn = true;
+                if (abilityDef.also_dmg) { const aDmg = Math.ceil(frontliner.atk * abilityDef.also_dmg); allEnemies.forEach(e => { e.hp = Math.max(0, e.hp-aDmg); }); logLines.push(`💥 <b>${aDmg}</b> dmg to all!`); }
+                logLines.push(`💤 <b>${abilityDef.name}!</b> All enemies stunned <b>${abilityDef.turns}</b> turns!`);
+                enemyMomShift = +3;
+
+            } else if (eff === 'weaken') {
+                enemy._weakened = (enemy._weakened||0) + (abilityDef.turns || 3);
+                enemy._atkReduction = Math.max(enemy._atkReduction || 1, abilityDef.reduction || 0.50);
+                logLines.push(`💢 <b>${abilityDef.name}!</b> Enemy ATK −${Math.round((1-(abilityDef.reduction||0.5))*100)}% for <b>${abilityDef.turns}</b> turns!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'weaken_aoe') {
+                allEnemies.forEach(e => { e._weakened = (e._weakened||0) + (abilityDef.turns||3); e._atkReduction = abilityDef.reduction||0.40; applyBleed(e, 0.10, 3); });
+                logLines.push(`💢 <b>${abilityDef.name}!</b> All enemies weakened + bleed!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'blind') {
+                enemy._blinded = (enemy._blinded||0) + (abilityDef.turns||2);
+                logLines.push(`👁️ <b>${abilityDef.name}!</b> Enemy blinded for <b>${abilityDef.turns}</b> turns (50% miss)!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'berserk') {
+                const bDmg = Math.ceil(frontliner.atk * (abilityDef.mult || 2.0));
+                enemy.hp = Math.max(0, enemy.hp - bDmg);
+                if (abilityDef.recoil > 0) { frontliner.hp = Math.max(1, frontliner.hp - abilityDef.recoil); logLines.push(`💥 Recoil: <b>${abilityDef.recoil}</b> dmg to self!`); }
+                logLines.push(`⚡ <b>${abilityDef.name}!</b> <b>${bDmg}</b> dmg!`);
+                enemyMomShift = -1;
+
+            } else if (eff === 'lifesteal') {
+                const lsDmg = Math.ceil(frontliner.atk);
+                enemy.hp = Math.max(0, enemy.hp - lsDmg);
+                const healed = Math.ceil(lsDmg * (abilityDef.pct || 0.50));
+                frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + healed);
+                logLines.push(`🩸 <b>${abilityDef.name}!</b> <b>${lsDmg}</b> dmg — healed <b>${healed}</b> HP!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'drain') {
+                const drainAmt = Math.ceil(enemy.hp * (abilityDef.pct || 0.25));
+                enemy.hp = Math.max(1, enemy.hp - drainAmt);
+                frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + drainAmt);
+                if (abilityDef.also_stun) { enemy._stunTurns = (enemy._stunTurns||0) + abilityDef.also_stun; skipEnemyTurn = true; }
+                if (abilityDef.also_attack) { const aDmg = Math.ceil(frontliner.atk * (abilityDef.mult||1.5)); enemy.hp = Math.max(0, enemy.hp - aDmg); logLines.push(`⚔ Also struck for <b>${aDmg}</b>!`); }
+                logLines.push(`🌀 <b>${abilityDef.name}!</b> Drained <b>${drainAmt}</b> HP from enemy!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'drain_all') {
+                allEnemies.forEach(e => {
+                    const da = Math.ceil(e.hp * (abilityDef.pct || 0.25));
+                    e.hp = Math.max(1, e.hp - da);
+                    frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + Math.ceil(da * 0.3));
+                    if (abilityDef.also_burn) e._burning = abilityDef.also_burn;
+                });
+                logLines.push(`🌀 <b>${abilityDef.name}!</b> Drained HP from ALL enemies!`);
+                enemyMomShift = +3;
+
+            } else if (eff === 'regen_burst') {
+                const healAmt = Math.ceil(frontliner.maxHp * (abilityDef.pct || 0.30));
+                frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + healAmt);
+                if (abilityDef.shield_hits) { raidState._armorStack = (raidState._armorStack||0) + abilityDef.shield_hits; raidState._armorReduction = 0.60; }
+                logLines.push(`💚 <b>${abilityDef.name}!</b> Healed <b>${healAmt}</b> HP!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'party_heal') {
+                aliveAll.forEach(p => {
+                    const h = Math.ceil(p.maxHp * (abilityDef.pct || 0.25));
+                    p.hp = abilityDef.heal_full ? p.maxHp : Math.min(p.maxHp, p.hp + h);
+                });
+                if (abilityDef.purify) { aliveAll.forEach(p => { delete p._burning; delete p._bleedTurns; }); logLines.push(`✨ Debuffs purified!`); }
+                if (abilityDef.mom_gain) { raidState._momentum = Math.min(6, (raidState._momentum||3) + abilityDef.mom_gain); }
+                logLines.push(`💚 <b>${abilityDef.name}!</b> Party healed ${abilityDef.heal_full ? 'to full' : Math.round((abilityDef.pct||0.25)*100) + '%'}!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'party_shield') {
+                raidState._partyShieldHits = abilityDef.hits || 2;
+                raidState._partyShieldReduction = abilityDef.reduction || 0.60;
+                if (abilityDef.heal_full) { aliveAll.forEach(p => { p.hp = p.maxHp; }); logLines.push(`💚 Party healed to full!`); }
+                if (abilityDef.mom_gain) { raidState._momentum = Math.min(6, (raidState._momentum||3) + abilityDef.mom_gain); }
+                logLines.push(`🛡️ <b>${abilityDef.name}!</b> Party shielded for <b>${abilityDef.hits}</b> hits (−${Math.round((abilityDef.reduction||0.6)*100)}%)!`);
+                skipEnemyTurn = abilityDef.turns === 1;
+                enemyMomShift = +2;
+
+            } else if (eff === 'shield') {
+                raidState._armorStack = (raidState._armorStack||0) + (abilityDef.hits || 2);
+                raidState._armorReduction = Math.max(raidState._armorReduction || 0.6, abilityDef.reduction || 0.70);
+                if (abilityDef.heal_pct) { const h = Math.ceil(frontliner.maxHp * abilityDef.heal_pct); frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + h); logLines.push(`💚 Healed <b>${h}</b> HP!`); }
+                if (abilityDef.reflect_pct) { raidState._shieldReflect = abilityDef.reflect_pct; }
+                if (abilityDef.heal_absorbed) { raidState._shieldHealAbsorbed = true; }
+                logLines.push(`🛡 <b>${abilityDef.name}!</b> Armor for <b>${abilityDef.hits}</b> hits (−${Math.round((abilityDef.reduction||0.7)*100)}%)!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'void_strike') {
+                const reduceAmt = Math.ceil(enemy.maxHp * (abilityDef.pct || 0.30));
+                enemy.maxHp = Math.max(1, enemy.maxHp - reduceAmt);
+                enemy.hp = Math.min(enemy.hp, enemy.maxHp);
+                if (abilityDef.also_attack) { const vDmg = Math.ceil(frontliner.atk * (abilityDef.mult||1.5)); enemy.hp = Math.max(0, enemy.hp - vDmg); logLines.push(`⚔ Also struck for <b>${vDmg}</b>!`); }
+                logLines.push(`🌌 <b>${abilityDef.name}!</b> Reduced enemy max HP by <b>${reduceAmt}</b>!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'chain') {
+                const chainDmg = Math.ceil(frontliner.atk * (abilityDef.mult || 1.0));
+                allEnemies.forEach(e => {
+                    e.hp = Math.max(0, e.hp - chainDmg);
+                    if (abilityDef.expose_turns) { applyExpose(abilityDef.expose_turns, 0.30); }
+                });
+                logLines.push(`⚡ <b>${abilityDef.name}!</b> <b>${chainDmg}</b> chain dmg to all ${allEnemies.length} enemies!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'execute') {
+                const execThresh = abilityDef.threshold || 0.35;
+                let executed = 0;
+                const targets = abilityDef.multi ? allEnemies : [enemy];
+                targets.forEach(t => {
+                    if (t.hp / t.maxHp <= execThresh) {
+                        t.hp = 0; executed++;
+                    } else {
+                        const eDmg = Math.ceil(frontliner.atk * (abilityDef.mult || 2.0));
+                        t.hp = Math.max(0, t.hp - eDmg);
+                    }
+                });
+                logLines.push(executed > 0 ? `☠️ <b>${abilityDef.name}!</b> Executed <b>${executed}</b> enemy/enemies!` : `⚔ <b>${abilityDef.name}!</b> <b>${Math.ceil(frontliner.atk*(abilityDef.mult||2))}</b> dmg (below threshold needed)!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'expose') {
+                applyExpose(abilityDef.turns || 3, abilityDef.bonus || 0.50);
+                logLines.push(`🎯 <b>${abilityDef.name}!</b> Next <b>${abilityDef.turns}</b> attacks deal +<b>${Math.round((abilityDef.bonus||0.5)*100)}%</b> dmg!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'armor_pierce') {
+                const apDmg = Math.ceil(frontliner.atk * (abilityDef.mult || 1.0));
+                // Temporarily remove armor for this hit
+                const savedArmor = raidState._armorStack;
+                raidState._armorStack = 0;
+                enemy.hp = Math.max(0, enemy.hp - apDmg);
+                raidState._armorStack = savedArmor;
+                logLines.push(`🗡️ <b>${abilityDef.name}!</b> <b>${apDmg}</b> armor-piercing dmg!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'consecrate') {
+                const cDmg = Math.ceil(frontliner.atk * (abilityDef.mult || 2.0));
+                enemy.hp = Math.max(0, enemy.hp - cDmg);
+                if (abilityDef.party_heal) { aliveAll.forEach(p => { p.hp = p.maxHp; }); logLines.push(`💚 Party healed to full!`); }
+                enemy._burning = (enemy._burning||0) + 2; // holy fire
+                logLines.push(`✝️ <b>${abilityDef.name}!</b> <b>${cDmg}</b> holy dmg + holy fire!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'inspire') {
+                raidState._inspireTurns = abilityDef.turns || 2;
+                raidState._inspireBonus = abilityDef.bonus || 0.40;
+                if (abilityDef.mom_gain) { raidState._momentum = Math.min(6, (raidState._momentum||3) + abilityDef.mom_gain); }
+                logLines.push(`📯 <b>${abilityDef.name}!</b> Party deals +<b>${Math.round((abilityDef.bonus||0.4)*100)}%</b> dmg for <b>${abilityDef.turns}</b> turns!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'time_stop') {
+                enemy._stunTurns = (enemy._stunTurns||0) + 1;
+                skipEnemyTurn = true;
+                const momSteal = abilityDef.mom_steal || 2;
+                raidState._momentum = Math.min(6, (raidState._momentum||3) + momSteal);
+                logLines.push(`⏳ <b>${abilityDef.name}!</b> Time stolen — enemy loses a turn + momentum!`);
+
+            } else if (eff === 'counter_absorb') {
+                raidState._counterAbsorb = { mult: abilityDef.counter_mult || 3.0, hits: abilityDef.hits || 1 };
+                skipEnemyTurn = false; // enemy attacks into the counter
+                logLines.push(`🪞 <b>${abilityDef.name}!</b> Ready to absorb and counter at <b>${(abilityDef.counter_mult||3)}×</b> ATK!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'reflect') {
+                const reflDmg = Math.ceil(enemy.atk * (abilityDef.mult || 2.0));
+                enemy.hp = Math.max(0, enemy.hp - reflDmg);
+                skipEnemyTurn = true;
+                logLines.push(`🪞 <b>${abilityDef.name}!</b> Reflected <b>${reflDmg}</b> back at the enemy!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'confuse') {
+                const confDmg = Math.ceil(frontliner.atk * 2.5);
+                enemy.hp = Math.max(0, enemy.hp - confDmg);
+                enemy._confuseTurns = 1; // enemy hits itself next turn
+                logLines.push(`🧠 <b>${abilityDef.name}!</b> <b>${confDmg}</b> dmg + enemy confused (hits itself next turn)!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'phase_counter') {
+                skipEnemyTurn = true;
+                const pcDmg = Math.ceil(frontliner.atk * (abilityDef.mult || 1.5));
+                enemy.hp = Math.max(0, enemy.hp - pcDmg);
+                logLines.push(`💫 <b>${abilityDef.name}!</b> Dodged + counter for <b>${pcDmg}</b>!`);
+                enemyMomShift = +2;
+
+            } else if (eff === 'cd_reset') {
+                if (abilityDef.mult) { const rDmg = Math.ceil(frontliner.atk * abilityDef.mult); enemy.hp = Math.max(0, enemy.hp - rDmg); logLines.push(`⚔ <b>${rDmg}</b> dmg!`); }
+                if (abilityDef.heal_pct) { const h = Math.ceil(frontliner.maxHp * abilityDef.heal_pct); frontliner.hp = Math.min(frontliner.maxHp, frontliner.hp + h); logLines.push(`💚 Healed <b>${h}</b> HP!`); }
+                logLines.push(`🔄 <b>${abilityDef.name}!</b> Ability cooldown reset!`);
+                // Cooldown is set to 0 here; the normal post-action decrement won't fire for 'ability' action
+                // so next turn it will be 0 = ready again (one free use, then back to normal)
+                raidState._abilityCooldown = 0;
+                enemyMomShift = +1;
+
+            } else if (eff === 'cleanse_enemy') {
+                delete enemy._burning; delete enemy._stunTurns; delete enemy._weakened; delete enemy._atkReduction;
+                const clDmg = Math.ceil(frontliner.atk * (abilityDef.mult || 2.0));
+                enemy.hp = Math.max(0, enemy.hp - clDmg);
+                logLines.push(`🌟 <b>${abilityDef.name}!</b> Enemy buffs stripped + <b>${clDmg}</b> dmg!`);
+                enemyMomShift = +1;
+
+            } else if (eff === 'full_reset') {
+                aliveAll.forEach(p => { p.hp = p.maxHp; });
+                raidState._momentum = 3;
+                raidState._armorStack = 0;
+                raidState._inspireTurns = 0;
+                raidState._abilityCooldown = abilityDef.cd || 8;
+                logLines.push(`🌀 <b>${abilityDef.name}!</b> Party restored to full HP! Cooldown: ${abilityDef.cd} turns.`);
+                enemyMomShift = +3;
+
+            } else if (eff === 'multi_hit') {
+                const mhHits = abilityDef.hits || 3;
+                const mhDmg = Math.ceil(frontliner.atk * (abilityDef.mult || 0.8));
+                let mhTotal = 0;
+                for (let h = 0; h < mhHits && enemy.hp > 0; h++) { const d = Math.min(mhDmg, enemy.hp); enemy.hp -= d; mhTotal += d; }
+                logLines.push(`🐉 <b>${abilityDef.name}!</b> ${mhHits} hits for <b>${mhTotal}</b> total dmg!`);
+                enemyMomShift = +1;
+
+            } else {
+                // Unknown effect — generic fallback
+                const fDmg = Math.ceil(frontliner.atk * 1.5);
+                enemy.hp = Math.max(0, enemy.hp - fDmg);
+                logLines.push(`✨ <b>${abilityDef.name || 'Ability'}!</b> <b>${fDmg}</b> dmg!`);
+                enemyMomShift = +1;
             }
+
+            // Clean up dead non-combat enemies from grid
+            raidState.enemies.filter(e => e.hp <= 0 && e !== enemy).forEach(e => {
+                if (raidState.grid?.[e.y]?.[e.x]) raidState.grid[e.y][e.x] = { type: RTILE.EMPTY, enemy: null };
+            });
         }
 
     } else if (action === 'swap') {
@@ -20294,6 +20715,49 @@ window.raidCombatAction = function(action) {
     // Apply momentum shift (clamped 0–6)
     raidState._momentum = Math.max(0, Math.min(6, (raidState._momentum||3) + enemyMomShift));
 
+    // ── Process ongoing status effects ────────────────────────────
+    if (enemy.hp > 0) {
+        // Bleed tick
+        if ((enemy._bleedTurns||0) > 0) {
+            const bd = enemy._bleedDmg || 0;
+            enemy.hp = Math.max(0, enemy.hp - bd);
+            enemy._bleedTurns--;
+            if (bd > 0) raidLog(`🩸 Bleed: enemy takes <b>${bd}</b> dmg (${enemy._bleedTurns}t left)`, '#cc4444');
+        }
+        // Confuse — enemy hits itself instead
+        if ((enemy._confuseTurns||0) > 0) {
+            const selfDmg = Math.ceil((enemy.atk||1) * 0.8);
+            enemy.hp = Math.max(0, enemy.hp - selfDmg);
+            enemy._confuseTurns--;
+            skipEnemyTurn = true;
+            raidLog(`🧠 Confused! Enemy hits itself for <b>${selfDmg}</b>!`, '#aa44ff');
+        }
+        // Stun countdown
+        if ((enemy._stunTurns||0) > 0 && action !== 'ability') {
+            enemy._stunTurns--;
+            skipEnemyTurn = true;
+        }
+    }
+    // Expose countdown
+    if ((raidState._exposeTurns||0) > 0 && action !== 'ability') raidState._exposeTurns = Math.max(0, raidState._exposeTurns - 1);
+    if ((raidState._inspireTurns||0) > 0 && action !== 'ability') raidState._inspireTurns = Math.max(0, raidState._inspireTurns - 1);
+    // Party regen tick
+    if ((raidState._partyRegenTurns||0) > 0 && action !== 'ability') {
+        const pregAmt = raidState._partyRegen || 0;
+        raidState.party.filter(p=>p.hp>0).forEach(p => { const h=Math.ceil(p.maxHp*pregAmt); p.hp=Math.min(p.maxHp,p.hp+h); });
+        raidState._partyRegenTurns--;
+        if (pregAmt > 0) raidLog(`💚 Party regens <b>${Math.round(pregAmt*100)}% HP</b>!`, '#44cc88');
+    }
+
+    // Blind check: 50% miss chance when enemy is blinded
+    if (!skipEnemyTurn && enemy.hp > 0 && (enemy._blinded||0) > 0) {
+        if (Math.random() < 0.50) {
+            raidLog(`👁️ Blinded! Enemy's attack misses!`, '#ffaa44');
+            skipEnemyTurn = true;
+        }
+        enemy._blinded = Math.max(0, enemy._blinded - 1);
+    }
+
     // ── Enemy turn ────────────────────────────────────────────────
     if (!skipEnemyTurn && enemy.hp > 0) {
         // Target: taunt forces frontliner, otherwise random with weight toward frontliner
@@ -20317,9 +20781,29 @@ window.raidCombatAction = function(action) {
         // Breakthrough: enemy ignores defend penalty and hits +50% harder
         const breakthroughMult = breakthrough ? 1.5 : 1.0;
 
-        let incomingDmg = Math.max(1, Math.floor(enemy.atk * momMult * weakMult * breakthroughMult
+        // Party shield
+        const hasPartyShield = (raidState._partyShieldHits||0) > 0;
+        const partyShieldReduct = hasPartyShield ? (1 - (raidState._partyShieldReduction||0.60)) : 1.0;
+        if (hasPartyShield) raidState._partyShieldHits--;
+
+        // Counter absorb — absorb hit and counter
+        let absorbedCounter = false;
+        if (raidState._counterAbsorb && (raidState._counterAbsorb.hits||0) > 0) {
+            const counterDmg = Math.ceil(frontliner.atk * (raidState._counterAbsorb.mult||3.0));
+            enemy.hp = Math.max(0, enemy.hp - counterDmg);
+            raidLog(`🪞 Counter Absorb! Returned <b>${counterDmg}</b> dmg!`, '#ffaa44');
+            raidState._counterAbsorb.hits--;
+            if (raidState._counterAbsorb.hits <= 0) raidState._counterAbsorb = null;
+            absorbedCounter = true;
+        }
+
+        // Enemy ATK reduction from _atkReduction debuff (from freeze_weaken etc)
+        const atkReductMult = (enemy._atkReduction && enemy._atkReduction < 1) ? enemy._atkReduction : 1.0;
+
+        let incomingDmg = absorbedCounter ? 0 : Math.max(1, Math.floor(enemy.atk * momMult * weakMult * breakthroughMult * atkReductMult
             * (defending && !breakthrough ? 0.35 : 1.0)
-            * (hasArmor  ? 0.5  : 1.0)));
+            * (hasArmor  ? 0.5  : 1.0)
+            * partyShieldReduct));
 
         // Burn tick on enemy
         if (enemy._burning > 0) {

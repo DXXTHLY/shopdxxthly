@@ -18310,40 +18310,41 @@ function initializeChat() {
             });
         }
 
-        let _chatListenerActive = false;
-        function listenForChatMessages(db, currentUid) {
-            if (_chatListenerActive) return;
-            _chatListenerActive = true;
-            let chatMessagesArray = [];
+        // EXACT Slither mod pattern — chatBody captured before once(), listener inside once() callback
+        let chatMessagesArray = [];
+        let latestTimeLoaded = 0;
+        const chatBody = document.getElementById('chat-body');
 
-            // Step 1: Load recent history once
-            db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
-                if (snapshot.exists()) {
-                    snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
-                    chatMessagesArray.sort((a, b) => a.time - b.time);
-                    const cb = document.getElementById('chat-body');
-                    if (cb) {
-                        cb.innerHTML = '';
-                        chatMessagesArray.forEach(msg => renderChatMessage(msg, cb, currentUid));
-                        cb.scrollTop = cb.scrollHeight;
-                    }
-                }
-
-                // Step 2: Listen for ALL new messages — no startAt filter at all
-                // Use key-based dedup so history messages don't re-render
-                db.ref("slitherChat").limitToLast(1).on("child_added", (newSnapshot) => {
+        db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
+            if (!snapshot.exists()) {
+                // Chat is empty — still attach listener for new messages
+                db.ref("slitherChat").orderByChild("time").startAt(1).on("child_added", (newSnapshot) => {
+                    try {
+                        const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
+                        if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
+                        chatMessagesArray.push(newMsg);
+                        if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
+                        if (chatBody) { while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); } renderChatMessage(newMsg, chatBody, chatAuth.currentUser?.uid, true); }
+                    } catch(e) { console.error('[Chat] child_added error:', e); }
+                });
+                return;
+            }
+            snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
+            chatMessagesArray.sort((a, b) => a.time - b.time);
+            if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
+            if (chatBody) { chatBody.innerHTML = ''; for (const msg of chatMessagesArray) { renderChatMessage(msg, chatBody, chatAuth.currentUser?.uid); } chatBody.scrollTop = chatBody.scrollHeight; }
+            db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded + 1).on("child_added", (newSnapshot) => {
+                try {
                     const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
                     if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
                     chatMessagesArray.push(newMsg);
                     if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
-                    const cb = document.getElementById('chat-body');
-                    if (cb) {
-                        while (cb.children.length >= config.chatMaxMessages) cb.removeChild(cb.firstChild);
-                        renderChatMessage(newMsg, cb, currentUid, true);
-                    }
-                });
+                    if (chatBody) { while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); } renderChatMessage(newMsg, chatBody, chatAuth.currentUser?.uid, true); }
+                } catch(e) { console.error('[Chat] child_added error:', e); }
             });
-        }
+        });
+
+        function listenForChatMessages(db, currentUid) { /* no-op — listener set up above */ }
 
         // ── Trade Proposal System ────────────────────────────────────
         // Sends a chat trade-request message; target sees Accept/Decline buttons

@@ -18191,35 +18191,7 @@ function initializeChat() {
                 }
             });
 
-            // Verbatim Slither mod pattern — listener array + child_added outside auth
-            let chatMessagesArray = [];
-            let latestTimeLoaded = 0;
-            const chatBody = document.getElementById('chat-body');
-
             chatAuth.signInAnonymously().catch(err => console.error("Chat anon sign-in error:", err));
-
-            db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
-                if (snapshot.exists()) {
-                    snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
-                    chatMessagesArray.sort((a, b) => a.time - b.time);
-                    if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
-                    if (chatBody) {
-                        chatBody.innerHTML = '';
-                        for (const msg of chatMessagesArray) { renderChatMessage(msg, chatBody, chatAuth.currentUser?.uid); }
-                        chatBody.scrollTop = chatBody.scrollHeight;
-                    }
-                }
-                db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded + 1).on("child_added", (newSnapshot) => {
-                    const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
-                    if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
-                    chatMessagesArray.push(newMsg);
-                    if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
-                    if (chatBody) {
-                        while (chatBody.children.length >= config.chatMaxMessages) { chatBody.removeChild(chatBody.firstChild); }
-                        renderChatMessage(newMsg, chatBody, chatAuth.currentUser?.uid, true);
-                    }
-                });
-            });
 
             chatAuth.onAuthStateChanged(user => {
                 if (!user) return;
@@ -18324,6 +18296,7 @@ function initializeChat() {
 
                 listenForOnlineUsers(db);
                 setupEventListeners(db, uid);
+                listenForChatMessages(db, uid);
                 window._chatDb = db; window._chatUid = uid;
                 var REP_TIERS=[{min:0,title:'Newcomer',color:'#555555',icon:'👤'},{min:10,title:'Soul Lurker',color:'#888888',icon:'👻'},{min:50,title:'Void Whisperer',color:'#44cc88',icon:'🌿'},{min:150,title:'Shade Walker',color:'#4488ff',icon:'💧'},{min:400,title:'Rift Crawler',color:'#aa44ff',icon:'🔮'},{min:900,title:'Abyss Warden',color:'#c8a800',icon:'⚡'},{min:2000,title:'Demon Lord',color:'#ff6644',icon:'👹'},{min:5000,title:'Soul Sovereign',color:'#ff44aa',icon:'💀'}];
                 window._getRepTier=function(r){var t=REP_TIERS[0];for(var i=0;i<REP_TIERS.length;i++){if(r>=REP_TIERS[i].min)t=REP_TIERS[i];}return t;};
@@ -18334,6 +18307,40 @@ function initializeChat() {
                 window._addPassiveRep=function(a){if(_rtc>=50)return;_rtc=Math.min(50,_rtc+a);localStorage.setItem('repToday_'+_rdk,_rtc);db.ref('playerData/'+uid+'/rep').transaction(function(c){return(c||0)+a;});};
                 setInterval(function(){window._addPassiveRep&&window._addPassiveRep(1);},5*60*1000);
                 window._giveRep=function(tuid,tname){if(!uid||!tuid||tuid===uid)return;var today=new Date().toISOString().slice(0,10);var ck='repGiven_'+today+'_'+tuid;if(localStorage.getItem(ck)){if(typeof Toastify!=='undefined')Toastify({text:'⭐ Already gave rep to '+tname+' today!',duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a0a,#3a3a00)'}}).showToast();return;}db.ref('playerData/'+tuid+'/rep').transaction(function(cur){return(cur||0)+5;},function(err,committed,snap){if(!committed||err)return;var nr=snap.val()||0;localStorage.setItem(ck,'1');db.ref('repTransfers').push({from:gameState.playerName||'Unknown',fromUid:uid,to:tname,toUid:tuid,amount:5,time:firebase.database.ServerValue.TIMESTAMP});db.ref('slitherChat').push({uid:uid,name:gameState.playerName||'Unknown',chatNameColor:localStorage.getItem('slitherChatNameColor')||'#c8a800',time:firebase.database.ServerValue.TIMESTAMP,text:'⭐ '+(gameState.playerName||'Unknown')+' gave +5 Rep to '+tname+'!'});var popup=document.querySelector('.profile-popup');if(popup){var t=window._getRepTier(nr),n=window._getNextRepTier(nr),pct=n?Math.min(100,Math.round(((nr-t.min)/(n.min-t.min))*100)):100;var fill=popup.querySelector('#rep-bar-fill');if(fill)fill.style.width=pct+'%';var rc=popup.querySelector('#rep-count');if(rc)rc.textContent='• '+nr+' rep';var btn=popup.querySelector('#give-rep-btn');if(btn){btn.textContent='⭐ Gave today';btn.style.cursor='not-allowed';btn.style.color='#333';btn.style.borderColor='#1a1a1a';btn.style.background='#0a0a0a';}}if(typeof Toastify!=='undefined')Toastify({text:'⭐ +5 Rep to '+tname+'! They now have '+nr+' rep.',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();});};
+            });
+        }
+
+        let _chatListenerActive = false;
+        function listenForChatMessages(db, currentUid) {
+            if (_chatListenerActive) return; // only ever set up once
+            _chatListenerActive = true;
+            const chatBody = document.getElementById('chat-body');
+            let chatMessagesArray = [];
+            let latestTimeLoaded = 0;
+            db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
+                if (snapshot.exists()) {
+                    snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
+                    chatMessagesArray.sort((a, b) => a.time - b.time);
+                    if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
+                    const cb = document.getElementById('chat-body');
+                    if (cb) {
+                        cb.innerHTML = '';
+                        chatMessagesArray.forEach(msg => renderChatMessage(msg, cb, currentUid));
+                        cb.scrollTop = cb.scrollHeight;
+                    }
+                }
+                // child_added fires for every new message — always set up even if chat was empty
+                db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded + 1).on("child_added", (newSnapshot) => {
+                    const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
+                    if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
+                    chatMessagesArray.push(newMsg);
+                    if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
+                    const cb = document.getElementById('chat-body');
+                    if (cb) {
+                        while (cb.children.length >= config.chatMaxMessages) cb.removeChild(cb.firstChild);
+                        renderChatMessage(newMsg, cb, currentUid, true);
+                    }
+                });
             });
         }
 

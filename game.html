@@ -18310,40 +18310,29 @@ function initializeChat() {
             });
         }
 
-        let _chatListenerActive = false;
-        function listenForChatMessages(db, currentUid) {
-            if (_chatListenerActive) return;
-            _chatListenerActive = true;
-            let chatMessagesArray = [];
+        // Exact pattern from Slither mod — chatMessagesArray and listener live outside onAuthStateChanged
+        let chatMessagesArray = [];
+        let latestTimeLoaded = 0;
 
-            // Step 1: Load recent history once
-            db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
-                if (snapshot.exists()) {
-                    snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
-                    chatMessagesArray.sort((a, b) => a.time - b.time);
-                    const cb = document.getElementById('chat-body');
-                    if (cb) {
-                        cb.innerHTML = '';
-                        chatMessagesArray.forEach(msg => renderChatMessage(msg, cb, currentUid));
-                        cb.scrollTop = cb.scrollHeight;
-                    }
-                }
-
-                // Step 2: Listen for ALL new messages — no startAt filter at all
-                // Use key-based dedup so history messages don't re-render
-                db.ref("slitherChat").limitToLast(1).on("child_added", (newSnapshot) => {
-                    const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
-                    if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
-                    chatMessagesArray.push(newMsg);
-                    if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
-                    const cb = document.getElementById('chat-body');
-                    if (cb) {
-                        while (cb.children.length >= config.chatMaxMessages) cb.removeChild(cb.firstChild);
-                        renderChatMessage(newMsg, cb, currentUid, true);
-                    }
-                });
+        db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
+            if (snapshot.exists()) {
+                snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
+                chatMessagesArray.sort((a, b) => a.time - b.time);
+                if (chatMessagesArray.length > 0) { latestTimeLoaded = chatMessagesArray[chatMessagesArray.length - 1].time; }
+                const cb = document.getElementById('chat-body');
+                if (cb) { cb.innerHTML = ''; for (const msg of chatMessagesArray) { renderChatMessage(msg, cb, chatAuth.currentUser?.uid); } cb.scrollTop = cb.scrollHeight; }
+            }
+            db.ref("slitherChat").orderByChild("time").startAt(latestTimeLoaded + 1).on("child_added", (newSnapshot) => {
+                const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
+                if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
+                chatMessagesArray.push(newMsg);
+                if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
+                const cb = document.getElementById('chat-body');
+                if (cb) { while (cb.children.length >= config.chatMaxMessages) { cb.removeChild(cb.firstChild); } renderChatMessage(newMsg, cb, chatAuth.currentUser?.uid, true); }
             });
-        }
+        });
+
+        function listenForChatMessages(db, currentUid) { /* no-op — listener set up above */ }
 
         // ── Trade Proposal System ────────────────────────────────────
         // Sends a chat trade-request message; target sees Accept/Decline buttons

@@ -18315,10 +18315,8 @@ function initializeChat() {
             if (_chatListenerActive) return;
             _chatListenerActive = true;
             let chatMessagesArray = [];
-            // Record the time BEFORE loading history — use this as the startAt for new messages
-            // This way we never miss a message due to server/client clock drift
-            const listenFromTime = Date.now() - 1000; // 1s buffer to catch any in-flight messages
 
+            // Step 1: Load recent history once
             db.ref("slitherChat").orderByChild("time").limitToLast(config.chatMaxMessages).once("value", (snapshot) => {
                 if (snapshot.exists()) {
                     snapshot.forEach(child => { chatMessagesArray.push({ key: child.key, ...child.val() }); });
@@ -18330,10 +18328,12 @@ function initializeChat() {
                         cb.scrollTop = cb.scrollHeight;
                     }
                 }
-                // Use listenFromTime (set before history load) — never misses new messages
-                db.ref("slitherChat").orderByChild("time").startAt(listenFromTime).on("child_added", (newSnapshot) => {
+
+                // Step 2: Listen for ALL new messages — no startAt filter at all
+                // Use key-based dedup so history messages don't re-render
+                db.ref("slitherChat").limitToLast(1).on("child_added", (newSnapshot) => {
                     const newMsg = { key: newSnapshot.key, ...newSnapshot.val() };
-                    if (chatMessagesArray.some(m => m.key === newMsg.key)) return; // dedup with history
+                    if (chatMessagesArray.some(m => m.key === newMsg.key)) return;
                     chatMessagesArray.push(newMsg);
                     if (chatMessagesArray.length > config.chatMaxMessages) chatMessagesArray.shift();
                     const cb = document.getElementById('chat-body');

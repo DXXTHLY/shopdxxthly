@@ -18084,7 +18084,16 @@ function initializeChat() {
                 const el2 = document.createElement('div');
                 el2.className = 'chat-msg' + (msg.uid === currentUid ? ' msg-mine' : '');
                 const ts2 = new Date(msg.time).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-                el2.innerHTML = `<span class="chat-msg-time">[${ts2}]</span><b>${nameHtml}${roleTagHTML}:</b><br><img src="${msg.gif}" style="max-width:90%;border-radius:8px;margin-top:4px;cursor:pointer;" onclick="window.open('${msg.gif}','_blank')">`;
+                // Use DOM methods so GIPHY URL special chars (&, ?, =) don't break the attribute
+                const _gifHeader = document.createElement('span');
+                _gifHeader.innerHTML = `<span class="chat-msg-time">[${ts2}]</span><b>${nameHtml}${roleTagHTML}:</b>`;
+                const _gifImg = document.createElement('img');
+                _gifImg.src = msg.gif;  // assigned via property — no HTML escaping issues
+                _gifImg.style.cssText = 'display:block;max-width:90%;border-radius:8px;margin-top:4px;cursor:pointer;';
+                _gifImg.title = 'Click to open';
+                _gifImg.addEventListener('click', () => window.open(msg.gif, '_blank'));
+                el2.appendChild(_gifHeader);
+                el2.appendChild(_gifImg);
                 chatBodyElement.appendChild(el2);
                 if (shouldScroll || chatBodyElement.scrollTop >= chatBodyElement.scrollHeight - chatBodyElement.clientHeight - 150) chatBodyElement.scrollTop = chatBodyElement.scrollHeight;
                 return;
@@ -18371,21 +18380,17 @@ function initializeChat() {
                                     if (!_fsDb) { Toastify({ text: '❌ Firebase not ready.', duration: 3000, gravity:'top', position:'center' }).showToast(); return; }
 
                                     // 1. Resolve player name → UID via accountNames
-                                    const _fsNSnap = await _fsDb.ref('accountNames').orderByValue().equalTo(_fsName).once('value');
-                                    const _fsNVal  = _fsNSnap.val();
-                                    if (!_fsNVal) {
-                                        // Try case-insensitive
-                                        const _fsNSnap2 = await _fsDb.ref('accountNames').orderByValue().equalTo(_fsName.toLowerCase()).once('value');
-                                        const _fsNVal2 = _fsNSnap2.val();
-                                        if (!_fsNVal2) {
-                                            Toastify({ text: `❌ Player "${_fsName}" not found in Firebase.`, duration: 5000, gravity:'top', position:'center', style:{background:'#330000'} }).showToast();
-                                            return;
-                                        }
-                                        Object.assign(_fsNVal || {}, _fsNVal2);
-                                        if (!_fsNVal) { Object.assign({}, _fsNVal2); }
+                                    // accountNames structure: { "playername": "uid" } — name IS the key
+                                    let _fsUID = null;
+                                    // Try exact name first, then lowercase
+                                    for (const nameVariant of [_fsName, _fsName.toLowerCase()]) {
+                                        const _fsNSnap = await _fsDb.ref('accountNames/' + nameVariant).once('value');
+                                        if (_fsNSnap.exists()) { _fsUID = _fsNSnap.val(); break; }
                                     }
-                                    const _fsUID = Object.keys(_fsNVal || {})[0];
-                                    if (!_fsUID) { Toastify({ text: `❌ UID not found for "${_fsName}".`, duration: 5000, gravity:'top', position:'center', style:{background:'#330000'} }).showToast(); return; }
+                                    if (!_fsUID) {
+                                        Toastify({ text: `❌ Player "${_fsName}" not found in Firebase.`, duration: 5000, gravity:'top', position:'center', style:{background:'#330000'} }).showToast();
+                                        return;
+                                    }
 
                                     // 2. Load their save from Firebase
                                     const _fsSaveSnap = await _fsDb.ref('gameSaves/' + _fsUID).once('value');
@@ -28217,6 +28222,11 @@ function sendGifToChat(url) {
     // Use the globally-stored chat db reference — not the closure-scoped local `db`
     const chatDb = window._chatDb || window._scFirebase?.chatDb;
     if (!chatDb || !window._chatUid) return;
+    // Only allow GIPHY URLs to prevent abuse
+    if (!url || !/^https:\/\/media[0-9]*\.giphy\.com\//i.test(url)) {
+        console.warn('[GIF] Blocked non-GIPHY URL:', url);
+        return;
+    }
     const name = localStorage.getItem('slitherChatNickname') || 'Anon';
     const col  = localStorage.getItem('slitherChatNameColor') || '#c8a800';
     chatDb.ref('slitherChat').push({

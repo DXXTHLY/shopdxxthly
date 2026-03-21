@@ -11382,17 +11382,20 @@ function calculateStats() {
     let spc_multiplier = D(1);
     let sps_multiplier = D(1);
     let global_multiplier = D(1); // Decimal — prevents overflow with huge shard counts
-    // Safe multiplier — skips zero/negative/NaN values (treats as ×1)
-    // This prevents any single bad artifact bonus from zeroing out the entire multiplier
-    const _gm_mul = (val) => {
+    // Safe multiplier helpers — skip zero/negative/NaN/Infinity values (treat as ×1)
+    // This prevents any single bad potion/artifact/ritual bonus from zeroing out SPS
+    const _safeD = (val) => {
         const d = (val instanceof Decimal) ? val : D(val);
-        if (!d.isFinite() || d.lte(0)) return global_multiplier; // skip — keep current value
-        return global_multiplier.mul(d);
+        return (d.isFinite() && d.gt(0)) ? d : D(1);
     };
+    const _gm_mul = (val) => { global_multiplier = global_multiplier.mul(_safeD(val)); return global_multiplier; };
+    const _sps_mul = (val) => { _sps_mul(_safeD(val)); };
+    const _spc_mul = (val) => { _spc_mul(_safeD(val)); };
     let minionCostFactor = 1;
     let clickUpgradeCostFactor = 1;
     let prestigeBonusEnhancer = 1;
     let essence_multiplier = 1;
+    const _safe_mult = (v) => (typeof v === 'number' && isFinite(v) && v > 0) ? v : 1;
 
     let tempMinionCostFactor = 1;
     let isGainSquared = false;
@@ -11415,10 +11418,10 @@ function calculateStats() {
         if (puzzle && puzzle.reward) {
             switch (puzzle.reward.type) {
                 case 'sps_multiplier':
-                    sps_multiplier = sps_multiplier.mul(D(puzzle.reward.value));
+                    _sps_mul(D(puzzle.reward.value));
                     break;
                 case 'spc_multiplier':
-                    spc_multiplier = spc_multiplier.mul(D(puzzle.reward.value));
+                    _spc_mul(D(puzzle.reward.value));
                     break;
                 case 'minion_cost_reducer':
                     minionCostFactor *= puzzle.reward.value;
@@ -11467,14 +11470,14 @@ function calculateStats() {
                 }
                 if (bonus.type === 'minion_cost_reducer') minionCostFactor *= value;
                 if (bonus.type === 'spc_add_flat') spc_add_flat += (bonus.value * meta_research_doubler);
-                if (bonus.type === 'global_sps_multiplier') sps_multiplier = sps_multiplier.mul(D(value));
+                if (bonus.type === 'global_sps_multiplier') _sps_mul(D(value));
                 if (bonus.type === 'essence_multiplier') essence_multiplier *= value;
                 if (bonus.type === 'secret_minion_sps_doubler') {
                     // Applied as a post-multiplier on secret minion SPS — accumulate here
                     if (!gameState._secretMinionSpsMult) gameState._secretMinionSpsMult = 1;
                     gameState._secretMinionSpsMult *= value;
                 }
-                if (bonus.type === 'global_spc_multiplier') spc_multiplier = spc_multiplier.mul(D(value));
+                if (bonus.type === 'global_spc_multiplier') _spc_mul(D(value));
                 if (bonus.type === 'click_upgrade_cost_reducer') clickUpgradeCostFactor *= value;
                 if (bonus.type === 'ritual_cooldown_reducer') {
                     if (!gameState._ritualCooldownFactor) gameState._ritualCooldownFactor = 1;
@@ -11485,14 +11488,14 @@ function calculateStats() {
                     gameState._minionShardBonusMult *= value;
                 }
                 // ── Previously unhandled research tier bonus types (now fixed) ──
-                if (bonus.type === 'global_minion_sps_multiplier') sps_multiplier = sps_multiplier.mul(D(value));
+                if (bonus.type === 'global_minion_sps_multiplier') _sps_mul(D(value));
                 if (bonus.type === 'sps_multiplier_by_unique_minions') {
                     const _uMin = Object.values(gameState.minions).filter(m => m.level > 0).length;
-                    if (_uMin > 0) sps_multiplier = sps_multiplier.mul(D(_uMin));
+                    if (_uMin > 0) _sps_mul(D(_uMin));
                 }
                 if (bonus.type === 'sps_multiplier_by_collapses') {
                     const _col = Math.max(1, gameState.totalCollapses || 0);
-                    sps_multiplier = sps_multiplier.mul(D(_col));
+                    _sps_mul(D(_col));
                 }
             }
         }
@@ -11523,8 +11526,8 @@ function calculateStats() {
             if (meta_artifact_doubler > 1) value = 1 + ((value - 1) * meta_artifact_doubler);
         }
 
-        if (bonus.type === 'sps_multiplier') sps_multiplier = sps_multiplier.mul(D(value).pow(level));
-        if (bonus.type === 'spc_multiplier') spc_multiplier = spc_multiplier.mul(D(value).pow(level));
+        if (bonus.type === 'sps_multiplier') _sps_mul(D(value).pow(level));
+        if (bonus.type === 'spc_multiplier') _spc_mul(D(value).pow(level));
         if (bonus.type === 'minion_cost_reducer') minionCostFactor *= Math.pow(value, level);
         if (bonus.type === 'upgrade_cost_reducer' && bonus.target === 'click') clickUpgradeCostFactor *= Math.pow(value, level);
         if (bonus.type === 'essence_multiplier') essence_multiplier *= Math.pow(value, level);
@@ -11584,7 +11587,7 @@ function calculateStats() {
 
         // sps_per_10_ascensions (Heart of the Horde item)
         if (bonus.type === 'sps_per_10_ascensions') {
-            sps_multiplier = sps_multiplier.mul(D((1 + (bonus.value * Math.floor(gameState.ascensions / 10)))));
+            _sps_mul(D((1 + (bonus.value * Math.floor(gameState.ascensions / 10)))));
         }
         // add_sps_to_spc (Glacial Freeze artifact) — handled post-SPS calc below via flag
         // world_cost_reducer (Tattered Map) — applied in unlockWorld
@@ -11629,15 +11632,15 @@ function calculateStats() {
                         // Values near 0 (like 0.0001) are additive bonuses, scale them directly
                         if (bonus.value < 0.1 && bonus.value > 0) effectiveValue = bonus.value * meta_enhancer;
                     }
-                    if (bonus.type === 'sps_multiplier') sps_multiplier = sps_multiplier.mul(D(effectiveValue));
-                    if (bonus.type === 'spc_multiplier') spc_multiplier = spc_multiplier.mul(D(effectiveValue));
+                    if (bonus.type === 'sps_multiplier') _sps_mul(D(effectiveValue));
+                    if (bonus.type === 'spc_multiplier') _spc_mul(D(effectiveValue));
                     if (bonus.type === 'sps_per_playtime_hour') {
                         const hoursPlayed = (gameState.playTime || 0) / 3600;
                         global_multiplier = _gm_mul(D((1 + (Math.floor(hoursPlayed) * effectiveValue))));
                     }
                     if (bonus.type === 'sps_multiplier_per_unique_minion') {
                         const uniqueMinionsOwned = Object.values(gameState.minions).filter(m => m.level > 0).length;
-                        sps_multiplier = sps_multiplier.mul(D(Math.pow(effectiveValue, uniqueMinionsOwned)));
+                        _sps_mul(D(Math.pow(effectiveValue, uniqueMinionsOwned)));
                     }
                 }
                 bonus = bonus.and ? bonus.and : null;
@@ -11692,12 +11695,12 @@ function calculateStats() {
                     if (rb.type === 'special_minion_enhancer' && rb.target === id) _perLvlMult *= rb.multiplier;
                 }
                 const _perLvlBonus = 1 + (minionData.bonus.value * _perLvlMult * playerMinion.level);
-                sps_multiplier = sps_multiplier.mul(D(_perLvlBonus));
+                _sps_mul(D(_perLvlBonus));
             }
             // final_observer_bonus: global SPS * 0.1% per level of The Final Observer
             if (minionData.bonus && minionData.bonus.type === 'final_observer_bonus') {
                 const _fob = 1 + (minionData.bonus.value * playerMinion.level);
-                sps_multiplier = sps_multiplier.mul(D(_fob));
+                _sps_mul(D(_fob));
             }
             // essence_multiplier_per_level: e.g. Causal Predator — boosts dark essence gain
             if (minionData.bonus && minionData.bonus.type === 'essence_multiplier_per_level') {
@@ -11730,8 +11733,8 @@ function calculateStats() {
         const ritualState = gameState.activeRituals[id];
         if (Date.now() < ritualState.buffEndTime) {
             const effect = rituals[id].effect;
-            if (effect.type === 'spc_multiplier')          spc_multiplier = spc_multiplier.mul(D(effect.value));
-            if (effect.type === 'sps_multiplier')          sps_multiplier = sps_multiplier.mul(D(effect.value));
+            if (effect.type === 'spc_multiplier')          _spc_mul(D(effect.value));
+            if (effect.type === 'sps_multiplier')          _sps_mul(D(effect.value));
             if (effect.type === 'global_multiplier')       global_multiplier = _gm_mul(D(effect.value));
             if (effect.type === 'temp_minion_cost_reducer') tempMinionCostFactor *= effect.value;
             if (effect.type === 'essence_multiplier')      global_multiplier = _gm_mul(D(Math.max(1, D(gameState.darkEssence || 0).toNumber())));
@@ -11748,13 +11751,13 @@ function calculateStats() {
             if (buff.effect) {
                 const effect = buff.effect;
                 if (effect.type === 'global_multiplier_flat') global_multiplier = _gm_mul(D(effect.value));
-                if (effect.type === 'sps_multiplier_flat')    sps_multiplier = sps_multiplier.mul(D(effect.value));
-                if (effect.type === 'spc_multiplier_flat')    spc_multiplier = spc_multiplier.mul(D(effect.value));
+                if (effect.type === 'sps_multiplier_flat')    _sps_mul(D(effect.value));
+                if (effect.type === 'spc_multiplier_flat')    _spc_mul(D(effect.value));
             }
             // Pact buff effects (type/value are directly on the buff object)
             if (id === 'pact_buff' && buff.type) {
-                if (buff.type === 'sps_multiplier')    sps_multiplier = sps_multiplier.mul(D(buff.value || 1));
-                if (buff.type === 'spc_multiplier')    spc_multiplier = spc_multiplier.mul(D(buff.value || 1));
+                if (buff.type === 'sps_multiplier')    _sps_mul(D(buff.value || 1));
+                if (buff.type === 'spc_multiplier')    _spc_mul(D(buff.value || 1));
                 if (buff.type === 'global_multiplier') global_multiplier = _gm_mul(D(buff.value || 1));
                 if (buff.type === 'sps_flat_bonus')    sps = sps.add(D(buff.value || 0));
                 if (buff.type === 'essence_multiplier') essenceMultiplier = (essenceMultiplier || 1) * (buff.value || 1);
@@ -11778,8 +11781,8 @@ function calculateStats() {
             if (potionId === 'omega_key_buff') { global_multiplier = global_multiplier.pow(1.05); continue; }
             const effect = potions[potionId]?.effect;
             if (!effect) continue;
-            if (effect.type === 'sps_multiplier_flat')             sps_multiplier = sps_multiplier.mul(D(effect.value));
-            if (effect.type === 'spc_multiplier_flat')             spc_multiplier = spc_multiplier.mul(D(effect.value));
+            if (effect.type === 'sps_multiplier_flat')             _sps_mul(D(effect.value));
+            if (effect.type === 'spc_multiplier_flat')             _spc_mul(D(effect.value));
             if (effect.type === 'global_multiplier_flat')          global_multiplier = _gm_mul(D(effect.value));
             if (effect.type === 'temp_minion_cost_reducer')        tempMinionCostFactor *= effect.value;
             if (effect.type === 'temp_minion_cost_reducer_flat')   tempMinionCostFactor *= effect.value;
@@ -11788,16 +11791,16 @@ function calculateStats() {
             if (effect.type === 'gain_exponent_flat')              global_multiplier = global_multiplier.pow(effect.value || 1.05);
             if (effect.type === 'add_sps_to_spc_flat')            { /* handled post-SPS calc */ }
             // Neutral fusion buffs
-            if (effect.type === 'neutral_void_accord')             { sps_multiplier = sps_multiplier.mul(2); spc_multiplier = spc_multiplier.mul(2); }
+            if (effect.type === 'neutral_void_accord')             { _sps_mul(2); _spc_mul(2); }
             // Light potion buffs (only meaningful when transcended but stored the same way)
-            if (effect.type === 'light_sps_triple')                sps_multiplier = sps_multiplier.mul(3);
+            if (effect.type === 'light_sps_triple')                _sps_mul(3);
             if (effect.type === 'light_guardian_cost_halve')       tempMinionCostFactor *= 0.5;
-            if (effect.type === 'light_mega_boost')                { sps_multiplier = sps_multiplier.mul(5); spc_multiplier = spc_multiplier.mul(5); }
+            if (effect.type === 'light_mega_boost')                { _sps_mul(5); _spc_mul(5); }
             // Effect2 keys stored as id+'_sps', id+'_haste', etc.
             if (potionId.endsWith('_sps')) {
                 const baseId = potionId.slice(0, -4);
                 const e2 = potions[baseId]?.effect2;
-                if (e2?.type === 'sps_multiplier_flat') sps_multiplier = sps_multiplier.mul(D(e2.value));
+                if (e2?.type === 'sps_multiplier_flat') _sps_mul(D(e2.value));
             }
             if (potionId.endsWith('_e2')) {
                 const baseId = potionId.slice(0, -3);
@@ -11807,7 +11810,7 @@ function calculateStats() {
             if (potionId.endsWith('_spc')) {
                 const baseId = potionId.slice(0, -4);
                 const e2 = potions[baseId]?.effect2;
-                if (e2?.type === 'spc_multiplier_flat') spc_multiplier = spc_multiplier.mul(D(e2.value));
+                if (e2?.type === 'spc_multiplier_flat') _spc_mul(D(e2.value));
             }
             if (potionId.endsWith('_cost')) {
                 const baseId = potionId.slice(0, -5);
@@ -11828,15 +11831,15 @@ function calculateStats() {
             const pb = gameState._prayerBuffs[key];
             if (!pb || nowP > pb.endsAt) { delete gameState._prayerBuffs[key]; continue; }
             const pe = pb.effect;
-            if (pe.type === 'sps_multiplier')   sps_multiplier = sps_multiplier.mul(D(pe.value));
-            if (pe.type === 'spc_multiplier')   spc_multiplier = spc_multiplier.mul(D(pe.value));
+            if (pe.type === 'sps_multiplier')   _sps_mul(D(pe.value));
+            if (pe.type === 'spc_multiplier')   _spc_mul(D(pe.value));
             if (pe.type === 'global_multiplier') global_multiplier = _gm_mul(D(pe.value));
             if (pe.type === 'temp_minion_cost_reducer') tempMinionCostFactor *= pe.value;
         }
     }
     // =================================================================
-    sps_multiplier = sps_multiplier.mul(D(gameState.permanentRitualBonuses.sps_multiplier));
-    spc_multiplier = spc_multiplier.mul(D(gameState.permanentRitualBonuses.spc_multiplier));
+    _sps_mul(D(gameState.permanentRitualBonuses.sps_multiplier));
+    _spc_mul(D(gameState.permanentRitualBonuses.spc_multiplier));
     global_multiplier = _gm_mul(D(gameState.permanentRitualBonuses.global_multiplier));
 
     // Soul Pact bonus: +10% SPS & SPC per additional pact member
@@ -11844,19 +11847,19 @@ function calculateStats() {
         const otherMembers = window.playerPact.members.filter(m => m !== gameState.playerName).length;
         if (otherMembers > 0) {
             const pactBonus = 1 + (otherMembers * 0.10);
-            sps_multiplier = sps_multiplier.mul(D(pactBonus));
-            spc_multiplier = spc_multiplier.mul(D(pactBonus));
+            _sps_mul(D(pactBonus));
+            _spc_mul(D(pactBonus));
         }
     }
 
     const worldBonus = worlds[gameState.currentWorld]?.bonus || lightWorlds[gameState.currentWorld]?.bonus || { type: 'none' };
-    if (worldBonus.type === 'sps_multiplier') sps_multiplier = sps_multiplier.mul(D(worldBonus.value));
-    if (worldBonus.type === 'spc_multiplier') spc_multiplier = spc_multiplier.mul(D(worldBonus.value));
+    if (worldBonus.type === 'sps_multiplier') _sps_mul(D(worldBonus.value));
+    if (worldBonus.type === 'spc_multiplier') _spc_mul(D(worldBonus.value));
     global_multiplier = _gm_mul(D(worldBonus.value));
 
     // ── ZENITH ELIXIR permanent stacks (+5% SPS each, up to 10×) ──────────
     if (gameState.zenithStacks && gameState.zenithStacks > 0) {
-        sps_multiplier = sps_multiplier.mul(D(1 + 0.05 * Math.min(gameState.zenithStacks, 10)));
+        _sps_mul(D(1 + 0.05 * Math.min(gameState.zenithStacks, 10)));
     }
 
     // ── GUARDIAN MINIONS SPS (Light Souls layer) ──────────────────
@@ -11946,12 +11949,14 @@ function calculateStats() {
     }
     // Store as Decimal — unbounded, same as souls/essence/shards
     // ── Apply challenge reward multipliers (persistent bonuses from achievements) ──
-    if (gameState._chalBonusSps   && gameState._chalBonusSps   > 1) final_sps_D = final_sps_D.mul(gameState._chalBonusSps);
-    if (gameState._chalBonusSpc   && gameState._chalBonusSpc   > 1) final_spc_D = final_spc_D.mul(gameState._chalBonusSpc);
-    if (gameState._chalBonusGlobal && gameState._chalBonusGlobal > 1) { final_sps_D = final_sps_D.mul(gameState._chalBonusGlobal); final_spc_D = final_spc_D.mul(gameState._chalBonusGlobal); }
-    if (gameState._chalBonusMinion && gameState._chalBonusMinion > 1) final_sps_D = final_sps_D.mul(gameState._chalBonusMinion);
-    gameState.stats.sps = final_sps_D.gt(0) ? final_sps_D : D(0);
-    gameState.stats.spc = final_spc_D.gt(0) ? final_spc_D : D(1);
+    if (gameState._chalBonusSps   && gameState._chalBonusSps   > 1) final_sps_D = final_sps_D.mul(_safeD(gameState._chalBonusSps));
+    if (gameState._chalBonusSpc   && gameState._chalBonusSpc   > 1) final_spc_D = final_spc_D.mul(_safeD(gameState._chalBonusSpc));
+    if (gameState._chalBonusGlobal && gameState._chalBonusGlobal > 1) { final_sps_D = final_sps_D.mul(_safeD(gameState._chalBonusGlobal)); final_spc_D = final_spc_D.mul(_safeD(gameState._chalBonusGlobal)); }
+    if (gameState._chalBonusMinion && gameState._chalBonusMinion > 1) final_sps_D = final_sps_D.mul(_safeD(gameState._chalBonusMinion));
+    // Final safety net — if SPS is somehow 0/NaN/negative after all multipliers, keep last known good value
+    if (final_sps_D.isFinite() && final_sps_D.gt(0)) gameState.stats.sps = final_sps_D;
+    else if (!gameState.stats.sps || !D(gameState.stats.sps).isFinite()) gameState.stats.sps = D(0);
+    gameState.stats.spc = (final_spc_D.isFinite() && final_spc_D.gt(0)) ? final_spc_D : D(1);
 
     // =================================================================
     // 7. COST RE-CALCULATION

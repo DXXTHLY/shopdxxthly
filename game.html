@@ -14767,23 +14767,21 @@ function loadAuthFirebase() {
                     if (user) {
                         const authScreenVisible = document.getElementById('auth-screen') &&
                             document.getElementById('auth-screen').style.display !== 'none';
-                        const _writeAccountName = () => {
-                            if (gameState.playerName && gameState.playerName !== 'Unnamed') {
-                                saveDb.ref('accountNames/' + gameState.playerName.toLowerCase()).set(user.uid).catch(() => {});
-                            }
-                        };
                         if (authScreenVisible) {
                             // Normal login flow — load cloud save
-                            loadGameFromCloud(user.uid, saveDb).then(_writeAccountName).catch(() => {});
+                            loadGameFromCloud(user.uid, saveDb);
                         } else if (window._saveWasCorrupted) {
                             // Save was corrupted — force fresh cloud load even though game is showing
                             console.warn('🔄 Forcing cloud reload to fix corrupted save...');
                             window._saveWasCorrupted = false;
-                            loadGameFromCloud(user.uid, saveDb).then(_writeAccountName).catch(() => {});
-                        } else {
-                            // Already in-game session — just write accountNames to keep it fresh
-                            setTimeout(_writeAccountName, 3000);
+                            loadGameFromCloud(user.uid, saveDb);
                         }
+                        // Write accountNames as fire-and-forget — never blocks the game flow
+                        setTimeout(() => {
+                            if (gameState.playerName && gameState.playerName !== 'Unnamed') {
+                                saveDb.ref('accountNames/' + gameState.playerName.toLowerCase()).set(user.uid).catch(() => {});
+                            }
+                        }, 3000);
                     }
                     updateAccountBtn();
                     // Update the unlinked banner whenever auth state changes

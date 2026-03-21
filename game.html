@@ -13477,7 +13477,7 @@ Both potions will be consumed. Proceed?`;
 
     // Grant result
     if (!gameState.potions[resultId]) gameState.potions[resultId] = 0;
-    gameState.potions[resultId]++;
+    gameState.potions[resultId] = Math.min(10, (gameState.potions[resultId] || 0) + 1);
 
     const rMeta = getPotionMeta(resultId);
     Toastify({
@@ -13754,7 +13754,7 @@ function brewPotion(id) {
         if (p.shardsCost) gameState.abyssalShards = D(gameState.abyssalShards).sub(p.shardsCost);
         gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(fragCost);
         if ((gameState.potions[id] || 0) >= 5) { Toastify({ text: `⚗️ You can only hold 5 of the same potion at a time.`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0030,#440044)'} }).showToast(); return; }
-        gameState.potions[id] = (gameState.potions[id] || 0) + 1;
+        gameState.potions[id] = Math.min(10, (gameState.potions[id] || 0) + 1);
         gameState.potionsBrewed++;
 
         Toastify({ text: `🧪 ${p.name} added to your shelf!`, duration:3000, gravity:'top', position:'center',
@@ -16861,7 +16861,7 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
         if (!confirm(`Buy ${potions[itemId]?.name || itemId} for ${formatNumber(lsCost)} LE (Light Essence)?`)) return;
         gameState.lightEssence = D(gameState.lightEssence || 0).sub(lsCost).max(0);
         gameState.shopPurchases[purchaseKeyL] = boughtL + 1;
-        gameState.potions[itemId] = (gameState.potions[itemId] || 0) + 1;
+        gameState.potions[itemId] = Math.min(10, (gameState.potions[itemId] || 0) + 1);
         Toastify({ text: `✦ ${potions[itemId]?.name || itemId} added to your Brewery!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#6600cc)'} }).showToast();
         playSound('upgrade'); calculateStats(); renderAll(); saveGame(); generateHourlyShopItems();
         return;
@@ -16936,12 +16936,12 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
         Toastify({ text: `✔ ${itemName} is now Level ${gameState.ownedArtifacts[itemId].level}.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#1a0a2a,#aa44ff)' } }).showToast();
     } else if (itemType === 'potion') {
         if ((gameState.potions[itemId] || 0) >= 5) { Toastify({ text: `⚗️ You can only hold 5 of the same potion.`, duration:3000, gravity:'top', position:'center', style:{background:'#330033'} }).showToast(); _safeAddCur('darkEssence', price); saveGame(); return; }
-        gameState.potions[itemId] = (gameState.potions[itemId] || 0) + 1;
+        gameState.potions[itemId] = Math.min(10, (gameState.potions[itemId] || 0) + 1);
         Toastify({ text: `✔ ${itemName} added to your brewery.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a14,#44cc88)' } }).showToast();
         if (typeof renderPotions === 'function') renderPotions();
     } else if (itemType === 'market_potion') {
         if ((gameState.potions[itemId] || 0) >= 5) { Toastify({ text: `⚗️ You can only hold 5 of the same potion.`, duration:3000, gravity:'top', position:'center', style:{background:'#330033'} }).showToast(); _safeAddCur('darkEssence', price); saveGame(); return; }
-        gameState.potions[itemId] = (gameState.potions[itemId] || 0) + 1;
+        gameState.potions[itemId] = Math.min(10, (gameState.potions[itemId] || 0) + 1);
         const _mpName = potions[itemId]?.name || itemId;
         Toastify({ text: `🔥 ${_mpName} added to your Brewery!`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0a00,#ff664488)' } }).showToast();
         if (typeof renderPotions === 'function') renderPotions();
@@ -20522,7 +20522,7 @@ function openAbyssalBreachChest() {
             addBreachLog('📦 Chest reward: +' + r.amount + ' Corrupted Fragments.', 'good');
         } else if (r.type === 'potion') {
             if (!gameState.potions[r.id]) gameState.potions[r.id] = 0;
-            gameState.potions[r.id]++;
+            gameState.potions[r.id] = Math.min(10, (gameState.potions[r.id] || 0) + 1);
             addBreachLog('📦 Chest reward: ' + potions[r.id].name + ' — added to your Brewery.', 'good');
         } else if (r.type === 'item') {
             gameState.inventory.push(r.id);
@@ -21754,7 +21754,7 @@ function claimPvpReward() {
     _safeAddCur("darkEssence", reward.essence);
     if (reward.potion) {
         if (!gameState.potions) gameState.potions = {};
-        if ((gameState.potions[reward.potion] || 0) < 5) { gameState.potions[reward.potion] = (gameState.potions[reward.potion] || 0) + 1; }
+        if ((gameState.potions[reward.potion] || 0) < 10) { gameState.potions[reward.potion] = (gameState.potions[reward.potion] || 0) + 1; }
     }
     gameState.pvpRewardClaimedDate = today;
 
@@ -22857,7 +22857,7 @@ function addCurrency(type, amt) {
     }
     if (type.startsWith('potion:')) {
         const id = type.slice(7);
-        gameState.potions[id] = Math.min(5, (gameState.potions[id] || 0) + amt);
+        gameState.potions[id] = Math.min(10, (gameState.potions[id] || 0) + amt);
         Toastify({ text: `🧪 Received ${amt}x ${potions[id]?.name || id}!`, duration: 3000, gravity:'top', position:'center' }).showToast();
     }
     if (type.startsWith('item:')) {

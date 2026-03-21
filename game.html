@@ -8769,7 +8769,7 @@ const potions = {
     },
     rift_serum: {
         name: "Rift Serum",
-        desc: "Instantly gain Corrupted Fragments equal to 5× your Ascension count (capped at 100).",
+        desc: "Instantly gain Corrupted Fragments equal to 5× your Ascension count (max 100). 2-hour cooldown.",
         cost: 1e25,
         marketOnly: true,
         shopPrice: 60,
@@ -8909,12 +8909,13 @@ const potions = {
     },
     phial_of_world_shattering: {
         name: "Phial of World Shattering",
-        desc: "Instantly gain 2,500 Dark Essence and 500 Corrupted Fragments.",
+        desc: "Instantly gain 2,500 Dark Essence and 100 Corrupted Fragments. ⏳ 24hr cooldown.",
         marketOnly: true,
         shopPrice: 160,
+        cooldown: 86400,
         effect: { type: 'gain_essence_flat', value: 2500 },
-         effect2: { type: 'gain_fragments_uncapped', value: 500 }
-     },
+        effect2: { type: 'gain_fragments_uncapped', value: 100 }
+    },
     brew_of_echoing_void: {
         name: "Brew of Echoing Void",
         desc: "For 5 minutes, clicking the altar fires 25 additional auto-clicks at full SPC.",
@@ -9128,10 +9129,11 @@ const potions = {
     },
     fusion_essence_bomb: {
         name: "⚗️ Essence Detonator",
-        desc: "Doubles your entire Dark Essence stockpile AND grants 100 Corrupted Fragments.",
+        desc: "Doubles your entire Dark Essence stockpile AND grants 100 Corrupted Fragments. ⏳ 24hr cooldown.",
         fusedOnly: true,
+        cooldown: 86400,
         effect: { type: 'double_essence_flat' },
-        effect2: { type: 'gain_fragments_per_ascension_flat', value: 20 }
+        effect2: { type: 'gain_fragments_flat', value: 100 }
     },
     fusion_time_warp: {
         name: "⚗️ Temporal Warp Serum",
@@ -9282,11 +9284,12 @@ const potions = {
     },
     fusion_ultra_reality_end: {
         name: "⚗️ ULTRA — Reality's End",
-        desc: "Instantly: 50 Aether, 50% of next ascension shards, 1000 fragments, and SPS ×500 for 5min.",
+        desc: "Instantly: 50 Aether, 50% of next ascension shards, 100 fragments, and SPS ×500 for 5min. ⏳ 24hr cooldown.",
         fusedOnly: true,
+        cooldown: 86400,
         effect:  { type: 'gain_aether_no_reset_flat', value: 50 },
         effect2: { type: 'sps_multiplier_flat', value: 500, duration: 300 },
-        effect3: { type: 'gain_fragments_uncapped', value: 1000 }
+        effect3: { type: 'gain_fragments_uncapped', value: 100 }
     },
 
     // ── LEGEND TIER: Fused + Market ───────────────────────────────────────
@@ -9372,10 +9375,12 @@ const potions = {
     },
     fusion_battle_fortune: {
         name: "⚗️ Warlord's Grand Omen",
-        desc: "PvP loot drops ×50 for 1 hour. Also resets your raid cooldown and grants 500 Corrupted Fragments.",
+        desc: "PvP loot drops ×50 for 1 hour. Also resets your raid cooldown and grants 100 Corrupted Fragments. ⏳ 24hr cooldown.",
         fusedOnly: true,
+        cooldown: 86400,
         effect: { type: 'pvp_loot_multiplier_flat', value: 50, duration: 3600 },
-        effect2: { type: 'reset_raid_cooldown_flat' }
+        effect2: { type: 'reset_raid_cooldown_flat' },
+        effect3: { type: 'gain_fragments_flat', value: 100 }
     },
     fusion_void_supremacy: {
         name: "⚗️ Void Supremacy Tincture",
@@ -9406,10 +9411,10 @@ const potions = {
     },
     fusion_fragment_nova: {
         name: "⚗️ Fragment Supernova",
-        desc: "Gain 50 Corrupted Fragments per Ascension AND 10,000 Dark Essence instantly.",
+        desc: "Gain up to 100 Corrupted Fragments (capped) AND 10,000 Dark Essence instantly. 24-hour cooldown.",
         fusedOnly: true, marketFusion: true,
         cooldown: 86400,
-        effect: { type: 'gain_fragments_per_ascension_flat', value: 50 },
+        effect: { type: 'gain_fragments_flat', value: 100 },
         effect2: { type: 'gain_essence_flat', value: 10000 }
     },
     fusion_infinite_loop: {
@@ -13710,7 +13715,16 @@ function _addFragments(amount, capped = true) {
     let n;
     try { n = (amount instanceof Decimal) ? amount.toNumber() : Number(amount); } catch(e) { return; }
     if (!isFinite(n) || isNaN(n) || n <= 0) return;
-    if (capped) n = Math.min(n, 100);
+    // Hard cap of 100 for all normal sources — donor rewards use _addFragmentsDonor instead
+    n = Math.min(n, 100);
+    gameState.corruptedFragments = D(gameState.corruptedFragments || 0).add(n);
+}
+
+// Uncapped fragment grant — ONLY for verified donor rewards
+function _addFragmentsDonor(amount) {
+    let n;
+    try { n = (amount instanceof Decimal) ? amount.toNumber() : Number(amount); } catch(e) { return; }
+    if (!isFinite(n) || isNaN(n) || n <= 0) return;
     gameState.corruptedFragments = D(gameState.corruptedFragments || 0).add(n);
 }
 
@@ -13900,9 +13914,9 @@ function usePotion(id) {
             // (falls through to duration block below)
         }
         if (effect.type === 'gain_fragments_per_ascension_flat') {
-            const frags = Math.floor(effect.value * (gameState.ascensions || 1));
+            const frags = Math.min(100, Math.floor(effect.value * (gameState.ascensions || 1)));
             _addFragments(frags, true);
-    if (typeof checkChallenges === 'function') setTimeout(checkChallenges, 200);
+            if (typeof checkChallenges === 'function') setTimeout(checkChallenges, 200);
             Toastify({ text: `🔮 Gained ${formatNumber(frags)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
         }
 
@@ -13935,7 +13949,7 @@ function usePotion(id) {
                 Toastify({ text: `🔮 Gained ${formatNumber(Math.min(effect2.value, 100))} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
             }
             if (effect2.type === 'gain_fragments_per_ascension_flat') {
-                const frags2 = Math.floor(effect2.value * (gameState.ascensions || 1));
+                const frags2 = Math.min(100, Math.floor(effect2.value * (gameState.ascensions || 1)));
                 _addFragments(frags2, true);
                 Toastify({ text: `🔮 Gained ${formatNumber(frags2)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
             }
@@ -13971,17 +13985,19 @@ function usePotion(id) {
                 Toastify({ text: `⚡ Also gained ${formatNumber(gained2)} Aether!`, duration:3000, gravity:'top', position:'center' }).showToast();
             }
             if (effect2.type === 'gain_fragments_uncapped') {
-                _addFragments(effect2.value, false);
-                Toastify({ text: `🔮 Gained ${formatNumber(effect2.value)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
+                const _fv2 = Math.min(effect2.value, 100); // hard cap — max 100 per potion use
+                _addFragments(_fv2, true);
+                Toastify({ text: `🔮 Gained ${formatNumber(_fv2)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
             }
         }
 
         // ── FUSED POTION: THIRD INSTANT EFFECT ──────────────────────────────
         const effect3 = potions[id]?.effect3;
         if (effect3) {
-            if (effect3.type === 'gain_fragments_uncapped') {
-                _addFragments(effect3.value, false);
-                Toastify({ text: `🔮 Gained ${formatNumber(effect3.value)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
+            if (effect3.type === 'gain_fragments_uncapped' || effect3.type === 'gain_fragments_flat') {
+                const _fv3 = Math.min(effect3.value, 100); // hard cap — max 100 per potion use
+                _addFragments(_fv3, true);
+                Toastify({ text: `🔮 Gained ${formatNumber(_fv3)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
             }
             if (effect3.type === 'gain_shards_no_reset_flat') {
                 const gained3 = Math.floor(calculateShardsOnAscend() * effect3.value);
@@ -14555,6 +14571,12 @@ function loadAuthFirebase() {
                         }
                     }
                     updateAccountBtn();
+                    // Update the unlinked banner whenever auth state changes
+                    const banner = document.getElementById('unlinked-account-banner');
+                    if (banner && !sessionStorage.getItem('sc_banner_dismissed')) {
+                        const isLinked = user && !user.isAnonymous && user.email;
+                        banner.style.display = isLinked ? 'none' : 'flex';
+                    }
                 });
 
                 // Now that Firebase is loaded, init chat
@@ -14904,11 +14926,38 @@ function dismissUnlinkedBanner() {
 
 function checkUnlinkedBanner() {
     if (sessionStorage.getItem('sc_banner_dismissed')) return;
-    const user = window._scFirebase?.auth?.currentUser;
-    const isLinked = user && !user.isAnonymous && user.email;
     const banner = document.getElementById('unlinked-account-banner');
     if (!banner) return;
-    banner.style.display = isLinked ? 'none' : 'flex';
+
+    const _applyBannerState = (user) => {
+        if (sessionStorage.getItem('sc_banner_dismissed')) return;
+        const isLinked = user && !user.isAnonymous && user.email;
+        banner.style.display = isLinked ? 'none' : 'flex';
+    };
+
+    // If Firebase auth is already resolved, apply immediately
+    const auth = window._scFirebase?.auth;
+    if (auth) {
+        // onAuthStateChanged fires synchronously if auth state is already known
+        const unsubscribe = auth.onAuthStateChanged(user => {
+            _applyBannerState(user);
+            unsubscribe(); // only need it once
+        });
+    } else {
+        // Firebase not loaded yet — poll briefly then give up (shows banner as safe default)
+        let attempts = 0;
+        const poll = setInterval(() => {
+            attempts++;
+            const a = window._scFirebase?.auth;
+            if (a) {
+                clearInterval(poll);
+                const unsub = a.onAuthStateChanged(user => { _applyBannerState(user); unsub(); });
+            } else if (attempts > 20) {
+                clearInterval(poll);
+                banner.style.display = 'flex'; // no auth after 5s = treat as unlinked
+            }
+        }, 250);
+    }
 }
 
 function enterGame() {
@@ -27902,7 +27951,7 @@ async function confirmDonationClaim() {
         // ── Grant rewards ──────────────────────────────────────
         const frags = reward.fragments || 10000;
         // Donation reward — uncapped, donors deserve their full 10,000 fragments
-        _addFragments(frags, false);
+        _addFragmentsDonor(frags); // donor reward — intentionally uncapped
 
         // Secret Minions — 2 completely random picks from ALL secret minions, repeats possible
         const allSecretIds = Object.keys(minions || {}).filter(id => minions[id]?.secret);

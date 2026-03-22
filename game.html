@@ -19215,7 +19215,8 @@ function initializeChat() {
                     if (text === '!light1') {
                         if (window._scIsDev && window._scIsDev(uid)) {
                             if (window._devTranscendTest) {
-                                // TOGGLE OFF
+                                // TOGGLE OFF — cancel the auto-expire timer too
+                                if (window._light1Timer) { clearTimeout(window._light1Timer); window._light1Timer = null; }
                                 window._devTranscendTest = false;
                                 if (window._preTranscendBackup) {
                                     gameState.isTranscended = window._preTranscendBackup.isTranscended;
@@ -19230,14 +19231,12 @@ function initializeChat() {
                             } else {
                             // TOGGLE ON
                             window._devTranscendTest = true;
-                            // Save original state so we can restore
                             window._preTranscendBackup = {
                                 isTranscended: gameState.isTranscended,
                                 unlockedLightWorlds: gameState.unlockedLightWorlds ? [...gameState.unlockedLightWorlds] : [],
                                 guardianMinions: JSON.parse(JSON.stringify(gameState.guardianMinions || {})),
                                 currentWorld: gameState.currentWorld,
                             };
-                            // Enable transcended state for testing
                             gameState.isTranscended = true;
                             if (!gameState.unlockedLightWorlds || gameState.unlockedLightWorlds.length === 0) {
                                 gameState.unlockedLightWorlds = ['celestial_threshold'];
@@ -19249,23 +19248,8 @@ function initializeChat() {
                                 }
                             }
                             gameState.currentWorld = gameState.unlockedLightWorlds[gameState.unlockedLightWorlds.length - 1];
-                            calculateStats();
-                            renderAll();
-                            checkTranscendenceUnlock();
+                            calculateStats(); renderAll(); checkTranscendenceUnlock();
                             if (typeof gntRenderLocationPicker === 'function') gntRenderLocationPicker();
-                            setTimeout(() => {
-                                window._devTranscendTest = false;
-                                // Restore original state
-                                if (window._preTranscendBackup) {
-                                    gameState.isTranscended = window._preTranscendBackup.isTranscended;
-                                    gameState.unlockedLightWorlds = window._preTranscendBackup.unlockedLightWorlds;
-                                    gameState.guardianMinions = window._preTranscendBackup.guardianMinions;
-                                    gameState.currentWorld = window._preTranscendBackup.currentWorld;
-                                    calculateStats();
-                                    renderAll();
-                                }
-                                Toastify({ text: '🔧 DEV: !light1 test mode expired. Restored to normal.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
-                            }, 15 * 60 * 1000);
                             Toastify({ text: '🔧 DEV: Light mode ON — type !light1 again to turn off.', duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)' } }).showToast();
                             } // end toggle-on
                         } else {

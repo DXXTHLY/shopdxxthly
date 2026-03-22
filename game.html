@@ -3187,7 +3187,7 @@ text-decoration: underline; /* Adds an underline on hover */
 
                     <!-- Top status strip -->
                     <div style="display:flex; gap:10px; align-items:stretch; margin-bottom:14px;">
-                        <button onclick="gntBackToMap()" id="gnt-back-btn"
+                        <button onclick="gntBackToMap()" id="gnt-back-btn" title="Return to world map"
                             style="background:#0a0812; border:1px solid #2a1a3a; border-radius:10px;
                                    padding:10px 16px; color:#555; cursor:pointer; font-family:var(--font-title);
                                    font-size:0.75em; letter-spacing:1px; white-space:nowrap; flex-shrink:0;
@@ -25276,11 +25276,20 @@ function gntBackToMap() {
         Toastify({text:'Cannot retreat during combat!', duration:2500, gravity:'top', position:'center', style:{background:'#aa2222'}}).showToast();
         return;
     }
+    // Enforce world-switch cooldown after cashout
+    const _wsCd = gntState._worldSwitchCooldownEnd || 0;
+    if (Date.now() < _wsCd) {
+        const _secsLeft = Math.ceil((_wsCd - Date.now()) / 1000);
+        const _mLeft = Math.floor(_secsLeft / 60), _sLeft = _secsLeft % 60;
+        Toastify({text:`⏳ World switch on cooldown — ${_mLeft}m ${_sLeft}s remaining. Finish your run first!`, duration:3500, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0800,#442200)'}}).showToast();
+        return;
+    }
     // If mid-run (already bet), warn
     if (gntState.betAmount > 0 && gntState.phase !== 'RESULT') {
         if (!confirm('Return to map? Your current run will be abandoned and your bet is lost.')) return;
-        // Lose the bet
+        // Lose the bet — also set a penalty cooldown for abandoning
         gntState.betAmount = 0;
+        gntState._worldSwitchCooldownEnd = Date.now() + 5 * 60 * 1000; // 5min penalty for abandoning mid-run
     }
     if (gntState.combatInterval) { clearInterval(gntState.combatInterval); gntState.combatInterval = null; }
     gntState.locationChosen = false;
@@ -25376,16 +25385,28 @@ function gntWaveLost(){
 }
 function gntCashOut(){
     const wd = gntGetWaveData(gntState.wave);
-    const winD = D(gntState.betAmount).mul(D(wd.mult));
+    let winD = D(gntState.betAmount).mul(D(wd.mult));
+
+    // Anti-abuse: waves 1-2 cashout only returns the original bet (no profit)
+    // This kills the bet-cashout-switch-world loop since there's nothing to gain early
+    const isWeak = gntState.wave <= 2;
+    if (isWeak) {
+        winD = D(gntState.betAmount); // just get your bet back, no profit
+    }
+
     const winDisplay = formatNumber(winD);
     if (gntState.betCurrency === 'souls') {
         gameState.souls = D(gameState.souls).add(winD);
     } else {
         gameState[gntState.betCurrency] = D(gameState[gntState.betCurrency] || 0).add(winD);
     }
+
+    // Set world-switch cooldown: 3 min after any cashout, 10 min after profitable cashout
+    const cooldownMs = isWeak ? 3 * 60 * 1000 : 10 * 60 * 1000;
+    gntState._worldSwitchCooldownEnd = Date.now() + cooldownMs;
+
     updateDynamicDisplays(); saveGame(); playSound('upgrade');
-    const isWeak = gntState.wave <= 2;
-    gntLog('Cashed out at ' + wd.label + ' -- +' + winDisplay + ' ' + gntCurrencyLabel(gntState.betCurrency) + (isWeak ? ' (survive more waves for real rewards)' : ''), '#c8a800');
+    gntLog('Cashed out at ' + wd.label + ' -- +' + winDisplay + ' ' + gntCurrencyLabel(gntState.betCurrency) + (isWeak ? ' (no profit on wave 1-2 cashout)' : ''), '#c8a800');
     const box = document.getElementById('gnt-result-box');
     if (box) {
         box.style.borderTopColor = '#44cc88';

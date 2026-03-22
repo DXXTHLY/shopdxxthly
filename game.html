@@ -3770,7 +3770,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div style="background:#44000022; border:1px solid #cc000066; border-radius:8px; padding:7px 16px; font-size:0.78em; color:#ff6666;">💥 All vaults lost on Collapse</div>
                 </div>
 
-                <!-- Four vault cards in 2x2 grid -->
+                <!-- Vault cards in responsive 2-col grid -->
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
 
                     <!-- Soul Vault -->
@@ -3836,27 +3836,6 @@ text-decoration: underline; /* Adds an underline on hover */
                         </button>
                     </div>
 
-                    <!-- Light Essence Vault (transcended only) -->
-                    <div id="le-vault-section" style="display:none; background:linear-gradient(135deg,#001a14,#002a1e); border:1px solid #44ffcc33; border-top:3px solid #44ffcc; border-radius:12px; padding:18px; position:relative; overflow:hidden;">
-                        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top,#44ffcc08,transparent 70%);pointer-events:none;"></div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                            <span style="font-size:1.4em;">✦</span>
-                            <div>
-                                <div style="color:#888; font-size:0.68em; text-transform:uppercase; letter-spacing:2px;">Light Essence Vault <span style="color:#44ffcc66;">· Transcended</span></div>
-                                <div style="color:#44ffcc; font-size:1.4em; font-weight:bold;" id="le-vault-display">0</div>
-                                <div style="color:#555; font-size:0.7em;">LE secured</div>
-                            </div>
-                        </div>
-                        <button class="upgrade-btn" onclick="depositLightEssence()" style="width:100%; margin-bottom:7px; border-color:#44ffcc44; background:linear-gradient(135deg,#44ffcc10,transparent);">
-                            <span style="color:#44ffcc; font-weight:bold;">⬆ Deposit LE</span>
-                            <span style="display:block; font-size:0.7em; color:#666; margin-top:2px;">Vault all but 3 LE fee · max 5,000 LE</span>
-                        </button>
-                        <button class="upgrade-btn" id="le-withdraw-btn" onclick="withdrawLightEssence()" style="width:100%; border-color:#44ffcc22; background:transparent;">
-                            <span style="color:#44ffcc;">⬇ Withdraw</span>
-                            <span style="display:block; font-size:0.7em; color:#555; margin-top:2px;">Fee: 5 LE · once per life</span>
-                        </button>
-                    </div>
-
                     <!-- Fragment Vault -->
                     <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #3d2a4a; border-top:3px solid #aa44ff; border-radius:12px; padding:18px; position:relative; overflow:hidden;">
                         <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top,#aa44ff08,transparent 70%);pointer-events:none;"></div>
@@ -3877,6 +3856,28 @@ text-decoration: underline; /* Adds an underline on hover */
                             <span style="display:block; font-size:0.7em; color:#555; margin-top:2px;">Fee: 25 DE · once per life</span>
                         </button>
                     </div>
+
+                    <!-- Light Essence Vault — only shown when transcended, fills 6th grid cell -->
+                    <div id="le-vault-section" style="display:none; background:linear-gradient(135deg,#001a14,#002a1e); border:1px solid #44ffcc33; border-top:3px solid #44ffcc; border-radius:12px; padding:18px; position:relative; overflow:hidden;">
+                        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top,#44ffcc08,transparent 70%);pointer-events:none;"></div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                            <span style="font-size:1.4em;">✦</span>
+                            <div>
+                                <div style="color:#888; font-size:0.68em; text-transform:uppercase; letter-spacing:2px;">Light Essence Vault <span style="color:#44ffcc66;">· Transcended</span></div>
+                                <div style="color:#44ffcc; font-size:1.4em; font-weight:bold;" id="le-vault-display">0</div>
+                                <div style="color:#555; font-size:0.7em;">LE secured</div>
+                            </div>
+                        </div>
+                        <button class="upgrade-btn" onclick="depositLightEssence()" style="width:100%; margin-bottom:7px; border-color:#44ffcc44; background:linear-gradient(135deg,#44ffcc10,transparent);">
+                            <span style="color:#44ffcc; font-weight:bold;">⬆ Deposit LE</span>
+                            <span style="display:block; font-size:0.7em; color:#666; margin-top:2px;">Vault all but 3 LE fee · max 5,000 LE</span>
+                        </button>
+                        <button class="upgrade-btn" id="le-withdraw-btn" onclick="withdrawLightEssence()" style="width:100%; border-color:#44ffcc22; background:transparent;">
+                            <span style="color:#44ffcc;">⬇ Withdraw</span>
+                            <span style="display:block; font-size:0.7em; color:#555; margin-top:2px;">Fee: 5 LE · once per life</span>
+                        </button>
+                    </div>
+
                 </div>
 
                 <!-- Interest info -->
@@ -3887,6 +3888,7 @@ text-decoration: underline; /* Adds an underline on hover */
                         <span style="color:#c8a800;">Essence 0.3%/hr</span> &nbsp;·&nbsp;
                         <span style="color:#4488ff;">Shards 0.2%/hr</span> &nbsp;·&nbsp;
                         <span style="color:#555;">Fragments no interest</span>
+                        <span id="le-interest-badge" style="display:none; color:#44ffcc;"> &nbsp;·&nbsp; ✦ LE Vault (transcended)</span>
                         <div style="color:#444; font-size:0.88em; margin-top:2px;">All compound passively every second. All lost on Collapse.</div>
                     </div>
                 </div>
@@ -17619,6 +17621,7 @@ function generateHourlyShopItems() {
         if (type === 'artifact') itemData = artifacts[id];
         if (type === 'potion') itemData = potions[id];
         if (type === 'market_potion') itemData = potions[id];
+        if (type === 'light_potion') itemData = potions[id];  // LE potions also come from potions object
         if (type === 'key') itemData = { name: KEYS[id]?.name || 'Key', desc: KEYS[id]?.desc || '', icon: KEYS[id]?.icon || '🗝️' };
 
         if (type === 'artifact' && gameState.ownedArtifacts[id] && availableItems.length) {
@@ -18219,12 +18222,15 @@ function renderBank() {
 
     // Update LE vault display if transcended
     const leVaultEl = document.getElementById('le-vault-display');
+    const _showLE = gameState.isTranscended || window._devTranscendTest;
     if (leVaultEl) {
         leVaultEl.textContent = formatNumber(D(gameState.bankedLightEssence || 0));
         const leWithdrawBtn = document.getElementById('le-withdraw-btn');
         if (leWithdrawBtn) leWithdrawBtn.disabled = gameState.hasWithdrawnLE || D(gameState.lightEssence||0).lt(5) || D(gameState.bankedLightEssence||0).lte(0);
         const leVaultSection = document.getElementById('le-vault-section');
-        if (leVaultSection) leVaultSection.style.display = (gameState.isTranscended || window._devTranscendTest) ? '' : 'none';
+        if (leVaultSection) leVaultSection.style.display = _showLE ? '' : 'none';
+        const leBadge = document.getElementById('le-interest-badge');
+        if (leBadge) leBadge.style.display = _showLE ? '' : 'none';
     }
     const exchangeSouls = document.getElementById('exchange-souls-balance');
     if (!exchangeSouls) return;
@@ -18262,14 +18268,14 @@ function renderBank() {
     document.getElementById('de-tier-text').innerHTML = `<span class="cost-essence">${formatNumber(deTier.fromAmount)} ${_essLabel}</span> → <span class="cost-souls">${formatNumber(deTier.toAmount)} ${_isTx ? 'Light Souls' : 'Souls'}</span>${fragTag(10)} <span style="color:#555; font-size:0.75em;">(${deSoulsUsed}/5 today)</span>`;
     const ceb = document.getElementById('convert-essence-btn');
     ceb.onclick = () => convertCurrency('de', 'souls', deTier.fromAmount, deTier.toAmount);
-    ceb.disabled = D(gameState.darkEssence).lt(deTier.fromAmount) || !hasFrags(10) || deSoulsUsed >= 5;
+    ceb.disabled = _essBalance().lt(deTier.fromAmount) || !hasFrags(10) || deSoulsUsed >= 5;
 
     const deShardsTier = conversionTiers.deToShards[currentConversionIndexes.deToShards];
     const dsEl = document.getElementById('de-shards-tier-text');
     if (dsEl) {
-        dsEl.innerHTML = `<span class="cost-essence">${formatNumber(deShardsTier.fromAmount)} DE</span> → <span class="cost-shards">${formatNumber(deShardsTier.toAmount)} Shards</span>${fragTag(20)}`;
+        dsEl.innerHTML = `<span class="cost-essence">${formatNumber(deShardsTier.fromAmount)} ${_essLabel}</span> → <span class="cost-shards">${formatNumber(deShardsTier.toAmount)} Shards</span>${fragTag(20)}`;
         const cdsb = document.getElementById('convert-de-shards-btn');
-        if (cdsb) { cdsb.onclick = () => convertCurrency('de', 'shards', deShardsTier.fromAmount, deShardsTier.toAmount); cdsb.disabled = D(gameState.darkEssence).lt(deShardsTier.fromAmount) || !hasFrags(20); }
+        if (cdsb) { cdsb.onclick = () => convertCurrency('de', 'shards', deShardsTier.fromAmount, deShardsTier.toAmount); cdsb.disabled = _essBalance().lt(deShardsTier.fromAmount) || !hasFrags(20); }
     }
 
     // Shards → Fragments (dynamic escalating cost)
@@ -18350,8 +18356,9 @@ async function fetchMarketListings() {
         data.forEach((listing) => {
             const item = items[listing.item_id];
             const _listCur = listing.currency || 'de';
+            const _isTxViewer = gameState.isTranscended || window._devTranscendTest;
             const canAfford = _listCur === 'le' ? D(gameState.lightEssence||0).gte(listing.price)
-                           : _listCur === 'ls'  ? D(gameState.souls||0).gte(listing.price)
+                           : _listCur === 'ls'  ? D(_isTxViewer ? gameState.souls : 0).gte(listing.price)
                            : D(gameState.darkEssence).gte(listing.price);
             const isMyItem  = gameState.playerName === listing.seller_name;
             const rarityColor = item ? ({ legendary:'#ff9900', epic:'#a855f7', rare:'#3b82f6', uncommon:'#22c55e', common:'#aaa' }[item.rarity] || '#aaa') : '#888';
@@ -18375,10 +18382,12 @@ async function fetchMarketListings() {
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:130px;">
                         <div style="color:#00c875; font-size:1.1em; font-weight:bold;">${formatNumber(listing.price)}</div>
-                        <div style="color:#888; font-size:0.75em; margin-top:-4px;">${listing.currency === 'le' ? '✦ Light Essence' : listing.currency === 'ls' ? '👻 Light Souls' : '🌑 Dark Essence'}</div>
-                        ${isMyItem
-                            ? `<button class="upgrade-btn" style="font-size:0.8em; background:#3a0a0a; border-color:#8a0000; margin-top:4px;" onclick="cancelMarketListing(${listing.id})">❌ Cancel</button>`
-                            : `<button class="upgrade-btn" style="font-size:0.85em; margin-top:4px; ${canAfford ? '' : 'opacity:0.45;'}" onclick="promptBuyItem(${listing.id}, ${listing.price}, '${listing.currency||'de'}')" ${!canAfford ? 'disabled' : ''}>${canAfford ? '🛒 Buy Item' : 'Need More'}</button>`
+                        <div style="color:#888; font-size:0.75em; margin-top:-4px;">${_listCur === 'le' ? '✦ Light Essence' : _listCur === 'ls' ? '👻 Light Souls' : '🌑 Dark Essence'}</div>
+                        ${(_listCur === 'le' || _listCur === 'ls') && !_isTxViewer
+                            ? `<div style="color:#888; font-size:0.72em; padding:4px 10px; border:1px solid #333; border-radius:6px; margin-top:4px;">✦ Transcended only</div>`
+                            : isMyItem
+                                ? `<button class="upgrade-btn" style="font-size:0.8em; background:#3a0a0a; border-color:#8a0000; margin-top:4px;" onclick="cancelMarketListing(${listing.id})">❌ Cancel</button>`
+                                : `<button class="upgrade-btn" style="font-size:0.85em; margin-top:4px; ${canAfford ? '' : 'opacity:0.45;'}" onclick="promptBuyItem(${listing.id}, ${listing.price}, '${_listCur}')" ${!canAfford ? 'disabled' : ''}>${canAfford ? '🛒 Buy Item' : 'Need More'}</button>`
                         }
                     </div>
                 </div>

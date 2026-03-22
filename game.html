@@ -13634,29 +13634,51 @@ function updateFusionUI() {
     if (cauldronEl) {
         if (fusionState.slotA && fusionState.slotB) {
             cauldronEl.classList.add('fusion-ready');
-            // Drive the RGB via JS interval so inline styles can't block it
-            if (!window._fusionRgbInterval) {
-                const _rgbColors = ['#ff0066','#ff6600','#ffcc00','#00ff88','#0088ff','#aa44ff','#ff44cc'];
-                let _rgbIdx = 0;
-                window._fusionRgbInterval = setInterval(() => {
+            // Spinning RGB conic gradient border via JS animation frame
+            if (!window._fusionRgbAngle) window._fusionRgbAngle = 0;
+            if (!window._fusionRgbFrame) {
+                const _spinRgb = () => {
                     const el = document.getElementById('fusion-cauldron');
                     if (!el || !el.classList.contains('fusion-ready')) {
-                        clearInterval(window._fusionRgbInterval);
-                        window._fusionRgbInterval = null;
-                        if (el) { el.style.boxShadow = ''; el.style.borderColor = '#7722cc66'; }
+                        cancelAnimationFrame(window._fusionRgbFrame);
+                        window._fusionRgbFrame = null;
+                        if (el) { el.style.boxShadow = ''; el.style.outline = ''; }
                         return;
                     }
-                    const c = _rgbColors[_rgbIdx % _rgbColors.length];
-                    el.style.boxShadow = `0 0 0 3px ${c}, 0 0 30px ${c}88, 0 0 70px ${c}33`;
-                    el.style.borderColor = c;
-                    _rgbIdx++;
-                }, 120);
+                    window._fusionRgbAngle = (window._fusionRgbAngle + 1.5) % 360;
+                    const a = window._fusionRgbAngle;
+                    // Build a spinning conic gradient as a pseudo-border using outline + box-shadow
+                    // We approximate spin by shifting which color is "top" using angle offset
+                    const hue1 = (a) % 360;
+                    const hue2 = (a + 60) % 360;
+                    const hue3 = (a + 120) % 360;
+                    const hue4 = (a + 180) % 360;
+                    const hue5 = (a + 240) % 360;
+                    const hue6 = (a + 300) % 360;
+                    // Top glow shifts with angle giving appearance of spinning
+                    const c1 = `hsl(${hue1},100%,55%)`;
+                    const c2 = `hsl(${hue2},100%,55%)`;
+                    const c3 = `hsl(${hue3},100%,55%)`;
+                    const c4 = `hsl(${hue4},100%,55%)`;
+                    el.style.boxShadow = [
+                        `0 0 0 3px ${c1}`,
+                        `0 -8px 20px ${c1}88`,
+                        `8px 0 20px ${c2}88`,
+                        `0 8px 20px ${c3}88`,
+                        `-8px 0 20px ${c4}88`,
+                        `0 0 50px ${c1}33`
+                    ].join(', ');
+                    el.style.borderColor = c1;
+                    window._fusionRgbFrame = requestAnimationFrame(_spinRgb);
+                };
+                window._fusionRgbFrame = requestAnimationFrame(_spinRgb);
             }
         } else {
             cauldronEl.classList.remove('fusion-ready');
-            if (window._fusionRgbInterval) {
-                clearInterval(window._fusionRgbInterval);
-                window._fusionRgbInterval = null;
+            if (window._fusionRgbFrame) {
+                cancelAnimationFrame(window._fusionRgbFrame);
+                window._fusionRgbFrame = null;
+                window._fusionRgbAngle = 0;
                 cauldronEl.style.boxShadow = '';
                 cauldronEl.style.borderColor = '#7722cc66';
             }

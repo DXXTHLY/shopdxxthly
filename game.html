@@ -3857,8 +3857,8 @@ text-decoration: underline; /* Adds an underline on hover */
                         </button>
                     </div>
 
-                    <!-- Light Essence Vault — only shown when transcended, fills 6th grid cell -->
-                    <div id="le-vault-section" style="display:none; background:linear-gradient(135deg,#001a14,#002a1e); border:1px solid #44ffcc33; border-top:3px solid #44ffcc; border-radius:12px; padding:18px; position:relative; overflow:hidden;">
+                    <!-- Light Essence Vault — only shown when transcended -->
+                    <div id="le-vault-section" style="display:none; background:linear-gradient(135deg,#001a14,#002a1e); border:1px solid #44ffcc33; border-top:3px solid #44ffcc; border-radius:12px; padding:18px; position:relative; overflow:hidden; grid-column: 1 / -1; max-width: 440px; margin: 0 auto; width: 100%;">
                         <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top,#44ffcc08,transparent 70%);pointer-events:none;"></div>
                         <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                             <span style="font-size:1.4em;">✦</span>
@@ -17475,6 +17475,8 @@ let shopTimerInterval;
 function generateHourlyShopItems() {
     const grid = document.getElementById('hourly-shop-grid');
     if (!grid) return;
+    const _isTxShop = gameState.isTranscended || window._devTranscendTest;
+    grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
 
     // Seed — same for every player each hour
     const now  = new Date();
@@ -17509,10 +17511,11 @@ function generateHourlyShopItems() {
     const mpIdx = (seed * 17 + 5) % marketPotionKeys.length;
     shopItems[2] = marketPotionKeys[mpIdx];
 
-    // Slot 4 (index 3+) — if transcended AND light potions exist, add a rare light potion slot (~40% chance per hour)
-    if (gameState.isTranscended && lightPotionKeys.length > 0) {
-        const lpIdx = (seed * 19 + 7) % lightPotionKeys.length;
-        shopItems.push(lightPotionKeys[lpIdx]);
+    // When transcended: replace all 3 slots with LE versions, add 3 LE potion slots = 6 total
+    if ((gameState.isTranscended || window._devTranscendTest) && lightPotionKeys.length > 0) {
+        shopItems.push(lightPotionKeys[(seed * 19 + 7) % lightPotionKeys.length]);
+        shopItems.push(lightPotionKeys[(seed * 23 + 11) % lightPotionKeys.length]);
+        shopItems.push(lightPotionKeys[(seed * 29 + 3) % lightPotionKeys.length]);
     }
 
     // 0.5% chance this hour has a Key slot (roughly once every 200 hours)
@@ -24042,7 +24045,8 @@ function renderBundleListingCard(listing) {
 const BARTER_LABELS = {
     souls: '👻 Souls', darkEssence: '🌑 Dark Essence',
     abyssalShards: '💎 Abyssal Shards', corruptedFragments: '🔮 Corrupted Fragments',
-    aether: '⚡ Aether', key: '🗝️ Key of the Abyss'
+    aether: '⚡ Aether', key: '🗝️ Key of the Abyss',
+    lightEssence: '✦ Light Essence'
 };
 // Dynamically built labels for potions, items, minions
 function getBarterLabel(type) {
@@ -24070,6 +24074,7 @@ function getBarterTypeInfo(type, amt, listing) {
         corruptedFragments: { icon:'🔮', name:'Corrupted Fragments', color:'#22c55e' },
         aether:             { icon:'⚡', name:'Aether',              color:'#00e5ff' },
         key:                { icon:'🗝️', name:'Key of the Abyss',    color:'#c8a800' },
+        lightEssence:       { icon:'✦', name:'Light Essence',        color:'#44ffcc' },
     };
     if (currMap[type]) return { ...currMap[type], subtitle: formatNumber(amt), desc: '' };
 
@@ -24308,6 +24313,7 @@ function hasEnough(type, amt) {
         case 'abyssalShards':      return D(gameState.abyssalShards).gte(amt);
         case 'corruptedFragments': return D(gameState.corruptedFragments).gte(amt);
         case 'aether':             return D(gameState.aether || 0).gte(amt);
+        case 'lightEssence':       return D(gameState.lightEssence || 0).gte(amt);
         case 'key': {
             if (!gameState.heldKey) return false;
             return (Date.now() - gameState.heldKey.obtainedAt) < KEY_EXPIRY_MS;
@@ -24326,6 +24332,7 @@ function deductCurrency(type, amt) {
         case 'abyssalShards':      gameState.abyssalShards = D(gameState.abyssalShards).sub(amt); break;
         case 'corruptedFragments': gameState.corruptedFragments = D(gameState.corruptedFragments).sub(amt); break;
         case 'aether':             gameState.aether = D(gameState.aether || 0).sub(amt); break;
+        case 'lightEssence':       gameState.lightEssence = D(gameState.lightEssence || 0).sub(amt).max(0); break;
         case 'key':
             gameState._barterHeldKeyId = gameState.heldKey?.id || null;
             gameState.heldKey = null;
@@ -27530,13 +27537,16 @@ function updateBarterDropdowns() {
         // Currencies
         const currGroup = document.createElement('optgroup');
         currGroup.label = 'Currencies';
-        [
-            ['souls', '👻 Souls'],
+        const _isTxBarter = gameState.isTranscended || window._devTranscendTest;
+        const _currencies = [
+            ['souls', _isTxBarter ? '👻 Light Souls' : '👻 Souls'],
             ['darkEssence', '🌑 Dark Essence'],
             ['abyssalShards', '💎 Abyssal Shards'],
             ['corruptedFragments', '🔮 Corrupted Fragments'],
             ['aether', '⚡ Aether'],
-        ].forEach(([val, lbl]) => {
+        ];
+        if (_isTxBarter) _currencies.push(['lightEssence', '✦ Light Essence']);
+        _currencies.forEach(([val, lbl]) => {
             const o = document.createElement('option');
             o.value = val; o.textContent = lbl;
             currGroup.appendChild(o);

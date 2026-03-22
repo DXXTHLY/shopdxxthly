@@ -4873,6 +4873,7 @@ window.onload = function() {
 
             // ── GOD'S GAUNTLET TRIGGER CHECK ──
             if (typeof checkGodsGauntletTrigger === 'function') checkGodsGauntletTrigger();
+        if (typeof checkLightMusicSwitch === 'function') checkLightMusicSwitch();
 
             if (document.getElementById('rituals-screen').classList.contains('active')) {
                 renderRituals();
@@ -19510,6 +19511,7 @@ function initializeChat() {
                                 }
                                 calculateStats(); renderAll();
                                 if (typeof gntRenderLocationPicker === 'function') gntRenderLocationPicker();
+                                if (typeof checkLightMusicSwitch === 'function') checkLightMusicSwitch();
                                 Toastify({ text: '🔧 DEV: Light mode OFF.', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a1000,#333300)' } }).showToast();
                             } else {
                             // TOGGLE ON
@@ -19533,6 +19535,7 @@ function initializeChat() {
                             gameState.currentWorld = gameState.unlockedLightWorlds[gameState.unlockedLightWorlds.length - 1];
                             calculateStats(); renderAll(); checkTranscendenceUnlock();
                             if (typeof gntRenderLocationPicker === 'function') gntRenderLocationPicker();
+                            if (typeof checkLightMusicSwitch === 'function') checkLightMusicSwitch();
                             Toastify({ text: '🔧 DEV: Light mode ON — type !light1 again to turn off.', duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)' } }).showToast();
                             } // end toggle-on
                         } else {
@@ -19619,6 +19622,7 @@ function initializeChat() {
                                 }
                                 calculateStats(); renderAll();
                                 if (typeof gntRenderLocationPicker === 'function') gntRenderLocationPicker();
+                                if (typeof checkLightMusicSwitch === 'function') checkLightMusicSwitch();
                                 Toastify({ text: '🔧 DEV: Light mode OFF.', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a1000,#333300)' } }).showToast();
                             } else {
                                 window._devTranscendTest = true;
@@ -30015,7 +30019,7 @@ let _isPlayingLightMusic = false;
 
 function checkLightMusicSwitch() {
     if (!audio || !audio.bgm) return;
-    const shouldBeLight = !!(gameState && gameState.isTranscended);
+    const shouldBeLight = !!(gameState && (gameState.isTranscended || window._devTranscendTest));
     if (shouldBeLight === _isPlayingLightMusic) return; // no change
     const wasMuted = audio.bgm.muted;
     const wasPlaying = !audio.bgm.paused;

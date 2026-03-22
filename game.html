@@ -3173,7 +3173,7 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- ABYSSAL GAUNTLET SCREEN -->
             <!-- ================================================================= -->
             <div id="crashgame-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#ff6644;">⚔️ THE ABYSSAL GAUNTLET ⚔️</h2>
+                <h2 id="gauntlet-title" style="letter-spacing:3px; color:#ff6644;">⚔️ THE ABYSSAL GAUNTLET ⚔️</h2>
                 <p style="color:var(--dim-color); max-width:580px; margin:0 auto 20px; font-size:0.85em;">Choose your battlefield. Each location has unique buffs and debuffs that shift every day. Wave difficulty and enemy rosters rotate daily — what worked yesterday may not work today.</p>
 
                 <!-- Location picker — shown before lobby -->
@@ -5396,7 +5396,46 @@ function getFusionResult(idA, idB) {
         'fusion_fortune_storm',
         'fusion_ascension_surge',
         'fusion_abyssal_detonator',
+        // New fused potions
+        'fusion_minion_ascendant',
+        'fusion_horde_fury',
+        'fusion_soul_forged_legion',
+        'fusion_forge_catalyst',
+        'fusion_collapse_engine',
+        'fusion_prestige_storm',
+        'fusion_fragment_seeker',
+        'fusion_shard_splinter',
+        'fusion_time_thief',
+        'fusion_abyssal_feast',
+        'fusion_souls_bounty',
+        'fusion_click_storm',
+        'fusion_expedition_overdrive',
     ];
+
+    // PVE raid potions — only available when raid potions are in the mix
+    const hasRaidPotion = potions[idA]?.raidOnly || potions[idB]?.raidOnly;
+    if (hasRaidPotion) {
+        const raidPool = [
+            'fusion_dungeon_breaker',
+            'fusion_executioners_draught',
+            'fusion_phantom_step',
+            'fusion_raid_titan',
+            'fusion_momentum_surge',
+            'fusion_the_great_heal',
+        ];
+        return raidPool[hash % raidPool.length];
+    }
+
+    // PVP potions — available when PG potions are in mix
+    const hasPgPotion = potions[idA]?.pgOnly || potions[idB]?.pgOnly;
+    if (hasPgPotion) {
+        const pgPool = [
+            'fusion_warlords_blood',
+            'fusion_tactical_insight',
+            'fusion_proving_edge',
+        ];
+        return pgPool[hash % pgPool.length];
+    }
     return stdPool[hash % stdPool.length];
 }
 
@@ -9400,6 +9439,165 @@ const potions = {
         fusedOnly: true,
         effect:  { type: 'expedition_luck_flat', value: 1.5, duration: 3600 },
         effect2: { type: 'cache_speed_flat', value: 0.5, duration: 3600 }
+    },
+
+    // ── NEW FUSED POTIONS (15-18 additions) ────────────────────────────
+
+    // PVE / RAID
+    fusion_dungeon_breaker: {
+        name: "⚗️ Dungeon Breaker",
+        desc: "RAID: Your entire party heals 50% HP, gains +4 armor stacks (−65% dmg each), and momentum jumps to max. ⏳ 4hr cooldown.",
+        fusedOnly: true, raidOnly: true,
+        cooldown: 14400,
+        effect:  { type: 'raid_heal', value: 0.50 },
+        effect2: { type: 'raid_armor_stacks', value: 4, reduction: 0.65 },
+        effect3: { type: 'raid_set_momentum', value: 6 }
+    },
+    fusion_executioners_draught: {
+        name: "⚗️ Executioner's Draught",
+        desc: "RAID: Next 5 attacks deal guaranteed critical hits at 3× damage. Enemy debuffs doubled in duration. ⏳ 2hr cooldown.",
+        fusedOnly: true, raidOnly: true,
+        cooldown: 7200,
+        effect:  { type: 'raid_crit_guarantee', value: 3.0, turns: 5 },
+        effect2: { type: 'raid_debuff_extend', value: 2.0 }
+    },
+    fusion_phantom_step: {
+        name: "⚗️ Phantom Step",
+        desc: "RAID: Dodge the next 3 enemy attacks completely AND counter each with 1× ATK. ⏳ 3hr cooldown.",
+        fusedOnly: true, raidOnly: true,
+        cooldown: 10800,
+        effect:  { type: 'raid_dodge_stack', value: 3 },
+        effect2: { type: 'raid_true_damage', value: 1.0, turns: 3 }
+    },
+
+    // PVP / PROVING GROUNDS
+    fusion_warlords_blood: {
+        name: "⚗️ Warlord's Blood",
+        desc: "PVP: Your arena defense minions gain +50% ATK and HP until next reset. ⏳ 24hr cooldown.",
+        fusedOnly: true, pgOnly: true,
+        cooldown: 86400,
+        effect:  { type: 'pvp_defense_boost', value: 1.50 },
+        effect2: { type: 'pg_unit_damage_bonus', value: 1.50 }
+    },
+    fusion_tactical_insight: {
+        name: "⚗️ Tactical Insight",
+        desc: "Proving Grounds: +8 deployment points for the next battle AND units take −40% damage. ⏳ 6hr cooldown.",
+        fusedOnly: true, pgOnly: true,
+        cooldown: 21600,
+        effect:  { type: 'pg_bonus_points', value: 8 },
+        effect2: { type: 'pg_unit_damage_bonus', value: 0.60 }
+    },
+
+    // MINION BUFFS
+    fusion_minion_ascendant: {
+        name: "⚗️ Minion Ascendant",
+        desc: "All minions gain +5% SPS per level for 30 minutes AND minion costs −60% for 10 minutes. ⏳ 12hr cooldown.",
+        fusedOnly: true,
+        cooldown: 43200,
+        effect:  { type: 'sps_multiplier_flat', value: 2.0, duration: 1800 },
+        effect2: { type: 'temp_minion_cost_reducer_flat', value: 0.40, duration: 600 }
+    },
+    fusion_horde_fury: {
+        name: "⚗️ Horde Fury",
+        desc: "For 20 minutes: Each minion level you own adds +0.1% to global SPS (stacks per level). ⏳ 8hr cooldown.",
+        fusedOnly: true,
+        cooldown: 28800,
+        effect:  { type: 'sps_multiplier_flat', value: 5.0, duration: 1200 },
+        effect2: { type: 'temp_minion_cost_reducer_flat', value: 0.50, duration: 1200 }
+    },
+    fusion_soul_forged_legion: {
+        name: "⚗️ Soul-Forged Legion",
+        desc: "Minion costs zero for 5 minutes AND SPS ×15 for 5 minutes. ⏳ 6hr cooldown.",
+        fusedOnly: true,
+        cooldown: 21600,
+        effect:  { type: 'sps_multiplier_flat', value: 15, duration: 300 },
+        effect2: { type: 'temp_minion_cost_reducer_flat', value: 0.01, duration: 300 }
+    },
+
+    // SOUL FORGE / ASCENSION
+    fusion_forge_catalyst: {
+        name: "⚗️ Forge Catalyst",
+        desc: "Soul-Forge: Your next Ascension yields 5× shards AND 3× Aether. Persists until you ascend. ⏳ 24hr cooldown.",
+        fusedOnly: true,
+        cooldown: 86400,
+        effect:  { type: 'next_ascension_shard_mult_flat', value: 5 },
+        effect2: { type: 'gain_aether_no_reset_flat', value: 1 }
+    },
+    fusion_collapse_engine: {
+        name: "⚗️ Collapse Engine",
+        desc: "Instantly gain 2 Aether AND your next Collapse yields double Aether. Also grants 24hrs of SPS. ⏳ 24hr cooldown.",
+        fusedOnly: true,
+        cooldown: 86400,
+        effect:  { type: 'gain_aether_no_reset_flat', value: 2 },
+        effect2: { type: 'gain_sps_seconds_flat', value: 86400 }
+    },
+    fusion_prestige_storm: {
+        name: "⚗️ Prestige Storm",
+        desc: "SPS ×30 for 10 minutes AND Ascension shard bonus ×2 for your next ascension. ⏳ 8hr cooldown.",
+        fusedOnly: true,
+        cooldown: 28800,
+        effect:  { type: 'sps_multiplier_flat', value: 30, duration: 600 },
+        effect2: { type: 'next_ascension_shard_mult_flat', value: 2 }
+    },
+
+    // FRAGMENT POTIONS (capped low — frags should come from donating)
+    fusion_fragment_seeker: {
+        name: "⚗️ Fragment Seeker",
+        desc: "Grants 15 Corrupted Fragments AND resets your Abyssal Cache timer. ⏳ 12hr cooldown.",
+        fusedOnly: true,
+        cooldown: 43200,
+        effect:  { type: 'gain_fragments_flat', value: 15 },
+        effect2: { type: 'reset_cache_timer_flat' }
+    },
+    fusion_shard_splinter: {
+        name: "⚗️ Shard Splinter",
+        desc: "Converts 5% of your Abyssal Shards into 10 Fragments AND 5 Aether. ⏳ 8hr cooldown.",
+        fusedOnly: true,
+        cooldown: 28800,
+        effect:  { type: 'gain_fragments_flat', value: 10 },
+        effect2: { type: 'gain_aether_no_reset_flat', value: 0.5 }
+    },
+
+    // UTILITY / MIXED
+    fusion_time_thief: {
+        name: "⚗️ Time Thief",
+        desc: "Halves all active ritual cooldowns AND reduces all item ability cooldowns by 2 hours. ⏳ 6hr cooldown.",
+        fusedOnly: true,
+        cooldown: 21600,
+        effect:  { type: 'ritual_cooldown_reduction_flat', value: 3600 },
+        effect2: { type: 'cooldown_haste', duration: 300 }
+    },
+    fusion_abyssal_feast: {
+        name: "⚗️ Abyssal Feast",
+        desc: "Doubles your current Dark Essence AND doubles your current Abyssal Shards. ⏳ 12hr cooldown.",
+        fusedOnly: true,
+        cooldown: 43200,
+        effect:  { type: 'double_essence_flat' },
+        effect2: { type: 'gain_shards_no_reset_flat', value: 0.10 }
+    },
+    fusion_souls_bounty: {
+        name: "⚗️ Soul Bounty",
+        desc: "Grants 48 hours of SPS instantly AND SPS ×5 for 10 minutes. ⏳ 8hr cooldown.",
+        fusedOnly: true,
+        cooldown: 28800,
+        effect:  { type: 'gain_sps_seconds_flat', value: 172800 },
+        effect2: { type: 'sps_multiplier_flat', value: 5, duration: 600 }
+    },
+    fusion_click_storm: {
+        name: "⚗️ Click Storm",
+        desc: "For 5 minutes: Each click counts as 500 clicks AND SPC ×10. ⏳ 4hr cooldown.",
+        fusedOnly: true,
+        cooldown: 14400,
+        effect:  { type: 'sps_multiplier_flat', value: 1.5, duration: 300 },
+        effect2: { type: 'spc_multiplier_flat', duration: 300 }
+    },
+    fusion_expedition_overdrive: {
+        name: "⚗️ Expedition Overdrive",
+        desc: "All active expeditions complete instantly AND next 3 expeditions are 75% faster. ⏳ 12hr cooldown.",
+        fusedOnly: true,
+        cooldown: 43200,
+        effect:  { type: 'expedition_complete_all_flat' },
+        effect2: { type: 'expedition_luck_flat', value: 1.75, duration: 10800 }
     },
 
     // ── ULTRA TIER: Fused + Fused ────────────────────────────────────────
@@ -14342,6 +14540,42 @@ function usePotion(id) {
                 _safeAddCur("aether", gained2);
                 Toastify({ text: `⚡ Also gained ${formatNumber(gained2)} Aether!`, duration:3000, gravity:'top', position:'center' }).showToast();
             }
+            if (effect2.type === 'raid_set_momentum') {
+                if (raidState) { raidState._momentum = Math.min(6, effect2.value); raidLog(`⚡ Momentum set to MAX!`, '#44cc88'); }
+            }
+            if (effect2.type === 'raid_debuff_extend') {
+                if (raidState?.combatEnemy) {
+                    const e2 = raidState.combatEnemy;
+                    if (e2._bleedTurns) e2._bleedTurns = Math.ceil(e2._bleedTurns * effect2.value);
+                    if (e2._stunTurns) e2._stunTurns = Math.ceil(e2._stunTurns * effect2.value);
+                }
+            }
+            if (effect2.type === 'raid_true_damage') {
+                if (raidState) { raidState._trueDamageBonus = { mult: effect2.value, turns: effect2.turns }; raidLog(`⚔️ +${Math.round((effect2.value-1)*100)}% dmg for ${effect2.turns} turns!`, '#ff6644'); }
+            }
+            if (effect2.type === 'raid_set_momentum') {
+                if (raidState) raidState._momentum = Math.min(6, effect2.value);
+            }
+            if (effect2.type === 'reset_cache_timer_flat') {
+                gameState.nextCacheTime = 0;
+                Toastify({ text: `📦 Abyssal Cache is ready!`, duration:2500, gravity:'top', position:'center' }).showToast();
+            }
+            if (effect2.type === 'expedition_luck_flat' && effect2.duration) {
+                gameState.activePotions[id + '_expluck'] = Date.now() + (effect2.duration * 1000);
+            }
+            if (effect2.type === 'next_ascension_shard_mult_flat') {
+                gameState._nextAscensionShardMult = (gameState._nextAscensionShardMult || 1) * effect2.value;
+                Toastify({ text: `💎 Next ascension will yield ${effect2.value}× shards!`, duration:4000, gravity:'top', position:'center' }).showToast();
+            }
+            if (effect2.type === 'gain_shards_no_reset_flat') {
+                const gained2s = Math.floor(calculateShardsOnAscend() * effect2.value);
+                _safeAddCur("abyssalShards", isFinite(gained2s) ? gained2s : 0);
+                if (gained2s > 0) Toastify({ text: `💎 Also gained ${formatNumber(gained2s)} Shards!`, duration:3000, gravity:'top', position:'center' }).showToast();
+            }
+            if (effect2.type === 'spc_multiplier_flat' && effect2.duration) {
+                gameState.activePotions[id + '_spc'] = Date.now() + (effect2.duration * 1000);
+                Toastify({ text: `👆 SPC ×10 for ${effect2.duration/60}min!`, duration:3000, gravity:'top', position:'center' }).showToast();
+            }
             if (effect2.type === 'gain_fragments_uncapped') {
                 const _fv2 = Math.min(effect2.value, 100); // hard cap — max 100 per potion use
                 _addFragments(_fv2, true);
@@ -14369,6 +14603,47 @@ function usePotion(id) {
             gameState.activePotions[id] = Date.now() + (effect.duration * 1000);
             const p = potions[id];
             Toastify({ text: `⚗️ ${p.name} activated!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#9944cc)'} }).showToast();
+        }
+
+        // ── NEW FUSED POTION EFFECTS ─────────────────────────────────────
+        if (effect.type === 'raid_crit_guarantee') {
+            if (raidState?.inCombat) {
+                raidState._critGuarantee = { mult: effect.value, turns: effect.turns };
+                raidLog(`🗡️ Executioner's Draught — next ${effect.turns} hits crit at ${effect.value}×!`, '#ffcc00');
+            } else { Toastify({ text: `⚗️ Use this in active Raid combat!`, duration:3000, gravity:'top', position:'center' }).showToast(); }
+        }
+        if (effect.type === 'raid_debuff_extend') {
+            if (raidState?.inCombat && raidState.combatEnemy) {
+                const e = raidState.combatEnemy;
+                if (e._bleedTurns) e._bleedTurns = Math.ceil(e._bleedTurns * effect.value);
+                if (e._stunTurns) e._stunTurns = Math.ceil(e._stunTurns * effect.value);
+                if (e._blinded) e._blinded = Math.ceil(e._blinded * effect.value);
+                if (e._burning) e._burning = Math.ceil(e._burning * effect.value);
+                raidLog(`⏳ Debuffs extended ×${effect.value}!`, '#aa44ff');
+            }
+        }
+        if (effect.type === 'raid_dodge_stack') {
+            if (raidState) {
+                raidState._dodgeStack = (raidState._dodgeStack || 0) + effect.value;
+                raidLog(`💨 Phantom Step — ${effect.value} dodge charges ready!`, '#00ffcc');
+            }
+        }
+        if (effect.type === 'pvp_defense_boost') {
+            if (!gameState.activePotions) gameState.activePotions = {};
+            gameState.activePotions[id + '_pvp'] = Date.now() + 86400000; // 24hr
+            Toastify({ text: `⚔️ Warlord's Blood — arena defense boosted for 24hr!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0000,#cc2200)'} }).showToast();
+        }
+        if (effect.type === 'expedition_complete_all_flat') {
+            let completed = 0;
+            for (const expId in gameState.activeExpeditions) {
+                if (typeof completeExpedition === 'function') { completeExpedition(expId); completed++; }
+            }
+            Toastify({ text: `🗺️ ${completed} expedition(s) completed instantly!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a1a00,#228800)'} }).showToast();
+        }
+        if (effect.type === 'gain_fragments_flat') {
+            const _fvFlat = Math.min(effect.value, 30); // max 30 per potion
+            _addFragments(_fvFlat, true);
+            Toastify({ text: `🔮 Gained ${_fvFlat} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
         }
 
         // ── NEUTRAL FUSION EFFECTS (light × dark) ─────────────────────────
@@ -18962,6 +19237,7 @@ function initializeChat() {
                             calculateStats();
                             renderAll();
                             checkTranscendenceUnlock();
+                            if (typeof gntRenderLocationPicker === 'function') gntRenderLocationPicker();
                             setTimeout(() => {
                                 window._devTranscendTest = false;
                                 // Restore original state
@@ -19067,7 +19343,7 @@ function initializeChat() {
                                 }
                             }
                             gameState.currentWorld = gameState.unlockedLightWorlds[gameState.unlockedLightWorlds.length - 1];
-                            calculateStats(); renderAll(); checkTranscendenceUnlock();
+                            calculateStats(); renderAll(); checkTranscendenceUnlock(); if (typeof gntRenderLocationPicker === 'function') gntRenderLocationPicker();
                             setTimeout(() => {
                                 window._devTranscendTest = false;
                                 if (window._preTranscendBackup) {
@@ -19986,6 +20262,35 @@ const RAID_ENEMY_POOLS = {
     tier3: ['pit_lord','spacetime_ghast','glacial_titan','reality_warper','void_spawn'],
 };
 
+// When transcended (Light Souls), raids use HARDER dark minions
+// representing corrupted forces that followed you into the light
+const RAID_ENEMY_POOLS_LIGHT = {
+    tier1: ['shoggoth','river_hydra','fallen_angel','pit_lord','spacetime_ghast'],
+    tier2: ['glacial_titan','reality_warper','void_spawn','alpha_omega','god_eater'],
+    tier3: ['the_final_observer','concept_of_death','the_last_question','nightmare_weaver','universe_shard'],
+};
+
+// Helper: get the correct pool based on transcendence state
+function getRaidEnemyPool(tierId) {
+    if (gameState.isTranscended || window._devTranscendTest) {
+        return RAID_ENEMY_POOLS_LIGHT[tierId] || RAID_ENEMY_POOLS[tierId];
+    }
+    return RAID_ENEMY_POOLS[tierId];
+}
+
+// Light-side tier definitions — enemies are stronger but still beatable with strategy
+// tierMult is kept ~1.5-2× above dark side since the enemies themselves are already
+// higher-tier minions with much stronger base stats (so playerMult is naturally lower)
+const RAID_TIERS_LIGHT = [
+    { id:'tier1', label:'✦ Tier I — Tainted Light',    color:'#c8b4ff', enemyScale:1.8,  fragMin:15, fragMax:25, unlockAscensions:0 },
+    { id:'tier2', label:'✦ Tier II — Dark Corruption',  color:'#ff88cc', enemyScale:4.0,  fragMin:22, fragMax:35, unlockAscensions:3 },
+    { id:'tier3', label:'✦ Tier III — Void Breach',    color:'#88eeff', enemyScale:8.0,  fragMin:30, fragMax:50, unlockAscensions:8 },
+];
+
+function getActiveTiers() {
+    return (gameState.isTranscended || window._devTranscendTest) ? RAID_TIERS_LIGHT : RAID_TIERS;
+}
+
 // Tile types
 const RTILE = { EMPTY:'empty', WALL:'wall', ENEMY:'enemy', TREASURE:'treasure', FOUNTAIN:'fountain', CHEST:'chest', BOSS:'boss', EXIT:'exit', PLAYER:'player' };
 
@@ -20026,7 +20331,7 @@ function renderRaidTierSelector() {
     const el = document.getElementById('raid-tier-selector');
     if (!el) return;
     el.innerHTML = '';
-    RAID_TIERS.forEach(tier => {
+    getActiveTiers().forEach(tier => {
         const locked = (gameState.ascensions||0) < tier.unlockAscensions;
         const sel = raidState.tier === tier.id;
         const btn = document.createElement('div');
@@ -20132,8 +20437,8 @@ function generateRaidGrid(floor) {
         : 50;
 
     // Place enemies (8-10) with patrol paths
-    const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
-    const pool = RAID_ENEMY_POOLS[raidState.tier];
+    const tierData = getActiveTiers().find(t=>t.id===raidState.tier);
+    const pool = getRaidEnemyPool(raidState.tier);
     const enemyCount = 8 + Math.floor(Math.random()*3);
     const enemies = [];
     let placed = 0;
@@ -20185,7 +20490,7 @@ window.startSoulRaid = function() {
     if (raidState.party.length !== RAID_PARTY_SIZE) return;
     const r = gameState.soulRaids||{};
     if (Date.now() < (r.cooldownUntil||0)) return;
-    const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
+    const tierData = getActiveTiers().find(t=>t.id===raidState.tier);
 
     // Build party with scaled HP/ATK
     raidState.party = raidState.party.map(id => {
@@ -20418,8 +20723,8 @@ window.moveRaidPlayer = function(x, y) {
         raidLog('📦 An Abyssal Chest! Opening...', '#aa44ff');
         if (typeof openAbyssalBreachChest === 'function') openAbyssalBreachChest();
     } else if (tile.type === RTILE.BOSS) {
-        const pool = RAID_ENEMY_POOLS[raidState.tier];
-        const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
+        const pool = getRaidEnemyPool(raidState.tier);
+        const tierData = getActiveTiers().find(t=>t.id===raidState.tier);
         const bossId = pool[pool.length-1];
         const bm = battleMinions[bossId];
         const partyAtk = raidState.party.reduce((s,p)=>s+(p.atk||1),0)/Math.max(1,raidState.party.length);
@@ -20451,8 +20756,8 @@ window.moveRaidPlayer = function(x, y) {
         }
         if (bossTileX >= 0) {
             // Boss tile still exists — spawn it and force combat
-            const pool = RAID_ENEMY_POOLS[raidState.tier];
-            const tierData = RAID_TIERS.find(t=>t.id===raidState.tier);
+            const pool = getRaidEnemyPool(raidState.tier);
+            const tierData = getActiveTiers().find(t=>t.id===raidState.tier);
             const bossId = pool[pool.length-1];
             const bm2 = battleMinions[bossId];
             const partyAtk2 = raidState.party.reduce((s,p)=>s+(p.atk||1),0)/Math.max(1,raidState.party.length);
@@ -25170,6 +25475,35 @@ const GNT_MAP_CONNECTIONS = [
     ['pantheon_of_ashes','omega_point'],
 ];
 
+// ── LIGHT WORLD MAP CONFIG (used when player is transcended) ─────────
+const GNT_LIGHT_WORLD_MAP_CONFIG = {
+    celestial_threshold: { icon:'✦', color:'#c8b4ff', x:8,   y:90, label:'Celestial Threshold' },
+    radiant_expanse:     { icon:'☀️', color:'#ffe066', x:20,  y:75, label:'Radiant Expanse'      },
+    the_shining_deep:    { icon:'💎', color:'#88eeff', x:32,  y:85, label:'The Shining Deep'     },
+    empyrean_void:       { icon:'🌌', color:'#aaaaff', x:28,  y:60, label:'Empyrean Void'        },
+    the_first_light:     { icon:'✨', color:'#ffffff', x:42,  y:72, label:'The First Light'      },
+    crystal_heaven:      { icon:'💠', color:'#88ffee', x:50,  y:55, label:'Crystal Heaven'       },
+    throne_of_genesis:   { icon:'👑', color:'#ffcc44', x:60,  y:70, label:'Throne of Genesis'    },
+    the_light_forge:     { icon:'⚙️', color:'#ff8844', x:65,  y:45, label:'The Light Forge'      },
+    sanctum_of_eternity: { icon:'🕊️', color:'#cc88ff', x:72,  y:62, label:'Sanctum of Eternity'  },
+    apex_of_light:       { icon:'🌟', color:'#ffff88', x:78,  y:40, label:'Apex of Light'        },
+    the_resonant_choir:  { icon:'🎵', color:'#ff88cc', x:82,  y:65, label:'Resonant Choir'       },
+    the_convergence:     { icon:'🌀', color:'#44ffcc', x:88,  y:48, label:'The Convergence'      },
+    pure_genesis:        { icon:'🌈', color:'#ffffff', x:90,  y:28, label:'Pure Genesis'         },
+    the_infinite_beyond: { icon:'♾️', color:'#aa88ff', x:94,  y:55, label:'Infinite Beyond'      },
+    the_absolute:        { icon:'💡', color:'#c8b4ff', x:96,  y:35, label:'The Absolute'         },
+};
+const GNT_LIGHT_MAP_CONNECTIONS = [
+    ['celestial_threshold','radiant_expanse'],['radiant_expanse','the_shining_deep'],
+    ['radiant_expanse','empyrean_void'],['the_shining_deep','the_first_light'],
+    ['empyrean_void','the_first_light'],['the_first_light','crystal_heaven'],
+    ['crystal_heaven','throne_of_genesis'],['throne_of_genesis','the_light_forge'],
+    ['the_light_forge','sanctum_of_eternity'],['sanctum_of_eternity','apex_of_light'],
+    ['apex_of_light','the_resonant_choir'],['the_resonant_choir','the_convergence'],
+    ['the_convergence','pure_genesis'],['pure_genesis','the_infinite_beyond'],
+    ['the_infinite_beyond','the_absolute'],['the_light_forge','apex_of_light'],
+];
+
 // Daily buff selection — 2 of each world's effects active each day
 function gntGetActiveDailyEffects(worldId) {
     const seed = Math.floor(Date.now() / 86400000) + worldId.length * 7;
@@ -25287,13 +25621,26 @@ function gntRenderLocationPicker() {
     const cardsEl = document.getElementById('gnt-location-cards');
     if (!cardsEl) return;
 
-    const unlocked = (gameState && gameState.unlockedWorlds) ? gameState.unlockedWorlds : ['nether_plains'];
-    const worldIds = Object.keys(GNT_WORLD_MAP_CONFIG);
+    // Use light world config when transcended, dark otherwise
+    const isLight = gameState && gameState.isTranscended;
+    // Update header styling for light mode
+    const titleEl = document.getElementById('gauntlet-title');
+    if (titleEl) {
+        titleEl.textContent = isLight ? '✦ THE CELESTIAL GAUNTLET ✦' : '⚔️ THE ABYSSAL GAUNTLET ⚔️';
+        titleEl.style.color = isLight ? '#c8b4ff' : '#ff6644';
+    }
+    const activeMapConfig = isLight ? GNT_LIGHT_WORLD_MAP_CONFIG : GNT_WORLD_MAP_CONFIG;
+    const activeConnections = isLight ? GNT_LIGHT_MAP_CONNECTIONS : GNT_MAP_CONNECTIONS;
+    const unlockedKey = isLight ? 'unlockedLightWorlds' : 'unlockedWorlds';
+    const worldSource = isLight ? lightWorlds : worlds;
+
+    const unlocked = (gameState && gameState[unlockedKey]) ? gameState[unlockedKey] : (isLight ? ['celestial_threshold'] : ['nether_plains']);
+    const worldIds = Object.keys(activeMapConfig);
 
     // Build SVG lines (no text/emoji, just lines — fully reliable)
     let svgLines = '';
-    GNT_MAP_CONNECTIONS.forEach(([a, b]) => {
-        const ca = GNT_WORLD_MAP_CONFIG[a], cb = GNT_WORLD_MAP_CONFIG[b];
+    activeConnections.forEach(([a, b]) => {
+        const ca = activeMapConfig[a], cb = activeMapConfig[b];
         if (!ca || !cb) return;
         const both = unlocked.includes(a) && unlocked.includes(b);
         svgLines += `<line x1="${ca.x}%" y1="${ca.y}%" x2="${cb.x}%" y2="${cb.y}%"
@@ -25306,8 +25653,8 @@ function gntRenderLocationPicker() {
     // Build HTML nodes — absolutely positioned, emoji via HTML (works perfectly)
     let nodes = '';
     worldIds.forEach(id => {
-        const cfg = GNT_WORLD_MAP_CONFIG[id];
-        const w = worlds ? worlds[id] : null;
+        const cfg = activeMapConfig[id];
+        const w = worldSource ? worldSource[id] : null;
         if (!cfg) return;
         const isUnlocked = unlocked.includes(id);
         const name = (w && w.name) ? w.name : cfg.label;

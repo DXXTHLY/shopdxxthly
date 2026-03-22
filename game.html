@@ -19214,6 +19214,21 @@ function initializeChat() {
                     // Dev command: !light1 — temporarily unlock transcendence test mode for 15 min
                     if (text === '!light1') {
                         if (window._scIsDev && window._scIsDev(uid)) {
+                            if (window._devTranscendTest) {
+                                // TOGGLE OFF
+                                window._devTranscendTest = false;
+                                if (window._preTranscendBackup) {
+                                    gameState.isTranscended = window._preTranscendBackup.isTranscended;
+                                    gameState.unlockedLightWorlds = window._preTranscendBackup.unlockedLightWorlds;
+                                    gameState.guardianMinions = window._preTranscendBackup.guardianMinions;
+                                    gameState.currentWorld = window._preTranscendBackup.currentWorld;
+                                    window._preTranscendBackup = null;
+                                }
+                                calculateStats(); renderAll();
+                                if (typeof gntRenderLocationPicker === 'function') gntRenderLocationPicker();
+                                Toastify({ text: '🔧 DEV: Light mode OFF.', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a1000,#333300)' } }).showToast();
+                            } else {
+                            // TOGGLE ON
                             window._devTranscendTest = true;
                             // Save original state so we can restore
                             window._preTranscendBackup = {
@@ -19251,7 +19266,8 @@ function initializeChat() {
                                 }
                                 Toastify({ text: '🔧 DEV: !light1 test mode expired. Restored to normal.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
                             }, 15 * 60 * 1000);
-                            Toastify({ text: '🔧 DEV: Light mode ON for 15 min.\n✦ Guardian minions visible in Minions tab\n✦ Light Worlds visible in Map tab\n✦ Stats show Light Souls', duration: 8000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)', whiteSpace:'pre-line' } }).showToast();
+                            Toastify({ text: '🔧 DEV: Light mode ON — type !light1 again to turn off.', duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)' } }).showToast();
+                            } // end toggle-on
                         } else {
                             Toastify({ text: '⛔ Dev-only command.', duration: 2000, gravity: 'top', position: 'center' }).showToast();
                         }
@@ -19325,37 +19341,37 @@ function initializeChat() {
                     // Dev command: !light1 — full light mode test for 15 min
                     if (text === '!light1') {
                         if (window._scIsDev && window._scIsDev(uid)) {
-                            window._devTranscendTest = true;
-                            window._preTranscendBackup = {
-                                isTranscended: gameState.isTranscended,
-                                unlockedLightWorlds: gameState.unlockedLightWorlds ? [...gameState.unlockedLightWorlds] : [],
-                                guardianMinions: JSON.parse(JSON.stringify(gameState.guardianMinions || {})),
-                                currentWorld: gameState.currentWorld,
-                            };
-                            gameState.isTranscended = true;
-                            if (!gameState.unlockedLightWorlds || gameState.unlockedLightWorlds.length === 0) {
-                                gameState.unlockedLightWorlds = ['celestial_threshold'];
-                            }
-                            if (!gameState.guardianMinions || Object.keys(gameState.guardianMinions).length === 0) {
-                                gameState.guardianMinions = {};
-                                for (const id in guardianMinions) {
-                                    gameState.guardianMinions[id] = { level: 0, cost: D(guardianMinions[id].cost), promotionTier: 0 };
-                                }
-                            }
-                            gameState.currentWorld = gameState.unlockedLightWorlds[gameState.unlockedLightWorlds.length - 1];
-                            calculateStats(); renderAll(); checkTranscendenceUnlock(); if (typeof gntRenderLocationPicker === 'function') gntRenderLocationPicker();
-                            setTimeout(() => {
+                            if (window._devTranscendTest) {
                                 window._devTranscendTest = false;
                                 if (window._preTranscendBackup) {
                                     gameState.isTranscended = window._preTranscendBackup.isTranscended;
                                     gameState.unlockedLightWorlds = window._preTranscendBackup.unlockedLightWorlds;
                                     gameState.guardianMinions = window._preTranscendBackup.guardianMinions;
                                     gameState.currentWorld = window._preTranscendBackup.currentWorld;
-                                    calculateStats(); renderAll();
+                                    window._preTranscendBackup = null;
                                 }
-                                Toastify({ text: '🔧 DEV: !light1 expired. Restored.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0030,#4400aa)' } }).showToast();
-                            }, 15 * 60 * 1000);
-                            Toastify({ text: '🔧 DEV: Light mode ON 15min\n✦ Minions tab: Guardian minions\n✦ Map tab: Light Worlds\n✦ Stats: Light Souls', duration: 8000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)', whiteSpace:'pre-line' } }).showToast();
+                                calculateStats(); renderAll();
+                                if (typeof gntRenderLocationPicker === 'function') gntRenderLocationPicker();
+                                Toastify({ text: '🔧 DEV: Light mode OFF.', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a1000,#333300)' } }).showToast();
+                            } else {
+                                window._devTranscendTest = true;
+                                window._preTranscendBackup = {
+                                    isTranscended: gameState.isTranscended,
+                                    unlockedLightWorlds: gameState.unlockedLightWorlds ? [...gameState.unlockedLightWorlds] : [],
+                                    guardianMinions: JSON.parse(JSON.stringify(gameState.guardianMinions || {})),
+                                    currentWorld: gameState.currentWorld,
+                                };
+                                gameState.isTranscended = true;
+                                if (!gameState.unlockedLightWorlds || gameState.unlockedLightWorlds.length === 0) gameState.unlockedLightWorlds = ['celestial_threshold'];
+                                if (!gameState.guardianMinions || Object.keys(gameState.guardianMinions).length === 0) {
+                                    gameState.guardianMinions = {};
+                                    for (const id in guardianMinions) gameState.guardianMinions[id] = { level: 0, cost: D(guardianMinions[id].cost), promotionTier: 0 };
+                                }
+                                gameState.currentWorld = gameState.unlockedLightWorlds[gameState.unlockedLightWorlds.length - 1];
+                                calculateStats(); renderAll(); checkTranscendenceUnlock();
+                                if (typeof gntRenderLocationPicker === 'function') gntRenderLocationPicker();
+                                Toastify({ text: '🔧 DEV: Light mode ON — type !light1 again to turn off.', duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#220066)' } }).showToast();
+                            }
                         } else {
                             Toastify({ text: '⛔ Dev-only command.', duration: 2000, gravity: 'top', position: 'center' }).showToast();
                         }

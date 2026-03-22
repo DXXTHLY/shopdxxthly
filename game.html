@@ -3446,9 +3446,14 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div id="sell-modal-icon" style="font-size:2.4em; margin-bottom:8px;"></div>
                     <div id="sell-modal-name" style="color:#44cc88; font-weight:bold; font-size:1.1em; margin-bottom:4px;"></div>
                     <div id="sell-modal-desc" style="color:#555; font-size:0.78em; margin-bottom:18px; line-height:1.5;"></div>
-                    <label style="color:#888; font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Price in Dark Essence</label>
+                    <label id="sell-currency-label" style="color:#888; font-size:0.78em; text-transform:uppercase; letter-spacing:1px;">Price in Dark Essence</label>
                     <input id="sell-price-input" type="number" min="1" placeholder="Enter price..."
-                        style="display:block; width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #44cc8844; color:#fff; padding:10px 14px; border-radius:9px; font-family:inherit; font-size:1.1em; text-align:center; margin:8px 0 20px;">
+                        style="display:block; width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #44cc8844; color:#fff; padding:10px 14px; border-radius:9px; font-family:inherit; font-size:1.1em; text-align:center; margin:8px 0 12px;">
+                    <div id="sell-currency-toggle" style="display:none; margin-bottom:16px; gap:8px; justify-content:center;">
+                        <button id="sell-cur-de" onclick="setSellCurrency('de')" style="padding:6px 16px; border-radius:7px; border:1px solid #6622aa; background:#6622aa33; color:#cc88ff; font-family:inherit; font-size:0.78em; cursor:pointer;">🌑 Dark Essence</button>
+                        <button id="sell-cur-le" onclick="setSellCurrency('le')" style="padding:6px 16px; border-radius:7px; border:1px solid #88ffcc44; background:#88ffcc11; color:#88ffcc; font-family:inherit; font-size:0.78em; cursor:pointer;">✦ Light Essence</button>
+                        <button id="sell-cur-ls" onclick="setSellCurrency('ls')" style="padding:6px 16px; border-radius:7px; border:1px solid #c8b4ff44; background:#c8b4ff11; color:#c8b4ff; font-family:inherit; font-size:0.78em; cursor:pointer;">👻 Light Souls</button>
+                    </div>
                     <div style="display:flex; gap:10px;">
                         <button onclick="closeSellModal()" style="flex:1; background:#0d0a18; border:1px solid #2a1a3a; border-radius:9px; padding:10px; color:#555; font-family:inherit; cursor:pointer;">✗ Cancel</button>
                         <button onclick="confirmSellItem()" style="flex:1; background:linear-gradient(135deg,#44cc8822,#44cc8811); border:2px solid #44cc8866; border-radius:9px; padding:10px; color:#44cc88; font-family:inherit; font-weight:bold; cursor:pointer;">📤 List Item</button>
@@ -3831,6 +3836,27 @@ text-decoration: underline; /* Adds an underline on hover */
                         </button>
                     </div>
 
+                    <!-- Light Essence Vault (transcended only) -->
+                    <div id="le-vault-section" style="display:none; background:linear-gradient(135deg,#001a14,#002a1e); border:1px solid #44ffcc33; border-top:3px solid #44ffcc; border-radius:12px; padding:18px; position:relative; overflow:hidden;">
+                        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top,#44ffcc08,transparent 70%);pointer-events:none;"></div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                            <span style="font-size:1.4em;">✦</span>
+                            <div>
+                                <div style="color:#888; font-size:0.68em; text-transform:uppercase; letter-spacing:2px;">Light Essence Vault <span style="color:#44ffcc66;">· Transcended</span></div>
+                                <div style="color:#44ffcc; font-size:1.4em; font-weight:bold;" id="le-vault-display">0</div>
+                                <div style="color:#555; font-size:0.7em;">LE secured</div>
+                            </div>
+                        </div>
+                        <button class="upgrade-btn" onclick="depositLightEssence()" style="width:100%; margin-bottom:7px; border-color:#44ffcc44; background:linear-gradient(135deg,#44ffcc10,transparent);">
+                            <span style="color:#44ffcc; font-weight:bold;">⬆ Deposit LE</span>
+                            <span style="display:block; font-size:0.7em; color:#666; margin-top:2px;">Vault all but 3 LE fee · max 5,000 LE</span>
+                        </button>
+                        <button class="upgrade-btn" id="le-withdraw-btn" onclick="withdrawLightEssence()" style="width:100%; border-color:#44ffcc22; background:transparent;">
+                            <span style="color:#44ffcc;">⬇ Withdraw</span>
+                            <span style="display:block; font-size:0.7em; color:#555; margin-top:2px;">Fee: 5 LE · once per life</span>
+                        </button>
+                    </div>
+
                     <!-- Fragment Vault -->
                     <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #3d2a4a; border-top:3px solid #aa44ff; border-radius:12px; padding:18px; position:relative; overflow:hidden;">
                         <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top,#aa44ff08,transparent 70%);pointer-events:none;"></div>
@@ -3869,14 +3895,14 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div style="background:linear-gradient(135deg,#0a0812,#110d1e); border:1px solid #3d2a4a; border-top:3px solid #00e5ff; border-radius:12px; padding:20px;">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                         <span style="font-size:1.3em;">🔀</span>
-                        <h3 style="margin:0; color:#00e5ff; letter-spacing:2px;">ABYSSAL EXCHANGE</h3>
+                        <h3 style="margin:0; color:#00e5ff; letter-spacing:2px;" id="exchange-title">ABYSSAL EXCHANGE</h3>
                     </div>
                     <p style="color:var(--dim-color); font-size:0.8em; margin:0 0 16px;">Transmute your cosmic assets. All conversions are permanent and irreversible.</p>
 
                     <!-- Balances row -->
                     <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
                         <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">👻 <span id="exchange-souls-balance" class="cost-souls">0</span></div>
-                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">🌑 <span id="exchange-essence-balance" class="cost-essence">0</span> DE</div>
+                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">🌑 <span id="exchange-essence-balance" class="cost-essence">0</span> <span id="exchange-essence-label">DE</span></div>
                         <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">💎 <span id="exchange-shards-balance" class="cost-shards">0</span> Shards</div>
                         <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">⚡ <span id="exchange-aether-balance" style="color:#00e5ff;">0</span> Aether</div>
                         <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">🔮 <span id="exchange-fragments-balance" style="color:#44cc88;">0</span> Fragments</div>
@@ -8209,6 +8235,12 @@ const items = {
     // ══════════════════════════════════════════════════════════════
     // HEAVENLY ITEMS — drop in Hourly Market, transcendence tier
     // ══════════════════════════════════════════════════════════════
+    // ── LIGHT SOULS EXCLUSIVE ITEMS (LE cost, transcended only) ──────────
+    light_forge_blade:      { name:"Light Forge Blade",      type:"weapon", rarity:"heavenly", desc:"SPC ×12. Each click has 15% chance to deal 8× SPC to raid enemies AND heal 5% HP.", bonus:{type:'spc_multiplier',value:12.0} },
+    prism_of_eternity:      { name:"Prism of Eternity",      type:"idol",   rarity:"heavenly", desc:"SPS ×12. Each Light World unlocked adds +1% permanent SPS.", bonus:{type:'sps_multiplier',value:12.0,and:{type:'global_multiplier_per_world',value:0.01}} },
+    convergence_sigil:      { name:"Convergence Sigil",      type:"sigil",  rarity:"heavenly", desc:"+300% Abyssal Shards on Ascension AND Essence gain ×4.", bonus:{type:'ascension_shard_bonus',value:3.0,and:{type:'essence_multiplier',value:4.0}} },
+    crown_of_the_absolute:  { name:"Crown of the Absolute",  type:"helm",   rarity:"heavenly", desc:"Global ×5. All equipped items 200% more effective.", bonus:{type:'meta_item_enhancer',value:3.0,and:{type:'global_sps_multiplier',value:5.0}} },
+    tome_of_first_light:    { name:"Tome of First Light",    type:"tome",   rarity:"heavenly", desc:"Expedition fragments ×3. Expedition speed +50%.", bonus:{type:'expedition_fragment_multiplier',value:3.0,and:{type:'expedition_speed_and_loot',speed:1.5,loot_chance:0.3}} },
     celestial_edge:         { name:"Celestial Edge",         type:"weapon", rarity:"heavenly", desc:"SPC ×8. Clicks have 10% chance to fire a Light Burst dealing 5× SPC to all raid enemies.", bonus:{type:'spc_multiplier',value:8.0} },
     dawn_reaper:            { name:"Dawn Reaper",            type:"weapon", rarity:"heavenly", desc:"SPC ×6. Every click restores 2% HP to your active raid minion.", bonus:{type:'spc_multiplier',value:6.0} },
     spear_of_ascendance:    { name:"Spear of Ascendance",    type:"weapon", rarity:"heavenly", desc:"SPC ×7. Each ascension permanently adds +0.5% to SPC.", bonus:{type:'spc_multiplier',value:7.0,and:{type:'spc_per_ascension',value:0.005}} },
@@ -8620,6 +8652,116 @@ const potions = {
         effect: { type: 'light_mega_boost', duration: 300, shardBonus: 50, darkPenalty: 'shard_remove_and_halve' }
     },
 
+
+    // ── LIGHT ESSENCE POTIONS (LE cost, transcended only) ──────────────
+    le_guardian_surge: {
+        name: "✦ Guardian Surge",
+        desc: "✦ All Guardian minion SPS ×5 for 10 minutes. Guardians also cost 50% less for 5 minutes.",
+        cost: 0, lightOnly: true,
+        leCost: 8,
+        cooldown: 7200,
+        effect: { type: 'sps_multiplier_flat', value: 5, duration: 600 },
+        effect2: { type: 'temp_minion_cost_reducer_flat', value: 0.5, duration: 300 }
+    },
+    le_celestial_harvest: {
+        name: "✦ Celestial Harvest",
+        desc: "✦ Instantly gain 2 hours of your current Light Souls SPS.",
+        cost: 0, lightOnly: true,
+        leCost: 6,
+        cooldown: 3600,
+        effect: { type: 'gain_sps_seconds_flat', value: 7200 }
+    },
+    le_light_forge: {
+        name: "✦ Light Forge Tonic",
+        desc: "✦ Your next Ascension yields 4× Abyssal Shards. Persists until you ascend.",
+        cost: 0, lightOnly: true,
+        leCost: 15,
+        cooldown: 86400,
+        effect: { type: 'next_ascension_shard_mult_flat', value: 4 }
+    },
+    le_radiant_shield: {
+        name: "✦ Radiant Shield",
+        desc: "✦ RAID: All party members fully healed and gain 6 armor stacks. ⏳ 4hr cooldown.",
+        cost: 0, lightOnly: true,
+        leCost: 10,
+        cooldown: 14400,
+        raidOnly: true,
+        effect: { type: 'raid_heal', value: 1.0 },
+        effect2: { type: 'raid_armor_stacks', value: 6, reduction: 0.65 }
+    },
+    le_empyrean_rush: {
+        name: "✦ Empyrean Rush",
+        desc: "✦ Light Souls SPS ×20 for 8 minutes AND minion costs −70% for 3 minutes.",
+        cost: 0, lightOnly: true,
+        leCost: 12,
+        cooldown: 14400,
+        effect: { type: 'sps_multiplier_flat', value: 20, duration: 480 },
+        effect2: { type: 'temp_minion_cost_reducer_flat', value: 0.30, duration: 180 }
+    },
+    le_aether_infusion: {
+        name: "✦ Aether Infusion",
+        desc: "✦ Instantly gain 3 Aether AND SPS ×10 for 5 minutes.",
+        cost: 0, lightOnly: true,
+        leCost: 20,
+        cooldown: 86400,
+        effect: { type: 'gain_aether_no_reset_flat', value: 3 },
+        effect2: { type: 'sps_multiplier_flat', value: 10, duration: 300 }
+    },
+    le_fragment_bloom: {
+        name: "✦ Fragment Bloom",
+        desc: "✦ Grants 20 Corrupted Fragments and resets your Abyssal Cache. ⏳ 12hr cooldown.",
+        cost: 0, lightOnly: true,
+        leCost: 5,
+        cooldown: 43200,
+        effect: { type: 'gain_fragments_flat', value: 20 },
+        effect2: { type: 'reset_cache_timer_flat' }
+    },
+    le_transcendent_will: {
+        name: "✦ Transcendent Will",
+        desc: "✦ ALL cooldowns reset instantly — rituals, items, cache, potions. ⏳ 24hr cooldown.",
+        cost: 0, lightOnly: true,
+        leCost: 25,
+        cooldown: 86400,
+        effect: { type: 'reset_all_cooldowns_flat' }
+    },
+    le_expedition_light: {
+        name: "✦ Expedition Light",
+        desc: "✦ Complete ALL active expeditions instantly AND next 3 expeditions 80% faster. ⏳ 12hr cooldown.",
+        cost: 0, lightOnly: true,
+        leCost: 15,
+        cooldown: 43200,
+        effect: { type: 'expedition_complete_all_flat' },
+        effect2: { type: 'expedition_luck_flat', value: 1.80, duration: 10800 }
+    },
+    le_shard_cascade: {
+        name: "✦ Shard Cascade",
+        desc: "✦ Instantly gain 25% of your next Ascension Shards AND 50 Abyssal Shards.",
+        cost: 0, lightOnly: true,
+        leCost: 18,
+        cooldown: 28800,
+        effect: { type: 'gain_shards_no_reset_flat', value: 0.25 },
+        effect2: { type: 'gain_shards_bonus_flat', value: 50 }
+    },
+    le_divine_momentum: {
+        name: "✦ Divine Momentum",
+        desc: "✦ RAID: Set momentum to max, next 6 attacks deal 4× damage, and all debuffs doubled.",
+        cost: 0, lightOnly: true,
+        leCost: 12,
+        cooldown: 10800,
+        raidOnly: true,
+        effect: { type: 'raid_set_momentum', value: 6 },
+        effect2: { type: 'raid_true_damage', value: 4.0, turns: 6 }
+    },
+    le_light_eternal: {
+        name: "✦ Light Eternal",
+        desc: "✦ For 15 minutes: SPS ×50, all costs zero, and 20 Aether instantly. ⏳ 24hr cooldown.",
+        cost: 0, lightOnly: true,
+        leCost: 50,
+        cooldown: 86400,
+        effect: { type: 'sps_multiplier_flat', value: 50, duration: 900 },
+        effect2: { type: 'gain_aether_no_reset_flat', value: 5 },
+        effect3: { type: 'temp_minion_cost_reducer_flat', value: 0.01, duration: 900 }
+    },
 
     // ── NEUTRAL FUSION POTIONS (Light × Dark) ────────────────────────────
     // Created only by fusing a light potion with any dark/standard potion.
@@ -14605,6 +14747,19 @@ function usePotion(id) {
             Toastify({ text: `⚗️ ${p.name} activated!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0830,#9944cc)'} }).showToast();
         }
 
+        // ── LE POTION COOLDOWN CHECK ─────────────────────────────────────
+        // LE potions with leCost deduct LE instead of souls
+        if (potions[id]?.leCost) {
+            const leCostP = potions[id].leCost;
+            if (D(gameState.lightEssence || 0).lt(leCostP)) {
+                Toastify({ text: `✦ Need ${leCostP} LE to use this.`, duration:2500, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#440088)'} }).showToast();
+                // Put count back since we already decremented
+                gameState.potions[id]++;
+                return;
+            }
+            gameState.lightEssence = D(gameState.lightEssence || 0).sub(leCostP).max(0);
+        }
+
         // ── NEW FUSED POTION EFFECTS ─────────────────────────────────────
         if (effect.type === 'raid_crit_guarantee') {
             if (raidState?.inCombat) {
@@ -17339,7 +17494,7 @@ function generateHourlyShopItems() {
     // Market potions are shop-exclusive — exclude from normal pool, pool them separately
     const allPotionKeys      = Object.keys(potions).filter(id => !potions[id].marketOnly && !potions[id].lightOnly).map(id => ({ id, type: 'potion' }));
     const marketPotionKeys   = Object.keys(potions).filter(id =>  potions[id].marketOnly).map(id => ({ id, type: 'market_potion' }));
-    const lightPotionKeys    = Object.keys(potions).filter(id =>  potions[id].lightOnly).map(id => ({ id, type: 'light_potion' }));
+    const lightPotionKeys    = Object.keys(potions).filter(id => potions[id].lightOnly).map(id => ({ id, type: 'light_potion' }));
     let availableItems = [...allItemKeys, ...allArtifactKeys, ...allPotionKeys];
 
     let shopItems = [];
@@ -17353,7 +17508,7 @@ function generateHourlyShopItems() {
     shopItems[2] = marketPotionKeys[mpIdx];
 
     // Slot 4 (index 3+) — if transcended AND light potions exist, add a rare light potion slot (~40% chance per hour)
-    if (gameState.isTranscended && lightPotionKeys.length > 0 && ((seed * 23 + 11) % 10) < 4) {
+    if (gameState.isTranscended && lightPotionKeys.length > 0) {
         const lpIdx = (seed * 19 + 7) % lightPotionKeys.length;
         shopItems.push(lightPotionKeys[lpIdx]);
     }
@@ -17450,7 +17605,7 @@ function generateHourlyShopItems() {
                 <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid #ffffff0a; padding-top:10px;">
                     <div>
                         <div style="color:#666; font-size:0.7em;">COST</div>
-                        <div style="color:${canBuy?'#9944cc':'#664466'}; font-weight:bold;">${smPrice} <span style="font-size:0.75em;">Dark Essence</span></div>
+                        <div style="color:${canBuy?'#9944cc':'#664466'}; font-weight:bold;">${smPrice} <span style="font-size:0.75em;">${(gameState.isTranscended||window._devTranscendTest)?'LE':'Dark Essence'}</span></div>
                     </div>
                     ${buttonHtml}
                 </div>
@@ -17476,30 +17631,41 @@ function generateHourlyShopItems() {
         }
 
         const isLightPotion = shopItem.type === 'light_potion';
+        const isTranscendedMarket = gameState.isTranscended || window._devTranscendTest;
         let finalPrice, fragmentCost = 0, lightSoulCost = 0;
-        if (shopItem.id === 'mark_of_the_first') { finalPrice = 150; }
+        if (shopItem.id === 'mark_of_the_first') { finalPrice = isTranscendedMarket ? 5 : 150; }
         else if (isLightPotion) {
+            const _lpData = potions[shopItem.id];
             const leIdx = lightPotionKeys.findIndex(lp => lp.id === shopItem.id);
-            lightSoulCost = [5, 10, 20, 40, 80][leIdx] || 10;
+            lightSoulCost = _lpData?.leCost || [5, 10, 20, 40, 80][leIdx] || 10;
             finalPrice = 0;
         }
         else if (shopItem.type === 'market_potion') { finalPrice = potions[shopItem.id]?.shopPrice || 50; }
         else if (shopItem.type === 'item') {
             const _r = itemData?.rarity || 'common';
-            finalPrice = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400, heavenly:600, dark:500 }[_r] || 5;
-        } else { finalPrice = ((seed + index * 13) % 20) + 1; }
+            // Transcended: heavenly items cost LE, others cost less DE
+            if (isTranscendedMarket && _r === 'heavenly') {
+                lightSoulCost = { heavenly:15 }[_r] || 10;
+                finalPrice = 0;
+            } else {
+                finalPrice = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400, heavenly:600, dark:500 }[_r] || 5;
+                if (isTranscendedMarket) finalPrice = Math.ceil(finalPrice * 0.5); // 50% DE discount when transcended
+            }
+        } else { finalPrice = ((seed + index * 13) % 20) + 1; if (isTranscendedMarket) finalPrice = Math.ceil(finalPrice * 0.5); }
         // Fragment cost — MUST match buyHourlyShopItem's fragCost table exactly
         if (!isLightPotion) {
-            if      (shopItem.type === 'item')          fragmentCost = ({common:0,uncommon:5,rare:15,epic:30,legendary:60,forged:100,heavenly:80,dark:60}[itemData?.rarity||'common']||0);
+            if      (shopItem.type === 'item')          fragmentCost = ({common:0,uncommon:5,rare:15,epic:30,legendary:60,forged:100,heavenly:0,dark:60}[itemData?.rarity||'common']||0);
             else if (shopItem.type === 'potion')        fragmentCost = 5;
             else if (shopItem.type === 'market_potion') fragmentCost = 20;
             else if (shopItem.type === 'artifact')      fragmentCost = 10;
             else if (shopItem.type === 'secret_minion') fragmentCost = 50;
             else if (shopItem.type === 'key')           fragmentCost = 25;
         }
-        const canAfford  = !soldOut && (isLightPotion
-            ? D(gameState.lightEssence || 0).gte(lightSoulCost)
-            : D(gameState.darkEssence).gte(finalPrice) && (fragmentCost === 0 || D(gameState.corruptedFragments || 0).gte(fragmentCost)));
+        const _leAfford = lightSoulCost > 0 ? D(gameState.lightEssence || 0).gte(lightSoulCost) : true;
+        const _deAfford = finalPrice > 0 ? D(gameState.darkEssence).gte(finalPrice) : true;
+        const canAfford  = !soldOut && (isLightPotion || (isTranscendedMarket && lightSoulCost > 0)
+            ? _leAfford
+            : _deAfford && (fragmentCost === 0 || D(gameState.corruptedFragments || 0).gte(fragmentCost)));
         const theme      = typeTheme[shopItem.type] || typeTheme.item;
         const rc         = rarityColor[itemData?.rarity] || theme.color;
 
@@ -17530,9 +17696,9 @@ function generateHourlyShopItems() {
                 <div>
                     <div style="color:#666; font-size:0.7em;">COST</div>
                     <div style="color:${canAfford?theme.color:'#664466'}; font-weight:bold;">
-                        ${isLightPotion
+                        ${(isLightPotion || (isTranscendedMarket && lightSoulCost > 0))
                             ? `<span style="color:${canAfford?'#88ffcc':'#446655'}">${formatNumber(lightSoulCost)}</span> <span style="font-size:0.75em; color:#88ffcc;">✦ LE</span>`
-                            : `${formatNumber(finalPrice)} <span style="font-size:0.75em;">DE</span>${fragmentCost > 0 ? ` <span style="color:${D(gameState.corruptedFragments||0).gte(fragmentCost)?'#aa44ff':'#cc4444'}; font-size:0.85em;">+ ${fragmentCost} 🔮</span>` : ''}`
+                            : `${formatNumber(finalPrice)} <span style="font-size:0.75em;">${isTranscendedMarket ? 'DE' : 'DE'}</span>${fragmentCost > 0 ? ` <span style="color:${D(gameState.corruptedFragments||0).gte(fragmentCost)?'#aa44ff':'#cc4444'}; font-size:0.85em;">+ ${fragmentCost} 🔮</span>` : ''}`
                         }
                     </div>
                     ${remainingHtml}
@@ -17552,9 +17718,10 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     const isLightPotionPurchase = itemType === 'light_potion';
 
     if (isLightPotionPurchase) {
-        // Light potions cost Light Essence (LE)
+        // Light potions cost Light Essence (LE) — use leCost field if defined, else legacy lookup
+        const _lepData = potions[itemId];
         const leIdx2 = ['phial_of_radiance','celestial_draught','vial_of_first_light','elixir_of_transcendence','ichor_of_absolute_light'].indexOf(itemId);
-        const lsCost = [5, 10, 20, 40, 80][leIdx2 >= 0 ? leIdx2 : 0] || 10;
+        const lsCost = _lepData?.leCost || [5, 10, 20, 40, 80][leIdx2 >= 0 ? leIdx2 : 0] || 10;
         if (D(gameState.lightEssence || 0).lt(lsCost)) {
             Toastify({ text: `✦ Need ${lsCost} Light Essence (LE).`, duration: 2500, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a0020,#440088)' } }).showToast();
             return;
@@ -17577,7 +17744,13 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
         return;
     }
 
-    if (D(gameState.darkEssence).lt(price)) {
+    const _txBuy = gameState.isTranscended || window._devTranscendTest;
+    if (_txBuy && price > 0) {
+        if (D(gameState.lightEssence || 0).lt(price)) {
+            Toastify({ text: `✦ Need ${formatNumber(price)} Light Essence (LE).`, duration:2500, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0020,#440088)'} }).showToast();
+            return;
+        }
+    } else if (!_txBuy && D(gameState.darkEssence).lt(price)) {
         Toastify({ text: 'Not enough Dark Essence.', duration: 2500, gravity:'top', position:'center', style:{ background:'#aa2222' } }).showToast();
         return;
     }
@@ -17616,8 +17789,12 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     }
     const fragStr = fragCost > 0 ? ` + ${fragCost} 🔮 Fragments` : '';
     const limitMsg = limit > 1 ? ` (${bought + 1}/${limit} this hour)` : '';
-    if (!confirm(`Buy ${itemName} for ${formatNumber(price)} Dark Essence${fragStr}?${limitMsg}`)) return;
-    gameState.darkEssence = D(gameState.darkEssence).sub(price);
+    if (!confirm(`Buy ${itemName} for ${formatNumber(price)} ${_txBuy ? 'LE (Light Essence)' : 'Dark Essence'}${fragStr}?${limitMsg}`)) return;
+    if (_txBuy) {
+        gameState.lightEssence = D(gameState.lightEssence || 0).sub(price).max(0);
+    } else {
+        gameState.darkEssence = D(gameState.darkEssence).sub(price);
+    }
     if (fragCost > 0) gameState.corruptedFragments = D(gameState.corruptedFragments||0).sub(fragCost);
 
     // Record purchase
@@ -17706,18 +17883,20 @@ function depositEssence() {
 }
 
 function withdrawEssence() {
-    const withdrawCost = 20;
+    const withdrawCost = gameState.isTranscended ? 5 : 20; // LE costs less
     if (gameState.hasWithdrawnEssence) {
         Toastify({ text: `Already withdrew essence this life.`, duration:2500, gravity:'top', position:'center' }).showToast(); return;
     }
     if (!gameState.bankedEssence || gameState.bankedEssence <= 0) {
         Toastify({ text: `Essence vault is empty.`, duration:2500, gravity:'top', position:'center' }).showToast(); return;
     }
-    if (D(gameState.darkEssence).lt(withdrawCost)) {
-        Toastify({ text: `Need ${withdrawCost} Dark Essence fee to withdraw.`, duration:2500, gravity:'top', position:'center' }).showToast(); return;
+    const _wsCur = (gameState.isTranscended||window._devTranscendTest) ? D(gameState.lightEssence||0) : D(gameState.darkEssence);
+    const _wsLabel = (gameState.isTranscended||window._devTranscendTest) ? 'LE' : 'DE';
+    if (_wsCur.lt(withdrawCost)) {
+        Toastify({ text: `Need ${withdrawCost} ${_wsLabel} fee to withdraw.`, duration:2500, gravity:'top', position:'center' }).showToast(); return;
     }
     if (!confirm(`Withdraw ${formatNumber(gameState.bankedEssence)} Dark Essence for ${withdrawCost} DE fee?`)) return;
-    gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost);
+    if (gameState.isTranscended||window._devTranscendTest) { gameState.lightEssence = D(gameState.lightEssence||0).sub(5).max(0); } else { gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost); }
     _safeAddCur("darkEssence", gameState.bankedEssence);
     gameState.hasWithdrawnEssence = true;
     playSound('ascend');
@@ -17750,7 +17929,7 @@ function withdrawShards() {
         Toastify({ text: `Need ${withdrawCost} Dark Essence fee to withdraw.`, duration:2500, gravity:'top', position:'center' }).showToast(); return;
     }
     if (!confirm(`Withdraw ${formatNumber(gameState.bankedShards)} Abyssal Shards for ${withdrawCost} DE fee?`)) return;
-    gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost);
+    if (gameState.isTranscended||window._devTranscendTest) { gameState.lightEssence = D(gameState.lightEssence||0).sub(withdrawCost).max(0); } else { gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost); }
     gameState.abyssalShards = D(gameState.abyssalShards).add(D(gameState.bankedShards));
     gameState.hasWithdrawnShards = true;
     playSound('ascend');
@@ -17807,16 +17986,50 @@ function withdrawFragments() {
         Toastify({ text: `Fragment vault is empty.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    if (D(gameState.darkEssence).lt(withdrawCost)) {
-        Toastify({ text: `Need ${withdrawCost} Dark Essence to withdraw.`, duration:2500, gravity:'top', position:'center' }).showToast();
+    const _wfCur = (gameState.isTranscended||window._devTranscendTest) ? D(gameState.lightEssence||0) : D(gameState.darkEssence);
+    const _wfLabel = (gameState.isTranscended||window._devTranscendTest) ? 'LE' : 'DE';
+    if (_wfCur.lt(withdrawCost)) {
+        Toastify({ text: `Need ${withdrawCost} ${_wfLabel} to withdraw.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
     if (!confirm(`Withdraw ${formatNumber(gameState.bankedFragments)} fragments for ${withdrawCost} DE?`)) return;
-    gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost);
+    if (gameState.isTranscended||window._devTranscendTest) { gameState.lightEssence = D(gameState.lightEssence||0).sub(withdrawCost).max(0); } else { gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost); }
     _safeAddCur("corruptedFragments", gameState.bankedFragments);
     gameState.hasWithdrawnFragments = true;
     playSound('ascend');
     Toastify({ text: `🔮 Fragments retrieved from the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
+    calculateStats(); renderBank(); updateDynamicDisplays(); saveGame();
+}
+
+// ── LIGHT ESSENCE VAULT ─────────────────────────────────────────────
+function depositLightEssence() {
+    if (!gameState.isTranscended) { Toastify({text:'✦ Light Essence vault requires transcendence.',duration:2500,gravity:'top',position:'center'}).showToast(); return; }
+    const cost = 3; // 3 LE fee to deposit
+    const le = D(gameState.lightEssence || 0);
+    if (le.lte(0)) { Toastify({text:'No Light Essence to deposit.',duration:2500,gravity:'top',position:'center'}).showToast(); return; }
+    if (le.lt(cost + 1)) { Toastify({text:`Need at least ${cost+1} LE to deposit.`,duration:2500,gravity:'top',position:'center'}).showToast(); return; }
+    const cap = 5000, cur = D(gameState.bankedLightEssence || 0);
+    if (cur.gte(cap)) { Toastify({text:'✦ LE Vault full! Max 5,000 LE.',duration:2500,gravity:'top',position:'center',style:{background:'#001a2a'}}).showToast(); return; }
+    const depositAmt = le.sub(cost).min(D(cap).sub(cur));
+    if (!confirm(`Deposit ${formatNumber(depositAmt)} LE for ${cost} LE fee?`)) return;
+    gameState.lightEssence = D(gameState.lightEssence).sub(depositAmt).sub(cost).max(0);
+    gameState.bankedLightEssence = cur.add(depositAmt);
+    playSound('upgrade');
+    Toastify({text:`✦ ${formatNumber(depositAmt)} LE secured in the vault!`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#001a2a,#44ffcc)'}}).showToast();
+    calculateStats(); renderBank(); updateDynamicDisplays(); saveGame();
+}
+function withdrawLightEssence() {
+    if (!gameState.isTranscended) { Toastify({text:'✦ Requires transcendence.',duration:2500,gravity:'top',position:'center'}).showToast(); return; }
+    const cost = 5;
+    const banked = D(gameState.bankedLightEssence || 0);
+    if (banked.lte(0)) { Toastify({text:'✦ LE Vault is empty.',duration:2500,gravity:'top',position:'center'}).showToast(); return; }
+    if (D(gameState.lightEssence||0).lt(cost)) { Toastify({text:`Need ${cost} LE fee to withdraw.`,duration:2500,gravity:'top',position:'center'}).showToast(); return; }
+    if (gameState.hasWithdrawnLE) { Toastify({text:'Already withdrew LE this life.',duration:2500,gravity:'top',position:'center'}).showToast(); return; }
+    if (!confirm(`Withdraw ${formatNumber(banked)} LE for ${cost} LE fee?`)) return;
+    gameState.lightEssence = D(gameState.lightEssence||0).sub(cost).add(banked).max(0);
+    gameState.hasWithdrawnLE = true;
+    playSound('ascend');
+    Toastify({text:`✦ ${formatNumber(banked)} LE retrieved from vault!`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#001a2a,#44ffcc)'}}).showToast();
     calculateStats(); renderBank(); updateDynamicDisplays(); saveGame();
 }
 
@@ -17960,6 +18173,10 @@ function convertCurrency(from, to, amountIn, amountOut) {
 
 
 function renderBank() {
+    const _isTx = gameState.isTranscended || window._devTranscendTest;
+    const _essLabel = _isTx ? 'LE' : 'DE';
+    const _essBalance = () => _isTx ? D(gameState.lightEssence || 0) : D(gameState.darkEssence);
+
     const bankedSoulsDisplay = document.getElementById('banked-souls-display');
     if (bankedSoulsDisplay) {
         bankedSoulsDisplay.textContent = formatNumber(gameState.bankedSouls || 0);
@@ -17967,34 +18184,57 @@ function renderBank() {
         const wc = document.getElementById('withdrawCost');
         if (wc) wc.textContent = formatNumber(withdrawCost);
         const wb = document.getElementById('withdrawBtn');
-        if (wb) wb.disabled = gameState.hasWithdrawn || D(gameState.darkEssence).lt(withdrawCost) || (gameState.bankedSouls || 0) <= 0;
+        if (wb) wb.disabled = gameState.hasWithdrawn || _essBalance().lt(withdrawCost) || (gameState.bankedSouls || 0) <= 0;
     }
 
     const bankedFragDisplay = document.getElementById('banked-fragments-display');
     if (bankedFragDisplay) {
         bankedFragDisplay.textContent = formatNumber(gameState.bankedFragments || 0);
         const wfb = document.getElementById('withdrawFragmentsBtn');
-        if (wfb) wfb.disabled = gameState.hasWithdrawnFragments || D(gameState.darkEssence).lt(25) || (gameState.bankedFragments || 0) <= 0;
+        if (wfb) wfb.disabled = gameState.hasWithdrawnFragments || _essBalance().lt(25) || (gameState.bankedFragments || 0) <= 0;
     }
 
     const bankedEssenceDisplay = document.getElementById('banked-essence-display');
     if (bankedEssenceDisplay) {
         bankedEssenceDisplay.textContent = formatNumber(gameState.bankedEssence || 0);
         const web = document.getElementById('withdrawEssenceBtn');
-        if (web) web.disabled = gameState.hasWithdrawnEssence || D(gameState.darkEssence).lt(20) || (gameState.bankedEssence || 0) <= 0;
+        if (web) web.disabled = gameState.hasWithdrawnEssence || _essBalance().lt(5) || (gameState.bankedEssence || 0) <= 0;
     }
 
     const bankedShardsDisplay = document.getElementById('banked-shards-display');
     if (bankedShardsDisplay) {
         bankedShardsDisplay.textContent = formatNumber(D(gameState.bankedShards || 0));
         const wsb = document.getElementById('withdrawShardsBtn');
-        if (wsb) wsb.disabled = gameState.hasWithdrawnShards || D(gameState.darkEssence).lt(30) || D(gameState.bankedShards || 0).lte(0);
+        if (wsb) wsb.disabled = gameState.hasWithdrawnShards || _essBalance().lt(30) || D(gameState.bankedShards || 0).lte(0);
     }
 
+    // Update all DE labels to LE if transcended
+    document.querySelectorAll('.bank-de-label').forEach(el => { el.textContent = _essLabel; });
+    // Update exchange header
+    const exchHeader = document.getElementById('bank-screen')?.querySelector('h2');
+    if (exchHeader) exchHeader.textContent = _isTx ? '✦ CELESTIAL VAULT' : '🏦 ABYSSAL VAULT';
+    // Update exchange section header
+    const exchTitle = document.getElementById('exchange-title');
+    if (exchTitle) exchTitle.textContent = _isTx ? 'CELESTIAL EXCHANGE' : 'ABYSSAL EXCHANGE';
+
+    // Update LE vault display if transcended
+    const leVaultEl = document.getElementById('le-vault-display');
+    if (leVaultEl) {
+        leVaultEl.textContent = formatNumber(D(gameState.bankedLightEssence || 0));
+        const leWithdrawBtn = document.getElementById('le-withdraw-btn');
+        if (leWithdrawBtn) leWithdrawBtn.disabled = gameState.hasWithdrawnLE || D(gameState.lightEssence||0).lt(5) || D(gameState.bankedLightEssence||0).lte(0);
+        const leVaultSection = document.getElementById('le-vault-section');
+        if (leVaultSection) leVaultSection.style.display = (gameState.isTranscended || window._devTranscendTest) ? '' : 'none';
+    }
     const exchangeSouls = document.getElementById('exchange-souls-balance');
     if (!exchangeSouls) return;
     exchangeSouls.innerText = formatNumber(D(gameState.souls));
-    document.getElementById('exchange-essence-balance').innerText = formatNumber(gameState.darkEssence);
+    const exchEssEl = document.getElementById('exchange-essence-balance');
+    if (exchEssEl) {
+        exchEssEl.innerText = _isTx ? formatNumber(D(gameState.lightEssence || 0)) : formatNumber(gameState.darkEssence);
+        const exchEssLabel = document.getElementById('exchange-essence-label');
+        if (exchEssLabel) exchEssLabel.textContent = _essLabel;
+    }
     document.getElementById('exchange-shards-balance').innerText = formatNumber(gameState.abyssalShards);
     document.getElementById('exchange-aether-balance').innerText = formatNumber(gameState.aether);
     const fragBal = document.getElementById('exchange-fragments-balance');
@@ -18005,21 +18245,21 @@ function renderBank() {
     const fragTag = (cost) => `<span style="color:${hasFrags(cost) ? '#aa44ff' : '#ff4444'}; font-size:0.8em;"> + ${cost}🔮</span>`;
 
     const shardsTier = conversionTiers.shardsToDe[currentConversionIndexes.shardsToDe];
-    document.getElementById('shards-tier-text').innerHTML = `<span class="cost-shards">${formatNumber(shardsTier.fromAmount)} Shards</span> → <span class="cost-essence">${formatNumber(shardsTier.toAmount)} DE</span>${fragTag(15)}`;
+    document.getElementById('shards-tier-text').innerHTML = `<span class="cost-shards">${formatNumber(shardsTier.fromAmount)} Shards</span> → <span class="cost-essence">${formatNumber(shardsTier.toAmount)} ${_essLabel}</span>${fragTag(15)}`;
     const csb = document.getElementById('convert-shards-btn');
     csb.onclick = () => convertCurrency('shards', 'de', shardsTier.fromAmount, shardsTier.toAmount);
     csb.disabled = D(gameState.abyssalShards).lt(shardsTier.fromAmount) || !hasFrags(15);
 
     const aetherTier = conversionTiers.aetherToDe[currentConversionIndexes.aetherToDe];
     const aetherOut = (currentConversionIndexes.aetherToDe === 0) ? Math.max(5, 50 - (gameState.aetherToDeConversions * 5)) : aetherTier.toAmount;
-    document.getElementById('aether-tier-text').innerHTML = `<span style="color:#00e5ff;">${formatNumber(aetherTier.fromAmount)} Aether</span> → <span class="cost-essence">${formatNumber(aetherOut)} DE</span>${fragTag(25)}`;
+    document.getElementById('aether-tier-text').innerHTML = `<span style="color:#00e5ff;">${formatNumber(aetherTier.fromAmount)} Aether</span> → <span class="cost-essence">${formatNumber(aetherOut)} ${_essLabel}</span>${fragTag(25)}`;
     const cab = document.getElementById('convert-aether-btn');
     cab.onclick = () => convertCurrency('aether', 'de', aetherTier.fromAmount, aetherOut);
     cab.disabled = D(gameState.aether).lt(aetherTier.fromAmount) || !hasFrags(25);
 
     const deTier = conversionTiers.deToSouls[currentConversionIndexes.deToSouls];
     const deSoulsUsed = gameState._deSoulsDate === new Date().toDateString() ? (gameState._deSoulsCount || 0) : 0;
-    document.getElementById('de-tier-text').innerHTML = `<span class="cost-essence">${formatNumber(deTier.fromAmount)} DE</span> → <span class="cost-souls">${formatNumber(deTier.toAmount)} Souls</span>${fragTag(10)} <span style="color:#555; font-size:0.75em;">(${deSoulsUsed}/5 today)</span>`;
+    document.getElementById('de-tier-text').innerHTML = `<span class="cost-essence">${formatNumber(deTier.fromAmount)} ${_essLabel}</span> → <span class="cost-souls">${formatNumber(deTier.toAmount)} ${_isTx ? 'Light Souls' : 'Souls'}</span>${fragTag(10)} <span style="color:#555; font-size:0.75em;">(${deSoulsUsed}/5 today)</span>`;
     const ceb = document.getElementById('convert-essence-btn');
     ceb.onclick = () => convertCurrency('de', 'souls', deTier.fromAmount, deTier.toAmount);
     ceb.disabled = D(gameState.darkEssence).lt(deTier.fromAmount) || !hasFrags(10) || deSoulsUsed >= 5;
@@ -18109,7 +18349,10 @@ async function fetchMarketListings() {
         list.innerHTML = '';
         data.forEach((listing) => {
             const item = items[listing.item_id];
-            const canAfford = D(gameState.darkEssence).gte(listing.price);
+            const _listCur = listing.currency || 'de';
+            const canAfford = _listCur === 'le' ? D(gameState.lightEssence||0).gte(listing.price)
+                           : _listCur === 'ls'  ? D(gameState.souls||0).gte(listing.price)
+                           : D(gameState.darkEssence).gte(listing.price);
             const isMyItem  = gameState.playerName === listing.seller_name;
             const rarityColor = item ? ({ legendary:'#ff9900', epic:'#a855f7', rare:'#3b82f6', uncommon:'#22c55e', common:'#aaa' }[item.rarity] || '#aaa') : '#888';
             const itemName  = item ? item.name  : (listing.item_id || 'Unknown Item');
@@ -18132,10 +18375,10 @@ async function fetchMarketListings() {
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-width:130px;">
                         <div style="color:#00c875; font-size:1.1em; font-weight:bold;">${formatNumber(listing.price)}</div>
-                        <div style="color:#888; font-size:0.75em; margin-top:-4px;">Dark Essence</div>
+                        <div style="color:#888; font-size:0.75em; margin-top:-4px;">${listing.currency === 'le' ? '✦ Light Essence' : listing.currency === 'ls' ? '👻 Light Souls' : '🌑 Dark Essence'}</div>
                         ${isMyItem
                             ? `<button class="upgrade-btn" style="font-size:0.8em; background:#3a0a0a; border-color:#8a0000; margin-top:4px;" onclick="cancelMarketListing(${listing.id})">❌ Cancel</button>`
-                            : `<button class="upgrade-btn" style="font-size:0.85em; margin-top:4px; ${canAfford ? '' : 'opacity:0.45;'}" onclick="promptBuyItem(${listing.id}, ${listing.price})" ${!canAfford ? 'disabled' : ''}>${canAfford ? '🛒 Buy Item' : 'Need More Essence'}</button>`
+                            : `<button class="upgrade-btn" style="font-size:0.85em; margin-top:4px; ${canAfford ? '' : 'opacity:0.45;'}" onclick="promptBuyItem(${listing.id}, ${listing.price}, '${listing.currency||'de'}')" ${!canAfford ? 'disabled' : ''}>${canAfford ? '🛒 Buy Item' : 'Need More'}</button>`
                         }
                     </div>
                 </div>
@@ -18207,10 +18450,24 @@ function renderSellableInventory() {
 }
 
 let _sellItemId = null;
+let _sellCurrency = 'de'; // 'de', 'le', or 'ls'
+function setSellCurrency(cur) {
+    _sellCurrency = cur;
+    const labels = { de:'Price in Dark Essence', le:'Price in Light Essence (LE)', ls:'Price in Light Souls' };
+    const el = document.getElementById('sell-currency-label');
+    if (el) el.textContent = labels[cur] || 'Price';
+    ['de','le','ls'].forEach(c => {
+        const btn = document.getElementById('sell-cur-' + c);
+        if (!btn) return;
+        btn.style.opacity = (c === cur) ? '1' : '0.45';
+        btn.style.fontWeight = (c === cur) ? 'bold' : 'normal';
+    });
+}
 function promptSellItem(itemId) {
     const item = items[itemId];
     if (!item) return;
     _sellItemId = itemId;
+    _sellCurrency = gameState.isTranscended ? 'le' : 'de';
     const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
     const typeIcon    = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
     document.getElementById('sell-modal-icon').textContent = typeIcon[item.type] || '🔮';
@@ -18218,6 +18475,10 @@ function promptSellItem(itemId) {
     document.getElementById('sell-modal-name').style.color = rarityColor[item.rarity] || '#44cc88';
     document.getElementById('sell-modal-desc').textContent = item.desc;
     document.getElementById('sell-price-input').value = '';
+    // Show currency toggle for transcended players
+    const toggle = document.getElementById('sell-currency-toggle');
+    if (toggle) toggle.style.display = (gameState.isTranscended || window._devTranscendTest) ? 'flex' : 'none';
+    setSellCurrency(_sellCurrency);
     document.getElementById('sell-price-overlay').style.display = 'flex';
     setTimeout(() => document.getElementById('sell-price-input').focus(), 100);
 }
@@ -18242,11 +18503,12 @@ function confirmSellItem() {
         gameState.inventory.splice(itemIndex, 1);
         renderSellableInventory();
         renderInventory();
+        const _curLabels = { de:'DE', le:'LE', ls:'Light Souls' };
         supabaseClient.functions.invoke('swift-task', {
-            body: { action: 'list-item', payload: { sellerName: gameState.playerName, itemId, price: sellPrice } }
+            body: { action: 'list-item', payload: { sellerName: gameState.playerName, itemId, price: sellPrice, currency: _sellCurrency || 'de' } }
         }).then(({ data, error }) => {
             if (error) throw new Error(error.context?.error?.error || 'Failed to list item.');
-            Toastify({ text: `📤 ${items[itemId]?.name || 'Item'} listed for ${formatNumber(sellPrice)} DE`, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0e3320,#44cc88)' } }).showToast();
+            Toastify({ text: `📤 ${items[itemId]?.name || 'Item'} listed for ${formatNumber(sellPrice)} ${_curLabels[_sellCurrency]||'DE'}`, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0e3320,#44cc88)' } }).showToast();
             fetchMarketListings();
         }).catch(err => {
             Toastify({ text: 'Failed to list: ' + err.message, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#330000,#cc2222)' } }).showToast();
@@ -18258,13 +18520,18 @@ function confirmSellItem() {
 }
 
 // FINAL, SIMPLIFIED promptBuyItem FUNCTION
-async function promptBuyItem(listingId, price) {
-    console.log("Attempting to purchase " + listingId)
-    if (D(gameState.darkEssence).lt(price)) {
-        alert("You cannot afford this item.");
+async function promptBuyItem(listingId, price, currency) {
+    const _cur = currency || 'de';
+    const _curLabel = { de:'Dark Essence', le:'Light Essence (LE)', ls:'Light Souls' }[_cur] || 'Dark Essence';
+    const _canAffordBuy = _cur === 'le' ? D(gameState.lightEssence||0).gte(price)
+                        : _cur === 'ls' ? D(gameState.souls||0).gte(price)
+                        : D(gameState.darkEssence).gte(price);
+    console.log("Attempting to purchase " + listingId);
+    if (!_canAffordBuy) {
+        alert(`You cannot afford this item. Need ${formatNumber(price)} ${_curLabel}.`);
         return;
     }
-    if (!confirm(`Are you sure you want to buy this item for ${formatNumber(price)} Dark Essence?`)) {
+    if (!confirm(`Are you sure you want to buy this item for ${formatNumber(price)} ${_curLabel}?`)) {
         return;
     }
 
@@ -18299,6 +18566,10 @@ async function promptBuyItem(listingId, price) {
         
         // IMPORTANT: The server handled the money. We now ask the server
         // for our new, correct balance to update our display.
+        // Deduct currency locally (server also handles this)
+        if (_cur === 'le') gameState.lightEssence = D(gameState.lightEssence||0).sub(price).max(0);
+        else if (_cur === 'ls') gameState.souls = D(gameState.souls||0).sub(price).max(0);
+        else gameState.darkEssence = D(gameState.darkEssence||0).sub(price).max(0);
         await syncCurrency();
 
         alert(data.message || "Purchase successful!");
@@ -19364,7 +19635,8 @@ function initializeChat() {
                     }
                     // Dev command: !remove — toggle mod-removal mode
                     if (text === '!remove') {
-                        if (window._scIsDev && window._scIsDev(uid)) {
+                        const _removeUid = uid || window._scFirebase?.auth?.currentUser?.uid || window._chatUid;
+                        if (window._scIsDev && window._scIsDev(_removeUid)) {
                             window._devRemoveMode = !window._devRemoveMode;
                             if (window._devRemoveMode) {
                                 window._injectRemoveButtons && window._injectRemoveButtons();

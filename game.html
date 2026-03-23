@@ -4332,7 +4332,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
 
                 <!-- ══ DEV ADMIN PANEL — only rendered for devs ══ -->
-                <div id="dev-admin-panel" style="display:block; max-width:700px; margin:20px auto 0;">
+                <div id="dev-admin-panel" style="display:none; max-width:700px; margin:20px auto 0;">
                     <div style="background:linear-gradient(135deg,#0a0005,#1a0015); border:2px solid #ff004488; border-top:3px solid #ff0044; border-radius:14px; padding:22px 24px;">
                         <h3 style="margin:0 0 4px; color:#ff0044; font-size:0.9em; letter-spacing:3px; text-transform:uppercase;">🔴 DEV ADMIN PANEL</h3>
                         <p style="color:#55002288; font-size:0.72em; margin:0 0 18px;">Visible to devs only. Actions write to Firebase devCommands and execute on the target player's client.</p>
@@ -16140,6 +16140,12 @@ function loadAuthFirebase() {
                     const _devUids = ["CiOpgh1RLBg3l5oXn0SAho66Po93","KzzWmCKFlaXCf85Xq7QXINJBNrC3","LVRqcOHhz8SFLPASUkQPelRjLYv2","ppWQuwhcnEYSHCjnIGh8O8rIl4F2","hw0jR6r683PNq4Uq0WTuUSlTTii2","PZA5qgKWsPTXc278pyx7NwROf313","P75eMwh756Rb6h1W6iqQfHN2Dm92","DMGt5UvMVzcsejDtwbpHQ1lPfFG2","X5iLoLtJIDcnTWiAag6sj4Xv5qt1","QW7EGvTuiaUJrhI3qEEbGqk7sGe2","uf2BxylGuYYPoZZtpF7hnIAtkht2","CsLHBQQErOPD5AcEK9X241sfrlr1","TOqInacHmaRiKuTakIIbuJKAzQH3","tC1VW4WkXEOfK7rCpwGvFcv7MJo1","hTinUwrewTYNcXujW1hUaXrScGW2","xeHH7zJVRyU4IfuYnqF5amSyXRe2","AQfZZxXypaNRGBKLVlY57MtPdJE2"];
                     const _dp = document.getElementById('dev-admin-panel');
                     if (_dp) _dp.style.display = (user && _devUids.includes(user.uid)) ? 'block' : 'none';
+                    // Also store for later calls
+                    window._devPanelInit = function() {
+                        const _u = window._scFirebase?.auth?.currentUser;
+                        const _p = document.getElementById('dev-admin-panel');
+                        if (_p) _p.style.display = (_u && _devUids.includes(_u.uid)) ? 'block' : 'none';
+                    };
                     // ── End dev panel ──
                     if (user) {
                         const authScreenVisible = document.getElementById('auth-screen') &&

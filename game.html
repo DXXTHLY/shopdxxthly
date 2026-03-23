@@ -17852,14 +17852,17 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
                 title.innerText = 'Ranking by Total Power (Dark + Light)';
                 break;
             case 'darkOnly':
-                players = players.filter(p => !p.isTranscended);
+                // Show anyone who has dark souls — not just currently-dark players
+                // A transcended player who had massive dark souls still ranks here
+                players = players.filter(p => (p.soulsLog || 0) > 0);
                 players.sort((a, b) => (b.soulsLog || 0) - (a.soulsLog || 0));
-                title.innerText = 'Ranking by Dark Souls Only';
+                title.innerText = 'Ranking by Dark Souls';
                 break;
             case 'lightOnly':
-                players = players.filter(p => p.isTranscended);
+                // Show anyone who has ever earned light souls
+                players = players.filter(p => (p.lightSoulsLog || 0) > 0);
                 players.sort((a, b) => (b.lightSoulsLog || 0) - (a.lightSoulsLog || 0));
-                title.innerText = 'Ranking by Light Souls Only';
+                title.innerText = 'Ranking by Light Souls';
                 break;
             case 'ascensions':    players.sort((a, b) => (b.ascensions || 0)     - (a.ascensions || 0));     title.innerText = 'Ranking by Ascensions';          break;
             case 'aether':        players.sort((a, b) => (b.totalCollapses || 0) - (a.totalCollapses || 0)); title.innerText = 'Ranking by Collapses (Aether)';  break;

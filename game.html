@@ -4382,14 +4382,6 @@ text-decoration: underline; /* Adds an underline on hover */
                             </div>
                         </div>
 
-                        <!-- Item picker (shown when Remove Item clicked) -->
-                        <div id="dev-item-picker" style="display:none; background:#08000f; border:1px solid #ff880022; border-radius:10px; padding:12px; margin-bottom:10px;">
-                            <div style="color:#ff8844; font-size:0.78em; margin-bottom:8px; letter-spacing:1px;">SELECT ITEM TO REMOVE:</div>
-                            <div id="dev-item-picker-grid" style="display:flex; flex-wrap:wrap; gap:6px; max-height:180px; overflow-y:auto;"></div>
-                            <button onclick="document.getElementById('dev-item-picker').style.display='none'"
-                                style="margin-top:10px; background:transparent; border:1px solid #333; border-radius:6px; color:#555; padding:5px 12px; cursor:pointer; font-size:0.75em;">✕ Cancel</button>
-                        </div>
-
                         <div id="dev-admin-log" style="font-size:0.7em; color:#440022; font-family:monospace; min-height:18px;"></div>
                     </div>
                 </div>
@@ -4857,6 +4849,9 @@ window.onload = function() {
     loadGame();
     calculateStats();
     renderAll();
+    // Store raw reference BEFORE proxy wraps it — used by the game tick so mobile
+    // browsers with anonymous setInterval stacks never get blocked by anti-cheat
+    window._rawGameState = gameState;
     // Apply anti-cheat proxy after game is fully loaded
     if (typeof _applyGameStateProxy === 'function') _applyGameStateProxy();
     updateCacheTimer();
@@ -4866,25 +4861,27 @@ window.onload = function() {
     setInterval(() => {
         if (!gameState || !gameState.stats) return; // guard for early tick before state ready
         const now = Date.now();
-        const passiveGain = D(gameState.stats.sps).div(TICKS_PER_SECOND);
-        gameState.souls = D(gameState.souls).add(passiveGain);
-        gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(passiveGain);
+        // Use _rawGameState for passive gain writes so the proxy anti-cheat never
+        // accidentally blocks them in mobile/embedded browsers where setInterval
+        // stack frames appear as <anonymous>.
+        const _gs = window._rawGameState || gameState;
+        const passiveGain = D(_gs.stats.sps).div(TICKS_PER_SECOND);
+        _gs.souls = D(_gs.souls).add(passiveGain);
+        _gs.lifetimeSouls = D(_gs.lifetimeSouls).add(passiveGain);
 		
-		// Cap stats — clamp all currencies to 0 minimum (prevents Charon's Oar or other bugs from going negative)
-		gameState.souls          = Dmax0(gameState.souls);
-		// Cap instead of zero — Infinity/NaN wraps to max safe float, never to 0
-		// Re-wrap as Decimal (handles corrupt saves)
-		gameState.darkEssence        = D(gameState.darkEssence        || 0);
-        gameState.lightEssence       = D(gameState.lightEssence       || 0);
-		gameState.abyssalShards      = D(gameState.abyssalShards      || 0);
-		gameState.aether             = D(gameState.aether             || 0);
-		gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
+		// Cap stats — use _gs (raw unproxied ref) so mobile anonymous-stack browsers never get blocked
+		_gs.souls                = Dmax0(_gs.souls);
+		_gs.darkEssence          = D(_gs.darkEssence          || 0);
+        _gs.lightEssence         = D(_gs.lightEssence         || 0);
+		_gs.abyssalShards        = D(_gs.abyssalShards        || 0);
+		_gs.aether               = D(_gs.aether               || 0);
+		_gs.corruptedFragments   = D(_gs.corruptedFragments   || 0);
 		// lifetimeSouls must always be >= souls + soulsSpent (self-healing)
-		const trueMinLifetime = D(gameState.souls).add(D(gameState.soulsSpent || 0));
-		gameState.lifetimeSouls = D(gameState.lifetimeSouls).lt(trueMinLifetime) ? trueMinLifetime : D(gameState.lifetimeSouls);
+		const trueMinLifetime = D(_gs.souls).add(D(_gs.soulsSpent || 0));
+		_gs.lifetimeSouls = D(_gs.lifetimeSouls).lt(trueMinLifetime) ? trueMinLifetime : D(_gs.lifetimeSouls);
 		// Cap SPS/SPC to prevent negative display
-		if (!D(gameState.stats.sps).isFinite() || D(gameState.stats.sps).lt(0)) { gameState.stats.sps = D(0); calculateStats(); }
-		if (D(gameState.stats.spc).lt(0) || !D(gameState.stats.spc).isFinite()) { gameState.stats.spc = D(1); calculateStats(); }
+		if (!D(_gs.stats.sps).isFinite() || D(_gs.stats.sps).lt(0)) { _gs.stats.sps = D(0); calculateStats(); }
+		if (D(_gs.stats.spc).lt(0) || !D(_gs.stats.spc).isFinite()) { _gs.stats.spc = D(1); calculateStats(); }
         
         updateDynamicDisplays(); // Moved this up to give more immediate visual feedback
         
@@ -10836,6 +10833,9 @@ const _gameStateHandler = {
     }
 };
 window._applyGameStateProxy = function() {
+    // Always keep _rawGameState pointing at the unwrapped object
+    // so the game tick can write souls/lifetimeSouls without hitting the proxy
+    window._rawGameState = gameState;
     gameState = new Proxy(gameState, _gameStateHandler);
 };
 let vfxCanvas, vfxCtx, particles = []; // NEW
@@ -11312,6 +11312,18 @@ function loadGame() {
             gameState.souls              = D(gameState.souls              || 0);
             gameState.lifetimeSouls      = D(gameState.lifetimeSouls      || 0);
             gameState.soulsSpent         = D(gameState.soulsSpent         || 0);
+            // Restore minion costs as Decimals (they were serialized as strings)
+            // Without this, cost comes back as a plain {m,e} object → D() returns 0 → can't buy
+            for (const id in gameState.minions) {
+                if (gameState.minions[id]) {
+                    gameState.minions[id].cost = D(gameState.minions[id].cost || minions[id]?.cost || 0);
+                }
+            }
+            // Restore stats.sps/spc from string if serialized that way
+            if (gameState.stats) {
+                if (gameState.stats.sps !== undefined) gameState.stats.sps = D(gameState.stats.sps || 0);
+                if (gameState.stats.spc !== undefined) gameState.stats.spc = D(gameState.stats.spc || 1);
+            }
             // Reconstruct soulsSpent if it was never saved (shows as 0 but lifetime > current)
             // soulsSpent = lifetime earned - currently held - banked - lifetime not yet accounted
             if (D(gameState.soulsSpent).lte(0) && D(gameState.lifetimeSouls).gt(0)) {
@@ -16448,6 +16460,17 @@ async function loadGameFromCloud(uid, db) {
             gameState.corruptedFragments = D(gameState.corruptedFragments || 0);
             gameState.bankedSouls        = D(gameState.bankedSouls        || 0);
             gameState.bankedEssence      = D(gameState.bankedEssence      || 0);
+            // Restore minion costs as Decimals (serialized as strings in saveGame)
+            for (const id in gameState.minions) {
+                if (gameState.minions[id]) {
+                    gameState.minions[id].cost = D(gameState.minions[id].cost || minions[id]?.cost || 0);
+                }
+            }
+            // Restore stats.sps/spc
+            if (gameState.stats) {
+                gameState.stats.sps = D(gameState.stats.sps || 0);
+                gameState.stats.spc = D(gameState.stats.spc || 1);
+            }
             // Ensure playerName is valid — corruption sometimes resets to Unnamed
             if (!gameState.playerName || gameState.playerName === 'Unnamed') {
                 gameState.playerName = data.playerName || gameState.playerName || 'Unnamed';
@@ -31810,21 +31833,59 @@ function renderChallengesPanel() {
 
         devLog('Searching for ' + nameRaw + '...');
         try {
-            // Look up UID from accountNames index
-            const snap = await db.ref('accountNames/' + nameRaw.toLowerCase()).once('value');
-            if (!snap.exists()) { devLog('❌ Player "' + nameRaw + '" not found.'); return; }
-            const targetUid = snap.val();
+            // Step 1: look up UID from accountNames index
+            let targetUid = null;
+            for (const variant of [nameRaw, nameRaw.toLowerCase()]) {
+                const snap = await db.ref('accountNames/' + variant).once('value');
+                if (snap.exists()) { targetUid = snap.val(); break; }
+            }
+            if (!targetUid) { devLog('❌ Player "' + nameRaw + '" not found in accountNames.'); return; }
 
-            // Load their save
-            const saveSnap = await db.ref('gameSaves/' + targetUid).once('value');
-            if (!saveSnap.exists()) { devLog('❌ No save data for that player.'); return; }
+            // Step 2a: try gameSaves (works if Firebase rules allow devUsers to read all saves)
+            let state = null;
+            try {
+                const saveSnap = await db.ref('gameSaves/' + targetUid).once('value');
+                if (saveSnap.exists()) {
+                    const saveData = saveSnap.val();
+                    try { state = JSON.parse(saveData.state || '{}'); } catch(e2) {}
+                    if (state) devLog('✅ Loaded full save for ' + (state.playerName || nameRaw));
+                }
+            } catch(fbErr) {
+                // Firebase permission denied — fall back to Supabase (public stats only)
+                devLog('⚠ Firebase read blocked — using Supabase (add devUsers rule to unlock full access)');
+            }
 
-            const saveData = saveSnap.val();
-            let state = {};
-            try { state = JSON.parse(saveData.state || '{}'); } catch(e) {}
+            // Step 2b: Supabase fallback for public stats
+            if (!state && typeof supabaseClient !== 'undefined' && supabaseClient) {
+                const { data, error } = await supabaseClient
+                    .from('players')
+                    .select('name,lifetimeSouls,soulsLog,dark_essence,abyssalShards,aether,corrupted_fragments,ascensions,pvpWins,pvpLosses,totalCollapses,isTranscended')
+                    .ilike('name', nameRaw)
+                    .single();
+                if (!error && data) {
+                    state = {
+                        playerName:          data.name || nameRaw,
+                        souls:               data.lifetimeSouls || 0,
+                        darkEssence:         data.dark_essence || 0,
+                        abyssalShards:       data.abyssalShards || 0,
+                        aether:              data.aether || 0,
+                        corruptedFragments:  data.corrupted_fragments || 0,
+                        ascensions:          data.ascensions || 0,
+                        pvpWins:             data.pvpWins || 0,
+                        pvpLosses:           data.pvpLosses || 0,
+                        totalCollapses:      data.totalCollapses || 0,
+                        isTranscended:       data.isTranscended || false,
+                        _fromSupabase:       true,
+                    };
+                    devLog('✅ Loaded Supabase stats for ' + (state.playerName || nameRaw) + ' (no inventory — update Firebase rules for full access)');
+                } else {
+                    devLog('⚠ Player found in Firebase but has no save data yet.');
+                    state = { playerName: nameRaw };
+                }
+            }
 
+            if (!state) state = { playerName: nameRaw };
             window._devTarget = { uid: targetUid, name: state.playerName || nameRaw, state, db };
-            devLog('✅ Loaded ' + (state.playerName || nameRaw));
             renderDevResult();
         } catch(e) {
             devLog('❌ Error: ' + e.message);
@@ -31886,23 +31947,21 @@ function renderChallengesPanel() {
             ].map(([l,v]) => `<div style="background:#0d0018;border:1px solid #ff004411;border-radius:6px;padding:5px 8px;"><div style="color:#440022;font-size:0.62em;">${l}</div><div style="color:#cc88aa;font-weight:bold;font-size:0.82em;">${v}</div></div>`).join('');
         }
 
-        // Inventory
+        // Inventory — Supabase doesn't store inventory, show manual remove-by-name tool
         const invEl = document.getElementById('dev-result-inventory');
         if (invEl) {
-            const inv = gs.inventory || [];
-            const equipped = Object.values(gs.equipped || {}).filter(Boolean);
-            if (inv.length === 0) {
-                invEl.innerHTML = '<div style="color:#333;font-size:0.72em;">Inventory empty</div>';
-            } else {
-                const rc = { common:'#aaa',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00',forged:'#ff6644',heavenly:'#fff4aa' };
-                const cards = inv.slice(0, 30).map(id => {
-                    const it = (typeof items !== 'undefined' && items[id]) || { name: id, rarity: 'common', desc: '' };
-                    const c = rc[it.rarity] || '#aaa';
-                    const isEq = equipped.includes(id);
-                    return `<div style="background:${c}11;border:1px solid ${c}33;border-radius:5px;padding:3px 7px;font-size:0.65em;color:${c};white-space:nowrap;">${isEq?'✦ ':''} ${it.name}</div>`;
-                }).join('');
-                invEl.innerHTML = `<div style="color:#440022;font-size:0.65em;margin-bottom:5px;">INVENTORY (${inv.length} items${inv.length>30?', showing 30':''}):</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${cards}</div>`;
-            }
+            invEl.innerHTML = `
+                <div style="color:#440022;font-size:0.65em;margin-bottom:6px;letter-spacing:1px;">REMOVE ITEM BY NAME:</div>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <input id="dev-item-name-input" type="text" placeholder="e.g. charon_oar or partial name..."
+                        style="flex:1;background:#0d0018;border:1px solid #ff004433;border-radius:7px;color:#ddd;padding:6px 10px;font-family:inherit;font-size:0.78em;outline:none;"
+                        onkeydown="if(event.key==='Enter') devAdminRemoveItemByName()">
+                    <button onclick="devAdminRemoveItemByName()"
+                        style="background:#ff880018;border:1px solid #ff880066;border-radius:7px;color:#ff8844;padding:6px 12px;cursor:pointer;font-size:0.75em;font-family:inherit;white-space:nowrap;">
+                        🗑️ Remove
+                    </button>
+                </div>
+                <div style="color:#333;font-size:0.62em;margin-top:4px;">Item ID or partial name — sends a remove command to the player's client.</div>`;
         }
     }
 
@@ -31927,49 +31986,54 @@ function renderChallengesPanel() {
                 if (t.state?.heldKey?.id && typeof devForceReleaseKey === 'function') {
                     devForceReleaseKey(t.state.heldKey.id);
                 }
-                setTimeout(async () => {
-                    const snap = await db.ref('gameSaves/' + t.uid).once('value');
-                    if (snap.exists()) {
-                        try { t.state = JSON.parse(snap.val().state || '{}'); renderDevResult(); } catch(e) {}
+                // Optimistically clear key from local target state (no gameSaves re-read needed)
+                setTimeout(() => {
+                    if (window._devTarget) {
+                        window._devTarget.state.heldKey = null;
+                        renderDevResult();
                     }
-                }, 4000);
+                }, 2000);
             }
         } catch(e) {
             devLog('❌ Failed: ' + e.message);
         }
     };
 
-    // -- Item picker
+    // -- Remove item by name (replaces picker since we can't read inventory from Supabase)
     window.devAdminShowItemPicker = function() {
+        // Redirect to the inline input in the result card
+        const inp = document.getElementById('dev-item-name-input');
+        if (inp) { inp.focus(); }
+    };
+
+    window.devAdminRemoveItemByName = function() {
         const t = window._devTarget;
-        if (!t) return;
-        const picker = document.getElementById('dev-item-picker');
-        const grid = document.getElementById('dev-item-picker-grid');
-        if (!picker || !grid) return;
+        if (!t) { devLog('No player selected.'); return; }
+        const raw = (document.getElementById('dev-item-name-input')?.value || '').trim().toLowerCase();
+        if (!raw) { devLog('Enter an item name or ID.'); return; }
 
-        const inv = t.state.inventory || [];
-        if (inv.length === 0) { devLog('Player has no items.'); return; }
+        // Try to match against known item IDs and names
+        let matchedId = null;
+        if (typeof items !== 'undefined') {
+            // Exact ID match first
+            if (items[raw]) { matchedId = raw; }
+            // Then partial name match
+            if (!matchedId) {
+                const found = Object.entries(items).find(([id, it]) =>
+                    id.toLowerCase().includes(raw) || (it.name && it.name.toLowerCase().includes(raw))
+                );
+                if (found) matchedId = found[0];
+            }
+        }
 
-        const rc = { common:'#aaa',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00',forged:'#ff6644',heavenly:'#fff4aa' };
-        grid.innerHTML = '';
-        inv.forEach((id, idx) => {
-            const it = (typeof items !== 'undefined' && items[id]) || { name: id, rarity: 'common' };
-            const c = rc[it.rarity] || '#aaa';
-            const btn = document.createElement('button');
-            btn.style.cssText = `background:${c}11;border:1px solid ${c}44;border-radius:6px;padding:5px 10px;color:${c};font-size:0.72em;cursor:pointer;font-family:inherit;white-space:nowrap;`;
-            btn.textContent = it.name;
-            btn.onclick = () => {
-                if (!confirm(`Remove "${it.name}" from ${t.name}'s inventory?`)) return;
-                devAdminAction('remove_item', { itemId: id });
-                picker.style.display = 'none';
-                // Optimistically remove from local state
-                t.state.inventory = t.state.inventory.filter(x => x !== id);
-                renderDevResult();
-            };
-            grid.appendChild(btn);
-        });
+        const displayName = matchedId ? ((typeof items !== 'undefined' && items[matchedId]?.name) || matchedId) : raw;
+        const itemId = matchedId || raw; // fall back to raw string if item not in local data
 
-        picker.style.display = 'block';
+        if (!confirm(`Send command to remove "${displayName}" from ${t.name}'s inventory?`)) return;
+        devAdminAction('remove_item', { itemId });
+        const inp = document.getElementById('dev-item-name-input');
+        if (inp) inp.value = '';
+        devLog(`✅ Remove-item command sent for "${displayName}".`);
     };
 
     // -- Log helper

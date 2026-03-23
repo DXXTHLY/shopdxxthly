@@ -31763,29 +31763,41 @@ function renderChallengesPanel() {
         "AQfZZxXypaNRGBKLVlY57MtPdJE2"
     ]);
 
-    function _isDevUid(uid) {
-        return DEV_UIDS.has(uid);
-    }
-
-    // Poll until Firebase auth is ready, then show panel for devs
-    function initDevPanel() {
-        const uid = window._scFirebase?.auth?.currentUser?.uid;
-        if (!uid) {
-            // Auth not ready yet — retry in 1s
-            setTimeout(initDevPanel, 1000);
-            return;
-        }
-        if (!_isDevUid(uid)) return; // not a dev, done
+    function showDevPanel(uid) {
+        if (!DEV_UIDS.has(uid)) return;
         const panel = document.getElementById('dev-admin-panel');
         if (panel) {
             panel.style.display = 'block';
-            devLog('Dev panel ready. UID: ' + uid);
+            console.log('[DevPanel] Shown for UID:', uid);
         }
     }
 
-    // Start polling immediately
-    setTimeout(initDevPanel, 500);
-    window._devPanelInit = initDevPanel;
+    // Hook 1: onAuthStateChanged — fires as soon as Firebase resolves auth
+    function hookAuthState() {
+        const auth = window._scFirebase?.auth;
+        if (!auth) return false;
+        auth.onAuthStateChanged(user => {
+            if (user && DEV_UIDS.has(user.uid)) showDevPanel(user.uid);
+        });
+        // Also check currentUser right now in case auth already resolved
+        const cur = auth.currentUser;
+        if (cur && DEV_UIDS.has(cur.uid)) showDevPanel(cur.uid);
+        return true;
+    }
+
+    // Hook 2: poll until _scFirebase exists, then attach the listener
+    function waitAndHook() {
+        if (hookAuthState()) return; // successfully hooked
+        setTimeout(waitAndHook, 300); // _scFirebase not ready yet, retry
+    }
+    waitAndHook();
+
+    // Also expose for manual call from enterGame / authPlayAsGuest
+    window._devPanelInit = function() {
+        const uid = window._scFirebase?.auth?.currentUser?.uid;
+        if (uid) showDevPanel(uid);
+        else hookAuthState(); // re-attach listener
+    };
 
     // -- Target state
     window._devTarget = null; // { uid, name, state, db }

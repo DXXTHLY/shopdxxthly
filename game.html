@@ -17880,22 +17880,31 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
         players.slice(0, 10).forEach((player, index) => {
             const li    = document.createElement('li');
             const isMe  = player.name === gameState.playerName;
-            const _playerBestIsLight = (player.lightSoulsLog || 0) >= (player.soulsLog || 0) && (player.lightSoulsLog || 0) > 0;
-             const transcendBadge = player.isTranscended
-                ? `<span style="background:linear-gradient(135deg,#220055,#4400aa); color:#c8b4ff; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ LIGHT</span>`
-                : (type === 'lifetimeSouls' && _playerBestIsLight)
-                    ? `<span style="background:linear-gradient(135deg,#220033,#440055); color:#aa88cc; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ PREV LIGHT</span>`
-                    : '';
+            // Badge: on darkOnly always show ☠, on lightOnly always show ✦ LIGHT,
+            // on total power show whichever soul type is bigger
+            let transcendBadge = '';
+            if (type === 'lightOnly') {
+                transcendBadge = `<span style="background:linear-gradient(135deg,#220055,#4400aa); color:#c8b4ff; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ LIGHT</span>`;
+            } else if (type === 'darkOnly') {
+                transcendBadge = ''; // no badge on dark tab — they're all dark souls here
+            } else if (player.isTranscended) {
+                transcendBadge = `<span style="background:linear-gradient(135deg,#220055,#4400aa); color:#c8b4ff; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ LIGHT</span>`;
+            } else if ((player.lightSoulsLog || 0) > 0) {
+                transcendBadge = `<span style="background:linear-gradient(135deg,#220033,#440055); color:#aa88cc; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ PREV LIGHT</span>`;
+            }
 
             let valueHTML;
             if (type === 'lifetimeSouls' || type === 'darkOnly' || type === 'lightOnly') {
+                // useLog determines which souls number to display — always match the tab
                 const useLog = type === 'lightOnly' ? (player.lightSoulsLog || 0)
                              : type === 'darkOnly'  ? (player.soulsLog || 0)
-                             : Math.max(player.lightSoulsLog || 0, player.soulsLog || 0);
-                const baseHTML = formatSoulsLeaderboard(player.lifetimeSouls, useLog);
-                const isBestLight = type === 'lightOnly' || (type === 'lifetimeSouls' && (player.lightSoulsLog || 0) > (player.soulsLog || 0));
-                valueHTML = (player.isTranscended || isBestLight)
-                    ? `<span style="color:#c8b4ff;">${baseHTML} <span style="font-size:0.7em;color:#9966ff;">${player.isTranscended ? '✦ Light' : '✦'}</span></span>`
+                             : _bestLog(player);
+                // Reconstruct the numeric value from log10 so display matches the correct soul type
+                const displayVal = useLog > 0 ? Math.pow(10, useLog) : 0;
+                const baseHTML = formatSoulsLeaderboard(displayVal, useLog);
+                const showAsLight = type === 'lightOnly' || (type === 'lifetimeSouls' && (player.lightSoulsLog || 0) > (player.soulsLog || 0));
+                valueHTML = showAsLight
+                    ? `<span style="color:#c8b4ff;">${baseHTML} <span style="font-size:0.7em;color:#9966ff;">✦ Light</span></span>`
                     : `<span style="color:#c8a800;">${baseHTML} <span style="font-size:0.7em;color:#886600;">☠</span></span>`;
             } else if (type === 'aether') {
                 const c = player.totalCollapses || 0;

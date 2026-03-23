@@ -16138,13 +16138,13 @@ function loadAuthFirebase() {
                 saveAuth.onAuthStateChanged(user => {
                     // ── Dev panel: synchronous check, no async Firebase read ──
                     // ── Dev panel: use the existing _DEV_UIDS set ──
-                    // Dev panel: hidden by default — requires !isDev command in chat to unlock for the session
+                    // Dev panel: hidden by default — revealed only after !isDev command in chat
+                    // We trust _devPanelUnlocked because dev identity was already verified at command time
                     const _dp = document.getElementById('dev-admin-panel');
                     if (_dp) _dp.style.display = 'none';
                     window._devPanelInit = function() {
-                        const _u = window._scFirebase?.auth?.currentUser;
                         const _p = document.getElementById('dev-admin-panel');
-                        if (_p) _p.style.display = (_u && _DEV_UIDS.has(_u.uid) && window._devPanelUnlocked) ? 'block' : 'none';
+                        if (_p) _p.style.display = window._devPanelUnlocked ? 'block' : 'none';
                     };
                     // ── End dev panel ──
                     if (user) {

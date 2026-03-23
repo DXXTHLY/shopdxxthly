@@ -16138,12 +16138,13 @@ function loadAuthFirebase() {
                 saveAuth.onAuthStateChanged(user => {
                     // ── Dev panel: synchronous check, no async Firebase read ──
                     // ── Dev panel: use the existing _DEV_UIDS set ──
+                    // Dev panel: hidden by default — requires !isDev command in chat to unlock for the session
                     const _dp = document.getElementById('dev-admin-panel');
-                    if (_dp) _dp.style.display = (user && _DEV_UIDS.has(user.uid)) ? 'block' : 'none';
+                    if (_dp) _dp.style.display = 'none';
                     window._devPanelInit = function() {
                         const _u = window._scFirebase?.auth?.currentUser;
                         const _p = document.getElementById('dev-admin-panel');
-                        if (_p) _p.style.display = (_u && _DEV_UIDS.has(_u.uid)) ? 'block' : 'none';
+                        if (_p) _p.style.display = (_u && _DEV_UIDS.has(_u.uid) && window._devPanelUnlocked) ? 'block' : 'none';
                     };
                     // ── End dev panel ──
                     if (user) {
@@ -20398,6 +20399,24 @@ function initializeChat() {
                         e.target.value = ''; return;
                     }
 
+                    // Dev command: !isDev — toggles dev control panel (session only, never posts to chat)
+                    if (text === '!isDev') {
+                        if (window._scIsDev && window._scIsDev(uid)) {
+                            if (window._devPanelUnlocked) {
+                                window._devPanelUnlocked = false;
+                                const _cp = document.getElementById('dev-admin-panel');
+                                if (_cp) _cp.style.display = 'none';
+                                Toastify({ text: '🔒 Control Panel Closed', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0010,#550033)' } }).showToast();
+                            } else {
+                                window._devPanelUnlocked = true;
+                                Toastify({ text: '🔧 Control Panel Open', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#440088)' } }).showToast();
+                                setTimeout(() => { if (typeof showScreen === 'function') showScreen('settings'); }, 400);
+                            }
+                        }
+                        // Non-devs: silently ignore — no hint the command exists
+                        e.target.value = ''; return;
+                    }
+
                     if (text === '!test') {
                         if (window._scIsDev && window._scIsDev(uid)) {
                             // Raid cooldown
@@ -20519,6 +20538,23 @@ function initializeChat() {
                 const input = document.getElementById('chat-input');
                 const text = input.value.trim();
                 if (text) {
+                    // Dev command: !isDev — toggles dev control panel (session only, never posts to chat)
+                    if (text === '!isDev') {
+                        if (window._scIsDev && window._scIsDev(uid)) {
+                            if (window._devPanelUnlocked) {
+                                window._devPanelUnlocked = false;
+                                const _cp = document.getElementById('dev-admin-panel');
+                                if (_cp) _cp.style.display = 'none';
+                                Toastify({ text: '🔒 Control Panel Closed', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0010,#550033)' } }).showToast();
+                            } else {
+                                window._devPanelUnlocked = true;
+                                Toastify({ text: '🔧 Control Panel Open', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#0a0020,#440088)' } }).showToast();
+                                setTimeout(() => { if (typeof showScreen === 'function') showScreen('settings'); }, 400);
+                            }
+                        }
+                        // Non-devs: silently ignore — no hint the command exists
+                        input.value = ''; input.focus(); return;
+                    }
                     // Dev command: !test — cuts all cooldowns/timers to 0
                     if (text === '!test') {
                         if (window._scIsDev && window._scIsDev(uid)) {

@@ -4332,7 +4332,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
 
                 <!-- ══ DEV ADMIN PANEL — only rendered for devs ══ -->
-                <div id="dev-admin-panel" style="display:none; max-width:700px; margin:20px auto 0;">
+                <div id="dev-admin-panel" style="display:block; max-width:700px; margin:20px auto 0;">
                     <div style="background:linear-gradient(135deg,#0a0005,#1a0015); border:2px solid #ff004488; border-top:3px solid #ff0044; border-radius:14px; padding:22px 24px;">
                         <h3 style="margin:0 0 4px; color:#ff0044; font-size:0.9em; letter-spacing:3px; text-transform:uppercase;">🔴 DEV ADMIN PANEL</h3>
                         <p style="color:#55002288; font-size:0.72em; margin:0 0 18px;">Visible to devs only. Actions write to Firebase devCommands and execute on the target player's client.</p>
@@ -4864,8 +4864,7 @@ window.onload = function() {
     let tickCounter = 0;
     const TICKS_PER_SECOND = 10;
     setInterval(() => {
-        // The broken anti-cheat checks have been removed from here.
-        
+        if (!gameState || !gameState.stats) return; // guard for early tick before state ready
         const now = Date.now();
         const passiveGain = D(gameState.stats.sps).div(TICKS_PER_SECOND);
         gameState.souls = D(gameState.souls).add(passiveGain);
@@ -11545,7 +11544,9 @@ function buyMinion(id) {
 
     audio.click.play().catch(e => {});
 
+    if (!gameState.stats) gameState.stats = { sps: 0, spc: 1 };
     calculateStats();
+    updateDynamicDisplays();
     renderMinions();
     checkButtons();
     saveGame();
@@ -13171,6 +13172,8 @@ function showScreen(screenId) {
     // Handle screen-specific loading
     if (screenId === 'settings') {
         updateAccountBtn();
+        // Show dev panel if this user is a dev
+        if (typeof window._devPanelInit === 'function') window._devPanelInit();
     }
     {
         fetchLeaderboard();
@@ -13505,7 +13508,7 @@ function buySecretMinionLevel(id) {
     gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(cost));
     p.level++;
     playSound('upgrade');
-    calculateStats(); renderMinions(); saveGame();
+    calculateStats(); updateDynamicDisplays(); renderMinions(); saveGame();
 }
 
 
@@ -31741,63 +31744,35 @@ function renderChallengesPanel() {
 // ==================================================================
 // DEV ADMIN PANEL
 // ==================================================================
+// DEV ADMIN PANEL — hidden immediately on load, shown only for devs
+// ==================================================================
 (function() {
-    // Dev UIDs — duplicated here so the panel doesn't depend on chat init timing
-    const DEV_UIDS = new Set([
-        "CiOpgh1RLBg3l5oXn0SAho66Po93",
-        "KzzWmCKFlaXCf85Xq7QXINJBNrC3",
-        "LVRqcOHhz8SFLPASUkQPelRjLYv2",
-        "ppWQuwhcnEYSHCjnIGh8O8rIl4F2",
-        "hw0jR6r683PNq4Uq0WTuUSlTTii2",
-        "PZA5qgKWsPTXc278pyx7NwROf313",
-        "P75eMwh756Rb6h1W6iqQfHN2Dm92",
-        "DMGt5UvMVzcsejDtwbpHQ1lPfFG2",
-        "X5iLoLtJIDcnTWiAag6sj4Xv5qt1",
-        "QW7EGvTuiaUJrhI3qEEbGqk7sGe2",
-        "uf2BxylGuYYPoZZtpF7hnIAtkht2",
-        "CsLHBQQErOPD5AcEK9X241sfrlr1",
-        "TOqInacHmaRiKuTakIIbuJKAzQH3",
-        "tC1VW4WkXEOfK7rCpwGvFcv7MJo1",
-        "hTinUwrewTYNcXujW1hUaXrScGW2",
-        "xeHH7zJVRyU4IfuYnqF5amSyXRe2",
-        "AQfZZxXypaNRGBKLVlY57MtPdJE2"
-    ]);
+    // Hide immediately so non-devs never see a flash of it
+    const panel = document.getElementById('dev-admin-panel');
+    if (panel) panel.style.display = 'none';
 
-    function showDevPanel(uid) {
-        if (!DEV_UIDS.has(uid)) return;
-        const panel = document.getElementById('dev-admin-panel');
-        if (panel) {
-            panel.style.display = 'block';
-            console.log('[DevPanel] Shown for UID:', uid);
-        }
-    }
-
-    // Hook 1: onAuthStateChanged — fires as soon as Firebase resolves auth
-    function hookAuthState() {
-        const auth = window._scFirebase?.auth;
-        if (!auth) return false;
-        auth.onAuthStateChanged(user => {
-            if (user && DEV_UIDS.has(user.uid)) showDevPanel(user.uid);
-        });
-        // Also check currentUser right now in case auth already resolved
-        const cur = auth.currentUser;
-        if (cur && DEV_UIDS.has(cur.uid)) showDevPanel(cur.uid);
+    function tryShowDevPanel() {
+        const uid = window._scFirebase?.auth?.currentUser?.uid;
+        if (!uid) return false;
+        const isDev = (typeof window._scIsDev === 'function') ? window._scIsDev(uid) : false;
+        const p = document.getElementById('dev-admin-panel');
+        if (p) p.style.display = isDev ? 'block' : 'none';
         return true;
     }
 
-    // Hook 2: poll until _scFirebase exists, then attach the listener
-    function waitAndHook() {
-        if (hookAuthState()) return; // successfully hooked
-        setTimeout(waitAndHook, 300); // _scFirebase not ready yet, retry
-    }
-    waitAndHook();
-
-    // Also expose for manual call from enterGame / authPlayAsGuest
-    window._devPanelInit = function() {
+    // Keep retrying until both Firebase auth AND _scIsDev are available
+    function keepTrying() {
         const uid = window._scFirebase?.auth?.currentUser?.uid;
-        if (uid) showDevPanel(uid);
-        else hookAuthState(); // re-attach listener
-    };
+        const hasIsDev = typeof window._scIsDev === 'function';
+        if (uid && hasIsDev) {
+            tryShowDevPanel();
+            return;
+        }
+        setTimeout(keepTrying, 400);
+    }
+    setTimeout(keepTrying, 400);
+
+    window._devPanelInit = tryShowDevPanel;
 
     // -- Target state
     window._devTarget = null; // { uid, name, state, db }

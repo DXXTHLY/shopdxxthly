@@ -18521,7 +18521,29 @@ function generateHourlyShopItems() {
     };
     const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
 
-    shopItems.forEach((shopItem, index) => {
+    // ── Dynamic price scaling ─────────────────────────────────────────────
+    // Scale DE/LE cost softly with how much the player has accumulated.
+    // Formula: base * (1 + log10(playerCurrency / threshold)) capped at 25x.
+    // Fragment cost is intentionally NOT scaled — fragments are a grind currency.
+    function _scaledDE(baseDE) {
+        const de = D(gameState.darkEssence || 0).toNumber();
+        if (de <= 0 || baseDE <= 0) return baseDE;
+        const threshold = 500; // below this, full discount — no scaling
+        if (de < threshold) return baseDE;
+        const scale = 1 + Math.log10(de / threshold) * 0.6;
+        return Math.ceil(baseDE * Math.min(scale, 25));
+    }
+    function _scaledLE(baseLE) {
+        if (!baseLE || baseLE <= 0) return baseLE;
+        const le = D(gameState.lightEssence || 0).toNumber();
+        if (le <= 0) return baseLE;
+        const threshold = 100;
+        if (le < threshold) return baseLE;
+        const scale = 1 + Math.log10(le / threshold) * 0.6;
+        return Math.ceil(baseLE * Math.min(scale, 25));
+    }
+
+        shopItems.forEach((shopItem, index) => {
         const { id, type } = shopItem;
 
         // Purchase tracking
@@ -18606,26 +18628,29 @@ function generateHourlyShopItems() {
         const isLightPotion = shopItem.type === 'light_potion';
         const isTranscendedMarket = gameState.isTranscended || window._devTranscendTest;
         let finalPrice, fragmentCost = 0, lightSoulCost = 0;
-        if (shopItem.id === 'mark_of_the_first') { finalPrice = isTranscendedMarket ? 5 : 150; }
+        if (shopItem.id === 'mark_of_the_first') { finalPrice = _scaledDE(isTranscendedMarket ? 5 : 150); }
         else if (isLightPotion) {
             const _lpData = potions[shopItem.id];
             const leIdx = lightPotionKeys.findIndex(lp => lp.id === shopItem.id);
-            lightSoulCost = _lpData?.leCost || [5, 10, 20, 40, 80][leIdx] || 10;
+            const _leBase = _lpData?.leCost || [5, 10, 20, 40, 80][leIdx] || 10;
+            lightSoulCost = _scaledLE(_leBase);
             finalPrice = 0;
         }
-        else if (shopItem.type === 'market_potion') { finalPrice = potions[shopItem.id]?.shopPrice || 50; }
+        else if (shopItem.type === 'market_potion') { finalPrice = _scaledDE(potions[shopItem.id]?.shopPrice || 50); }
         else if (shopItem.type === 'item') {
             const _r = itemData?.rarity || 'common';
-            // Transcended: heavenly items cost LE, others cost less DE
             if (isTranscendedMarket && _r === 'heavenly') {
-                lightSoulCost = { heavenly:15 }[_r] || 10;
+                lightSoulCost = _scaledLE({ heavenly:15 }[_r] || 10);
                 finalPrice = 0;
             } else {
-                finalPrice = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400, heavenly:600, dark:500 }[_r] || 5;
-                if (isTranscendedMarket) finalPrice = Math.ceil(finalPrice * 0.5); // 50% DE discount when transcended
+                const _baseDE = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400, heavenly:600, dark:500 }[_r] || 5;
+                finalPrice = _scaledDE(isTranscendedMarket ? Math.ceil(_baseDE * 0.5) : _baseDE);
             }
-        } else { finalPrice = ((seed + index * 13) % 20) + 1; if (isTranscendedMarket) finalPrice = Math.ceil(finalPrice * 0.5); }
-        // Fragment cost — MUST match buyHourlyShopItem's fragCost table exactly
+        } else {
+            const _baseArt = ((seed + index * 13) % 20) + 1;
+            finalPrice = _scaledDE(isTranscendedMarket ? Math.ceil(_baseArt * 0.5) : _baseArt);
+        }
+        // Fragment cost — NOT scaled (fragments are a grind currency, keep cost fixed)
         if (!isLightPotion) {
             if      (shopItem.type === 'item')          fragmentCost = ({common:0,uncommon:5,rare:15,epic:30,legendary:60,forged:100,heavenly:0,dark:60}[itemData?.rarity||'common']||0);
             else if (shopItem.type === 'potion')        fragmentCost = 5;
@@ -18689,6 +18714,45 @@ function generateHourlyShopItems() {
 // =================================================================
 function buyHourlyShopItem(itemId, itemType, price, hourKey) {
     const isLightPotionPurchase = itemType === 'light_potion';
+
+    // Recompute scaled price at purchase time (prevents stale display price exploits)
+    function _buyScaleDE(base) {
+        const de = D(gameState.darkEssence || 0).toNumber();
+        if (de <= 0 || base <= 0) return base;
+        const threshold = 500;
+        if (de < threshold) return base;
+        return Math.ceil(base * Math.min(1 + Math.log10(de / threshold) * 0.6, 25));
+    }
+    function _buyScaleLE(base) {
+        if (!base || base <= 0) return base;
+        const le = D(gameState.lightEssence || 0).toNumber();
+        if (le <= 0) return base;
+        const threshold = 100;
+        if (le < threshold) return base;
+        return Math.ceil(base * Math.min(1 + Math.log10(le / threshold) * 0.6, 25));
+    }
+    const _txBuyCheck = gameState.isTranscended || window._devTranscendTest;
+    // Recompute the correct scaled price for this item type
+    if (isLightPotionPurchase) {
+        const _lpd = potions[itemId];
+        const _leIdx = ['phial_of_radiance','celestial_draught','vial_of_first_light','elixir_of_transcendence','ichor_of_absolute_light'].indexOf(itemId);
+        price = _buyScaleLE(_lpd?.leCost || [5,10,20,40,80][_leIdx >= 0 ? _leIdx : 0] || 10);
+    } else if (itemType === 'market_potion') {
+        price = _buyScaleDE(potions[itemId]?.shopPrice || 50);
+    } else if (itemType === 'item') {
+        const _r = items[itemId]?.rarity || 'common';
+        if (_txBuyCheck && _r === 'heavenly') {
+            price = _buyScaleLE(15);
+        } else {
+            const _base = { common:2, uncommon:8, rare:20, epic:60, legendary:150, forged:400, heavenly:600, dark:500 }[_r] || 5;
+            price = _buyScaleDE(_txBuyCheck ? Math.ceil(_base * 0.5) : _base);
+        }
+    } else if (itemType === 'artifact') {
+        // artifact base is seed-based; use the passed price but scale it
+        price = _buyScaleDE(_txBuyCheck ? Math.ceil(price / 0.5) * 0.5 : price);
+    } else if (itemId === 'mark_of_the_first') {
+        price = _buyScaleDE(_txBuyCheck ? 5 : 150);
+    }
 
     // Keys cost 1 Soul (dark) or 1 Light Soul (light keys) — globally unique pool
     if (itemType === 'key') {

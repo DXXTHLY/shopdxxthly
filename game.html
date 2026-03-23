@@ -11196,9 +11196,24 @@ async function saveGame() {
         corruptedFragments: D(gameState.corruptedFragments).toString(),
         bankedSouls:   D(gameState.bankedSouls || 0).toString(),
         bankedEssence: D(gameState.bankedEssence || 0).toString(),
-        'stats.sps':   undefined, // recomputed on load
     };
-    // stats.sps is recomputed on load — no need to serialize it
+    // Serialize stats.sps/spc as strings so they survive JSON round-trip (Decimal objects become {m,e} otherwise)
+    if (gameState.stats) {
+        stateToSave.stats = {
+            sps: D(gameState.stats.sps || 0).toString(),
+            spc: D(gameState.stats.spc || 1).toString(),
+        };
+    }
+    // Serialize minion costs as strings — without this, Decimal {m,e} objects come back as 0 on load
+    // which breaks buyMinion() cost checks and leaves guests with working levels but zero SPS
+    if (gameState.minions) {
+        const _sm = {};
+        for (const id in gameState.minions) {
+            const m = gameState.minions[id];
+            _sm[id] = { level: m.level || 0, cost: D(m.cost || 0).toString(), promotionTier: m.promotionTier || 0 };
+        }
+        stateToSave.minions = _sm;
+    }
     localStorage.setItem('soulCollectorSave_v3', JSON.stringify(stateToSave));
 
     if (gameState.playerName === "Unnamed") return;
@@ -31947,21 +31962,75 @@ function renderChallengesPanel() {
             ].map(([l,v]) => `<div style="background:#0d0018;border:1px solid #ff004411;border-radius:6px;padding:5px 8px;"><div style="color:#440022;font-size:0.62em;">${l}</div><div style="color:#cc88aa;font-weight:bold;font-size:0.82em;">${v}</div></div>`).join('');
         }
 
-        // Inventory — Supabase doesn't store inventory, show manual remove-by-name tool
+        // Inventory — show remove-by-name tool with live autocomplete from items definition
         const invEl = document.getElementById('dev-result-inventory');
         if (invEl) {
             invEl.innerHTML = `
                 <div style="color:#440022;font-size:0.65em;margin-bottom:6px;letter-spacing:1px;">REMOVE ITEM BY NAME:</div>
-                <div style="display:flex;gap:6px;align-items:center;">
-                    <input id="dev-item-name-input" type="text" placeholder="e.g. charon_oar or partial name..."
-                        style="flex:1;background:#0d0018;border:1px solid #ff004433;border-radius:7px;color:#ddd;padding:6px 10px;font-family:inherit;font-size:0.78em;outline:none;"
-                        onkeydown="if(event.key==='Enter') devAdminRemoveItemByName()">
-                    <button onclick="devAdminRemoveItemByName()"
-                        style="background:#ff880018;border:1px solid #ff880066;border-radius:7px;color:#ff8844;padding:6px 12px;cursor:pointer;font-size:0.75em;font-family:inherit;white-space:nowrap;">
-                        🗑️ Remove
-                    </button>
+                <div style="position:relative;">
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <input id="dev-item-name-input" type="text" autocomplete="off"
+                            placeholder="Start typing item name..."
+                            style="flex:1;background:#0d0018;border:1px solid #ff004433;border-radius:7px;color:#ddd;padding:6px 10px;font-family:inherit;font-size:0.78em;outline:none;">
+                        <button onclick="devAdminRemoveItemByName()"
+                            style="background:#ff880018;border:1px solid #ff880066;border-radius:7px;color:#ff8844;padding:6px 12px;cursor:pointer;font-size:0.75em;font-family:inherit;white-space:nowrap;">
+                            🗑️ Remove
+                        </button>
+                    </div>
+                    <div id="dev-item-autocomplete" style="display:none;position:absolute;top:100%;left:0;right:40px;background:#0d0018;border:1px solid #ff004455;border-top:none;border-radius:0 0 7px 7px;z-index:9999;max-height:180px;overflow-y:auto;"></div>
                 </div>
-                <div style="color:#333;font-size:0.62em;margin-top:4px;">Item ID or partial name — sends a remove command to the player's client.</div>`;
+                <div style="color:#333;font-size:0.62em;margin-top:4px;">Type to search all items by name or ID.</div>`;
+
+            // Wire up autocomplete after injecting HTML
+            const inp = document.getElementById('dev-item-name-input');
+            const drop = document.getElementById('dev-item-autocomplete');
+            const rc = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff6644', heavenly:'#fff4aa' };
+
+            inp.addEventListener('input', () => {
+                const q = inp.value.trim().toLowerCase();
+                drop.innerHTML = '';
+                if (!q || typeof items === 'undefined') { drop.style.display = 'none'; return; }
+                const matches = Object.entries(items)
+                    .filter(([id, it]) => id.toLowerCase().includes(q) || (it.name && it.name.toLowerCase().includes(q)))
+                    .slice(0, 12);
+                if (!matches.length) { drop.style.display = 'none'; return; }
+                matches.forEach(([id, it]) => {
+                    const c = rc[it.rarity] || '#aaa';
+                    const row = document.createElement('div');
+                    row.style.cssText = \`padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #ff000011;\`;
+                    row.innerHTML = \`<span style="font-size:0.72em;font-weight:bold;color:\${c};">\${it.name}</span><span style="font-size:0.62em;color:#444;margin-left:auto;">\${id}</span>\`;
+                    row.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        inp.value = id;
+                        drop.style.display = 'none';
+                    });
+                    row.addEventListener('mouseover', () => row.style.background = '#1a0028');
+                    row.addEventListener('mouseout',  () => row.style.background = '');
+                    drop.appendChild(row);
+                });
+                drop.style.display = 'block';
+            });
+
+            inp.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { drop.style.display = 'none'; devAdminRemoveItemByName(); }
+                if (e.key === 'Escape') { drop.style.display = 'none'; }
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const first = drop.querySelector('div');
+                    if (first) first.focus();
+                }
+            });
+
+            drop.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowDown') { e.preventDefault(); e.target.nextSibling?.focus(); }
+                if (e.key === 'ArrowUp')   { e.preventDefault(); e.target.previousSibling ? e.target.previousSibling.focus() : inp.focus(); }
+                if (e.key === 'Enter')     { e.target.dispatchEvent(new MouseEvent('mousedown')); }
+                if (e.key === 'Escape')    { drop.style.display = 'none'; inp.focus(); }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!invEl.contains(e.target)) drop.style.display = 'none';
+            }, { once: false });
         }
     }
 

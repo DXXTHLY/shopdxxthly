@@ -16133,6 +16133,18 @@ function loadAuthFirebase() {
 
                 // If user is already signed in (persistent session), load their save
                 saveAuth.onAuthStateChanged(user => {
+                    // ── Dev panel — checked here so it always runs regardless of chat/timing ──
+                    const devPanel = document.getElementById('dev-admin-panel');
+                    if (devPanel) {
+                        if (user) {
+                            saveDb.ref('devUsers/' + user.uid).once('value').then(snap => {
+                                devPanel.style.display = (snap.val() === true) ? 'block' : 'none';
+                            }).catch(() => { devPanel.style.display = 'none'; });
+                        } else {
+                            devPanel.style.display = 'none';
+                        }
+                    }
+                    // ── End dev panel ──
                     if (user) {
                         const authScreenVisible = document.getElementById('auth-screen') &&
                             document.getElementById('auth-screen').style.display !== 'none';
@@ -31747,45 +31759,6 @@ function renderChallengesPanel() {
 
 // ==================================================================
 // DEV ADMIN PANEL
-// ==================================================================
-// DEV ADMIN PANEL — reads devUsers from Firebase (soul-collector db)
-// ==================================================================
-(function() {
-    function applyPanel(show) {
-        const panel = document.getElementById('dev-admin-panel');
-        if (panel) panel.style.display = show ? 'block' : 'none';
-    }
-
-    // Hide immediately on load
-    applyPanel(false);
-
-    function checkDev() {
-        const db   = window._scFirebase?.db;
-        const auth = window._scFirebase?.auth;
-        if (!db || !auth) { setTimeout(checkDev, 400); return; }
-
-        auth.onAuthStateChanged(function(user) {
-            if (!user) { applyPanel(false); return; }
-            // Read devUsers/{uid} from the soul-collector Firebase
-            db.ref('devUsers/' + user.uid).once('value').then(function(snap) {
-                applyPanel(snap.val() === true);
-            }).catch(function() {
-                applyPanel(false);
-            });
-        });
-    }
-    checkDev();
-
-    window._devPanelInit = function() {
-        const db   = window._scFirebase?.db;
-        const uid  = window._scFirebase?.auth?.currentUser?.uid;
-        if (!db || !uid) return;
-        db.ref('devUsers/' + uid).once('value').then(function(snap) {
-            applyPanel(snap.val() === true);
-        });
-    };
-})();
-
 // ==================================================================
 // DEV ADMIN PANEL — search/action logic
 // ==================================================================

@@ -12933,6 +12933,43 @@ function renderMinions() {
                 ? '<div style="background:' + tierColor + '11; border:1px solid ' + tierColor + '22; border-radius:6px; padding:5px 8px; font-size:0.68em; color:' + tierColor + '66;">⚠ Leaderboard minion — leaves if you lose #1 rank. Does NOT persist through Ascension.</div>'
                 : '<div style="background:#aa44ff11; border:1px solid #aa44ff22; border-radius:6px; padding:5px 8px; font-size:0.68em; color:#aa44ff66;">✓ Persists through Ascension</div>';
 
+            // Secret minion level-up cost (scales 1.15x per level)
+            const secretLvlCost = lvl < 100 ? Math.floor(1e10 * Math.pow(1.15, lvl - 1)) : null;
+            const canAffordSecretBuy = secretLvlCost !== null && D(gameState.souls).gte(D(secretLvlCost));
+
+            // Promotion button for secret minions
+            const nextSecretPromo = m.promotions ? m.promotions[p.promotionTier || 0] : null;
+            const canSecretPromote = nextSecretPromo && lvl >= nextSecretPromo.level;
+            const canAffordSecretPromo = canSecretPromote
+                && D(gameState.souls).gte(D(nextSecretPromo.soulCost || 0))
+                && D(gameState.darkEssence || 0).gte(nextSecretPromo.essenceCost || 0);
+
+            let secretActionBtn = '';
+            if (canSecretPromote) {
+                secretActionBtn = `<button onclick="promoteMinion('${id}')" ${!canAffordSecretPromo ? 'disabled' : ''}
+                    style="width:100%; background:${canAffordSecretPromo ? 'linear-gradient(135deg,#c8a80022,transparent)' : 'transparent'}; border:1px solid ${canAffordSecretPromo ? '#c8a80088' : '#333'}; border-radius:8px; padding:8px; color:${canAffordSecretPromo ? '#c8a800' : '#333'}; cursor:${canAffordSecretPromo ? 'pointer' : 'not-allowed'}; font-family:var(--font-title); font-size:0.78em; letter-spacing:1px; ${!canAffordSecretPromo ? 'opacity:0.5;' : ''}">
+                    ⬆ PROMOTE to Tier ${(p.promotionTier || 0) + 1}
+                    <span style="display:block; font-size:0.75em; margin-top:2px; color:#888;">${formatNumber(nextSecretPromo.soulCost)} souls + ${formatNumber(nextSecretPromo.essenceCost)} DE</span>
+                </button>`;
+            } else if (lvl < 100) {
+                secretActionBtn = `<button onclick="buySecretMinionLevel('${id}')" ${!canAffordSecretBuy ? 'disabled' : ''}
+                    style="width:100%; background:${canAffordSecretBuy ? `linear-gradient(135deg,${tierColor}22,transparent)` : 'transparent'}; border:1px solid ${canAffordSecretBuy ? tierColor + '88' : '#333'}; border-radius:8px; padding:8px; color:${canAffordSecretBuy ? tierColor : '#333'}; cursor:${canAffordSecretBuy ? 'pointer' : 'not-allowed'}; font-family:var(--font-title); font-size:0.78em; letter-spacing:1px; ${!canAffordSecretBuy ? 'opacity:0.5;' : ''}">
+                    + Buy Level
+                    <span style="display:block; font-size:0.75em; margin-top:2px; color:${canAffordSecretBuy ? '#e8c46a' : '#555'};">${formatNumber(secretLvlCost)} souls</span>
+                </button>`;
+            } else {
+                secretActionBtn = `<div style="text-align:center; color:#c8a800; font-size:0.78em; padding:6px; background:#c8a80011; border:1px solid #c8a80033; border-radius:8px;">✦ MAX LEVEL</div>`;
+            }
+
+            // Progress to next promotion
+            let secretProgressBar = '';
+            if (nextSecretPromo && !canSecretPromote) {
+                const pct = Math.min(100, (lvl / nextSecretPromo.level) * 100);
+                secretProgressBar = `<div style="background:#ffffff10; border-radius:4px; height:4px; overflow:hidden; margin-top:2px;">
+                    <div style="height:100%; width:${pct}%; background:${tierColor}; border-radius:4px;"></div></div>
+                    <div style="color:#555; font-size:0.65em; text-align:right; margin-top:2px;">Promote at Lv.${nextSecretPromo.level}</div>`;
+            }
+
             const card = document.createElement('div');
             card.style.cssText = 'background:linear-gradient(160deg,#0d0618,#1a0828); border:1px solid ' + tierColor + '33; border-top:3px solid ' + tierColor + '; border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:8px; position:relative; overflow:hidden;';
             card.innerHTML =
@@ -12946,18 +12983,36 @@ function renderMinions() {
                 spsDisplay +
                 '<div style="background:#ffffff08; border-radius:4px; height:4px; overflow:hidden;">' +
                     '<div style="height:100%; width:' + Math.min(100,lvl) + '%; background:linear-gradient(90deg,' + tierColor + '88,' + tierColor + '); border-radius:4px;"></div></div>' +
+                secretProgressBar +
                 researchHtml +
                 '<div style="color:#444; font-size:0.7em; font-style:italic; line-height:1.4;">' + (m.lore || '') + '</div>' +
-                persistNote;
+                persistNote +
+                secretActionBtn;
             grid.appendChild(card);
         }
     }
 }
 
 
-// =================================================================
-// PRESTIGE CONFIRM MODAL
-// =================================================================
+// ── Secret Minion: Buy Level ──────────────────────────────────────────────────
+function buySecretMinionLevel(id) {
+    const p = gameState.minions[id];
+    if (!p) return;
+    const lvl = p.level || 0;
+    if (lvl >= 100) { Toastify({text:'✦ This minion is already at max level (100).', duration:2500, gravity:'top', position:'center', style:{background:'#330044'}}).showToast(); return; }
+    const cost = Math.floor(1e10 * Math.pow(1.15, lvl - 1));
+    if (D(gameState.souls).lt(D(cost))) {
+        Toastify({text:`💀 Need ${formatNumber(cost)} Souls to level up ${minions[id]?.name}.`, duration:2500, gravity:'top', position:'center', style:{background:'#2a0030'}}).showToast();
+        return;
+    }
+    gameState.souls = D(gameState.souls).sub(D(cost));
+    gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(cost));
+    p.level++;
+    playSound('upgrade');
+    calculateStats(); renderMinions(); saveGame();
+}
+
+
 let _prestigeConfirmType = null;
 
 function showPrestigeConfirm({ type, icon, title, titleColor, body, rewardHtml, btnColor, btnLabel }) {
@@ -14413,6 +14468,9 @@ function tickFusionCooldown() {
     }
 }
 setInterval(tickFusionCooldown, 1000);
+
+// Alias so market/hourly-shop purchase handlers can call renderPotions()
+function renderPotions() { renderBrewery(); }
 
 function renderBrewery() {
     const recipeGrid = document.getElementById('potion-recipe-grid');
@@ -18725,31 +18783,43 @@ function renderSellableInventory() {
     if (!grid) return;
     const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
     const typeIcon    = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
+    const equippedIds = new Set(Object.values(gameState.equipped || {}).filter(Boolean));
     if (gameState.inventory.length === 0) {
         grid.innerHTML = `<div style="color:#444; text-align:center; padding:30px; grid-column:1/-1; font-size:0.85em;">Your inventory is empty. Open Abyssal Caches to get items to sell.</div>`;
         return;
     }
     grid.innerHTML = '';
+    let anyShown = false;
     gameState.inventory.forEach(itemId => {
         const item = items[itemId];
         if (!item) return;
+        const isEquipped = equippedIds.has(itemId);
         const rc = rarityColor[item.rarity] || '#aaa';
         const icon = typeIcon[item.type] || '🔮';
         const div = document.createElement('div');
-        div.style.cssText = `background:linear-gradient(135deg,#0a0812,#0e1208); border:1px solid ${rc}33; border-top:3px solid ${rc}; border-radius:12px; padding:14px; cursor:pointer; transition:all 0.15s; position:relative;`;
-        div.onmouseover = () => { div.style.background = `linear-gradient(135deg,${rc}0a,#0e1208)`; div.style.borderColor = `${rc}66`; };
-        div.onmouseout  = () => { div.style.background = 'linear-gradient(135deg,#0a0812,#0e1208)'; div.style.borderColor = `${rc}33`; };
-        div.onclick = () => promptSellItem(itemId);
+        div.style.cssText = `background:linear-gradient(135deg,#0a0812,#0e1208); border:1px solid ${isEquipped ? '#ffffff18' : rc+'33'}; border-top:3px solid ${isEquipped ? '#333' : rc}; border-radius:12px; padding:14px; cursor:${isEquipped ? 'not-allowed' : 'pointer'}; transition:all 0.15s; position:relative; opacity:${isEquipped ? '0.45' : '1'};`;
+        if (!isEquipped) {
+            div.onmouseover = () => { div.style.background = `linear-gradient(135deg,${rc}0a,#0e1208)`; div.style.borderColor = `${rc}66`; };
+            div.onmouseout  = () => { div.style.background = 'linear-gradient(135deg,#0a0812,#0e1208)'; div.style.borderColor = `${rc}33`; };
+            div.onclick = () => promptSellItem(itemId);
+        }
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
                 <span style="font-size:1.6em; filter:drop-shadow(0 0 6px ${rc}66);">${icon}</span>
                 <span style="background:${rc}18; border:1px solid ${rc}44; border-radius:5px; padding:2px 8px; font-size:0.65em; color:${rc}; text-transform:uppercase; letter-spacing:1px;">${item.rarity}</span>
             </div>
-            <div style="color:${rc}; font-weight:bold; font-size:0.88em; margin-bottom:4px;">${item.name}</div>
+            <div style="color:${isEquipped ? '#555' : rc}; font-weight:bold; font-size:0.88em; margin-bottom:4px;">${item.name}</div>
             <div style="color:#555; font-size:0.72em; line-height:1.45; margin-bottom:12px;">${item.desc}</div>
-            <div style="background:#44cc8818; border:1px solid #44cc8833; border-radius:7px; padding:6px; text-align:center; font-size:0.75em; color:#44cc88; font-weight:bold; letter-spacing:1px;">📤 LIST FOR SALE</div>`;
+            ${isEquipped
+                ? `<div style="background:#ffffff08; border:1px solid #ffffff11; border-radius:7px; padding:6px; text-align:center; font-size:0.75em; color:#444; letter-spacing:1px;">✦ EQUIPPED — unequip first</div>`
+                : `<div style="background:#44cc8818; border:1px solid #44cc8833; border-radius:7px; padding:6px; text-align:center; font-size:0.75em; color:#44cc88; font-weight:bold; letter-spacing:1px;">📤 LIST FOR SALE</div>`
+            }`;
         grid.appendChild(div);
+        anyShown = true;
     });
+    if (!anyShown) {
+        grid.innerHTML = `<div style="color:#444; text-align:center; padding:30px; grid-column:1/-1; font-size:0.85em;">Your inventory is empty. Open Abyssal Caches to get items to sell.</div>`;
+    }
 }
 
 let _sellItemId = null;
@@ -18794,6 +18864,12 @@ function closeSellModal() {
 function confirmSellItem() {
     const itemId = _sellItemId;
     if (!itemId) return;
+    // Hard guard — cannot sell an equipped item
+    const equippedIds = new Set(Object.values(gameState.equipped || {}).filter(Boolean));
+    if (equippedIds.has(itemId)) {
+        Toastify({text:`⚠ Unequip ${items[itemId]?.name || 'this item'} before listing it.`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a0000,#cc2222)'}}).showToast();
+        closeSellModal(); return;
+    }
     const sellPrice = parseInt(document.getElementById('sell-price-input').value);
     if (isNaN(sellPrice) || sellPrice <= 0) {
         document.getElementById('sell-price-input').style.borderColor = '#ff4444';
@@ -21197,7 +21273,7 @@ function renderRaidRoster() {
     if (!el) return;
     el.innerHTML = '';
     const owned = Object.entries(gameState.minions||{})
-        .filter(([id,m])=>(m.level||0)>0 && battleMinions[id] && !minions[id]?.secret)
+        .filter(([id,m])=>(m.level||0)>0 && battleMinions[id])
         .sort((a,b)=>(battleMinions[b[0]].cost||0)-(battleMinions[a[0]].cost||0));
     const cooldowns = gameState.soulRaids?.minionCooldowns||{};
     const now = Date.now();
@@ -26308,6 +26384,9 @@ function gntCashOut(){
     // Set world-switch cooldown: 3 min after any cashout, 10 min after profitable cashout
     const cooldownMs = isWeak ? 3 * 60 * 1000 : 10 * 60 * 1000;
     gntState._worldSwitchCooldownEnd = Date.now() + cooldownMs;
+    // Persist to gameState so logout/reload can't bypass it
+    gameState.gauntletCooldownEnd = gntState._worldSwitchCooldownEnd;
+    saveGame();
 
     updateDynamicDisplays(); saveGame(); playSound('upgrade');
     gntLog('Cashed out at ' + wd.label + ' -- +' + winDisplay + ' ' + gntCurrencyLabel(gntState.betCurrency) + (isWeak ? ' (no profit on wave 1-2 cashout)' : ''), '#c8a800');
@@ -26493,7 +26572,13 @@ function gntGetEnemyCountBonus() {
 function gntReset() {
     if (gntState.combatInterval) { clearInterval(gntState.combatInterval); gntState.combatInterval = null; }
     // Preserve the world-switch cooldown so New Run can't bypass it
-    const _preservedCooldown = gntState._worldSwitchCooldownEnd || 0;
+    const _preservedCooldown = Math.max(gntState._worldSwitchCooldownEnd || 0, gameState.gauntletCooldownEnd || 0);
+    // If cooldown is still active, set bypass-detection flag in gameState before save
+    if (Date.now() < _preservedCooldown) {
+        gameState._gauntletBypassFlag = true;
+        gameState.gauntletCooldownEnd = _preservedCooldown;
+        saveGame();
+    }
     gntState = {
         phase: 'LOBBY', wave: 1, betAmount: 0, betCurrency: 'souls',
         playerUnits: [], enemyUnits: [], pointsSpent: 0, pointBudget: 0,
@@ -26541,6 +26626,25 @@ function gntReset() {
 }
 
 function gntInit() {
+    // Restore persisted cooldown from gameState on load
+    if (gameState.gauntletCooldownEnd && gameState.gauntletCooldownEnd > Date.now()) {
+        const _existing = gntState._worldSwitchCooldownEnd || 0;
+        if (gameState.gauntletCooldownEnd > _existing) {
+            gntState._worldSwitchCooldownEnd = gameState.gauntletCooldownEnd;
+        }
+    }
+    // Logout-bypass detection: if a cooldown was active but they reloaded before it expired,
+    // extend the penalty by 15 minutes as deterrent
+    if (gameState._gauntletBypassFlag && gameState.gauntletCooldownEnd > Date.now()) {
+        const penalty = 15 * 60 * 1000;
+        gntState._worldSwitchCooldownEnd = Date.now() + penalty;
+        gameState.gauntletCooldownEnd = gntState._worldSwitchCooldownEnd;
+        gameState._gauntletBypassFlag = false;
+        const mLeft = Math.floor(penalty / 60000);
+        Toastify({text:`⚠ Gauntlet cooldown bypass detected — penalty extended to ${mLeft} minutes.`, duration:6000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#2a0000,#cc2222)'}}).showToast();
+        saveGame();
+    }
+    gameState._gauntletBypassFlag = false; // clear on clean load
     gntState.pointBudget = gntCalcBudget();
     if (!gntState.locationChosen) {
         // Show world map

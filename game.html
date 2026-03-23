@@ -4344,6 +4344,14 @@ text-decoration: underline; /* Adds an underline on hover */
                             </div>
                         </div>
 
+                        <!-- Dev UID helper -->
+                        <div id="dev-uid-helper" style="padding:8px 22px; background:#0a0018; border-bottom:1px solid #ff004418; font-size:0.65em; font-family:monospace; color:#443344; display:flex; align-items:center; gap:8px;">
+                            <span style="color:#330022;">Your save Firebase UID:</span>
+                            <span id="dev-own-uid" style="color:#664466;">loading...</span>
+                            <button onclick="navigator.clipboard.writeText(document.getElementById('dev-own-uid').textContent).then(()=>this.textContent='✓ Copied!').catch(()=>{})" style="background:#1a0025;border:1px solid #44224455;border-radius:4px;color:#885588;padding:2px 7px;cursor:pointer;font-family:monospace;font-size:0.9em;margin-left:4px;">Copy</button>
+                            <span style="color:#220011;margin-left:4px;">← add this to devUsers in Firebase if inventory access fails</span>
+                        </div>
+
                         <!-- Search bar -->
                         <div style="padding:16px 22px; border-bottom:1px solid #ff004418;">
                             <div style="display:flex; gap:8px;">
@@ -16207,6 +16215,12 @@ function loadAuthFirebase() {
                     window._devPanelInit = function() {
                         const _p = document.getElementById('dev-admin-panel');
                         if (_p) _p.style.display = window._devPanelUnlocked ? 'block' : 'none';
+                        // Show the dev's own save Firebase UID so they can add it to devUsers if needed
+                        const _uidEl = document.getElementById('dev-own-uid');
+                        if (_uidEl) {
+                            const _saveUid = window._scFirebase?.auth?.currentUser?.uid;
+                            _uidEl.textContent = _saveUid || '(not logged into save Firebase)';
+                        }
                     };
                     // ── End dev panel ──
                     if (user) {

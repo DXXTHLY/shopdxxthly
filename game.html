@@ -4330,6 +4330,71 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
 
                 </div>
+
+                <!-- ══ DEV ADMIN PANEL — only rendered for devs ══ -->
+                <div id="dev-admin-panel" style="display:none; max-width:700px; margin:20px auto 0;">
+                    <div style="background:linear-gradient(135deg,#0a0005,#1a0015); border:2px solid #ff004488; border-top:3px solid #ff0044; border-radius:14px; padding:22px 24px;">
+                        <h3 style="margin:0 0 4px; color:#ff0044; font-size:0.9em; letter-spacing:3px; text-transform:uppercase;">🔴 DEV ADMIN PANEL</h3>
+                        <p style="color:#55002288; font-size:0.72em; margin:0 0 18px;">Visible to devs only. Actions write to Firebase devCommands and execute on the target player's client.</p>
+
+                        <!-- Search -->
+                        <div style="display:flex; gap:8px; margin-bottom:14px;">
+                            <input id="dev-player-search" type="text" placeholder="Player name (exact)..."
+                                style="flex:1; background:#0d0018; border:1px solid #ff004433; border-radius:8px; color:#ddd; padding:9px 12px; font-family:inherit; font-size:0.85em; outline:none;"
+                                onkeydown="if(event.key==='Enter') devAdminSearch()">
+                            <button onclick="devAdminSearch()"
+                                style="background:linear-gradient(135deg,#ff004422,transparent); border:1px solid #ff004466; border-radius:8px; color:#ff0044; padding:9px 18px; cursor:pointer; font-family:inherit; font-size:0.85em; white-space:nowrap;">
+                                🔍 Search
+                            </button>
+                        </div>
+
+                        <!-- Result -->
+                        <div id="dev-admin-result" style="display:none; background:#08000f; border:1px solid #ff004422; border-radius:10px; padding:14px; margin-bottom:14px;">
+                            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                                <div id="dev-result-avatar" style="width:42px;height:42px;border-radius:50%;background:#1a0028;border:2px solid #ff004466;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.4em;"></div>
+                                <div>
+                                    <div id="dev-result-name" style="color:#ff6688; font-weight:bold; font-size:0.95em;"></div>
+                                    <div id="dev-result-uid" style="color:#333; font-size:0.62em; font-family:monospace; margin-top:2px;"></div>
+                                </div>
+                                <div id="dev-result-key" style="margin-left:auto; text-align:right;"></div>
+                            </div>
+                            <div id="dev-result-stats" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:12px; font-size:0.72em;"></div>
+                            <div id="dev-result-inventory" style="margin-bottom:12px;"></div>
+
+                            <!-- Action buttons -->
+                            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                <button id="dev-btn-remove-key" onclick="devAdminAction('remove_key')"
+                                    style="background:#ff004418; border:1px solid #ff004466; border-radius:7px; color:#ff4466; padding:7px 14px; cursor:pointer; font-size:0.78em; font-family:inherit; display:none;">
+                                    🗝️ Remove Key
+                                </button>
+                                <button onclick="devAdminShowItemPicker()"
+                                    style="background:#ff880018; border:1px solid #ff880066; border-radius:7px; color:#ff8844; padding:7px 14px; cursor:pointer; font-size:0.78em; font-family:inherit;">
+                                    🗑️ Remove Item…
+                                </button>
+                                <button onclick="devAdminAction('clear_inventory')"
+                                    style="background:#ff000011; border:1px solid #ff000044; border-radius:7px; color:#cc2222; padding:7px 14px; cursor:pointer; font-size:0.78em; font-family:inherit;">
+                                    💥 Wipe Inventory
+                                </button>
+                                <button onclick="devAdminAction('fixsps')"
+                                    style="background:#00cc4418; border:1px solid #00cc4466; border-radius:7px; color:#00cc44; padding:7px 14px; cursor:pointer; font-size:0.78em; font-family:inherit;">
+                                    🔧 Fix SPS
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Item picker (shown when Remove Item clicked) -->
+                        <div id="dev-item-picker" style="display:none; background:#08000f; border:1px solid #ff880022; border-radius:10px; padding:12px; margin-bottom:10px;">
+                            <div style="color:#ff8844; font-size:0.78em; margin-bottom:8px; letter-spacing:1px;">SELECT ITEM TO REMOVE:</div>
+                            <div id="dev-item-picker-grid" style="display:flex; flex-wrap:wrap; gap:6px; max-height:180px; overflow-y:auto;"></div>
+                            <button onclick="document.getElementById('dev-item-picker').style.display='none'"
+                                style="margin-top:10px; background:transparent; border:1px solid #333; border-radius:6px; color:#555; padding:5px 12px; cursor:pointer; font-size:0.75em;">✕ Cancel</button>
+                        </div>
+
+                        <div id="dev-admin-log" style="font-size:0.7em; color:#440022; font-family:monospace; min-height:18px;"></div>
+                    </div>
+                </div>
+                <!-- ══ END DEV ADMIN PANEL ══ -->
+
                 <p id="version-number" style="color:#333; font-size:0.72em; margin-top:24px; text-align:center;"></p>
             </div>
             <!-- ================================================================= -->
@@ -7084,126 +7149,559 @@ const battleMinions = {
 
 // This array defines the challenges the player will face. (50 CHALLENGE CAMPAIGN)
 const puzzles = [
-    // TIER 1: THE BASICS (Puzzles 1-10)
-    { id: 'puzzle1', name: "1. The First Trial", desc: "A straightforward assault.", pointBudget: 3, enemies: [{ id: 'imp', x: 0, y: 0 }, { id: 'imp', x: 2, y: 0 }], reward: { type: 'sps_multiplier', value: 1.01, desc: "Perm. +1% global SPS." } },
-    { id: 'puzzle2', name: "2. The Bulwark", desc: "A single, tough enemy blocks the path.", pointBudget: 5, enemies: [{ id: 'ash_golem', x: 1, y: 0 }], reward: { type: 'spc_multiplier', value: 1.02, desc: "Perm. +2% global SPC." } },
-    { id: 'puzzle3', name: "3. The Pincer", desc: "The enemy attacks from two sides.", pointBudget: 8, enemies: [{ id: 'demon', x: 0, y: 1 }, { id: 'demon', x: 2, y: 1 }], reward: { type: 'essence_multiplier', value: 1.01, desc: "Perm. +1% Dark Essence gain." } },
-    { id: 'puzzle4', name: "4. Fire Support", desc: "A ranged unit is protected by guards.", pointBudget: 7, enemies: [{ id: 'cinder_wraith', x: 1, y: 0 }, { id: 'imp', x: 0, y: 1 }, { id: 'imp', x: 2, y: 1 }], reward: { type: 'minion_cost_reducer', value: 0.99, desc: "Main game minions are 1% cheaper." } },
-    { id: 'puzzle5', name: "5. Ghoul Tide", desc: "A wall of resilient flesh.", pointBudget: 6, enemies: [{ id: 'ghoul', x: 0, y: 0 }, { id: 'ghoul', x: 1, y: 0 }, { id: 'ghoul', x: 2, y: 0 }], reward: { type: 'sps_multiplier', value: 1.02, desc: "Perm. +2% global SPS." } },
-    { id: 'puzzle6', name: "6. Assassins", desc: "Fast and hard-hitting, but frail.", pointBudget: 10, enemies: [{ id: 'abyssal_stalker', x: 0, y: 0 }, { id: 'abyssal_stalker', x: 2, y: 0 }], reward: { type: 'spc_multiplier', value: 1.03, desc: "Perm. +3% global SPC." } },
-    { id: 'puzzle7', name: "7. The Frozen Peak", desc: "A sniper hides behind a durable guard.", pointBudget: 9, enemies: [{ id: 'frost_lich', x: 1, y: 0 }, { id: 'ghoul', x: 1, y: 1 }], reward: { type: 'ritual_duration', value: 1.05, desc: "Rituals last 5% longer." } },
-    { id: 'puzzle8', name: "8. The Swarm", desc: "They have numbers, but lack power.", pointBudget: 7, enemies: [{ id: 'imp', x: 0, y: 0 }, { id: 'imp', x: 1, y: 0 }, { id: 'imp', x: 2, y: 0 }, { id: 'ghoul', x: 0, y: 1 }, { id: 'ghoul', x: 2, y: 1 }], reward: { type: 'essence_multiplier', value: 1.02, desc: "Perm. +2% Dark Essence gain." } },
-    { id: 'puzzle9', name: "9. Trial by Fire", desc: "A single, immensely powerful demon.", pointBudget: 8, enemies: [{ id: 'balrog', x: 1, y: 0 }], reward: { type: 'artifact_effectiveness', value: 1.02, desc: "Artifacts are 2% more effective." } },
-    { id: 'puzzle10', name: "10. The Grandmaster", desc: "Face a balanced formation.", pointBudget: 14, enemies: [{ id: 'balrog', x: 1, y: 1 }, { id: 'frost_lich', x: 0, y: 0 }, { id: 'frost_lich', x: 2, y: 0 }], reward: { type: 'global_all_multiplier', value: 1.01, desc: "All Soul Gains +1%." } },
-    
-    // TIER 2: ADVANCED TACTICS (Puzzles 11-20)
-    { id: 'puzzle11', name: "11. The Breach", desc: "A weak point in their center line.", pointBudget: 12, enemies: [{ id: 'demon', x: 0, y: 0 }, { id: 'demon', x: 2, y: 0 }, { id: 'cinder_wraith', x: 1, y: 0 }], reward: { type: 'sps_multiplier', value: 1.03, desc: "Perm. +3% global SPS." } },
-    { id: 'puzzle12', name: "12. Double Trouble", desc: "Two elite tanks guard the path.", pointBudget: 10, enemies: [{ id: 'ash_golem', x: 0, y: 1 }, { id: 'ash_golem', x: 2, y: 1 }], reward: { type: 'first_minion_cheaper', value: 0.9, target: 'imp', desc: "First Imp is 10% cheaper." } },
-    { id: 'puzzle13', name: "13. Artillery Line", desc: "An entire back row of ranged threats.", pointBudget: 13, enemies: [{ id: 'cinder_wraith', x: 0, y: 0 }, { id: 'cinder_wraith', x: 1, y: 0 }, { id: 'cinder_wraith', x: 2, y: 0 }], reward: { type: 'spc_multiplier', value: 1.04, desc: "Perm. +4% global SPC." } },
-    { id: 'puzzle14', name: "14. The Gauntlet", desc: "Fight your way through a column of foes.", pointBudget: 15, enemies: [{ id: 'ghoul', x: 1, y: 0 }, { id: 'demon', x: 1, y: 1 }, { id: 'ash_golem', x: 1, y: 2 }], reward: { type: 'shard_bonus', value: 1.01, desc: "Gain +1% Shards on Ascend." } },
-    { id: 'puzzle15', name: "15. Undead Legion", desc: "A mix of Ghouls and a powerful Lich.", pointBudget: 12, enemies: [{ id: 'frost_lich', x: 1, y: 0 }, { id: 'ghoul', x: 0, y: 1 }, { id: 'ghoul', x: 1, y: 1 }, { id: 'ghoul', x: 2, y: 1 }], reward: { type: 'sps_multiplier', value: 1.04, desc: "Perm. +4% global SPS." } },
-    { id: 'puzzle16', name: "16. Hell's Gate", desc: "Two Balrogs. Good luck.", pointBudget: 15, enemies: [{ id: 'balrog', x: 0, y: 1 }, { id: 'balrog', x: 2, y: 1 }], reward: { type: 'minion_cost_reducer', value: 0.98, desc: "Main game minions are 2% cheaper." } },
-    { id: 'puzzle17', name: "17. Flank Attack", desc: "Stalkers will try to bypass your front line.", pointBudget: 13, enemies: [{ id: 'abyssal_stalker', x: 0, y: 1 }, { id: 'abyssal_stalker', x: 2, y: 1 }, { id: 'ghoul', x: 1, y: 0 }], reward: { type: 'spc_multiplier', value: 1.05, desc: "Perm. +5% global SPC." } },
-    { id: 'puzzle18', name: "18. The Great Wall", desc: "An unbreakable line of Golems.", pointBudget: 10, enemies: [{ id: 'ash_golem', x: 0, y: 0 }, { id: 'ash_golem', x: 1, y: 0 }, { id: 'ash_golem', x: 2, y: 0 }], reward: { type: 'promotion_cost_reducer', value: 0.98, desc: "Promotions cost 2% less DE." } },
-    { id: 'puzzle19', name: "19. Sniper's Nest", desc: "Two powerful snipers with a wide field of fire.", pointBudget: 18, enemies: [{ id: 'frost_lich', x: 0, y: 0 }, { id: 'frost_lich', x: 2, y: 0 }], reward: { type: 'artifact_effectiveness', value: 1.03, desc: "Artifacts are 3% more effective." } },
-    { id: 'puzzle20', name: "20. The Infernal Council", desc: "Face a council of elite demons.", pointBudget: 20, enemies: [{ id: 'balrog', x: 1, y: 0 }, { id: 'demon', x: 0, y: 1 }, { id: 'demon', x: 2, y: 1 }], reward: { type: 'global_all_multiplier', value: 1.02, desc: "All Soul Gains +2%." } },
+    // ═══════════════════════════════════════════════════════════════
+    // TIER 1 — THE BASICS (Puzzles 1–10)
+    // Teach: range, positioning, tank vs DPS, sniper priority
+    // ═══════════════════════════════════════════════════════════════
 
-    // TIER 3: MASTER TACTICS (Puzzles 21-30)
-    { id: 'puzzle21', name: "21. Race Against Time", desc: "Pure, unrelenting aggression.", pointBudget: 15, enemies: [{ id: 'abyssal_stalker', x: 0, y: 0 }, { id: 'abyssal_stalker', x: 1, y: 0 }, { id: 'abyssal_stalker', x: 2, y: 0 }], reward: { type: 'sps_multiplier', value: 1.05, desc: "Perm. +5% global SPS." } },
-    { id: 'puzzle22', name: "22. The Imp-losion", desc: "Don't underestimate their numbers.", pointBudget: 10, enemies: Array.from({length: 8}, (_, i) => ({id: 'imp', x: i % 3, y: Math.floor(i/3)})), reward: { type: 'shard_bonus', value: 1.02, desc: "Gain +2% Shards on Ascend." } },
-    { id: 'puzzle23', name: "23. Glacial Fortress", desc: "A Lich protected by an iron wall.", pointBudget: 16, enemies: [{ id: 'frost_lich', x: 1, y: 0 }, { id: 'ash_golem', x: 0, y: 1 }, { id: 'ash_golem', x: 1, y: 1 }, { id: 'ash_golem', x: 2, y: 1 }], reward: { type: 'ritual_duration', value: 1.10, desc: "Rituals last 10% longer." } },
-    { id: 'puzzle24', name: "24. Searing Cold", desc: "An impossible combination of fire and ice.", pointBudget: 20, enemies: [{ id: 'balrog', x: 0, y: 1 }, { id: 'frost_lich', x: 2, y: 0 }], reward: { type: 'spc_multiplier', value: 1.06, desc: "Perm. +6% global SPC." } },
-    { id: 'puzzle25', name: "25. The Meat Grinder", desc: "A column of durable Ghouls.", pointBudget: 12, enemies: [{ id: 'ghoul', x: 1, y: 0 }, { id: 'ghoul', x: 1, y: 1 }, { id: 'ghoul', x: 1, y: 2 }], reward: { type: 'minion_cost_reducer', value: 0.97, desc: "Main game minions are 3% cheaper." } },
-    { id: 'puzzle26', name: "26. Demonic Trio", desc: "Three powerful demons stand against you.", pointBudget: 10, enemies: [{ id: 'demon', x: 0, y: 0 }, { id: 'demon', x: 1, y: 0 }, { id: 'demon', x: 2, y: 0 }], reward: { type: 'essence_multiplier', value: 1.03, desc: "Perm. +3% Dark Essence gain." } },
-    { id: 'puzzle27', name: "27. Wraiths in the Mist", desc: "A full backline of ranged attackers protected by a single tank.", pointBudget: 18, enemies: [{ id: 'ghoul', x: 1, y: 1 }, { id: 'cinder_wraith', x: 0, y: 0 }, { id: 'cinder_wraith', x: 2, y: 0 }], reward: { type: 'sps_multiplier', value: 1.06, desc: "Perm. +6% global SPS." } },
-    { id: 'puzzle28', name: "28. The Executioner", desc: "A Balrog supported by two stalkers.", pointBudget: 18, enemies: [{ id: 'balrog', x: 1, y: 1 }, { id: 'abyssal_stalker', x: 0, y: 0 }, { id: 'abyssal_stalker', x: 2, y: 0 }], reward: { type: 'promotion_cost_reducer', value: 0.95, desc: "Promotions cost 5% less DE." } },
-    { id: 'puzzle29', name: "29. Unholy Trinity", desc: "The three great evils of this realm.", pointBudget: 20, enemies: [{ id: 'balrog', x: 1, y: 1 }, { id: 'frost_lich', x: 0, y: 0 }, { id: 'abyssal_stalker', x: 2, y: 1 }], reward: { type: 'artifact_effectiveness', value: 1.05, desc: "Artifacts are 5% more effective." } },
-    { id: 'puzzle30', name: "30. The Onslaught", desc: "The largest force you have yet faced.", pointBudget: 25, enemies: [{ id: 'ash_golem', x: 0, y: 1 }, { id: 'ash_golem', x: 2, y: 1 }, { id: 'cinder_wraith', x: 0, y: 0 }, { id: 'cinder_wraith', x: 2, y: 0 }], reward: { type: 'global_all_multiplier', value: 1.03, desc: "All Soul Gains +3%." } },
-    
-    // TIER 4: LEGENDARY TACTICS (Puzzles 31-40)
-    { id: 'puzzle31', name: "31. The Phalanx", desc: "A perfect defensive formation.", pointBudget: 22, enemies: [{ id: 'ash_golem', x: 0, y: 1 }, { id: 'ash_golem', x: 1, y: 1 }, { id: 'ash_golem', x: 2, y: 1 }, { id: 'cinder_wraith', x: 1, y: 0 }], reward: { type: 'sps_multiplier', value: 1.07, desc: "Perm. +7% global SPS." } },
-    { id: 'puzzle32', name: "32. Hellfire Rain", desc: "Nowhere is safe from their ranged attacks.", pointBudget: 25, enemies: [{ id: 'cinder_wraith', x: 0, y: 0 }, { id: 'cinder_wraith', x: 2, y: 0 }, { id: 'frost_lich', x: 1, y: 0 }], reward: { type: 'shard_bonus', value: 1.03, desc: "Gain +3% Shards on Ascend." } },
-    { id: 'puzzle33', name: "33. The Titan", desc: "A Balrog flanked by two Golems.", pointBudget: 20, enemies: [{ id: 'balrog', x: 1, y: 0 }, { id: 'ash_golem', x: 0, y: 0 }, { id: 'ash_golem', x: 2, y: 0 }], reward: { type: 'spc_multiplier', value: 1.07, desc: "Perm. +7% global SPC." } },
-    { id: 'puzzle34', name: "34. The Serpent", desc: "A winding line of deadly demons.", pointBudget: 15, enemies: [{ id: 'demon', x: 0, y: 0 }, { id: 'demon', x: 1, y: 1 }, { id: 'demon', x: 2, y: 2 }], reward: { type: 'minion_cost_reducer', value: 0.95, desc: "Main game minions are 5% cheaper." } },
-    { id: 'puzzle35', name: "35. Checkmate", desc: "They have every angle covered.", pointBudget: 28, enemies: [{ id: 'frost_lich', x: 0, y: 0 }, { id: 'frost_lich', x: 2, y: 0 }, { id: 'ash_golem', x: 1, y: 1 }, { id: 'abyssal_stalker', x: 0, y: 2 }, { id: 'abyssal_stalker', x: 2, y: 2 }], reward: { type: 'ritual_duration', value: 1.15, desc: "Rituals last 15% longer." } },
-    { id: 'puzzle36', name: "36. The Vanguard", desc: "A powerful Balrog leads the charge.", pointBudget: 22, enemies: [{ id: 'balrog', x: 1, y: 2 }, { id: 'imp', x: 0, y: 1 }, { id: 'imp', x: 2, y: 1 }], reward: { type: 'sps_multiplier', value: 1.08, desc: "Perm. +8% global SPS." } },
-    { id: 'puzzle37', name: "37. The Rearguard", desc: "A powerful Balrog protects the back line.", pointBudget: 22, enemies: [{ id: 'balrog', x: 1, y: 0 }, { id: 'ghoul', x: 0, y: 1 }, { id: 'ghoul', x: 2, y: 1 }], reward: { type: 'essence_multiplier', value: 1.04, desc: "Perm. +4% Dark Essence gain." } },
-    { id: 'puzzle38', name: "38. Lord of the Damned", desc: "A Lich commands a legion of the dead.", pointBudget: 24, enemies: [{ id: 'frost_lich', x: 1, y: 0 }, { id: 'ghoul', x: 0, y: 0 }, { id: 'ghoul', x: 2, y: 0 }, { id: 'ghoul', x: 1, y: 1 }], reward: { type: 'promotion_cost_reducer', value: 0.92, desc: "Promotions cost 8% less DE." } },
-    { id: 'puzzle39', name: "39. The Unstoppable Force", desc: "Two Balrogs, two Golems. Unbreakable.", pointBudget: 25, enemies: [{ id: 'balrog', x: 0, y: 0 }, { id: 'balrog', x: 2, y: 0 }, { id: 'ash_golem', x: 0, y: 1 }, { id: 'ash_golem', x: 2, y: 1 }], reward: { type: 'artifact_effectiveness', value: 1.07, desc: "Artifacts are 7% more effective." } },
-    { id: 'puzzle40', name: "40. Army of Darkness", desc: "A full deployment.", pointBudget: 30, enemies: [{ id: 'ash_golem', x: 1, y: 1 }, { id: 'abyssal_stalker', x: 0, y: 1 }, { id: 'abyssal_stalker', x: 2, y: 1 }, { id: 'frost_lich', x: 1, y: 0 }], reward: { type: 'global_all_multiplier', value: 1.05, desc: "All Soul Gains +5%." } },
-    
-    // TIER 5: IMPOSSIBLE TACTICS (Puzzles 41-50)
-    { id: 'puzzle41', name: "41. The Crucible", desc: "Nowhere to run.", pointBudget: 30, enemies: [{id:'demon',x:0,y:0},{id:'demon',x:2,y:0},{id:'demon',x:0,y:2},{id:'demon',x:2,y:2}], reward: { type: 'sps_multiplier', value: 1.10, desc: "Perm. +10% global SPS." } },
-    { id: 'puzzle42', name: "42. The Impfinity War", desc: "So. Many. Imps.", pointBudget: 15, enemies: Array.from({length: 12}, (_, i) => ({id: 'imp', x: i % 3, y: Math.floor(i/3)})), reward: { type: 'shard_bonus', value: 1.05, desc: "Gain +5% Shards on Ascend." } },
-    { id: 'puzzle43', name: "43. The Icy Tomb", desc: "Snipers cover every lane.", pointBudget: 25, enemies: [{id:'frost_lich',x:0,y:0},{id:'frost_lich',x:1,y:0},{id:'frost_lich',x:2,y:0}], reward: { type: 'ritual_duration', value: 1.25, desc: "Rituals last 25% longer." } },
-    { id: 'puzzle44', name: "44. The Three Lords", desc: "The masters of melee, ranged, and assassination.", pointBudget: 25, enemies: [{id:'balrog',x:1,y:1},{id:'frost_lich',x:0,y:0},{id:'abyssal_stalker',x:2,y:1}], reward: { type: 'spc_multiplier', value: 1.10, desc: "Perm. +10% global SPC." } },
-    { id: 'puzzle45', name: "45. The Final Stand", desc: "Their entire force is arrayed against you.", pointBudget: 35, enemies: [{id:'balrog',x:1,y:0},{id:'ash_golem',x:0,y:1},{id:'ash_golem',x:2,y:1},{id:'cinder_wraith',x:0,y:0},{id:'cinder_wraith',x:2,y:0}], reward: { type: 'minion_cost_reducer', value: 0.90, desc: "Main game minions are 10% cheaper." } },
-    { id: 'puzzle46', name: "46. Balrog Blitz", desc: "Pure, unadulterated power.", pointBudget: 22, enemies: [{id:'balrog', x:0,y:2},{id:'balrog', x:1,y:2},{id:'balrog', x:2,y:2}], reward: { type: 'essence_multiplier', value: 1.05, desc: "Perm. +5% Dark Essence gain." } },
-    { id: 'puzzle47', name: "47. The Labyrinth", desc: "A confusing formation designed to split your forces.", pointBudget: 30, enemies: [{id:'ash_golem',x:0,y:1},{id:'ash_golem',x:2,y:1},{id:'ash_golem',x:1,y:2},{id:'frost_lich',x:1,y:0}], reward: { type: 'promotion_cost_reducer', value: 0.90, desc: "Promotions cost 10% less DE." } },
-    { id: 'puzzle48', name: "48. The Four Horsemen", desc: "Four elite demons of immense power.", pointBudget: 30, enemies: [{id:'balrog',x:0,y:0},{id:'frost_lich',x:2,y:0},{id:'abyssal_stalker',x:0,y:1},{id:'ash_golem',x:2,y:1}], reward: { type: 'artifact_effectiveness', value: 1.10, desc: "Artifacts are 10% more effective." } },
-    { id: 'puzzle49', name: "49. World Enders", desc: "Three Balrogs. This is the ultimate test of power.", pointBudget: 25, enemies: [{id:'balrog',x:0,y:0},{id:'balrog',x:1,y:0},{id:'balrog',x:2,y:0}], reward: { type: 'shard_bonus', value: 1.10, desc: "Gain +10% Shards on Ascend." } },
-    { id: 'puzzle50', name: "50. The Soul Collector", desc: "Face yourself. A perfectly balanced, impossible army.", pointBudget: 40, enemies: [{id:'balrog',x:0,y:1},{id:'balrog',x:2,y:1},{id: 'frost_lich',x:0,y:0},{id:'frost_lich',x:2,y:0}, {id:'ash_golem', x:1,y:2}], reward: { type: 'global_all_multiplier', value: 1.10, desc: "All Soul Gains permanently increased by 10%." } },
+    // 1. Lone imp centre-front — place anything and win. Pure intro.
+    { id:'puzzle1', name:"1. The First Trial",
+      desc:"One imp stands in the centre. Deploy a unit in front of it and learn how combat flows.",
+      pointBudget:3,
+      enemies:[{id:'imp',x:1,y:1}],
+      reward:{type:'sps_multiplier',value:1.01,desc:"Perm. +1% global SPS."} },
 
-    // === TIER 4: POST-ASCENSION (Requires at least 1 Ascension) ===
-    { id: 'puzzle51', name: "51. Void Awakening", desc: "A Void Spawn has awakened. Its range covers the entire field.", pointBudget: 22, ascensionRequired: 1,
-      enemies: [{id:'void_spawn',x:1,y:0},{id:'ghoul',x:0,y:1},{id:'ghoul',x:2,y:1}],
-      reward: { type: 'sps_multiplier', value: 1.15, desc: "Perm. +15% SPS." } },
+    // 2. Golem in the back centre — teach that ranged reaches over distance.
+    //    Solution: cinder_wraith(4) at (1,3) range3 hits golem at (1,0) dist=3. Easy.
+    { id:'puzzle2', name:"2. The Stone Sentinel",
+      desc:"A stone golem waits in the back row. Melee takes time to close the gap — a ranged unit reaches it immediately from your back row.",
+      pointBudget:6,
+      enemies:[{id:'ash_golem',x:1,y:0}],
+      reward:{type:'spc_multiplier',value:1.02,desc:"Perm. +2% global SPC."} },
 
-    { id: 'puzzle52', name: "52. The Reality Warper", desc: "It moves unpredictably. High attack, moderate HP — kill it fast.", pointBudget: 24, ascensionRequired: 1,
-      enemies: [{id:'reality_warper',x:1,y:1},{id:'imp',x:0,y:0},{id:'imp',x:2,y:0},{id:'imp',x:1,y:2}],
-      reward: { type: 'spc_multiplier', value: 1.15, desc: "Perm. +15% SPC." } },
+    // 3. Two imps on the flanks (front row) — teach flank coverage.
+    //    Solution: demon(3) centre front hits both as they close, or two imps on your flanks.
+    { id:'puzzle3', name:"3. The Pincer",
+      desc:"Imps charge both outer lanes. A strong centre unit intercepts both as they converge — or mirror them on the flanks.",
+      pointBudget:5,
+      enemies:[{id:'imp',x:0,y:1},{id:'imp',x:2,y:1}],
+      reward:{type:'essence_multiplier',value:1.01,desc:"Perm. +1% Dark Essence gain."} },
 
-    { id: 'puzzle53', name: "53. Spacetime Assault", desc: "Three Spacetime Ghasts cover every angle with long range.", pointBudget: 30, ascensionRequired: 1,
-      enemies: [{id:'spacetime_ghast',x:0,y:0},{id:'spacetime_ghast',x:2,y:0},{id:'spacetime_ghast',x:1,y:2}],
-      reward: { type: 'global_all_multiplier', value: 1.12, desc: "All Soul Gains +12%." } },
+    // 4. Ranged wraith in back-centre behind two imp guards.
+    //    Strategy: ranged player unit at (1,3) range3 shoots past guards to wraith at (1,0) dist=3.
+    { id:'puzzle4', name:"4. The Covered Archer",
+      desc:"A wraith snipes from the back row, sheltered by two imp guards. Use your own ranged units to shoot straight past the guards.",
+      pointBudget:8,
+      enemies:[{id:'cinder_wraith',x:1,y:0},{id:'imp',x:0,y:1},{id:'imp',x:2,y:1}],
+      reward:{type:'minion_cost_reducer',value:0.99,desc:"Minions 1% cheaper."} },
 
-    { id: 'puzzle54', name: "54. The Iron Citadel", desc: "Alpha & Omega is shielded by two unbreakable golems.", pointBudget: 35, ascensionRequired: 1,
-      enemies: [{id:'alpha_omega',x:1,y:0},{id:'ash_golem',x:0,y:1},{id:'ash_golem',x:2,y:1},{id:'ghoul',x:1,y:2}],
-      reward: { type: 'minion_cost_reducer', value: 0.85, desc: "All minions cost 15% less." } },
+    // 5. Three ghouls spread across the front row.
+    //    Strategy: one strong melee centre handles all three as they converge. Or AoE (demon).
+    { id:'puzzle5', name:"5. Ghoul Tide",
+      desc:"Three ghouls fill the entire front row. They will all advance simultaneously — a powerful centre unit or a demon's AoE burst stops them cold.",
+      pointBudget:7,
+      enemies:[{id:'ghoul',x:0,y:1},{id:'ghoul',x:1,y:1},{id:'ghoul',x:2,y:1}],
+      reward:{type:'sps_multiplier',value:1.02,desc:"Perm. +2% global SPS."} },
 
-    { id: 'puzzle55', name: "55. The God Eater Rises", desc: "The most powerful melee unit stands alone. Can you match its raw output?", pointBudget: 35, ascensionRequired: 1,
-      enemies: [{id:'god_eater',x:1,y:0},{id:'cinder_wraith',x:0,y:1},{id:'cinder_wraith',x:2,y:1}],
-      reward: { type: 'sps_multiplier', value: 1.20, desc: "Perm. +20% SPS." } },
+    // 6. Abyssal stalkers in back corners — high ATK, hard to reach.
+    //    Strategy: frost_lich(6) at (1,3) range4 hits (0,0) dist=4 and (2,0) dist=4. Perfect sniper mirror.
+    { id:'puzzle6', name:"6. Corner Assassins",
+      desc:"Powerful stalkers lurk in the back corners. Your melee can't reach them without crossing the whole field — bring range-4 units or flank both sides.",
+      pointBudget:10,
+      enemies:[{id:'abyssal_stalker',x:0,y:0},{id:'abyssal_stalker',x:2,y:0}],
+      reward:{type:'spc_multiplier',value:1.03,desc:"Perm. +3% global SPC."} },
 
-    { id: 'puzzle56', name: "56. All-Seeing", desc: "The Final Observer watches from maximum range. Nothing escapes its gaze.", pointBudget: 30, ascensionRequired: 1,
-      enemies: [{id:'the_final_observer',x:1,y:0},{id:'hellhound',x:0,y:1},{id:'hellhound',x:2,y:1},{id:'imp',x:1,y:2}],
-      reward: { type: 'essence_multiplier', value: 1.15, desc: "Perm. +15% Dark Essence gain." } },
+    // 7. Tank front-centre + ranged sniper behind it.
+    //    Strategy: kill guard first with melee, then deal with sniper. Or ranged unit bypasses guard.
+    { id:'puzzle7', name:"7. The Bodyguard",
+      desc:"A frost lich shelters in the back while a golem bodyguard blocks the centre lane. Kill the golem to clear the path — or use ranged fire over its head.",
+      pointBudget:10,
+      enemies:[{id:'frost_lich',x:1,y:0},{id:'ash_golem',x:1,y:1}],
+      reward:{type:'ritual_duration',value:1.05,desc:"Rituals last 5% longer."} },
 
-    { id: 'puzzle57', name: "57. Pincer from Beyond", desc: "Void Spawns flank from both sides with extreme range. Your centre must hold.", pointBudget: 38, ascensionRequired: 2,
-      enemies: [{id:'void_spawn',x:0,y:0},{id:'void_spawn',x:2,y:0},{id:'alpha_omega',x:1,y:1}],
-      reward: { type: 'global_all_multiplier', value: 1.15, desc: "All Soul Gains +15%." } },
+    // 8. Three wraiths across entire back row — maximum ranged pressure.
+    //    Strategy: place a high-HP tank at (1,2) as damage sponge; put your own ranged behind it.
+    { id:'puzzle8', name:"8. Artillery Barrage",
+      desc:"Three wraiths blanket the back row — all three fire simultaneously from turn one. A durable front-row tank buys your own ranged units time to respond.",
+      pointBudget:12,
+      enemies:[{id:'cinder_wraith',x:0,y:0},{id:'cinder_wraith',x:1,y:0},{id:'cinder_wraith',x:2,y:0}],
+      reward:{type:'essence_multiplier',value:1.02,desc:"Perm. +2% Dark Essence gain."} },
 
-    { id: 'puzzle58', name: "58. Pantheon Guard", desc: "The gods protect each other. Take out the sniper before the tanks overwhelm you.", pointBudget: 40, ascensionRequired: 2,
-      enemies: [{id:'the_final_observer',x:1,y:0},{id:'alpha_omega',x:0,y:1},{id:'alpha_omega',x:2,y:1},{id:'god_eater',x:1,y:2}],
-      reward: { type: 'spc_multiplier', value: 1.20, desc: "Perm. +20% SPC." } },
+    // 9. Balrog centre-front — high HP and ATK. Teach burst DPS needed.
+    //    Strategy: hellhound(6) + cinder_wraith(4) + imp(1) = 11. Too much. Balrog cost7 to defeat needs atk burst.
+    //    fallen_angel(9) at (1,2) = atk16, hp45. vs balrog hp65, atk10. Angel does 65/16=5 turns, balrog does 45/10=5 turns. Tie... add hellhound: 9+6=15, too much for budget 12. Let's do: hellhound(6)+cinder_wraith(4)+imp(1)=11. Or balrog(7)+demon(3)+imp(1)=11.
+    //    budget 12: balrog(7)+cinder_wraith(4)+imp(1)=12. Combined atk=10+6+3=19/turn vs balrog 65hp = 4 turns. Balrog atk10 vs balrog+cw+imp hp=65+15+10=90. Fine.
+    { id:'puzzle9', name:"9. Trial by Fire",
+      desc:"A Balrog occupies the centre lane. It deals massive damage — bring burst DPS, a resilient tank, or both. Raw power beats raw power.",
+      pointBudget:12,
+      enemies:[{id:'balrog',x:1,y:1}],
+      reward:{type:'artifact_effectiveness',value:1.02,desc:"Artifacts 2% more effective."} },
 
-    { id: 'puzzle59', name: "59. Causal Chain", desc: "Causal Predators and Spacetime Ghasts — their damage cascades through time.", pointBudget: 42, ascensionRequired: 2,
-      enemies: [{id:'causal_predator',x:0,y:0},{id:'causal_predator',x:2,y:0},{id:'spacetime_ghast',x:1,y:1},{id:'void_spawn',x:1,y:2}],
-      reward: { type: 'sps_multiplier', value: 1.25, desc: "Perm. +25% SPS." } },
+    // 10. Tier 1 boss: Balrog back-centre + two frost liches back corners.
+    //     Strategy: prioritise the liches (range attack) while tanking the balrog. Needs long-range.
+    //     frost_lich(6) at (1,3): hits (0,0) dist=4 (range4), (1,0) dist=3, (2,0) dist=4. All covered!
+    //     Budget 18: frost_lich(6)+balrog(7)+cinder_wraith(4)+imp(1)=18. Strong combo.
+    { id:'puzzle10', name:"10. The Grandmaster",
+      desc:"A Balrog anchors the back-centre while two frost liches cover the corners. Kill the liches first — they will outlast your tank if ignored. Long-range units are essential.",
+      pointBudget:18,
+      enemies:[{id:'balrog',x:1,y:0},{id:'frost_lich',x:0,y:0},{id:'frost_lich',x:2,y:0}],
+      reward:{type:'global_all_multiplier',value:1.01,desc:"All Soul Gains +1%."} },
 
-    { id: 'puzzle60', name: "60. The Eternal Siege", desc: "Alpha & Omegas on both flanks. The centre holds a sniper. Break one flank first.", pointBudget: 45, ascensionRequired: 2,
-      enemies: [{id:'alpha_omega',x:0,y:1},{id:'alpha_omega',x:2,y:1},{id:'the_final_observer',x:1,y:0},{id:'god_eater',x:1,y:2}],
-      reward: { type: 'minion_cost_reducer', value: 0.80, desc: "All minions cost 20% less." } },
+    // ═══════════════════════════════════════════════════════════════
+    // TIER 2 — ADVANCED TACTICS (Puzzles 11–20)
+    // Teach: protect your ranged, column control, multi-threat priority
+    // ═══════════════════════════════════════════════════════════════
 
-    { id: 'puzzle61', name: "61. Void Legion", desc: "Five Void Spawns at maximum range. There is nowhere safe to stand.", pointBudget: 50, ascensionRequired: 3,
-      enemies: [{id:'void_spawn',x:0,y:0},{id:'void_spawn',x:2,y:0},{id:'void_spawn',x:1,y:1},{id:'void_spawn',x:0,y:2},{id:'void_spawn',x:2,y:2}],
-      reward: { type: 'global_all_multiplier', value: 1.20, desc: "All Soul Gains +20%." } },
+    // 11. Stalker front-centre + wraith back-centre — mixed threat layers.
+    //     Strategy: melee unit intercepts stalker while ranged handles wraith.
+    { id:'puzzle11', name:"11. Layered Assault",
+      desc:"A stalker charges the centre while a wraith covers the back. Your front unit handles the stalker — your ranged handles the sniper behind it.",
+      pointBudget:12,
+      enemies:[{id:'abyssal_stalker',x:1,y:1},{id:'cinder_wraith',x:1,y:0}],
+      reward:{type:'sps_multiplier',value:1.03,desc:"Perm. +3% global SPS."} },
 
-    { id: 'puzzle62', name: "62. The Apex Predators", desc: "Two God Eaters and a Final Observer. The strongest combo in the abyss.", pointBudget: 50, ascensionRequired: 3,
-      enemies: [{id:'god_eater',x:0,y:0},{id:'god_eater',x:2,y:0},{id:'the_final_observer',x:1,y:1},{id:'causal_predator',x:1,y:2}],
-      reward: { type: 'sps_multiplier', value: 1.30, desc: "Perm. +30% SPS." } },
+    // 12. Two golems front corners — they're slow but durable. Ranged bypasses.
+    //     Strategy: cinder_wraith(4) at (1,3) range3 hits both from centre. Or frost_lich flanks.
+    { id:'puzzle12', name:"12. Twin Fortresses",
+      desc:"Two golems anchor the front corners. Melee meets them head-on at full HP — ranged fire from your back row starts dealing damage before they reach you.",
+      pointBudget:12,
+      enemies:[{id:'ash_golem',x:0,y:1},{id:'ash_golem',x:2,y:1}],
+      reward:{type:'minion_cost_reducer',value:0.98,desc:"Minions 2% cheaper."} },
 
-    { id: 'puzzle63', name: "63. Shatterstorm", desc: "Reality Warpers and Void Spawns. High attack from every range.", pointBudget: 55, ascensionRequired: 3,
-      enemies: [{id:'reality_warper',x:0,y:1},{id:'reality_warper',x:2,y:1},{id:'void_spawn',x:0,y:0},{id:'void_spawn',x:2,y:0},{id:'alpha_omega',x:1,y:2}],
-      reward: { type: 'spc_multiplier', value: 1.30, desc: "Perm. +30% SPC." } },
+    // 13. Three stalkers front row — fast, high ATK.
+    //     Strategy: two tanks side by side at (0,2) and (2,2) intercept flanks; ranged fires down centre.
+    { id:'puzzle13', name:"13. The Blitz",
+      desc:"Three stalkers launch a simultaneous front-row assault. Each one is dangerous alone — your formation must intercept all three before they shred your back row.",
+      pointBudget:16,
+      enemies:[{id:'abyssal_stalker',x:0,y:1},{id:'abyssal_stalker',x:1,y:1},{id:'abyssal_stalker',x:2,y:1}],
+      reward:{type:'spc_multiplier',value:1.04,desc:"Perm. +4% global SPC."} },
 
-    { id: 'puzzle64', name: "64. The Dread Council", desc: "One of every tier 4 unit. True endgame chaos. Study the formation carefully.", pointBudget: 60, ascensionRequired: 4,
-      enemies: [{id:'god_eater',x:0,y:0},{id:'the_final_observer',x:2,y:0},{id:'alpha_omega',x:1,y:1},{id:'void_spawn',x:0,y:2},{id:'causal_predator',x:2,y:2}],
-      reward: { type: 'global_all_multiplier', value: 1.25, desc: "All Soul Gains +25%." } },
+    // 14. Lich back-centre + ghoul guards flanking.
+    //     Strategy: clear ghoul guards then advance on lich, or use your own ranged to snipe lich past guards.
+    { id:'puzzle14', name:"14. The Necromancer's Guard",
+      desc:"A frost lich commands ghouls on each side. The lich fires over its guards' heads — use a high-HP tank to absorb its shots while you clear the ghouls.",
+      pointBudget:14,
+      enemies:[{id:'frost_lich',x:1,y:0},{id:'ghoul',x:0,y:1},{id:'ghoul',x:2,y:1}],
+      reward:{type:'shard_bonus',value:1.01,desc:"+1% Shards on Ascend."} },
 
-    { id: 'puzzle65', name: "65. Beyond the Void", desc: "Maximum budget. Every god-tier unit. Only a Soul Collector who has truly transcended can win.", pointBudget: 70, ascensionRequired: 5,
-      enemies: [{id:'god_eater',x:0,y:0},{id:'god_eater',x:2,y:0},{id:'the_final_observer',x:1,y:0},{id:'alpha_omega',x:0,y:2},{id:'alpha_omega',x:2,y:2},{id:'void_spawn',x:1,y:1}],
-      reward: { type: 'global_all_multiplier', value: 1.50, desc: "All Soul Gains permanently +50%. The ultimate reward." } }
+    // 15. Balrog + two ghouls staggered — teach mixed composition.
+    //     Strategy: high-DPS unit targets the balrog; flankers handle ghouls.
+    { id:'puzzle15', name:"15. The Hammer and the Anvil",
+      desc:"A Balrog leads from the back while ghouls pressure the front. Focus fire on the Balrog with your strongest unit — the ghouls can be absorbed by a sturdy tank.",
+      pointBudget:16,
+      enemies:[{id:'balrog',x:1,y:0},{id:'ghoul',x:0,y:1},{id:'ghoul',x:2,y:1}],
+      reward:{type:'sps_multiplier',value:1.04,desc:"Perm. +4% global SPS."} },
+
+    // 16. Two balrogs front flanks — heavy melee pressure on both sides.
+    //     Strategy: two tanks in your front flanks, ranged fires from centre back.
+    { id:'puzzle16', name:"16. Hell's Gate",
+      desc:"Two Balrogs charge the front flanks simultaneously. You cannot focus both — split your melee on the flanks and let ranged do the work from the centre.",
+      pointBudget:20,
+      enemies:[{id:'balrog',x:0,y:1},{id:'balrog',x:2,y:1}],
+      reward:{type:'minion_cost_reducer',value:0.97,desc:"Minions 3% cheaper."} },
+
+    // 17. Stalker front-left + lich back-right + imp front-right — asymmetric formation.
+    //     Strategy: prioritise lich (ranged damage), use a fast unit to chase the stalker.
+    { id:'puzzle17', name:"17. The Off-Balance",
+      desc:"An asymmetric formation — stalker on the front left, lich in the far corner, imp screening the right. The lich is the real threat; reach it before it whittles you down.",
+      pointBudget:16,
+      enemies:[{id:'abyssal_stalker',x:0,y:1},{id:'frost_lich',x:2,y:0},{id:'imp',x:2,y:1}],
+      reward:{type:'spc_multiplier',value:1.05,desc:"Perm. +5% global SPC."} },
+
+    // 18. Three golems seal the entire front row — wall formation.
+    //     Strategy: ranged units MUST be used. Place frost_lich or void_spawn in back row to fire over wall.
+    { id:'puzzle18', name:"18. The Iron Wall",
+      desc:"Three golems seal every column of the front row. Melee stalls entirely. Only ranged units can fire over the wall and damage the back row. No ranged = no path forward.",
+      pointBudget:18,
+      enemies:[{id:'ash_golem',x:0,y:1},{id:'ash_golem',x:1,y:1},{id:'ash_golem',x:2,y:1}],
+      reward:{type:'promotion_cost_reducer',value:0.97,desc:"Promotions 3% cheaper."} },
+
+    // 19. Two liches in back corners + one golem front-centre.
+    //     Strategy: use range-4 unit at (1,3) to hit both liches. Tank holds golem.
+    { id:'puzzle19', name:"19. The Snipers' Nest",
+      desc:"Two frost liches cover the back corners from maximum range while a golem guards the centre. A range-4 unit placed at your back-centre can reach both liches simultaneously.",
+      pointBudget:20,
+      enemies:[{id:'frost_lich',x:0,y:0},{id:'frost_lich',x:2,y:0},{id:'ash_golem',x:1,y:1}],
+      reward:{type:'artifact_effectiveness',value:1.03,desc:"Artifacts 3% more effective."} },
+
+    // 20. Tier 2 boss: Balrog back-centre + two demons flanking front.
+    //     Strategy: remove demons first with flanking units, then concentrate on Balrog.
+    { id:'puzzle20', name:"20. The Infernal Council",
+      desc:"A Balrog commands from the back while two demons hold the flanks. The Balrog's HP is formidable — clear the demons first so you can focus fire on it.",
+      pointBudget:22,
+      enemies:[{id:'balrog',x:1,y:0},{id:'demon',x:0,y:1},{id:'demon',x:2,y:1}],
+      reward:{type:'global_all_multiplier',value:1.02,desc:"All Soul Gains +2%."} },
+
+    // ═══════════════════════════════════════════════════════════════
+    // TIER 3 — EXPERT TACTICS (Puzzles 21–30)
+    // Teach: combined arms, protecting healers, kill order
+    // ═══════════════════════════════════════════════════════════════
+
+    // 21. Balrog front-left + lich back-right — separated threats.
+    //     Strategy: fast unit for balrog on left, ranged for lich on right from back-right corner.
+    { id:'puzzle21', name:"21. Diagonal Threat",
+      desc:"A Balrog charges the front left while a lich snipes from the far back right. They demand attention from opposite ends of the field — split your formation diagonally.",
+      pointBudget:20,
+      enemies:[{id:'balrog',x:0,y:1},{id:'frost_lich',x:2,y:0}],
+      reward:{type:'sps_multiplier',value:1.05,desc:"Perm. +5% global SPS."} },
+
+    // 22. Six imps filling all slots — numbers game.
+    //     Strategy: AoE unit (demon) or pit_lord. Budget is tight to force choice.
+    { id:'puzzle22', name:"22. The Imp Swarm",
+      desc:"Six imps fill every enemy slot. Combined their damage adds up fast. AoE damage or a unit with massive HP and sustained output is the only efficient answer.",
+      pointBudget:16,
+      enemies:[{id:'imp',x:0,y:0},{id:'imp',x:1,y:0},{id:'imp',x:2,y:0},{id:'imp',x:0,y:1},{id:'imp',x:1,y:1},{id:'imp',x:2,y:1}],
+      reward:{type:'shard_bonus',value:1.02,desc:"Gain +2% Shards on Ascend."} },
+
+    // 23. Lich back-centre behind wall of three golems.
+    //     Strategy: CAN'T just brute force. Need ranged that clears distance. frost_lich(6) at (1,3) dist=3 to enemy lich, range4 ✓. Meanwhile tank soaks golem atk.
+    { id:'puzzle23', name:"23. Glacial Fortress",
+      desc:"A lich hides directly behind a wall of three golems. Melee units can't reach the lich until all golems fall. Your own ranged fires straight over the wall — place them at your back-centre.",
+      pointBudget:22,
+      enemies:[{id:'frost_lich',x:1,y:0},{id:'ash_golem',x:0,y:1},{id:'ash_golem',x:1,y:1},{id:'ash_golem',x:2,y:1}],
+      reward:{type:'ritual_duration',value:1.10,desc:"Rituals last 10% longer."} },
+
+    // 24. Three balrogs in a column down centre — stacked melee threat.
+    //     Strategy: a tank absorbs the first, ranged fires while melee clears. Or flank around the column.
+    { id:'puzzle24', name:"24. The Battering Ram",
+      desc:"Three Balrogs are stacked in the centre column, front to back. Melee units meet them head-on with no escape. Flank with units on x=0 or x=2, or bring overwhelming sustained DPS.",
+      pointBudget:28,
+      enemies:[{id:'balrog',x:1,y:1},{id:'balrog',x:1,y:0},{id:'ash_golem',x:0,y:0}],
+      reward:{type:'spc_multiplier',value:1.06,desc:"Perm. +6% global SPC."} },
+
+    // 25. Wraiths back corners + golem front-centre — classic protected snipers.
+    //     Strategy: tank holds golem, ranged fires on wraiths from sides.
+    { id:'puzzle25', name:"25. Protected Snipers",
+      desc:"Wraiths snipe from the back corners while a golem holds the centre lane. The golem is bait — the wraiths deal the real damage. Silence them fast with flanking ranged units.",
+      pointBudget:20,
+      enemies:[{id:'cinder_wraith',x:0,y:0},{id:'cinder_wraith',x:2,y:0},{id:'ash_golem',x:1,y:1}],
+      reward:{type:'minion_cost_reducer',value:0.96,desc:"Minions 4% cheaper."} },
+
+    // 26. Hellhound front-left + lich back-right + imp front-right.
+    //     Strategy: hellhound is high atk but manageable; lich is the ranged threat. Range unit for lich.
+    { id:'puzzle26', name:"26. The Wild Hunt",
+      desc:"A hellhound charges the front left with savage power while a lich snipes from the back right. The lich will outlast your entire front line if not silenced — prioritise it.",
+      pointBudget:20,
+      enemies:[{id:'hellhound',x:0,y:1},{id:'frost_lich',x:2,y:0},{id:'imp',x:2,y:1}],
+      reward:{type:'essence_multiplier',value:1.03,desc:"Perm. +3% Dark Essence gain."} },
+
+    // 27. Two hellhounds front flanks + wraith back-centre.
+    //     Strategy: tanks on flanks absorb hellhounds; ranged snipes wraith from centre back.
+    { id:'puzzle27', name:"27. Hounds of Hell",
+      desc:"Two high-damage hellhounds hit both front flanks while a wraith fires from the back centre. Flank coverage is mandatory — then let your ranged deal with the sniper.",
+      pointBudget:22,
+      enemies:[{id:'hellhound',x:0,y:1},{id:'hellhound',x:2,y:1},{id:'cinder_wraith',x:1,y:0}],
+      reward:{type:'sps_multiplier',value:1.06,desc:"Perm. +6% global SPS."} },
+
+    // 28. Balrog front-centre + two stalkers back corners — flanked from behind.
+    //     Strategy: unit at (1,2) tanks balrog; ranged at (1,3) targets stalkers via range. Stalkers won't advance if being targeted.
+    { id:'puzzle28', name:"28. The Executioner",
+      desc:"A Balrog holds the centre while stalkers lurk in the back corners. The stalkers close range fast — deal with them via your own ranged units or they will flank your formation.",
+      pointBudget:22,
+      enemies:[{id:'balrog',x:1,y:1},{id:'abyssal_stalker',x:0,y:0},{id:'abyssal_stalker',x:2,y:0}],
+      reward:{type:'promotion_cost_reducer',value:0.94,desc:"Promotions 6% cheaper."} },
+
+    // 29. Golem + lich in the SAME column (y=1 and y=0) on the left. Balrog front-right.
+    //     Strategy: kill golem to clear path to lich; separate right-side unit for balrog.
+    { id:'puzzle29', name:"29. The Tower Defence",
+      desc:"A golem shields a lich in the left column while a Balrog attacks from the right. You must split your force — one side kills the tower, the other holds the Balrog.",
+      pointBudget:24,
+      enemies:[{id:'ash_golem',x:0,y:1},{id:'frost_lich',x:0,y:0},{id:'balrog',x:2,y:1}],
+      reward:{type:'artifact_effectiveness',value:1.05,desc:"Artifacts 5% more effective."} },
+
+    // 30. Full six slots: golems front, balrogs back. Maximum density.
+    //     Strategy: need both melee AND ranged. Back-row ranged fires on balrogs while melee handles golems.
+    { id:'puzzle30', name:"30. The Onslaught",
+      desc:"Golems seal the front row, Balrogs occupy the back row. This is a two-phase fight — the golems must fall before you can reach the Balrogs. Bring both melee and ranged.",
+      pointBudget:30,
+      enemies:[{id:'ash_golem',x:0,y:1},{id:'ash_golem',x:1,y:1},{id:'ash_golem',x:2,y:1},{id:'balrog',x:0,y:0},{id:'balrog',x:1,y:0},{id:'balrog',x:2,y:0}],
+      reward:{type:'global_all_multiplier',value:1.03,desc:"All Soul Gains +3%."} },
+
+    // ═══════════════════════════════════════════════════════════════
+    // TIER 4 — MASTER TACTICS (Puzzles 31–40)
+    // Teach: execute combos, column denial, healer protection
+    // ═══════════════════════════════════════════════════════════════
+
+    // 31. Three liches across back row + golem front-centre.
+    //     Strategy: longest-range player unit at (1,3) hits all three liches (dist 3-4). Tank golem.
+    { id:'puzzle31', name:"31. The Snipers' Wall",
+      desc:"Three frost liches line the entire back row — constant ranged fire from all columns. Only a range-4+ unit placed at your back-centre can reach and silence all three at once.",
+      pointBudget:26,
+      enemies:[{id:'frost_lich',x:0,y:0},{id:'frost_lich',x:1,y:0},{id:'frost_lich',x:2,y:0},{id:'ash_golem',x:1,y:1}],
+      reward:{type:'sps_multiplier',value:1.07,desc:"Perm. +7% global SPS."} },
+
+    // 32. Hellhound front-left + two stalkers back flanks.
+    //     Strategy: tank for hellhound; flanking ranged for stalkers. Asymmetric.
+    { id:'puzzle32', name:"32. Speed and Stealth",
+      desc:"A hellhound charges the front-left while stalkers prepare to flank from the back corners. High ATK from multiple angles — don't let any of them reach your back row.",
+      pointBudget:26,
+      enemies:[{id:'hellhound',x:0,y:1},{id:'abyssal_stalker',x:0,y:0},{id:'abyssal_stalker',x:2,y:0}],
+      reward:{type:'shard_bonus',value:1.03,desc:"Gain +3% Shards on Ascend."} },
+
+    // 33. Two balrogs + two golems in a 2x2 block (left columns).
+    //     Strategy: concentrate force on the left or use wide ranged coverage from centre.
+    { id:'puzzle33', name:"33. The Siege Block",
+      desc:"Two Balrogs and two golems form a dense block in the left columns. They will advance as a unit. Concentrate your strongest units directly in their path or use long-range to pick them off.",
+      pointBudget:30,
+      enemies:[{id:'balrog',x:0,y:0},{id:'balrog',x:0,y:1},{id:'ash_golem',x:1,y:0},{id:'ash_golem',x:1,y:1}],
+      reward:{type:'spc_multiplier',value:1.07,desc:"Perm. +7% global SPC."} },
+
+    // 34. Lich back-left + lich back-right + stalker front-centre.
+    //     Strategy: range-4 unit hits both liches from (1,3). Melee handles stalker.
+    { id:'puzzle34', name:"34. Crossfire",
+      desc:"Snipers in both back corners pour crossfire into the centre while a stalker charges the front. Your back-centre unit catches both snipers in range. Do not neglect the stalker.",
+      pointBudget:26,
+      enemies:[{id:'frost_lich',x:0,y:0},{id:'frost_lich',x:2,y:0},{id:'abyssal_stalker',x:1,y:1}],
+      reward:{type:'minion_cost_reducer',value:0.94,desc:"Minions 6% cheaper."} },
+
+    // 35. Balrog+golem stacked in each flank column — two towers.
+    //     Strategy: you must cover both flanks. Centre is left open — use it for your own ranged.
+    { id:'puzzle35', name:"35. Twin Towers",
+      desc:"A Balrog-golem stack guards each flank column. The centre is undefended but both towers fire in. Place your strongest melee on each flank and a ranged unit at the open centre.",
+      pointBudget:32,
+      enemies:[{id:'balrog',x:0,y:0},{id:'ash_golem',x:0,y:1},{id:'balrog',x:2,y:0},{id:'ash_golem',x:2,y:1}],
+      reward:{type:'ritual_duration',value:1.15,desc:"Rituals last 15% longer."} },
+
+    // 36. Three hellhounds across the front row — very high combined ATK.
+    //     Strategy: three tanks or two tanks + healer. Or one massive HP unit + ranged.
+    { id:'puzzle36', name:"36. The Kennel",
+      desc:"Three hellhounds line the entire front row — enormous combined attack from turn one. You need either massive HP to absorb it all or enough melee units to quickly burn them down.",
+      pointBudget:26,
+      enemies:[{id:'hellhound',x:0,y:1},{id:'hellhound',x:1,y:1},{id:'hellhound',x:2,y:1}],
+      reward:{type:'sps_multiplier',value:1.08,desc:"Perm. +8% global SPS."} },
+
+    // 37. Balrog back-centre + stalker front-left + lich back-left.
+    //     Strategy: left side has lich+stalker stacked — kill stalker then lich; ranged hits balrog.
+    { id:'puzzle37', name:"37. The Left Flank",
+      desc:"The entire left column is stacked with threats — stalker front, lich back — while a Balrog anchors the back-centre. The left column demands immediate focused attention.",
+      pointBudget:28,
+      enemies:[{id:'balrog',x:1,y:0},{id:'abyssal_stalker',x:0,y:1},{id:'frost_lich',x:0,y:0}],
+      reward:{type:'essence_multiplier',value:1.04,desc:"Perm. +4% Dark Essence gain."} },
+
+    // 38. Golem screen (front row centre + both sides) + two liches back corners.
+    //     Strategy: must bypass the golem wall. Need range4+ for liches. Golems delay melee.
+    { id:'puzzle38', name:"38. The Trench",
+      desc:"Three golems form a front-row trench while liches snipe from the back corners. Ranged units must reach range-4 to hit the liches — place them at your back-centre column.",
+      pointBudget:28,
+      enemies:[{id:'ash_golem',x:0,y:1},{id:'ash_golem',x:1,y:1},{id:'ash_golem',x:2,y:1},{id:'frost_lich',x:0,y:0},{id:'frost_lich',x:2,y:0}],
+      reward:{type:'promotion_cost_reducer',value:0.90,desc:"Promotions 10% cheaper."} },
+
+    // 39. Two balrogs + hellhound staggered — pure brute force mixed.
+    //     Strategy: balance tank + DPS. Can't pure tank this — must kill fast.
+    { id:'puzzle39', name:"39. The Brutal Trio",
+      desc:"Two Balrogs and a Hellhound spread across both rows. Combined they deal immense sustained damage — you need both durability AND enough DPS to kill them before they overwhelm you.",
+      pointBudget:30,
+      enemies:[{id:'balrog',x:0,y:0},{id:'balrog',x:2,y:0},{id:'hellhound',x:1,y:1}],
+      reward:{type:'artifact_effectiveness',value:1.07,desc:"Artifacts 7% more effective."} },
+
+    // 40. Full six-slot boss: balrogs back, golems + stalkers front.
+    //     Strategy: stalkers close fast, golems tank, balrogs behind. Need range AND melee.
+    { id:'puzzle40', name:"40. Army of Darkness",
+      desc:"The full grid is packed — stalkers and golems fill the front, Balrogs hold the back row. The stalkers advance instantly, forcing you to address them before the Balrogs even arrive. Bring everything.",
+      pointBudget:36,
+      enemies:[{id:'balrog',x:0,y:0},{id:'balrog',x:1,y:0},{id:'balrog',x:2,y:0},{id:'ash_golem',x:0,y:1},{id:'ash_golem',x:2,y:1},{id:'abyssal_stalker',x:1,y:1}],
+      reward:{type:'global_all_multiplier',value:1.05,desc:"All Soul Gains +5%."} },
+
+    // ═══════════════════════════════════════════════════════════════
+    // TIER 5 — LEGEND (Puzzles 41–50)
+    // Uses god-tier enemies: void_spawn, alpha_omega, god_eater, final_observer
+    // ═══════════════════════════════════════════════════════════════
+
+    // 41. Spacetime ghast (range3) front-centre — moderate ranged threat intro.
+    //     Strategy: match with your own range-3+ unit. Or tank it with high HP.
+    { id:'puzzle41', name:"41. Ripple in Time",
+      desc:"A Spacetime Ghast holds the front-centre with moderate range. It deals consistent damage from mid-field. Bring enough HP to weather its attacks or match its range from your side.",
+      pointBudget:22,
+      enemies:[{id:'spacetime_ghast',x:1,y:1}],
+      reward:{type:'sps_multiplier',value:1.10,desc:"Perm. +10% global SPS."} },
+
+    // 42. Two spacetime ghasts + golem front — tanky + ranged combo.
+    //     Strategy: tank absorbs golem + ghasts; your ranged deals with ghasts.
+    { id:'puzzle42', name:"42. Temporal Siege",
+      desc:"Two Spacetime Ghasts fire from behind a front golem. Place a durable melee in front and use mid-range of your own to pressure the ghasts — they deal too much to be ignored.",
+      pointBudget:30,
+      enemies:[{id:'spacetime_ghast',x:0,y:1},{id:'spacetime_ghast',x:2,y:1},{id:'ash_golem',x:1,y:1}],
+      reward:{type:'shard_bonus',value:1.05,desc:"Gain +5% Shards on Ascend."} },
+
+    // 43. Void spawn (range5) back-centre — fires from anywhere, always.
+    //     Strategy: it will hit you from turn 1. Bring max HP tank AND fast DPS to burn it down.
+    { id:'puzzle43', name:"43. The Void Eye",
+      desc:"A Void Spawn watches from the back centre — its range-5 attack covers the ENTIRE field. There is no safe position. Maximise your DPS to kill it before it kills you.",
+      pointBudget:26,
+      enemies:[{id:'void_spawn',x:1,y:0}],
+      reward:{type:'ritual_duration',value:1.20,desc:"Rituals last 20% longer."} },
+
+    // 44. Alpha & Omega front-centre — massive HP self-healer.
+    //     Strategy: need execute-level burst or sustained high DPS to overcome its regen.
+    { id:'puzzle44', name:"44. The Eternal",
+      desc:"An Alpha & Omega stands alone — but its self-healing makes it nearly unkillable by sustained damage alone. Stack your highest-burst units or bring execute effects to finish it.",
+      pointBudget:30,
+      enemies:[{id:'alpha_omega',x:1,y:1}],
+      reward:{type:'spc_multiplier',value:1.10,desc:"Perm. +10% global SPC."} },
+
+    // 45. God Eater back-centre + two ghouls fronting — it absorbs counter-attacks.
+    //     Strategy: kill ghouls, then burst the God Eater with multiple units simultaneously.
+    { id:'puzzle45', name:"45. The Devourer",
+      desc:"A God Eater shelters behind two ghoul guards. The God Eater absorbs the next attack — hit it with multiple units at once so at least one blow lands while the counter is on cooldown.",
+      pointBudget:28,
+      enemies:[{id:'god_eater',x:1,y:0},{id:'ghoul',x:0,y:1},{id:'ghoul',x:2,y:1}],
+      reward:{type:'minion_cost_reducer',value:0.88,desc:"Minions 12% cheaper."} },
+
+    // 46. Final Observer back-centre (range6, hits everything) + golem guards.
+    //     Strategy: it will target the highest-HP player unit. Must kill it fast. Burst DPS.
+    { id:'puzzle46', name:"46. All-Seeing",
+      desc:"The Final Observer watches from the centre back — its range-6 attacks hit every cell on the board from turn one. Two golems slow your advance. Prioritise the Observer above all else.",
+      pointBudget:36,
+      enemies:[{id:'the_final_observer',x:1,y:0},{id:'ash_golem',x:0,y:1},{id:'ash_golem',x:2,y:1}],
+      reward:{type:'essence_multiplier',value:1.08,desc:"Perm. +8% Dark Essence gain."} },
+
+    // 47. Void spawn corners + Alpha & Omega centre front.
+    //     Strategy: void spawns have range5 — they fire immediately. Need massive HP front + ranged back.
+    { id:'puzzle47', name:"47. The Outer Void",
+      desc:"Void Spawns cover both back corners with field-wide range while an Alpha & Omega absorbs and heals in the front-centre. You are taking damage from three sources on turn one.",
+      pointBudget:42,
+      enemies:[{id:'void_spawn',x:0,y:0},{id:'void_spawn',x:2,y:0},{id:'alpha_omega',x:1,y:1}],
+      reward:{type:'promotion_cost_reducer',value:0.85,desc:"Promotions 15% cheaper."} },
+
+    // 48. God Eater + Final Observer + golem — all three types.
+    //     Strategy: observer fires from range6; god eater absorbs; golem tanks. Kill observer first.
+    { id:'puzzle48', name:"48. The Three Pillars",
+      desc:"Three distinct archetypes — The Final Observer covers the field, the God Eater counters, the Golem tanks. Kill the Observer first (it deals the most sustained damage), then burst the God Eater.",
+      pointBudget:40,
+      enemies:[{id:'the_final_observer',x:0,y:0},{id:'god_eater',x:2,y:0},{id:'ash_golem',x:1,y:1}],
+      reward:{type:'artifact_effectiveness',value:1.10,desc:"Artifacts 10% more effective."} },
+
+    // 49. Two Final Observers (both corners) + front stalkers.
+    //     Strategy: they cover the full field from both corners. Two range-4+ units at your back-sides needed.
+    { id:'puzzle49', name:"49. Double Vision",
+      desc:"Two Final Observers cover both back corners with maximum range — there is literally no square they cannot reach. Two stalkers pressure the front. Bring your field-wide ranged and maximum HP.",
+      pointBudget:48,
+      enemies:[{id:'the_final_observer',x:0,y:0},{id:'the_final_observer',x:2,y:0},{id:'abyssal_stalker',x:0,y:1},{id:'abyssal_stalker',x:2,y:1}],
+      reward:{type:'shard_bonus',value:1.10,desc:"Gain +10% Shards on Ascend."} },
+
+    // 50. Tier 5 boss: Balrog+Void Spawn+Alpha Omega+God Eater+Lich — full all-star lineup.
+    //     Strategy: kill observer/void spawn (ranged threats) first; tank alpha omega; burst god eater.
+    { id:'puzzle50', name:"50. The Soul Collector",
+      desc:"Every elite archetype on one field — the definitive pre-ascension challenge. Kill ranged threats first. The Alpha & Omega will heal unless burst down. The God Eater counters. Know your kill order.",
+      pointBudget:52,
+      enemies:[{id:'void_spawn',x:0,y:0},{id:'the_final_observer',x:2,y:0},{id:'alpha_omega',x:1,y:1},{id:'god_eater',x:0,y:1},{id:'frost_lich',x:2,y:1}],
+      reward:{type:'global_all_multiplier',value:1.10,desc:"All Soul Gains permanently +10%."} },
+
+    // ═══════════════════════════════════════════════════════════════
+    // TIER 6 — ASCENDED (Puzzles 51–65, require 1–5 ascensions)
+    // Uses: causal_predator, reality_warper, spacetime_ghast, all tier-4+
+    // ═══════════════════════════════════════════════════════════════
+
+    // 51. Void Spawn back + two ghouls front — scaled intro to tier 6. Ascension 1.
+    //     Strategy: ghouls die fast; focus burst on the void spawn before it drains HP.
+    { id:'puzzle51', name:"51. Void Awakening",
+      desc:"A Void Spawn commands from the back row with field-wide range, shielded by two ghouls. Kill the ghouls quickly so your melee can close — the Void Spawn will drain you the entire time.",
+      pointBudget:28, ascensionRequired:1,
+      enemies:[{id:'void_spawn',x:1,y:0},{id:'ghoul',x:0,y:1},{id:'ghoul',x:2,y:1}],
+      reward:{type:'sps_multiplier',value:1.15,desc:"Perm. +15% SPS."} },
+
+    // 52. Reality Warper front + two stalkers flanking.
+    //     Strategy: Reality Warper has high ATK and reduces max HP — kill it first before the debuff stacks.
+    { id:'puzzle52', name:"52. Reality Fracture",
+      desc:"A Reality Warper in the centre reduces your max HP permanently while stalkers flank it. The Warper's HP-drain ability makes long fights suicidal — burst it down before the debuff kills you.",
+      pointBudget:30, ascensionRequired:1,
+      enemies:[{id:'reality_warper',x:1,y:1},{id:'abyssal_stalker',x:0,y:0},{id:'abyssal_stalker',x:2,y:0}],
+      reward:{type:'spc_multiplier',value:1.15,desc:"Perm. +15% SPC."} },
+
+    // 53. Three Spacetime Ghasts spread — constant mid-range fire everywhere.
+    //     Strategy: each ghast is moderately tough; combined they overwhelm single targets. Split DPS.
+    { id:'puzzle53', name:"53. Temporal Storm",
+      desc:"Three Spacetime Ghasts lock all three columns with mid-range fire. Focusing one at a time is slow while the others fire freely. Use spread AoE or high-ATK units that can output damage faster.",
+      pointBudget:36, ascensionRequired:1,
+      enemies:[{id:'spacetime_ghast',x:0,y:0},{id:'spacetime_ghast',x:2,y:0},{id:'spacetime_ghast',x:1,y:1}],
+      reward:{type:'global_all_multiplier',value:1.12,desc:"All Soul Gains +12%."} },
+
+    // 54. Alpha Omega back + two golems front — healer behind wall.
+    //     Strategy: must crack the wall before the Alpha Omega heals repeatedly. High sustained DPS.
+    { id:'puzzle54', name:"54. The Iron Citadel",
+      desc:"An Alpha & Omega heals itself behind a front wall of two golems. Every turn the golems survive gives it time to restore HP. Bring the highest sustained DPS to crack the wall before it cycles twice.",
+      pointBudget:40, ascensionRequired:1,
+      enemies:[{id:'alpha_omega',x:1,y:0},{id:'ash_golem',x:0,y:1},{id:'ash_golem',x:2,y:1}],
+      reward:{type:'minion_cost_reducer',value:0.85,desc:"All minions cost 15% less."} },
+
+    // 55. God Eater + two wraiths — God Eater soaks an attack; wraiths fire.
+    //     Strategy: hit God Eater twice fast (overwhelming the counter); kill wraiths so they stop firing.
+    { id:'puzzle55', name:"55. The God Eater's Guard",
+      desc:"A God Eater guards the back-centre while two wraiths provide ranged cover. Hit the God Eater with multiple units on the same turn to overwhelm its counter-absorb, then clean up the wraiths.",
+      pointBudget:38, ascensionRequired:1,
+      enemies:[{id:'god_eater',x:1,y:1},{id:'cinder_wraith',x:0,y:0},{id:'cinder_wraith',x:2,y:0}],
+      reward:{type:'sps_multiplier',value:1.20,desc:"Perm. +20% SPS."} },
+
+    // 56. Final Observer back + two hellhounds front.
+    //     Strategy: hellhounds are fast AND high ATK; observer fires from everywhere. Kill observer asap.
+    { id:'puzzle56', name:"56. The All-Seeing Eye",
+      desc:"Two hellhounds with massive ATK charge the front while the Final Observer fires from the back with field-wide range. There is no delay — everything attacks on turn one. Kill the Observer first.",
+      pointBudget:40, ascensionRequired:1,
+      enemies:[{id:'the_final_observer',x:1,y:0},{id:'hellhound',x:0,y:1},{id:'hellhound',x:2,y:1}],
+      reward:{type:'essence_multiplier',value:1.15,desc:"Perm. +15% Dark Essence gain."} },
+
+    // 57. Causal Predator corners + Void Spawn back-centre. Ascension 2.
+    //     Strategy: Causal Predators are high ATK; void spawn fires from centre. Kill void spawn (centre, accessible) first.
+    { id:'puzzle57', name:"57. Causal Convergence",
+      desc:"Causal Predators flank the back corners while a Void Spawn covers the back-centre. Every enemy fires from turn one. Place a range-5 unit at your centre to engage all three simultaneously.",
+      pointBudget:46, ascensionRequired:2,
+      enemies:[{id:'causal_predator',x:0,y:0},{id:'causal_predator',x:2,y:0},{id:'void_spawn',x:1,y:0}],
+      reward:{type:'global_all_multiplier',value:1.15,desc:"All Soul Gains +15%."} },
+
+    // 58. Final Observer + two Alpha Omegas flanking.
+    //     Strategy: observer fires constantly; alpha omegas have massive HP + healing. Kill observer first then focus one omega at a time.
+    { id:'puzzle58', name:"58. The Pantheon",
+      desc:"The Final Observer covers the entire field while two Alpha & Omegas guard the flanks. The Omegas each heal separately — kill them one at a time using burst damage, with the Observer silenced first.",
+      pointBudget:50, ascensionRequired:2,
+      enemies:[{id:'the_final_observer',x:1,y:0},{id:'alpha_omega',x:0,y:1},{id:'alpha_omega',x:2,y:1}],
+      reward:{type:'spc_multiplier',value:1.20,desc:"Perm. +20% SPC."} },
+
+    // 59. God Eater + Causal Predator + Void Spawn — all three premium threats.
+    //     Strategy: void spawn fires immediately; god eater counters; predator bleeds. Priority: void spawn, then predator, then god eater.
+    { id:'puzzle59', name:"59. Causal Chain",
+      desc:"A Void Spawn fires from range, a Causal Predator bleeds you over time, and a God Eater counters your burst. Void Spawn first — it deals the most total damage. Then predator, then god eater.",
+      pointBudget:50, ascensionRequired:2,
+      enemies:[{id:'void_spawn',x:0,y:0},{id:'causal_predator',x:2,y:0},{id:'god_eater',x:1,y:1}],
+      reward:{type:'sps_multiplier',value:1.25,desc:"Perm. +25% SPS."} },
+
+    // 60. Two God Eaters front flanks + Final Observer back-centre. Ascension 2.
+    //     Strategy: both god eaters counter simultaneously — need unit that fires first to drain counters, then burst with others.
+    { id:'puzzle60', name:"60. The Eternal Siege",
+      desc:"Two God Eaters guard the front flanks while the Final Observer watches from back-centre. Use one weak unit to trigger each God Eater's counter separately, then unleash your real damage.",
+      pointBudget:55, ascensionRequired:2,
+      enemies:[{id:'god_eater',x:0,y:1},{id:'god_eater',x:2,y:1},{id:'the_final_observer',x:1,y:0}],
+      reward:{type:'minion_cost_reducer',value:0.80,desc:"All minions cost 20% less."} },
+
+    // 61. Five Void Spawns — total field coverage, overwhelming range. Ascension 3.
+    //     Strategy: no position is safe. Need maximum HP across 3+ units. Fast burn one at a time.
+    { id:'puzzle61', name:"61. Void Legion",
+      desc:"Five Void Spawns fill the grid — field-wide coverage from every unit, from turn one. No position is safe. Spread your own units to distribute incoming damage and kill them as fast as possible.",
+      pointBudget:58, ascensionRequired:3,
+      enemies:[{id:'void_spawn',x:0,y:0},{id:'void_spawn',x:2,y:0},{id:'void_spawn',x:1,y:1},{id:'void_spawn',x:0,y:1},{id:'void_spawn',x:2,y:1}],
+      reward:{type:'global_all_multiplier',value:1.20,desc:"All Soul Gains +20%."} },
+
+    // 62. Reality Warper + Causal Predator + Final Observer — debuff triple threat. Ascension 3.
+    //     Strategy: all three apply debuffs or permanent reductions. Kill observer, then predator, then warper.
+    { id:'puzzle62', name:"62. The Debuff Council",
+      desc:"Three elite debuffers — a Final Observer boosting incoming damage, a Causal Predator bleeding you, a Reality Warper reducing your max HP. Kill them in that order before the debuffs compound.",
+      pointBudget:55, ascensionRequired:3,
+      enemies:[{id:'the_final_observer',x:1,y:0},{id:'causal_predator',x:0,y:1},{id:'reality_warper',x:2,y:1}],
+      reward:{type:'sps_multiplier',value:1.30,desc:"Perm. +30% SPS."} },
+
+    // 63. Two Alpha Omegas + two Void Spawns — healing + field coverage. Ascension 3.
+    //     Strategy: void spawns fire constantly; alpha omegas heal. Kill spawns first, then omegas while they can't heal.
+    { id:'puzzle63', name:"63. The Self-Sustaining Army",
+      desc:"Two Alpha & Omegas heal through anything you deal while two Void Spawns cover the field. Kill the Void Spawns first — then focus-burst each Omega separately so it can't cycle its heal.",
+      pointBudget:62, ascensionRequired:3,
+      enemies:[{id:'void_spawn',x:0,y:0},{id:'void_spawn',x:2,y:0},{id:'alpha_omega',x:0,y:1},{id:'alpha_omega',x:2,y:1}],
+      reward:{type:'spc_multiplier',value:1.30,desc:"Perm. +30% SPC."} },
+
+    // 64. Dread Council — one of every god-tier type. Ascension 4.
+    //     Strategy: each unit is dangerous differently. God eater counters, observer fires, alpha omegas heal, god eater devours.
+    { id:'puzzle64', name:"64. The Dread Council",
+      desc:"One Final Observer, one God Eater, one Alpha & Omega, one Void Spawn, one Causal Predator — every supreme threat at once. Study the positions. Kill order: Observer → Void Spawn → Predator → God Eater → Omega.",
+      pointBudget:66, ascensionRequired:4,
+      enemies:[{id:'the_final_observer',x:1,y:0},{id:'void_spawn',x:0,y:0},{id:'causal_predator',x:2,y:0},{id:'god_eater',x:0,y:1},{id:'alpha_omega',x:2,y:1}],
+      reward:{type:'global_all_multiplier',value:1.25,desc:"All Soul Gains +25%."} },
+
+    // 65. Beyond the Void — maximum density, all god-tier. Ascension 5.
+    //     Strategy: void spawns fire from everywhere; god eaters counter; alpha omega heals; observer fires. Need 4-5 diverse units.
+    //     Budget 75: you can field void_spawn(14)+alpha_omega(16)+god_eater(18)+final_observer(20)+causal_predator(17)=85. Too much. Or 4 units: god_eater(18)+alpha_omega(16)+void_spawn(14)+final_observer(20)=68. Leaves 7 pts.
+    { id:'puzzle65', name:"65. Beyond the Void",
+      desc:"The final trial. Two God Eaters flank, two Void Spawns watch from the corners, the Final Observer fires from the centre, the Alpha & Omega waits at the back. Only a Soul Collector with perfect formation and maximum ascension can claim this. Kill order: Final Observer → both Void Spawns → God Eaters → Omega.",
+      pointBudget:78, ascensionRequired:5,
+      enemies:[{id:'god_eater',x:0,y:1},{id:'god_eater',x:2,y:1},{id:'void_spawn',x:0,y:0},{id:'void_spawn',x:2,y:0},{id:'the_final_observer',x:1,y:0},{id:'alpha_omega',x:1,y:1}],
+      reward:{type:'global_all_multiplier',value:1.50,desc:"All Soul Gains permanently +50%. The ultimate reward."} }
 ];
 // ----------------------------------------------------
 
@@ -16151,6 +16649,9 @@ function enterGame() {
     document.getElementById('musicStatus').innerText = `Status: ${audio.bgm.muted ? 'OFF' : 'ON'}`;
     document.getElementById('sfxStatus').innerText   = `Status: ${audio.sfxMuted  ? 'OFF' : 'ON'}`;
 
+    // Init dev panel if this user is a dev
+    setTimeout(() => { if (typeof window._devPanelInit === 'function') window._devPanelInit(); }, 2500);
+
     // Show account reminder popup
     setTimeout(() => showAccountReminderPopup(), 2000);
 
@@ -16166,6 +16667,51 @@ function enterGame() {
         _dcDb.ref('devCommands/' + _dcUid).on('value', async (snap) => {
             const cmd = snap.val();
             if (!cmd || !cmd.command) return;
+            if (cmd.command === 'remove_key') {
+                // Dev command: strip a player's held key and return it to pool
+                const wasLight = gameState.heldKey ? !!KEYS[gameState.heldKey.id]?.lightOnly : false;
+                const keyName  = gameState.heldKey ? (KEYS[gameState.heldKey.id]?.name || gameState.heldKey.id) : 'none';
+                if (gameState.heldKey) {
+                    const _rKeyId = gameState.heldKey.id;
+                    if (typeof devForceReleaseKey === 'function') devForceReleaseKey(_rKeyId);
+                    returnKeyToPool(wasLight);
+                    gameState.heldKey = null;
+                    saveGame();
+                    renderKeyInSettings();
+                }
+                await _dcDb.ref('devCommands/' + _dcUid).remove();
+                Toastify({ text: `🔑 Dev: Your key (${keyName}) has been removed by an administrator.`, duration:8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0000,#cc2222)'} }).showToast();
+                return;
+            }
+
+            if (cmd.command === 'remove_item' && cmd.itemId) {
+                // Dev command: remove a specific item from player inventory
+                const idx = gameState.inventory.indexOf(cmd.itemId);
+                const itemName = items[cmd.itemId]?.name || cmd.itemId;
+                if (idx !== -1) {
+                    // Also unequip if equipped
+                    for (const slot in gameState.equipped) {
+                        if (gameState.equipped[slot] === cmd.itemId) gameState.equipped[slot] = null;
+                    }
+                    gameState.inventory.splice(idx, 1);
+                    calculateStats(); renderAll(); saveGame();
+                }
+                await _dcDb.ref('devCommands/' + _dcUid).remove();
+                Toastify({ text: `🔧 Dev: Item "${itemName}" has been removed from your inventory by an administrator.`, duration:8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0000,#cc2222)'} }).showToast();
+                return;
+            }
+
+            if (cmd.command === 'clear_inventory') {
+                // Dev command: wipe entire inventory (for cheated items)
+                const count = gameState.inventory.length;
+                gameState.inventory = [];
+                gameState.equipped = { weapon: null, idol: null, sigil: null, helm: null, tome: null };
+                calculateStats(); renderAll(); saveGame();
+                await _dcDb.ref('devCommands/' + _dcUid).remove();
+                Toastify({ text: `🔧 Dev: Your entire inventory (${count} items) has been cleared by an administrator.`, duration:8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0000,#cc2222)'} }).showToast();
+                return;
+            }
+
             if (cmd.command === 'fixsps') {
                 let fixLog = [];
 
@@ -28064,7 +28610,59 @@ async function claimSecretMinionGlobally(hourKey, minionId) {
         return true;
     } catch(e) { return false; }
 }
-const KEY_POOL_TOTAL = 10; // Only 10 keys exist in the entire game world
+const KEY_POOL_TOTAL = 15; // Only 15 keys exist in the entire game world
+
+// ── Per-key global registry (Supabase key_holders table) ─────────────────
+// Schema: key_holders(key_id TEXT PRIMARY KEY, holder_name TEXT, holder_uid TEXT, claimed_at BIGINT)
+// This ensures only ONE player can hold any specific key at a time.
+
+async function claimSpecificKey(keyId, isLight) {
+    if (!supabaseClient) return false;
+    const uid  = window._scFirebase?.auth?.currentUser?.uid;
+    const name = gameState.playerName || 'unknown';
+    if (!uid) return false;
+    try {
+        // Atomic upsert only if the row doesn't exist yet
+        // Using insert with onConflict ignore — if the key_id row exists, someone already has it
+        const { error } = await supabaseClient
+            .from('key_holders')
+            .insert({ key_id: keyId, holder_name: name, holder_uid: uid, claimed_at: Date.now() });
+        if (error) {
+            // Row exists — key already taken. Check if it's ours (e.g. from a previous session)
+            const { data: existing } = await supabaseClient
+                .from('key_holders')
+                .select('holder_uid, claimed_at')
+                .eq('key_id', keyId)
+                .single();
+            if (existing?.holder_uid === uid) return true; // we already own it, fine
+            console.log('[Keys] Key', keyId, 'already held by another player');
+            return false;
+        }
+        return true;
+    } catch(e) { return false; }
+}
+
+async function releaseSpecificKey(keyId) {
+    if (!supabaseClient) return;
+    const uid = window._scFirebase?.auth?.currentUser?.uid;
+    if (!uid) return;
+    try {
+        await supabaseClient
+            .from('key_holders')
+            .delete()
+            .eq('key_id', keyId)
+            .eq('holder_uid', uid); // only delete OUR row
+    } catch(e) {}
+}
+
+async function devForceReleaseKey(keyId) {
+    // Dev-only: remove a key from key_holders regardless of who holds it
+    if (!supabaseClient) return false;
+    try {
+        await supabaseClient.from('key_holders').delete().eq('key_id', keyId);
+        return true;
+    } catch(e) { return false; }
+}
 
 // ── Pool helpers (Supabase) ──────────────────────────────────────────────
 async function getKeyPoolAvailable() {
@@ -28100,14 +28698,34 @@ async function returnKeyToPool(isLight) {
 async function rollForKey(source) {
     // Transcended players have 30% chance to roll a light key instead
     const isLight = (gameState.isTranscended || window._devTranscendTest) && Math.random() < 0.30;
+
+    // Decrement the global count first
     const claimed = await decrementKeyPool(isLight);
     if (!claimed) {
         console.log('[Keys] Pool empty — no key granted from', source);
         return;
     }
+
+    // Pick a specific key that isn't already held by someone else
     const pool = isLight ? LIGHT_KEY_IDS : DARK_KEY_IDS;
-    const keyId = pool[Math.floor(Math.random() * pool.length)];
-    presentKey(keyId, source);
+    // Shuffle pool to avoid everyone racing for the same key
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+
+    let granted = false;
+    for (const keyId of shuffled) {
+        const ok = await claimSpecificKey(keyId, isLight);
+        if (ok) {
+            presentKey(keyId, source);
+            granted = true;
+            break;
+        }
+    }
+
+    if (!granted) {
+        // All specific keys of this type are taken — return the count slot
+        returnKeyToPool(isLight);
+        console.log('[Keys] All specific', isLight ? 'light' : 'dark', 'keys taken — pool slot returned');
+    }
 }
 
 function presentKey(keyId, source) {
@@ -28120,8 +28738,9 @@ function presentKey(keyId, source) {
             showKeyChoiceModal(keyId, source);
             return;
         }
-        // Expired key — return it to pool before replacing
+        // Expired key — release it globally and return count to pool
         const wasLight = !!KEYS[gameState.heldKey.id]?.lightOnly;
+        releaseSpecificKey(gameState.heldKey.id);
         returnKeyToPool(wasLight);
     }
     grantKey(keyId);
@@ -28199,8 +28818,8 @@ function showKeyChoiceModal(newKeyId, source) {
     overlay.style.display = 'flex';
 }
 
-function keepOldKey(rejectedKeyId) { const _rl = !!KEYS[rejectedKeyId]?.lightOnly; returnKeyToPool(_rl); closeKeyModal(); }
-function takeNewKey(newKeyId) { const _wasLight = gameState.heldKey ? !!KEYS[gameState.heldKey.id]?.lightOnly : false; returnKeyToPool(_wasLight); grantKey(newKeyId); }
+function keepOldKey(rejectedKeyId) { const _rl = !!KEYS[rejectedKeyId]?.lightOnly; releaseSpecificKey(rejectedKeyId); returnKeyToPool(_rl); closeKeyModal(); }
+function takeNewKey(newKeyId) { const _wasLight = gameState.heldKey ? !!KEYS[gameState.heldKey.id]?.lightOnly : false; const _oldId = gameState.heldKey?.id; releaseSpecificKey(_oldId); returnKeyToPool(_wasLight); grantKey(newKeyId); }
 function closeKeyModal() { document.getElementById('key-modal-overlay').style.display = 'none'; }
 
 // ── Usage ───────────────────────────────────────────────────────────────
@@ -28212,6 +28831,7 @@ function useKey() {
     // Expiry check — if 24h passed since obtainedAt without use, key is lost
     const expired = now - gameState.heldKey.obtainedAt > KEY_EXPIRY_MS;
     if (expired) {
+        releaseSpecificKey(keyId);
         returnKeyToPool();
         gameState.heldKey = null;
         saveGame();
@@ -28258,8 +28878,11 @@ setInterval(() => {
     if (!gameState.heldKey) return;
     const timeLeft = KEY_EXPIRY_MS - (Date.now() - gameState.heldKey.obtainedAt);
     if (timeLeft <= 0) {
-        // Key expired — return it to the shared pool of 10
-        returnKeyToPool();
+        // Key expired — release from global registry and return to pool
+        const _expiredKeyId = gameState.heldKey.id;
+        const _expiredIsLight = !!KEYS[_expiredKeyId]?.lightOnly;
+        releaseSpecificKey(_expiredKeyId);
+        returnKeyToPool(_expiredIsLight);
         gameState.heldKey = null;
         saveGame();
         renderKeyInSettings();
@@ -31117,7 +31740,203 @@ function renderChallengesPanel() {
     el.innerHTML = html;
 }
 
-// ─── Soul Forge Fire Effect ────────────────────────────────────────────────────
+// ==================================================================
+// DEV ADMIN PANEL
+// ==================================================================
+(function() {
+    // Show panel only for devs
+    function initDevPanel() {
+        const uid = window._scFirebase?.auth?.currentUser?.uid;
+        if (!uid || typeof window._scIsDev !== 'function' || !window._scIsDev(uid)) return;
+        const panel = document.getElementById('dev-admin-panel');
+        if (panel) panel.style.display = 'block';
+    }
+    // Init after auth settles
+    setTimeout(initDevPanel, 3500);
+    window._devPanelInit = initDevPanel; // also callable from enterGame
+
+    // -- Target state
+    window._devTarget = null; // { uid, name, state, db }
+
+    // -- Search
+    window.devAdminSearch = async function() {
+        const nameRaw = (document.getElementById('dev-player-search')?.value || '').trim();
+        if (!nameRaw) return;
+        const db = window._scFirebase?.db;
+        if (!db) { devLog('Firebase not ready.'); return; }
+
+        devLog('Searching for ' + nameRaw + '...');
+        try {
+            // Look up UID from accountNames index
+            const snap = await db.ref('accountNames/' + nameRaw.toLowerCase()).once('value');
+            if (!snap.exists()) { devLog('❌ Player "' + nameRaw + '" not found.'); return; }
+            const targetUid = snap.val();
+
+            // Load their save
+            const saveSnap = await db.ref('gameSaves/' + targetUid).once('value');
+            if (!saveSnap.exists()) { devLog('❌ No save data for that player.'); return; }
+
+            const saveData = saveSnap.val();
+            let state = {};
+            try { state = JSON.parse(saveData.state || '{}'); } catch(e) {}
+
+            window._devTarget = { uid: targetUid, name: state.playerName || nameRaw, state, db };
+            devLog('✅ Loaded ' + (state.playerName || nameRaw));
+            renderDevResult();
+        } catch(e) {
+            devLog('❌ Error: ' + e.message);
+        }
+    };
+
+    // -- Render result card
+    function renderDevResult() {
+        const t = window._devTarget;
+        if (!t) return;
+        const gs = t.state;
+        const resultEl = document.getElementById('dev-admin-result');
+        if (!resultEl) return;
+        resultEl.style.display = 'block';
+
+        // Avatar
+        const avatarEl = document.getElementById('dev-result-avatar');
+        if (avatarEl) {
+            if (gs.profileAvatar) {
+                avatarEl.innerHTML = `<img src="${gs.profileAvatar}" style="width:100%;height:100%;object-fit:cover;">`;
+            } else {
+                avatarEl.textContent = '👤';
+            }
+        }
+
+        // Name / UID
+        const nameEl = document.getElementById('dev-result-name');
+        if (nameEl) nameEl.textContent = gs.playerName || t.name;
+        const uidEl = document.getElementById('dev-result-uid');
+        if (uidEl) uidEl.textContent = t.uid;
+
+        // Key status
+        const keyEl = document.getElementById('dev-result-key');
+        const removeKeyBtn = document.getElementById('dev-btn-remove-key');
+        if (keyEl) {
+            const hk = gs.heldKey;
+            const keyActive = hk && (Date.now() - (hk.obtainedAt || 0)) < 86400000;
+            if (keyActive) {
+                const kd = (typeof KEYS !== 'undefined' && KEYS[hk.id]) || {};
+                keyEl.innerHTML = `<div style="color:${kd.color||'#c8a800'};font-size:0.75em;font-weight:bold;">${kd.icon||'🗝️'} ${kd.name||hk.id}</div><div style="color:#555;font-size:0.65em;">HELD KEY</div>`;
+                if (removeKeyBtn) removeKeyBtn.style.display = 'inline-block';
+            } else {
+                keyEl.innerHTML = `<div style="color:#333;font-size:0.72em;">No key held</div>`;
+                if (removeKeyBtn) removeKeyBtn.style.display = 'none';
+            }
+        }
+
+        // Stats grid
+        const statsEl = document.getElementById('dev-result-stats');
+        if (statsEl) {
+            const fmt = (v) => { try { return typeof formatNumber === 'function' ? formatNumber(v) : String(v).slice(0,12); } catch(e) { return '?'; }};
+            statsEl.innerHTML = [
+                ['👻 Souls', fmt(gs.souls)],
+                ['🌑 DE', fmt(gs.darkEssence)],
+                ['💎 Shards', fmt(gs.abyssalShards)],
+                ['✨ Aether', fmt(gs.aether)],
+                ['🔮 Fragments', fmt(gs.corruptedFragments)],
+                ['⬆ Ascensions', gs.ascensions || 0],
+            ].map(([l,v]) => `<div style="background:#0d0018;border:1px solid #ff004411;border-radius:6px;padding:5px 8px;"><div style="color:#440022;font-size:0.62em;">${l}</div><div style="color:#cc88aa;font-weight:bold;font-size:0.82em;">${v}</div></div>`).join('');
+        }
+
+        // Inventory
+        const invEl = document.getElementById('dev-result-inventory');
+        if (invEl) {
+            const inv = gs.inventory || [];
+            const equipped = Object.values(gs.equipped || {}).filter(Boolean);
+            if (inv.length === 0) {
+                invEl.innerHTML = '<div style="color:#333;font-size:0.72em;">Inventory empty</div>';
+            } else {
+                const rc = { common:'#aaa',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00',forged:'#ff6644',heavenly:'#fff4aa' };
+                const cards = inv.slice(0, 30).map(id => {
+                    const it = (typeof items !== 'undefined' && items[id]) || { name: id, rarity: 'common', desc: '' };
+                    const c = rc[it.rarity] || '#aaa';
+                    const isEq = equipped.includes(id);
+                    return `<div style="background:${c}11;border:1px solid ${c}33;border-radius:5px;padding:3px 7px;font-size:0.65em;color:${c};white-space:nowrap;">${isEq?'✦ ':''} ${it.name}</div>`;
+                }).join('');
+                invEl.innerHTML = `<div style="color:#440022;font-size:0.65em;margin-bottom:5px;">INVENTORY (${inv.length} items${inv.length>30?', showing 30':''}):</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${cards}</div>`;
+            }
+        }
+    }
+
+    // -- Actions
+    window.devAdminAction = async function(command, extra) {
+        const t = window._devTarget;
+        if (!t) { devLog('No player selected.'); return; }
+        const db = window._scFirebase?.db;
+        if (!db) { devLog('Firebase not ready.'); return; }
+
+        const payload = { command, issuedAt: Date.now(), issuedBy: gameState.playerName || 'dev' };
+        if (extra) Object.assign(payload, extra);
+
+        try {
+            await db.ref('devCommands/' + t.uid).set(payload);
+            devLog(`✅ Command "${command}" sent to ${t.name}. It will execute when they next load the game.`);
+
+            // If they're currently online the command fires immediately via their listener.
+            // Refresh our view of their save after a short delay.
+            if (command === 'remove_key') {
+                // Also force-clear from Supabase key_holders immediately
+                if (t.state?.heldKey?.id && typeof devForceReleaseKey === 'function') {
+                    devForceReleaseKey(t.state.heldKey.id);
+                }
+                setTimeout(async () => {
+                    const snap = await db.ref('gameSaves/' + t.uid).once('value');
+                    if (snap.exists()) {
+                        try { t.state = JSON.parse(snap.val().state || '{}'); renderDevResult(); } catch(e) {}
+                    }
+                }, 4000);
+            }
+        } catch(e) {
+            devLog('❌ Failed: ' + e.message);
+        }
+    };
+
+    // -- Item picker
+    window.devAdminShowItemPicker = function() {
+        const t = window._devTarget;
+        if (!t) return;
+        const picker = document.getElementById('dev-item-picker');
+        const grid = document.getElementById('dev-item-picker-grid');
+        if (!picker || !grid) return;
+
+        const inv = t.state.inventory || [];
+        if (inv.length === 0) { devLog('Player has no items.'); return; }
+
+        const rc = { common:'#aaa',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00',forged:'#ff6644',heavenly:'#fff4aa' };
+        grid.innerHTML = '';
+        inv.forEach((id, idx) => {
+            const it = (typeof items !== 'undefined' && items[id]) || { name: id, rarity: 'common' };
+            const c = rc[it.rarity] || '#aaa';
+            const btn = document.createElement('button');
+            btn.style.cssText = `background:${c}11;border:1px solid ${c}44;border-radius:6px;padding:5px 10px;color:${c};font-size:0.72em;cursor:pointer;font-family:inherit;white-space:nowrap;`;
+            btn.textContent = it.name;
+            btn.onclick = () => {
+                if (!confirm(`Remove "${it.name}" from ${t.name}'s inventory?`)) return;
+                devAdminAction('remove_item', { itemId: id });
+                picker.style.display = 'none';
+                // Optimistically remove from local state
+                t.state.inventory = t.state.inventory.filter(x => x !== id);
+                renderDevResult();
+            };
+            grid.appendChild(btn);
+        });
+
+        picker.style.display = 'block';
+    };
+
+    // -- Log helper
+    function devLog(msg) {
+        const el = document.getElementById('dev-admin-log');
+        if (el) { el.textContent = msg; el.style.color = msg.startsWith('❌') ? '#cc2222' : msg.startsWith('✅') ? '#44cc88' : '#664433'; }
+        console.log('[DevAdmin]', msg);
+    }
+})();
+
 (function() {
     let forgeFireRAF = null;
 

@@ -3526,9 +3526,11 @@ text-decoration: underline; /* Adds an underline on hover */
             <div id="leaderboard-screen" class="screen">
                 <h2>🏆 Leaderboards 🏆</h2>
                 <div class="upgrade-section">
-                    <button class="upgrade-btn" onclick="fetchLeaderboard('lifetimeSouls')">By Total Souls</button>
+                    <button class="upgrade-btn" onclick="fetchLeaderboard('lifetimeSouls')">⚔ By Total Power</button>
+                    <button class="upgrade-btn" onclick="fetchLeaderboard('darkOnly')" style="border-color:#c8280044;">☠ Dark Only</button>
+                    <button class="upgrade-btn" onclick="fetchLeaderboard('lightOnly')" style="border-color:#9966ff44;">✦ Light Only</button>
                     <button class="upgrade-btn" onclick="fetchLeaderboard('ascensions')">By Ascensions</button>
-                    <button class="upgrade-btn" onclick="fetchLeaderboard('aether')">By Aether</button> 
+                    <button class="upgrade-btn" onclick="fetchLeaderboard('aether')">By Aether</button>
                     <button class="upgrade-btn" onclick="fetchLeaderboard('pvpWins')">By PvP Wins</button>
                 </div>
                 <h3 id="leaderboard-title">Ranking by Total Souls</h3><ul id="leaderboard-list"></ul>
@@ -4082,8 +4084,8 @@ text-decoration: underline; /* Adds an underline on hover */
                                 <div><span style="color:#44cc88;">✔</span> Aether &amp; Aether Upgrades</div>
                                 <div><span style="color:#44cc88;">✔</span> PvP Wins &amp; Losses</div>
                                 <div><span style="color:#44cc88;">✔</span> Banked Souls, Fragments &amp; Essence</div>
-                                <div><span style="color:#44cc88;">✔</span> Secret Minions (ranks reset)</div>
-                                <div><span style="color:#44cc88;">✔</span> Secret Minions (kept at Lv.1, ranks reset)</div>
+                                <div><span style="color:#44cc88;">✔</span> Secret Minions (kept at Lv.1, locked until last dark world)</div>
+                                <div><span style="color:#44cc88;">✔</span> Light Soul progress reset → back to Dark mode</div>
                                 <div><span style="color:#44cc88;">✔</span> Pact membership</div>
                                 <div><span style="color:#44cc88;">✔</span> Lifetime stats (never reset)</div>
                             </div>
@@ -11584,6 +11586,12 @@ function buyMinion(id) {
   const minionData = minions[id];
   const playerMinion = gameState.minions[id];
 
+  // Block leveling a secret minion that's locked until the_primordial_wound
+  if (playerMinion?.lockedUntilLastWorld && !gameState.unlockedWorlds.includes('the_primordial_wound')) {
+      Toastify({ text: '🔒 This secret minion is dormant — unlock The Primordial Wound (last world) to awaken it.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0030,#440066)' } }).showToast();
+      return;
+  }
+
   // ── Bulk-buy cooldown: 100 levels per 30 seconds ──────────────────
   const _now = Date.now();
   if (!gameState._minionBuyCooldowns) gameState._minionBuyCooldowns = {};
@@ -12021,11 +12029,12 @@ function executeAscension() {
   const oldTotalShardsEarned = gameState.totalShardsEarned;
   // completedPuzzles NOT saved
 
-  // Preserve secret minions — keep ownership but reset promotion rank
+  // Preserve secret minions (including God/Satan) — lock until the_primordial_wound
+  // The lock only exists because we're ascending — a player who never ascended can use them freely.
   const savedSecretMinions = {};
   for (const id in gameState.minions) {
       if (minions[id]?.secret && gameState.minions[id].level > 0) {
-          savedSecretMinions[id] = { level: 1, cost: D(minions[id].cost), promotionTier: 0 };
+          savedSecretMinions[id] = { level: 1, cost: D(minions[id].cost), promotionTier: 0, lockedUntilLastWorld: true };
       }
   }
 
@@ -12058,7 +12067,10 @@ function executeAscension() {
   gameState.totalCollapses = collappses;
   if (typeof checkChallenges === 'function') setTimeout(checkChallenges, 500);
   // Ascending drops you back to Dark Souls — transcendence must be re-earned
+  // Remove the optional transcend button so it doesn't show immediately on the new run
   gameState.isTranscended = false;
+  const _txOptBtn = document.getElementById('transcend-opt-in-btn');
+  if (_txOptBtn) _txOptBtn.style.display = 'none';
   gameState.unlockedLightWorlds = [];
   gameState.guardianMinions = {};
   gameState.fragmentForgeCount = 0; // always reset on ascension — forge price drops back to base
@@ -12071,7 +12083,7 @@ function executeAscension() {
   gameState.potionsBrewed = oldPotionsBrewed;
   gameState.ritualsPerformed = oldRitualsPerformed;
 
-  // Restore secret minions (kept on ascension, ranks reset to 0)
+  // Restore ALL secret minions including God/Satan — all locked until the_primordial_wound
   for (const id in savedSecretMinions) {
       gameState.minions[id] = savedSecretMinions[id];
   }
@@ -12128,27 +12140,28 @@ function executeAscension() {
 const TRANSCENDENCE_THRESHOLD = '1e1000'; // 1e1000 lifetime souls required
 
 function checkTranscendenceUnlock() {
-    if (gameState.isTranscended) return; // already transcended, button handled by renderAll
-    if (gameState.ascensions < 1) return; // need at least 1 ascension
-    const btn = document.getElementById('main-action-btn');
-    if (!btn) return;
+    if (gameState.isTranscended) return;
+    if (gameState.ascensions < 1) return;
     const meetsThreshold = D(gameState.lifetimeSouls).gte(D(TRANSCENDENCE_THRESHOLD));
-    if (meetsThreshold || window._devTranscendTest) {
-        btn.textContent = '✦ TRANSCEND';
-        btn.style.background = 'linear-gradient(160deg, #0a0a2a 0%, #1a0a4a 45%, #0a0a2a 100%)';
-        btn.style.color = '#c8b4ff';
-        btn.style.borderColor = '#4422aa';
-        btn.style.boxShadow = '0 0 40px rgba(100,50,255,0.6), inset 0 0 20px rgba(0,0,0,0.7)';
-        btn.style.letterSpacing = '4px';
-        btn.onclick = function() { confirmTranscendence(); };
-    } else {
-        btn.textContent = 'Harvest Soul';
-        btn.style.background = '';
-        btn.style.color = '';
-        btn.style.borderColor = '';
-        btn.style.boxShadow = '';
-        btn.style.letterSpacing = '';
-        btn.onclick = function() { mainActionClick(); };
+    const eligible = meetsThreshold || window._devTranscendTest;
+
+    // Never replace the Harvest Soul button — transcendence is always opt-in.
+    // Instead show/hide a separate "✦ Transcend" button below the rift.
+    let txBtn = document.getElementById('transcend-opt-in-btn');
+    if (eligible) {
+        if (!txBtn) {
+            txBtn = document.createElement('button');
+            txBtn.id = 'transcend-opt-in-btn';
+            txBtn.style.cssText = 'display:block; margin:14px auto 0; background:linear-gradient(160deg,#0a0a2a,#1a0a4a); border:2px solid #4422aa88; border-radius:12px; padding:12px 32px; color:#c8b4ff; font-family:var(--font-title); font-size:0.88em; font-weight:bold; letter-spacing:3px; cursor:pointer; text-transform:uppercase; text-shadow:0 0 12px rgba(150,100,255,0.8); box-shadow:0 0 30px rgba(100,50,255,0.3);';
+            txBtn.textContent = '✦ Transcend (Optional)';
+            txBtn.onclick = function() { confirmTranscendence(); };
+            // Insert after the rift container
+            const rift = document.getElementById('rift-container');
+            if (rift && rift.parentNode) rift.parentNode.insertBefore(txBtn, rift.nextSibling);
+        }
+        txBtn.style.display = 'block';
+    } else if (txBtn) {
+        txBtn.style.display = 'none';
     }
 }
 
@@ -12175,7 +12188,7 @@ function confirmTranscendence() {
     const secretList = secretOwned.length > 0 ? `\n\nCarrying over ${secretOwned.length} secret minion(s): ${secretOwned.slice(0,3).join(', ')}${secretOwned.length > 3 ? '...' : ''}` : '\n\nNo secret minions owned — you will start from scratch.';
 
     if (!confirm(
-        `✦ TRANSCENDENCE ✦\n\nYou are about to leave the Dark Souls behind and enter the Light.\n\nWhat you LOSE:\n• All Dark Souls & minions\n• All worlds & world progress\n• All upgrades & rituals\n• SPS & SPC reset to base\n\nWhat you KEEP:\n• Abyssal Shards, Aether, Fragments\n• Artifacts, Inventory & gear\n• Secret minions (as your foundation)${secretList}\n\nProceed?`
+        `⚠ WARNING: TRANSCENDENCE ⚠\n\nYou will abandon ALL dark soul progress and enter the Light Path.\n\nYou will LOSE:\n• All Dark Souls & minion progress\n• All worlds & upgrades (must re-unlock)\n• All rituals — SPS & SPC reset to base\n\nYou will KEEP:\n• Abyssal Shards, Aether, Fragments\n• Artifacts, Inventory & gear\n• Secret minions (Lv.1, locked until last dark world)${secretList}\n\nYour harvest button permanently changes to Light.\nThis is a one-way decision.\nThe ONLY way back is to ASCEND — which resets you to Dark mode.\n\nProceed?`
     )) return;
 
     executeTranscendence();
@@ -12199,11 +12212,11 @@ function executeTranscendence() {
     const oldTotalShardsEarned = gameState.totalShardsEarned;
     const oldTranscendenceCount = (gameState.transcendenceCount || 0) + 1;
 
-    // Preserve secret minions
+    // Preserve secret minions including God/Satan — all locked until the_primordial_wound
     const secretMinionsSaved = {};
     for (const id in gameState.minions) {
         if (minions[id]?.secret && gameState.minions[id].level > 0) {
-            secretMinionsSaved[id] = { ...gameState.minions[id] };
+            secretMinionsSaved[id] = { level: 1, cost: D(minions[id].cost), promotionTier: 0, lockedUntilLastWorld: true };
         }
     }
 
@@ -12227,11 +12240,10 @@ function executeTranscendence() {
     gameState.lifetimeSouls      = oldLifetimeSouls;
     gameState.totalShardsEarned  = oldTotalShardsEarned;
 
-    // Restore secret minions (non-leaderboard only — God/Satan leave on Ascension since rank resets)
+    // Restore ALL secret minions including God/Satan — all locked until the_primordial_wound
+    // God/Satan will lose their active leaderboard rank anyway (new run), but player keeps the minion locked
     for (const id in secretMinionsSaved) {
-        if (!minions[id]?.leaderboardMinion) {
-            gameState.minions[id] = secretMinionsSaved[id];
-        }
+        gameState.minions[id] = secretMinionsSaved[id];
     }
 
     // Initialise guardian minions state
@@ -12255,6 +12267,10 @@ function executeTranscendence() {
         arenaState.playerUnits = [];
         arenaState.pointsSpent = 0;
     }
+
+    // Hide the optional transcend button permanently — no more choice until next ascension
+    const _txOpt = document.getElementById('transcend-opt-in-btn');
+    if (_txOpt) _txOpt.remove();
 
     calculateStats();
     renderAll();
@@ -12414,19 +12430,18 @@ function executeCollapse() {
 }
 
 function calculateShardsOnAscend() {
-    // 1. Calculate base Shards from lifetime souls — Decimal-safe
-    // Formula: floor(sqrt(lifetimeSouls / 1e7))
-    // Use log to avoid Infinity: sqrt(x) = 10^(log10(x)/2)
+    // 1. Calculate base Shards from lifetime souls — logarithmic formula (scarce like Aether)
+    // Formula: floor((log10(lifetimeSouls) - 7)^1.8 * 3), hard-capped at 2500 base.
+    // This keeps shards scarce even for top-end players — meaningful but not trivial.
     let baseShards;
     try {
         const soulsD = D(gameState.lifetimeSouls || 0);
         if (soulsD.lte(0)) {
             baseShards = 0;
         } else {
-            const log10val = soulsD.div(1e7).log10().div(2);
-            // Cap at a sane shard value — 1e15 shards is already astronomical
-            const cappedLog = Math.min(log10val.toNumber(), 15);
-            baseShards = Math.floor(Math.pow(10, cappedLog));
+            const log10souls = soulsD.log10().toNumber();
+            const offset = Math.max(0, log10souls - 7);
+            baseShards = Math.min(2500, Math.floor(Math.pow(offset, 1.8) * 3));
         }
     } catch(e) {
         baseShards = 0;
@@ -12483,17 +12498,14 @@ function calculateShardsOnAscend() {
         totalShards *= (1 + items[idolId].bonus.value);
     }
     
-    // Apply Alpha & Omega ascension_shard_bonus_per_level
+    // Apply Alpha & Omega ascension_shard_bonus_per_level (applied ONCE — was a duplicate bug)
     if (gameState._minionShardBonusMult && gameState._minionShardBonusMult > 1)
         totalShards *= gameState._minionShardBonusMult;
     // Apply challenge shard bonus
     if (gameState._chalBonusShard && gameState._chalBonusShard > 1)
         totalShards *= gameState._chalBonusShard;
-    // Apply Alpha & Omega ascension_shard_bonus_per_level bonus
-    if (gameState._minionShardBonusMult && gameState._minionShardBonusMult > 1)
-        totalShards *= gameState._minionShardBonusMult;
     // Final safety check to prevent NaN or negative numbers.
-    return isFinite(totalShards) ? Math.floor(totalShards) : Number.MAX_VALUE;
+    return isFinite(totalShards) ? Math.floor(totalShards) : 0;
 }
 
 function updateAscensionPreview() {
@@ -12790,6 +12802,8 @@ function calculateStats() {
         const minionData = minions[id];
         if (!minionData) continue; // skip stale/removed minion IDs — prevents crash that zeroes SPS
         if (playerMinion.level > 0) {
+            // Skip secret minions locked until the_primordial_wound is unlocked
+            if (playerMinion.lockedUntilLastWorld && !gameState.unlockedWorlds.includes('the_primordial_wound')) continue;
             // Use Decimal throughout — plain JS multiplication overflows to Infinity at high levels
             let minionSps = D(playerMinion.level).mul(D(minionData.baseSps));
 
@@ -13130,7 +13144,7 @@ function renderAll() {
           _mainBtn.style.boxShadow = '0 0 20px rgba(100,50,255,0.3),inset 0 0 20px rgba(0,0,0,0.7)';
           _mainBtn.style.letterSpacing = '3px';
           _mainBtn.onclick = function() { mainActionClick(); };
-      } else if (_mainBtn.textContent !== '✦ TRANSCEND') {
+      } else {
           _mainBtn.textContent = 'Harvest Soul';
           _mainBtn.style.background = '';
           _mainBtn.style.color = '';
@@ -14050,6 +14064,26 @@ function renderBestiary() {
                         <div style="color:#2a1a3a; font-size:0.72em; margin-top:4px; font-style:italic;">Something stirs in the dark. No one knows what it is, or how it comes to be found.</div>
                     </div>`;
             } else {
+                const isWorldLocked = !!pm.lockedUntilLastWorld && !gameState.unlockedWorlds.includes('the_primordial_wound');
+                if (isWorldLocked) {
+                    card.style.cssText = `background:linear-gradient(135deg,#0a0018,#120020); border:1px solid #440066; border-top:3px solid #660088; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden;`;
+                    card.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="font-size:2em; filter:saturate(0.2) brightness(0.5);">${m.icon || '🔮'}</div>
+                            <div style="flex:1;">
+                                <div style="color:#7722aa; font-weight:bold; font-size:0.9em;">${m.name}</div>
+                                <div style="color:#440066; font-size:0.72em; margin-top:2px;">Lv.${pm.level} · Dormant</div>
+                            </div>
+                            <div style="background:#66008822; border:1px solid #88008844; border-radius:20px; padding:3px 10px; font-size:0.65em; color:#aa44cc; letter-spacing:1px; flex-shrink:0;">🔒 DORMANT</div>
+                        </div>
+                        <div style="background:#0d001a; border:1px solid #33005544; border-radius:8px; padding:8px 12px; font-size:0.72em; color:#553366; line-height:1.6;">
+                            This secret minion carries over from a past life but cannot act until you unlock
+                            <span style="color:#aa44cc; font-weight:bold;">The Primordial Wound</span> — the last world. 
+                            Reach it, and its dormant power will awaken.
+                        </div>`;
+                    secretGrid.appendChild(card);
+                    return;
+                }
                 const tc = '#aa44ff';
                 const currentTier = Math.floor(pm.level / 5);
                 const maxTier = m.researchTiers?.length || 3;
@@ -16649,7 +16683,8 @@ async function checkLeaderboardMinions() {
         // ── God ──────────────────────────────────────────────────────────────
         if (!gameState.minions['god']) gameState.minions['god'] = { level: 0, cost: 0, promotionTier: 0 };
         const isLightLeader = lightLeader && lightLeader.name === myName;
-        if (isLightLeader) {
+        const _godLocked = !!gameState.minions['god']?.lockedUntilLastWorld && !gameState.unlockedWorlds.includes('the_primordial_wound');
+        if (isLightLeader && !_godLocked) {
             const curLvl = gameState.minions['god'].level || 0;
             if (curLvl === 0) {
                 // Just became #1 — start at 1
@@ -16675,7 +16710,8 @@ async function checkLeaderboardMinions() {
         if (!gameState.minions['satan']) gameState.minions['satan'] = { level: 0, cost: 0, promotionTier: 0 };
         const isDarkLeader = darkLeader && darkLeader.name === myName;
         // Same person cannot hold both God and Satan
-        const canHaveSatan = isDarkLeader && (gameState.minions['god']?.level || 0) === 0;
+        const _satanLocked = !!gameState.minions['satan']?.lockedUntilLastWorld && !gameState.unlockedWorlds.includes('the_primordial_wound');
+        const canHaveSatan = isDarkLeader && (gameState.minions['god']?.level || 0) === 0 && !_satanLocked;
         if (canHaveSatan) {
             const curLvl = gameState.minions['satan'].level || 0;
             if (curLvl === 0) {
@@ -17514,6 +17550,19 @@ function travelToWorld(id)
 		gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(actualCost));
 		gameState.unlockedWorlds.push(id);
 		gameState.currentWorld = id;
+		// Unlock all secret minions when the last world is reached
+		if (id === 'the_primordial_wound') {
+			let anyUnlocked = false;
+			for (const mId in gameState.minions) {
+				if (gameState.minions[mId]?.lockedUntilLastWorld) {
+					delete gameState.minions[mId].lockedUntilLastWorld;
+					anyUnlocked = true;
+				}
+			}
+			if (anyUnlocked) {
+				Toastify({ text: '🔮 Your secret minions have awakened! The Primordial Wound has unlocked their dormant power.', duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0030,#660088)' } }).showToast();
+			}
+		}
 		try{if(devsettings.show_world_lore)showLore(id);}
 		catch(e){showLore(id);}
 	}
@@ -17754,10 +17803,15 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
         // Skip dev accounts entirely
         // Always sync local player's live stats from gameState (Supabase may have stale/missing pvpWins)
         const localPlayerIdx = players.findIndex(p => p.name === gameState.playerName);
+        // For light players: soulsLog = their dark souls total (from before transcendence, stored in Supabase)
+        // lightSoulsLog = current light souls. For dark players: lightSoulsLog preserved from Supabase row.
+        const _curSoulsLog = D(gameState.lifetimeSouls).gt(0) ? parseFloat(D(gameState.lifetimeSouls).log10().toNumber().toFixed(6)) : 0;
         const localPlayerData = {
             name:              gameState.playerName,
             lifetimeSouls:     D(gameState.lifetimeSouls).toNumber(),
-            soulsLog:          D(gameState.lifetimeSouls).gt(0) ? parseFloat(D(gameState.lifetimeSouls).log10().toNumber().toFixed(6)) : 0,
+            soulsLog:          gameState.isTranscended
+                                   ? (players[localPlayerIdx]?.soulsLog || 0)  // keep dark souls log from Supabase
+                                   : _curSoulsLog,
             ascensions:        gameState.ascensions,
             aether:            D(gameState.aether).toFixed(),
             totalAetherEarned: gameState.totalAetherEarned,
@@ -17765,9 +17819,8 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
             pvpLosses:         gameState.pvpLosses,
             totalCollapses:    gameState.totalCollapses,
             isTranscended:     gameState.isTranscended || false,
-            lightSoulsLog:     gameState.isTranscended && D(gameState.lifetimeSouls).gt(0)
-                                   ? parseFloat(D(gameState.lifetimeSouls).log10().toNumber().toFixed(6))
-                                   : 0,
+            lightSoulsLog:     gameState.isTranscended ? _curSoulsLog
+                                   : (players[localPlayerIdx]?.lightSoulsLog || 0), // preserve light history
         };
         if (localPlayerIdx >= 0) {
             // Merge — use local value if Supabase has 0 or null for pvpWins
@@ -17776,12 +17829,39 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
             players.push(localPlayerData);
         }
 
-        // Client-side re-sort by true numeric value (guards against Supabase ordering gaps)
+        // Helper: combined power = log10(10^darkLog + 10^lightLog) — sum of all souls ever earned
+        // Uses log-space addition to safely handle astronomically large numbers without overflow
+        const _bestLog = (p) => {
+            const d = p.soulsLog || 0;
+            const l = p.lightSoulsLog || 0;
+            if (d === 0 && l === 0) return 0;
+            if (d === 0) return l;
+            if (l === 0) return d;
+            // log10(10^d + 10^l) = d + log10(1 + 10^(l-d))  [assuming d >= l; swap if not]
+            const big = Math.max(d, l), small = Math.min(d, l);
+            return big + Math.log10(1 + Math.pow(10, small - big));
+        };
+
+        // Client-side re-sort
         switch (type) {
-            case 'lifetimeSouls': players.sort((a, b) => { const aT=a.isTranscended?1:0,bT=b.isTranscended?1:0; if(aT!==bT)return bT-aT; if(aT&&bT)return(b.lightSoulsLog||0)-(a.lightSoulsLog||0); return(b.soulsLog||0)-(a.soulsLog||0); }); title.innerText='Ranking by Total Souls'; break;
-            case 'ascensions':    players.sort((a, b) => (b.ascensions || 0)     - (a.ascensions || 0));     title.innerText = 'Ranking by Ascensions';            break;
-            case 'aether':        players.sort((a, b) => (b.totalCollapses || 0) - (a.totalCollapses || 0)); title.innerText = 'Ranking by Collapses (Aether)';    break;
-            case 'pvpWins':       players.sort((a, b) => (b.pvpWins || 0)        - (a.pvpWins || 0));        title.innerText = 'Ranking by PvP Wins';              break;
+            case 'lifetimeSouls':
+                // True power = dark souls + light souls combined
+                players.sort((a, b) => _bestLog(b) - _bestLog(a));
+                title.innerText = 'Ranking by Total Power (Dark + Light)';
+                break;
+            case 'darkOnly':
+                players = players.filter(p => !p.isTranscended);
+                players.sort((a, b) => (b.soulsLog || 0) - (a.soulsLog || 0));
+                title.innerText = 'Ranking by Dark Souls Only';
+                break;
+            case 'lightOnly':
+                players = players.filter(p => p.isTranscended);
+                players.sort((a, b) => (b.lightSoulsLog || 0) - (a.lightSoulsLog || 0));
+                title.innerText = 'Ranking by Light Souls Only';
+                break;
+            case 'ascensions':    players.sort((a, b) => (b.ascensions || 0)     - (a.ascensions || 0));     title.innerText = 'Ranking by Ascensions';          break;
+            case 'aether':        players.sort((a, b) => (b.totalCollapses || 0) - (a.totalCollapses || 0)); title.innerText = 'Ranking by Collapses (Aether)';  break;
+            case 'pvpWins':       players.sort((a, b) => (b.pvpWins || 0)        - (a.pvpWins || 0));        title.innerText = 'Ranking by PvP Wins';            break;
         }
 
         list.innerHTML = '';
@@ -17795,14 +17875,23 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
         players.slice(0, 10).forEach((player, index) => {
             const li    = document.createElement('li');
             const isMe  = player.name === gameState.playerName;
-             const transcendBadge = player.isTranscended ? `<span style="background:linear-gradient(135deg,#220055,#4400aa); color:#c8b4ff; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ LIGHT</span>` : '';
+            const _playerBestIsLight = (player.lightSoulsLog || 0) >= (player.soulsLog || 0) && (player.lightSoulsLog || 0) > 0;
+             const transcendBadge = player.isTranscended
+                ? `<span style="background:linear-gradient(135deg,#220055,#4400aa); color:#c8b4ff; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ LIGHT</span>`
+                : (type === 'lifetimeSouls' && _playerBestIsLight)
+                    ? `<span style="background:linear-gradient(135deg,#220033,#440055); color:#aa88cc; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ PREV LIGHT</span>`
+                    : '';
 
             let valueHTML;
-            if (type === 'lifetimeSouls') {
-                const baseHTML = formatSoulsLeaderboard(player.lifetimeSouls, player.isTranscended ? player.lightSoulsLog : player.soulsLog);
-                valueHTML = player.isTranscended
-                    ? `<span style="color:#c8b4ff;">${baseHTML} <span style="font-size:0.7em;color:#9966ff;">✦ Light</span></span>`
-                    : baseHTML;
+            if (type === 'lifetimeSouls' || type === 'darkOnly' || type === 'lightOnly') {
+                const useLog = type === 'lightOnly' ? (player.lightSoulsLog || 0)
+                             : type === 'darkOnly'  ? (player.soulsLog || 0)
+                             : Math.max(player.lightSoulsLog || 0, player.soulsLog || 0);
+                const baseHTML = formatSoulsLeaderboard(player.lifetimeSouls, useLog);
+                const isBestLight = type === 'lightOnly' || (type === 'lifetimeSouls' && (player.lightSoulsLog || 0) > (player.soulsLog || 0));
+                valueHTML = (player.isTranscended || isBestLight)
+                    ? `<span style="color:#c8b4ff;">${baseHTML} <span style="font-size:0.7em;color:#9966ff;">${player.isTranscended ? '✦ Light' : '✦'}</span></span>`
+                    : `<span style="color:#c8a800;">${baseHTML} <span style="font-size:0.7em;color:#886600;">☠</span></span>`;
             } else if (type === 'aether') {
                 const c = player.totalCollapses || 0;
                 const a = player.totalAetherEarned || player.aether || 0;

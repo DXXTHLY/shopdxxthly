@@ -31744,36 +31744,61 @@ function renderChallengesPanel() {
 // ==================================================================
 // DEV ADMIN PANEL
 // ==================================================================
-// DEV ADMIN PANEL — hidden immediately on load, shown only for devs
+// DEV ADMIN PANEL — hidden immediately, shown only for devs via auth
+// Completely independent of chat/initializeChat timing.
 // ==================================================================
 (function() {
-    // Hide immediately so non-devs never see a flash of it
-    const panel = document.getElementById('dev-admin-panel');
-    if (panel) panel.style.display = 'none';
+    const DEV_UIDS = [
+        "CiOpgh1RLBg3l5oXn0SAho66Po93",
+        "KzzWmCKFlaXCf85Xq7QXINJBNrC3",
+        "LVRqcOHhz8SFLPASUkQPelRjLYv2",
+        "ppWQuwhcnEYSHCjnIGh8O8rIl4F2",
+        "hw0jR6r683PNq4Uq0WTuUSlTTii2",
+        "PZA5qgKWsPTXc278pyx7NwROf313",
+        "P75eMwh756Rb6h1W6iqQfHN2Dm92",
+        "DMGt5UvMVzcsejDtwbpHQ1lPfFG2",
+        "X5iLoLtJIDcnTWiAag6sj4Xv5qt1",
+        "QW7EGvTuiaUJrhI3qEEbGqk7sGe2",
+        "uf2BxylGuYYPoZZtpF7hnIAtkht2",
+        "CsLHBQQErOPD5AcEK9X241sfrlr1",
+        "TOqInacHmaRiKuTakIIbuJKAzQH3",
+        "tC1VW4WkXEOfK7rCpwGvFcv7MJo1",
+        "hTinUwrewTYNcXujW1hUaXrScGW2",
+        "xeHH7zJVRyU4IfuYnqF5amSyXRe2",
+        "AQfZZxXypaNRGBKLVlY57MtPdJE2"
+    ];
 
-    function tryShowDevPanel() {
-        const uid = window._scFirebase?.auth?.currentUser?.uid;
-        if (!uid) return false;
-        const isDev = (typeof window._scIsDev === 'function') ? window._scIsDev(uid) : false;
-        const p = document.getElementById('dev-admin-panel');
-        if (p) p.style.display = isDev ? 'block' : 'none';
-        return true;
+    function applyPanel(uid) {
+        const panel = document.getElementById('dev-admin-panel');
+        if (!panel) return;
+        panel.style.display = (uid && DEV_UIDS.includes(uid)) ? 'block' : 'none';
     }
 
-    // Keep retrying until both Firebase auth AND _scIsDev are available
-    function keepTrying() {
-        const uid = window._scFirebase?.auth?.currentUser?.uid;
-        const hasIsDev = typeof window._scIsDev === 'function';
-        if (uid && hasIsDev) {
-            tryShowDevPanel();
-            return;
-        }
-        setTimeout(keepTrying, 400);
+    // Hide immediately on page load
+    applyPanel(null);
+
+    // Wait for _scFirebase (the save-game Firebase instance) to exist,
+    // then attach onAuthStateChanged — this fires reliably regardless of chat
+    function waitForAuth() {
+        const auth = window._scFirebase?.auth;
+        if (!auth) { setTimeout(waitForAuth, 300); return; }
+        // onAuthStateChanged fires once immediately with current user (or null)
+        auth.onAuthStateChanged(function(user) {
+            applyPanel(user ? user.uid : null);
+        });
     }
-    setTimeout(keepTrying, 400);
+    waitForAuth();
 
-    window._devPanelInit = tryShowDevPanel;
+    window._devPanelInit = function() {
+        const uid = window._scFirebase?.auth?.currentUser?.uid;
+        applyPanel(uid || null);
+    };
+})();
 
+// ==================================================================
+// DEV ADMIN PANEL — search/action logic
+// ==================================================================
+(function() {
     // -- Target state
     window._devTarget = null; // { uid, name, state, db }
     window.devAdminSearch = async function() {

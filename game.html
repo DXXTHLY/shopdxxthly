@@ -2462,6 +2462,15 @@ text-decoration: underline; /* Adds an underline on hover */
         @keyframes forgePulse { 0%,100%{transform:scale(1);filter:drop-shadow(0 0 8px #ff6622);} 50%{transform:scale(1.15);filter:drop-shadow(0 0 20px #ff4400);} }
         @keyframes forgeGlow  { 0%,100%{box-shadow:0 0 10px #ff662233,inset 0 0 10px #ff662211;} 50%{box-shadow:0 0 25px #ff662266,inset 0 0 20px #ff662222;} }
         .forge-btn-active { animation:forgeGlow 1.8s ease-in-out infinite; }
+        /* Forge fire canvas */
+        #forge-fire-canvas {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+            opacity: 0.85;
+        }
 </style>
 
         <!-- Toastify CSS -->
@@ -2979,10 +2988,11 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- SOUL-FORGE SCREEN -->
             <div id="forge-screen" class="screen">
                 <!-- Animated Header -->
-                <div style="text-align:center; margin-bottom:6px; position:relative;">
-                    <div style="font-size:3em; animation:forgePulse 2s ease-in-out infinite; display:inline-block;">🔥</div>
-                    <h2 style="letter-spacing:4px; color:#ff6622; margin:4px 0; text-shadow:0 0 30px #ff662299, 0 0 60px #ff441133;">THE SOUL-FORGE</h2>
-                    <p style="color:#ff662266; font-size:0.78em; font-style:italic;">Where lesser things are unmade — and greater things are born</p>
+                <div style="text-align:center; margin-bottom:6px; position:relative; overflow:hidden; padding-bottom:10px;">
+                    <canvas id="forge-fire-canvas" width="600" height="120"></canvas>
+                    <div style="font-size:3em; animation:forgePulse 2s ease-in-out infinite; display:inline-block; position:relative; z-index:1;">🔥</div>
+                    <h2 style="letter-spacing:4px; color:#ff6622; margin:4px 0; text-shadow:0 0 30px #ff662299, 0 0 60px #ff441133; position:relative; z-index:1;">THE SOUL-FORGE</h2>
+                    <p style="color:#ff662266; font-size:0.78em; font-style:italic; position:relative; z-index:1;">Where lesser things are unmade — and greater things are born</p>
                 </div>
 
                 <!-- Forge Stats Bar -->
@@ -3019,8 +3029,8 @@ text-decoration: underline; /* Adds an underline on hover */
 
                 <!-- Rarity Ascension Tab -->
                 <div id="forge-panel-ascend" style="max-width:1000px; margin:0 auto;">
-                    <p style="color:#666; font-size:0.78em; text-align:center; margin-bottom:16px;">Sacrifice 3 items of the same rarity → receive 1 random item of the next rarity. Items are chosen at random from your inventory.</p>
-                    <div id="infusion-container" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px;"></div>
+                    <p style="color:#666; font-size:0.78em; text-align:center; margin-bottom:16px;">Sacrifice 3 items of the same rarity → receive 1 random item of the next rarity. <strong style="color:#888;">You choose which 3 to sacrifice.</strong></p>
+                    <div id="infusion-container" style="display:grid; grid-template-columns:repeat(2,1fr); gap:16px;"></div>
                 </div>
 
                 <!-- Recipes Tab -->
@@ -6195,7 +6205,7 @@ const minions = {
     // Obtained only through the donation reward system.
 
     the_void_author: {
-        name: "The Void Author", baseSps: 5e18, cost: 0, multiplier: 0, secret: true, donorOnly: true,
+        name: "The Void Author", baseSps: 5e18, cost: 0, multiplier: 0, secret: true,
         lore: "It wrote the laws of your universe as a rough draft and never came back to edit them. It watches your harvest with the detached curiosity of someone reading their own old work. You are a sentence it almost deleted.",
         icon: '🖋️',
         promotions: [],
@@ -6207,7 +6217,7 @@ const minions = {
     },
 
     the_bleeding_throne: {
-        name: "The Bleeding Throne", baseSps: 1.2e19, cost: 0, multiplier: 0, secret: true, donorOnly: true,
+        name: "The Bleeding Throne", baseSps: 1.2e19, cost: 0, multiplier: 0, secret: true,
         lore: "Every empire that ever fell left a wound in reality. This entity is the sum of all of them — a seat of power built entirely from collapsed dynasties and betrayed kings. It chose you because you smell like ambition.",
         icon: '🩸',
         promotions: [],
@@ -6219,7 +6229,7 @@ const minions = {
     },
 
     the_unmaker: {
-        name: "The Unmaker", baseSps: 3e19, cost: 0, multiplier: 0, secret: true, donorOnly: true,
+        name: "The Unmaker", baseSps: 3e19, cost: 0, multiplier: 0, secret: true,
         lore: "Before creation there was something that decided what would not exist. That decision became this. It has been patiently waiting for someone powerful enough to put it to work. You are, apparently, almost enough.",
         icon: '🌑',
         promotions: [],
@@ -6973,11 +6983,11 @@ const battleMinions = {
         ability: { name: "End of All", desc: "Instantly kills any enemy below 50% HP. Otherwise 3× ATK.", cd: 6, effect: 'execute', mult: 3.0, threshold: 0.50 } },
 
     // DONOR-EXCLUSIVE SECRET MINIONS — DARK
-    the_void_author:        { name: "The Void Author",        hp: 160, atk: 58, range: 4, cost: 36, icon: '🖋️', secret: true, donorOnly: true,
+    the_void_author:        { name: "The Void Author",        hp: 160, atk: 58, range: 4, cost: 36, icon: '🖋️', secret: true,
         ability: { name: "Rewrite", desc: "Rewrites the enemy's existence — 3× ATK, erases 35% max HP.", cd: 6, effect: 'armor_pierce', mult: 3.0, void_pct: 0.35 } },
-    the_bleeding_throne:    { name: "The Bleeding Throne",    hp: 280, atk: 52, range: 2, cost: 38, icon: '🩸', secret: true, donorOnly: true,
+    the_bleeding_throne:    { name: "The Bleeding Throne",    hp: 280, atk: 52, range: 2, cost: 38, icon: '🩸', secret: true,
         ability: { name: "Blood Dominion", desc: "Hemorrhages all enemies: 35% max HP bleed over 5 turns.", cd: 6, effect: 'bleed_all', pct: 0.35, turns: 5 } },
-    the_unmaker:            { name: "The Unmaker",            hp: 200, atk: 65, range: 3, cost: 42, icon: '🌑', secret: true, donorOnly: true,
+    the_unmaker:            { name: "The Unmaker",            hp: 200, atk: 65, range: 3, cost: 42, icon: '🌑', secret: true,
         ability: { name: "Unmake", desc: "Destroys enemy — reduces max HP by 60% + deals 3× ATK.", cd: 6, effect: 'void_strike', pct: 0.60, also_attack: true, mult: 3.0 } },
 
     // ────────────────────────────────────────────────────────────────────
@@ -11635,9 +11645,11 @@ function executeTranscendence() {
     gameState.lifetimeSouls      = oldLifetimeSouls;
     gameState.totalShardsEarned  = oldTotalShardsEarned;
 
-    // Restore secret minions
+    // Restore secret minions (non-leaderboard only — God/Satan leave on Ascension since rank resets)
     for (const id in secretMinionsSaved) {
-        gameState.minions[id] = secretMinionsSaved[id];
+        if (!minions[id]?.leaderboardMinion) {
+            gameState.minions[id] = secretMinionsSaved[id];
+        }
     }
 
     // Initialise guardian minions state
@@ -12879,6 +12891,66 @@ function renderMinions() {
 
     if (!anyRendered) {
         grid.innerHTML = `<div style="color:var(--dim-color); text-align:center; padding:40px; grid-column:1/-1;">No minions unlocked yet.</div>`;
+    }
+
+    // ── Owned Secret Minions ──────────────────────────────────────────────────
+    const ownedSecrets = Object.entries(minions).filter(([id, m]) =>
+        m.secret && (gameState.minions[id]?.level || 0) > 0
+    );
+    if (ownedSecrets.length > 0) {
+        const headerEl = document.createElement('div');
+        headerEl.style.cssText = 'grid-column:1/-1; margin-top:28px; margin-bottom:4px; border-top:1px solid #aa44ff33; padding-top:16px; display:flex; align-items:center; gap:10px;';
+        headerEl.innerHTML = '<span style="font-size:1.3em;">🔮</span><div><div style="color:#aa44ff; font-weight:bold; letter-spacing:2px; font-size:0.9em;">SECRET MINIONS</div><div style="color:#555; font-size:0.7em;">Persist through Ascension · Purchased from the Hourly Shop</div></div>';
+        grid.appendChild(headerEl);
+
+        for (const [id, m] of ownedSecrets) {
+            const p = gameState.minions[id];
+            const lvl = p?.level || 0;
+            const isLeaderboard = m.leaderboardMinion;
+            const tierColor = isLeaderboard ? (m.leaderboardTier === 'light' ? '#ffe066' : '#ff4444') : '#aa44ff';
+            const badgeText = isLeaderboard
+                ? (m.leaderboardTier === 'light' ? '☀️ LEADERBOARD' : '😈 LEADERBOARD')
+                : '🔮 SECRET';
+            const badge = `<span style="background:${tierColor}22; border:1px solid ${tierColor}44; border-radius:5px; padding:1px 7px; font-size:0.65em; color:${tierColor}; margin-left:6px;">${badgeText}</span>`;
+
+            let researchHtml = '';
+            if (m.researchTiers && m.researchTiers.length > 0) {
+                researchHtml = '<div style="border-top:1px solid ' + tierColor + '22; padding-top:8px;">' +
+                    m.researchTiers.map(rt => {
+                        const unlocked = lvl >= rt.level;
+                        return '<div style="display:flex; align-items:center; gap:6px; padding:3px 0; font-size:0.72em;">' +
+                            '<span style="color:' + (unlocked ? tierColor : '#444') + ';">' + (unlocked ? '✓' : '○') + '</span>' +
+                            '<span style="color:' + (unlocked ? '#888' : '#444') + ';">Lv' + rt.level + ':</span>' +
+                            '<span style="color:' + (unlocked ? '#aaa' : '#444') + ';">' + rt.desc + '</span></div>';
+                    }).join('') + '</div>';
+            }
+
+            const spsDisplay = m.baseSps > 0
+                ? '<div style="color:#888; font-size:0.72em;">⚡ ' + formatNumber(m.baseSps) + ' SPS base</div>'
+                : '<div style="color:#555; font-size:0.72em;">Passive bonuses only</div>';
+
+            const persistNote = isLeaderboard
+                ? '<div style="background:' + tierColor + '11; border:1px solid ' + tierColor + '22; border-radius:6px; padding:5px 8px; font-size:0.68em; color:' + tierColor + '66;">⚠ Leaderboard minion — leaves if you lose #1 rank. Does NOT persist through Ascension.</div>'
+                : '<div style="background:#aa44ff11; border:1px solid #aa44ff22; border-radius:6px; padding:5px 8px; font-size:0.68em; color:#aa44ff66;">✓ Persists through Ascension</div>';
+
+            const card = document.createElement('div');
+            card.style.cssText = 'background:linear-gradient(160deg,#0d0618,#1a0828); border:1px solid ' + tierColor + '33; border-top:3px solid ' + tierColor + '; border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:8px; position:relative; overflow:hidden;';
+            card.innerHTML =
+                '<div style="position:absolute;bottom:-15px;right:-10px;font-size:4em;opacity:0.05;pointer-events:none;">' + m.icon + '</div>' +
+                '<div style="display:flex; align-items:center; gap:10px;">' +
+                    '<span style="font-size:2em; filter:drop-shadow(0 0 8px ' + tierColor + '66);">' + m.icon + '</span>' +
+                    '<div style="flex:1;">' +
+                        '<div style="color:' + tierColor + '; font-weight:bold; font-size:1em;">' + m.name + ' ' + badge + '</div>' +
+                        '<div style="color:#555; font-size:0.7em;">Level <strong style="color:' + tierColor + ';">' + lvl + '</strong> / 100</div>' +
+                    '</div></div>' +
+                spsDisplay +
+                '<div style="background:#ffffff08; border-radius:4px; height:4px; overflow:hidden;">' +
+                    '<div style="height:100%; width:' + Math.min(100,lvl) + '%; background:linear-gradient(90deg,' + tierColor + '88,' + tierColor + '); border-radius:4px;"></div></div>' +
+                researchHtml +
+                '<div style="color:#444; font-size:0.7em; font-style:italic; line-height:1.4;">' + (m.lore || '') + '</div>' +
+                persistNote;
+            grid.appendChild(card);
+        }
     }
 }
 
@@ -15081,6 +15153,9 @@ function openAbyssalCache() {
             'the_last_dream',
             'the_starving_dark',
             'terminus',
+            'the_void_author',
+            'the_bleeding_throne',
+            'the_unmaker',
         ];
         const chosenId  = secretPool[Math.floor(Math.random() * secretPool.length)];
         const sm = minions[chosenId];
@@ -15190,6 +15265,9 @@ function openAbyssalCacheSilent() {
             'the_last_dream',
             'the_starving_dark',
             'terminus',
+            'the_void_author',
+            'the_bleeding_throne',
+            'the_unmaker',
         ];
         const chosenId = secretPool[Math.floor(Math.random() * secretPool.length)];
         const undiscovered = secretPool.filter((s,i,a) => a.indexOf(s)===i && (gameState.minions[s]?.level||0)===0);
@@ -17626,6 +17704,13 @@ function generateHourlyShopItems() {
     const seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate() * 24 + now.getHours();
     const hourKey = seed.toString(); // used as the purchase-limit namespace
 
+    // Fetch global secret minion state async, then re-render
+    // On first call this triggers a DB fetch; subsequent calls use cache
+    if (window._shopGlobalCache?.hourKey !== hourKey) {
+        fetchShopGlobalState(hourKey).then(() => generateHourlyShopItems());
+        // Still render immediately with local data while fetching
+    }
+
     // Prune stale purchase records from previous hours
     if (!gameState.shopPurchases) gameState.shopPurchases = {};
     for (const key of Object.keys(gameState.shopPurchases)) {
@@ -17707,6 +17792,9 @@ function generateHourlyShopItems() {
             'the_last_dream',
             'the_starving_dark',
             'terminus',
+            'the_void_author',
+            'the_bleeding_throne',
+            'the_unmaker',
         ];
         shopItems[1] = { id: secretPool[(seed * 3 + 7) % secretPool.length], type: 'secret_minion' };
     }
@@ -17739,8 +17827,10 @@ function generateHourlyShopItems() {
             const smPrice     = 0;        // No DE cost — pure fragments
             const smFragCost  = 500;      // 500 Corrupted Fragments required
             const alreadyOwns = (gameState.minions[id]?.level || 0) > 0;
+            // Global sold-out: someone else bought this minion this hour
+            const globalSoldOut = window._shopGlobalCache?.hourKey === hourKey && !!window._shopGlobalCache?.soldMinionId;
             // Permanently blocked if already owned — hourly soldOut is secondary
-            const blocked     = alreadyOwns || soldOut;
+            const blocked     = alreadyOwns || soldOut || globalSoldOut;
             const canBuy      = !blocked && D(gameState.corruptedFragments || 0).gte(smFragCost);
 
             let badgeText, buttonHtml, opacity, borderAlpha;
@@ -17749,10 +17839,10 @@ function generateHourlyShopItems() {
                 buttonHtml = `<div style="background:#0d0d0d; border:1px solid #2a2a2a; border-radius:6px; padding:5px 12px; font-size:0.8em; color:#444;">Already Owned</div>`;
                 opacity    = '0.35';
                 borderAlpha = '11';
-            } else if (soldOut) {
-                badgeText  = '✓ SOLD';
-                buttonHtml = `<div style="background:#33333333; border:1px solid #444; border-radius:6px; padding:5px 12px; font-size:0.8em; color:#555;">✓ Purchased</div>`;
-                opacity    = '0.45';
+            } else if (globalSoldOut || soldOut) {
+                badgeText  = '✗ SOLD OUT';
+                buttonHtml = `<div style="background:#33333333; border:1px solid #aa44ff33; border-radius:6px; padding:5px 12px; font-size:0.8em; color:#664466;">Someone claimed it this hour</div>`;
+                opacity    = '0.4';
                 borderAlpha = '22';
             } else {
                 badgeText  = 'SECRET';
@@ -17999,14 +18089,28 @@ function buyHourlyShopItem(itemId, itemType, price, hourKey) {
         // Hard permanent cap — only ever one of each
         if ((gameState.minions[itemId]?.level || 0) > 0) {
             Toastify({ text: `You already possess ${sm.name}.`, duration: 3000, gravity:'top', position:'center', style:{ background:'#441144' } }).showToast();
-            // Refund the essence since we charged before this check
-            _safeAddCur("darkEssence", price);
+            if (fragCost > 0) gameState.corruptedFragments = D(gameState.corruptedFragments||0).add(fragCost); // refund frags
             saveGame();
             return;
         }
-        if (!gameState.minions[itemId]) gameState.minions[itemId] = { level: 0, cost: 0, promotionTier: 0 };
-        gameState.minions[itemId].level = 1; // always set to exactly 1 — no stacking
-        Toastify({ text: `🔮 ${sm.icon} ${sm.name} obtained! — Check your Bestiary.`, duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0050,#aa44ff)' } }).showToast();
+        // Attempt to claim globally — atomic insert fails if someone else already bought this hour
+        (async () => {
+            const claimed = await claimSecretMinionGlobally(hourKey, itemId);
+            if (!claimed) {
+                // Someone else got it between render and buy — refund and show error
+                gameState.corruptedFragments = D(gameState.corruptedFragments||0).add(fragCost);
+                gameState.shopPurchases[purchaseKey] = Math.max(0, (gameState.shopPurchases[purchaseKey]||1) - 1);
+                Toastify({ text: `🔮 ${sm.name} was claimed by someone else this hour. Fragments refunded.`, duration:5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0010,#440022)' } }).showToast();
+                saveGame(); generateHourlyShopItems();
+                return;
+            }
+            // Claimed — grant the minion
+            if (!gameState.minions[itemId]) gameState.minions[itemId] = { level: 0, cost: 0, promotionTier: 0 };
+            gameState.minions[itemId].level = 1;
+            Toastify({ text: `🔮 ${sm.icon} ${sm.name} obtained! Check your Minions tab.`, duration: 6000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#2a0050,#aa44ff)' } }).showToast();
+            playSound('ascend'); calculateStats(); renderMinions(); saveGame(); generateHourlyShopItems();
+        })();
+        return; // async path handles everything
     } else if (itemType === 'item') {
         gameState.inventory.push(itemId);
         Toastify({ text: `✔ ${itemName} added to your inventory.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#0a2a44,#4488ff)' } }).showToast();
@@ -20467,34 +20571,34 @@ function updateExpeditionPower() {
 // ── FORGE RECIPE DEFINITIONS ──────────────────────────────────────────────
 const FORGE_RECIPES = [
     // ── WEAPON CHAIN ───────────────────────────────────────────────────────
-    { id:'r_soul_lance',       label:'Sharpen the Edge',       inputs:['chipped_dagger','sharpening_stone','soul_cleaver'],          fragments:80,  souls:2e6,  output:'soul_lance',          type:'weapon' },
-    { id:'r_void_fang',        label:'Temper in Void Fire',    inputs:['abyssal_scythe','soul_lance'],                                fragments:200, souls:30e6, output:'void_fang',           type:'weapon' },
-    { id:'r_blade_damned',     label:'Blood Pact Binding',     inputs:['void_fang','soul_ripper'],                                   fragments:400, souls:150e6,output:'blade_of_the_damned', type:'weapon' },
-    { id:'r_nexus_blade',      label:"Forge-Lord's Masterwork",inputs:['blade_of_the_damned','reaper_of_infinities'],               fragments:800, souls:2e9,  output:'nexus_blade',         type:'weapon', forged:true },
+    { id:'r_soul_lance',       label:'Sharpen the Edge',       inputs:['chipped_dagger','sharpening_stone','soul_cleaver'],          fragments:30,  souls:2e6,  output:'soul_lance',          type:'weapon' },
+    { id:'r_void_fang',        label:'Temper in Void Fire',    inputs:['abyssal_scythe','soul_lance'],                                fragments:60,  souls:20e6, output:'void_fang',           type:'weapon' },
+    { id:'r_blade_damned',     label:'Blood Pact Binding',     inputs:['void_fang','soul_ripper'],                                   fragments:100,  souls:80e6,output:'blade_of_the_damned', type:'weapon' },
+    { id:'r_nexus_blade',      label:"Forge-Lord's Masterwork",inputs:['blade_of_the_damned','reaper_of_infinities'],               fragments:200,  souls:1e9,  output:'nexus_blade',         type:'weapon', forged:true },
     // ── IDOL CHAIN ─────────────────────────────────────────────────────────
-    { id:'r_spirit_cage',      label:'Trap Wandering Spirits', inputs:['cracked_effigy','bone_totem','demonic_relic'],               fragments:80,  souls:2e6,  output:'spirit_cage',         type:'idol' },
-    { id:'r_idol_depths',      label:'Sink It to the Depths',  inputs:['spirit_cage','void_totem'],                                  fragments:200, souls:30e6, output:'idol_of_the_depths',  type:'idol' },
-    { id:'r_heart_horde',      label:'Fuse Horde Essence',     inputs:['idol_of_the_depths','echo_of_the_abyss'],                   fragments:400, souls:150e6,output:'heart_of_the_horde',  type:'idol' },
-    { id:'r_soul_phoenix',     label:'The Eternal Rebirth',    inputs:['heart_of_the_horde','idol_of_the_void_lord'],               fragments:800, souls:2e9,  output:'soul_of_the_phoenix', type:'idol', forged:true },
+    { id:'r_spirit_cage',      label:'Trap Wandering Spirits', inputs:['cracked_effigy','bone_totem','demonic_relic'],               fragments:30,  souls:2e6,  output:'spirit_cage',         type:'idol' },
+    { id:'r_idol_depths',      label:'Sink It to the Depths',  inputs:['spirit_cage','void_totem'],                                  fragments:60,  souls:20e6, output:'idol_of_the_depths',  type:'idol' },
+    { id:'r_heart_horde',      label:'Fuse Horde Essence',     inputs:['idol_of_the_depths','echo_of_the_abyss'],                   fragments:100,  souls:80e6,output:'heart_of_the_horde',  type:'idol' },
+    { id:'r_soul_phoenix',     label:'The Eternal Rebirth',    inputs:['heart_of_the_horde','idol_of_the_void_lord'],               fragments:200,  souls:1e9,  output:'soul_of_the_phoenix', type:'idol', forged:true },
     // ── SIGIL CHAIN ────────────────────────────────────────────────────────
-    { id:'r_sigil_greed',      label:'Carve the Rune of Want', inputs:['faded_rune','starlit_glyph','wanderer_sigil'],              fragments:80,  souls:2e6,  output:'sigil_of_greed',      type:'sigil' },
-    { id:'r_pact_persist',     label:'Blood Covenant',         inputs:['sigil_of_greed','covenant_of_souls'],                       fragments:200, souls:30e6, output:'pact_of_persistence', type:'sigil' },
-    { id:'r_seal_damn',        label:'Damnation Branding',     inputs:['pact_of_persistence','glyph_of_fracture'],                  fragments:400, souls:150e6,output:'seal_of_damnation',   type:'sigil' },
-    { id:'r_rift_compass',     label:'Calibrate the Void',     inputs:['seal_of_damnation','mark_of_dominion'],                    fragments:800, souls:2e9,  output:'riftwalkers_compass',  type:'sigil', forged:true },
+    { id:'r_sigil_greed',      label:'Carve the Rune of Want', inputs:['faded_rune','starlit_glyph','wanderer_sigil'],              fragments:30,  souls:2e6,  output:'sigil_of_greed',      type:'sigil' },
+    { id:'r_pact_persist',     label:'Blood Covenant',         inputs:['sigil_of_greed','covenant_of_souls'],                       fragments:60,  souls:20e6, output:'pact_of_persistence', type:'sigil' },
+    { id:'r_seal_damn',        label:'Damnation Branding',     inputs:['pact_of_persistence','glyph_of_fracture'],                  fragments:100,  souls:80e6,output:'seal_of_damnation',   type:'sigil' },
+    { id:'r_rift_compass',     label:'Calibrate the Void',     inputs:['seal_of_damnation','mark_of_dominion'],                    fragments:200,  souls:1e9,  output:'riftwalkers_compass',  type:'sigil', forged:true },
     // ── HELM CHAIN ─────────────────────────────────────────────────────────
-    { id:'r_warlord_helm',     label:'Smelt the Warplate',     inputs:['iron_mask','leaden_mask','cracked_visor'],                  fragments:80,  souls:2e6,  output:'warlord_helm',        type:'helm' },
-    { id:'r_voidcrown',        label:'Crown in Void Crystal',  inputs:['warlord_helm','gaze_of_terror'],                            fragments:200, souls:30e6, output:'voidcrown',           type:'helm' },
-    { id:'r_soul_lord_crown',  label:'Claim the Throne',       inputs:['voidcrown','crown_of_dominance'],                          fragments:400, souls:150e6,output:'crown_of_the_soul_lord',type:'helm' },
-    { id:'r_forge_lord_crown', label:'The Forge-Lord Crowned', inputs:['crown_of_the_soul_lord','helm_of_the_undying'],            fragments:800, souls:2e9,  output:'crown_of_the_forge_lord',type:'helm',forged:true },
+    { id:'r_warlord_helm',     label:'Smelt the Warplate',     inputs:['iron_mask','leaden_mask','cracked_visor'],                  fragments:30,  souls:2e6,  output:'warlord_helm',        type:'helm' },
+    { id:'r_voidcrown',        label:'Crown in Void Crystal',  inputs:['warlord_helm','gaze_of_terror'],                            fragments:60,  souls:20e6, output:'voidcrown',           type:'helm' },
+    { id:'r_soul_lord_crown',  label:'Claim the Throne',       inputs:['voidcrown','crown_of_dominance'],                          fragments:100,  souls:80e6,output:'crown_of_the_soul_lord',type:'helm' },
+    { id:'r_forge_lord_crown', label:'The Forge-Lord Crowned', inputs:['crown_of_the_soul_lord','helm_of_the_undying'],            fragments:200,  souls:1e9,  output:'crown_of_the_forge_lord',type:'helm',forged:true },
     // ── TOME CHAIN ─────────────────────────────────────────────────────────
-    { id:'r_grimoire_seek',    label:'Bind the Wandering Pages',inputs:['field_notes','tattered_map','tome_of_efficiency'],         fragments:80,  souls:2e6,  output:'grimoire_of_seeking', type:'tome' },
-    { id:'r_codex_rites',      label:'Consecrate the Rituals', inputs:['grimoire_of_seeking','codex_of_hunger'],                   fragments:200, souls:30e6, output:'codex_of_rites',      type:'tome' },
-    { id:'r_grim_damned',      label:'Inscribe the Pact of Ages',inputs:['codex_of_rites','tome_of_collapse'],                     fragments:400, souls:150e6,output:'grimoire_of_the_damned',type:'tome' },
-    { id:'r_endless_cycle',    label:'The Cycle Made Eternal', inputs:['grimoire_of_the_damned','the_black_codex'],                fragments:800, souls:2e9,  output:'grimoire_of_the_endless_cycle',type:'tome',forged:true },
+    { id:'r_grimoire_seek',    label:'Bind the Wandering Pages',inputs:['field_notes','tattered_map','tome_of_efficiency'],         fragments:30,  souls:2e6,  output:'grimoire_of_seeking', type:'tome' },
+    { id:'r_codex_rites',      label:'Consecrate the Rituals', inputs:['grimoire_of_seeking','codex_of_hunger'],                   fragments:60,  souls:20e6, output:'codex_of_rites',      type:'tome' },
+    { id:'r_grim_damned',      label:'Inscribe the Pact of Ages',inputs:['codex_of_rites','tome_of_collapse'],                     fragments:100,  souls:80e6,output:'grimoire_of_the_damned',type:'tome' },
+    { id:'r_endless_cycle',    label:'The Cycle Made Eternal', inputs:['grimoire_of_the_damned','the_black_codex'],                fragments:200,  souls:1e9,  output:'grimoire_of_the_endless_cycle',type:'tome',forged:true },
     // ── CROSS-TYPE LEGENDARY RECIPES ───────────────────────────────────────
-    { id:'r_amulet',           label:'Weave Eternal Threads',  inputs:['heart_of_the_horde','blade_of_the_damned'],               fragments:600, souls:1e9,  output:'amulet_of_eternity',  type:'mixed', forged:true },
-    { id:'r_prism',            label:'Shatter Light Through Will',inputs:['soul_of_the_phoenix','grimoire_of_the_damned'],          fragments:1000,souls:5e9,  output:'the_ascendants_prism', type:'mixed', forged:true },
-    { id:'r_catalyst',         label:'Forge the Flow of Time', inputs:['nexus_blade','grimoire_of_the_endless_cycle'],            fragments:1200,souls:10e9, output:'the_eon_catalyst',     type:'mixed', forged:true },
+    { id:'r_amulet',           label:'Weave Eternal Threads',  inputs:['heart_of_the_horde','blade_of_the_damned'],               fragments:150,  souls:500e6,  output:'amulet_of_eternity',  type:'mixed', forged:true },
+    { id:'r_prism',            label:'Shatter Light Through Will',inputs:['soul_of_the_phoenix','grimoire_of_the_damned'],          fragments:175,  souls:2e9,  output:'the_ascendants_prism', type:'mixed', forged:true },
+    { id:'r_catalyst',         label:'Forge the Flow of Time', inputs:['nexus_blade','grimoire_of_the_endless_cycle'],            fragments:200,  souls:5e9, output:'the_eon_catalyst',     type:'mixed', forged:true },
 ];
 
 function switchForgeTab(tab) {
@@ -20504,6 +20608,98 @@ function switchForgeTab(tab) {
     const btnR = document.getElementById('forge-tab-recipes');
     if (btnA) { btnA.style.background = tab==='ascend'  ? 'linear-gradient(135deg,#ff662222,transparent)' : 'transparent'; btnA.style.color = tab==='ascend'  ? '#ff6622' : '#555'; }
     if (btnR) { btnR.style.background = tab==='recipes' ? 'linear-gradient(135deg,#ff662222,transparent)' : 'transparent'; btnR.style.color = tab==='recipes' ? '#ff6622' : '#555'; }
+}
+
+function renderForgeRecipes() {
+    const container = document.getElementById('forge-recipes-container');
+    if (!container) return;
+
+    const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff6644', heavenly:'#fff4aa' };
+    const typeLabel   = { weapon:'⚔️ Weapon', idol:'🗿 Idol', sigil:'🔏 Sigil', helm:'🪖 Helm', tome:'📖 Tome', mixed:'✦ Cross-Type' };
+
+    // Group by type/chain
+    const groups = {};
+    for (const r of FORGE_RECIPES) {
+        const g = r.type || 'misc';
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(r);
+    }
+
+    let html = '';
+    for (const [groupKey, recipes] of Object.entries(groups)) {
+        html += `<div style="grid-column:1/-1; color:#555; font-size:0.7em; text-transform:uppercase; letter-spacing:3px; margin:8px 0 4px; border-bottom:1px solid #1a1a1a; padding-bottom:4px;">
+            ${typeLabel[groupKey] || groupKey} Chain
+        </div>`;
+
+        for (const recipe of recipes) {
+            const inv = gameState.inventory || [];
+            const outItem = items[recipe.output];
+            const outRarity = outItem?.rarity || 'common';
+            const outColor  = rarityColor[outRarity] || '#aaa';
+
+            // Check which inputs the player has
+            const invCopy = [...inv];
+            const inputRows = recipe.inputs.map(inputId => {
+                const it = items[inputId];
+                const idx = invCopy.indexOf(inputId);
+                const have = idx !== -1;
+                if (have) invCopy.splice(idx, 1); // consume so dupes are handled
+                const irc = rarityColor[it?.rarity] || '#555';
+                return { name: it?.name || inputId, have, color: irc };
+            });
+            const allHaveInputs = inputRows.every(r => r.have);
+
+            const canAffordSouls = D(gameState.souls).gte(D(recipe.souls));
+            const canAffordFrags = D(gameState.corruptedFragments || 0).gte(recipe.fragments);
+            const canForge = allHaveInputs && canAffordSouls && canAffordFrags;
+
+            const borderColor = canForge ? outColor : (recipe.forged ? '#ff664422' : '#1e1e1e');
+            const bgGrad = recipe.forged
+                ? 'linear-gradient(160deg,#120808,#1a0e0a)'
+                : 'linear-gradient(160deg,#0e0910,#0f0c14)';
+
+            html += `
+            <div style="background:${bgGrad}; border:1px solid ${borderColor}; border-top:3px solid ${canForge ? outColor : (recipe.forged ? '#ff664444' : '#222')}; border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:10px; transition:border-color 0.3s; position:relative; overflow:hidden;"
+                 onmouseover="this.style.borderTopColor='${outColor}99'" onmouseout="this.style.borderTopColor='${canForge ? outColor : (recipe.forged ? '#ff664444' : '#222')}'">
+                ${recipe.forged ? '<div style="position:absolute;top:-10px;right:-5px;font-size:3.5em;opacity:0.05;pointer-events:none;">🔥</div>' : ''}
+
+                <!-- Recipe label & output -->
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+                    <div>
+                        <div style="color:#666; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">${recipe.label}</div>
+                        <div style="color:${outColor}; font-weight:bold; font-size:0.9em;">→ ${outItem?.name || recipe.output}</div>
+                        ${outItem?.desc ? `<div style="color:#444; font-size:0.65em; line-height:1.4; margin-top:2px;">${outItem.desc}</div>` : ''}
+                    </div>
+                    <span style="font-size:0.65em; background:${outColor}22; border:1px solid ${outColor}44; border-radius:4px; padding:2px 7px; color:${outColor}; white-space:nowrap; flex-shrink:0;">${outRarity.toUpperCase()}</span>
+                </div>
+
+                <!-- Inputs -->
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <div style="color:#333; font-size:0.62em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Ingredients</div>
+                    ${inputRows.map(r => `
+                        <div style="display:flex; align-items:center; gap:7px; font-size:0.75em;">
+                            <span style="color:${r.have ? '#44cc66' : '#cc3333'}; font-size:0.9em;">${r.have ? '✓' : '✗'}</span>
+                            <span style="color:${r.have ? r.color : '#444'};">${r.name}</span>
+                        </div>`).join('')}
+                </div>
+
+                <!-- Cost + Button -->
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; border-top:1px solid #ffffff06; padding-top:8px;">
+                    <div style="font-size:0.72em; line-height:1.8;">
+                        <div>👻 <span style="color:${canAffordSouls ? '#777' : '#ff4444'};">${formatNumber(recipe.souls)} Souls</span></div>
+                        <div>🔮 <span style="color:${canAffordFrags ? '#777' : '#ff4444'};">${recipe.fragments} Fragments</span></div>
+                    </div>
+                    <button onclick="performRecipe('${recipe.id}')" ${!canForge ? 'disabled' : ''}
+                        class="${canForge ? 'forge-btn-active' : ''}"
+                        style="background:${canForge ? `linear-gradient(135deg,${outColor}44,${outColor}11)` : 'transparent'}; border:1px solid ${canForge ? outColor : '#2a2a2a'}; border-radius:8px; padding:8px 18px; color:${canForge ? outColor : '#333'}; cursor:${canForge ? 'pointer' : 'not-allowed'}; font-family:var(--font-title); font-size:0.8em; letter-spacing:1px; transition:all 0.2s; white-space:nowrap;">
+                        ${canForge ? '⚒ FORGE' : (allHaveInputs ? 'Need Resources' : 'Missing Items')}
+                    </button>
+                </div>
+            </div>`;
+        }
+    }
+
+    container.innerHTML = html;
 }
 
 function renderSoulForge() {
@@ -20528,65 +20724,97 @@ function renderSoulForge() {
 
     // ── Rarity Ascension Tiers ─────────────────────────────────────────────
     const TIERS = [
-        { from:'common',    to:'uncommon', souls:500000,   fragments:50  },
-        { from:'uncommon',  to:'rare',     souls:5e6,      fragments:100 },
-        { from:'rare',      to:'epic',     souls:30e6,     fragments:200 },
-        { from:'epic',      to:'legendary',souls:200e6,    fragments:400 },
-        { from:'legendary', to:'forged',   souls:2e9,      fragments:800 },
+        { from:'common',    to:'uncommon', souls:250000,   fragments:20  },
+        { from:'uncommon',  to:'rare',     souls:2e6,      fragments:50  },
+        { from:'rare',      to:'epic',     souls:15e6,     fragments:100 },
+        { from:'epic',      to:'legendary',souls:100e6,    fragments:150 },
+        { from:'legendary', to:'forged',   souls:1e9,      fragments:200 },
     ];
+
+    // Track selected items per rarity (inventory indices)
+    window._forgeSelected = window._forgeSelected || {};
 
     TIERS.forEach(tier => {
         const { from, to, souls, fragments } = tier;
         const rc  = rarityColor[from] || '#aaa';
         const nrc = rarityColor[to]   || '#fff';
-        const itemsOfRarity = (gameState.inventory||[]).filter(id => items[id]?.rarity === from);
-        const count = itemsOfRarity.length;
+
+        // All items of this rarity with inventory indices
+        const invItems = [];
+        (gameState.inventory||[]).forEach((id, invIdx) => {
+            if (items[id]?.rarity === from) invItems.push({ id, invIdx, name: items[id].name });
+        });
+        const count = invItems.length;
+
+        // Selection state
+        if (!window._forgeSelected[from]) window._forgeSelected[from] = [];
+        // Clean stale selections
+        window._forgeSelected[from] = window._forgeSelected[from].filter(idx =>
+            gameState.inventory[idx] && items[gameState.inventory[idx]]?.rarity === from
+        );
+        const selected = window._forgeSelected[from];
+
         const canAffordSouls = D(gameState.souls).gte(D(souls));
         const canAffordFrags = D(gameState.corruptedFragments||0).gte(fragments);
-        const canInfuse = count >= 3 && canAffordSouls && canAffordFrags;
+        const canInfuse = selected.length === 3 && canAffordSouls && canAffordFrags;
         const pct = Math.min(100, (count / 3) * 100);
-
-        const itemPills = itemsOfRarity.slice(0, 8).map(id =>
-            `<span style="background:${rc}22; border:1px solid ${rc}33; border-radius:5px; padding:2px 7px; font-size:0.68em; color:${rc}; white-space:nowrap;">${items[id].name}</span>`
-        ).join('');
-        const moreLabel = count > 8 ? `<span style="color:#555; font-size:0.68em;">+${count-8} more</span>` : '';
 
         // Possible outputs preview
         const possibleOutputs = Object.keys(items).filter(id => items[id]?.rarity === to);
-        const outputPreview = possibleOutputs.slice(0,4).map(id =>
+        const outputPreview = possibleOutputs.slice(0,5).map(id =>
             `<span style="color:${nrc}; font-size:0.68em;">${items[id].name}</span>`
-        ).join(', ') + (possibleOutputs.length > 4 ? ` <span style="color:#444; font-size:0.65em;">+${possibleOutputs.length-4} more</span>` : '');
+        ).join(', ') + (possibleOutputs.length > 5 ? ` <span style="color:#444; font-size:0.65em;">+${possibleOutputs.length-5} more</span>` : '');
+
+        // Item picker buttons
+        const pickerHtml = invItems.map(({ id, invIdx, name }) => {
+            const isSel = selected.includes(invIdx);
+            const isDisabled = !isSel && selected.length >= 3;
+            return `<button onclick="forgeToggleItem('${from}',${invIdx})" ${isDisabled ? 'disabled' : ''}
+                style="background:${isSel ? rc + '33' : '#ffffff08'}; border:1px solid ${isSel ? rc : '#333'}; border-radius:7px; padding:5px 10px; color:${isSel ? rc : (isDisabled ? '#2a2a2a' : '#777')}; cursor:${isDisabled ? 'not-allowed' : 'pointer'}; font-size:0.72em; white-space:nowrap; transition:all 0.15s; ${isSel ? 'box-shadow:0 0 8px ' + rc + '44;' : ''}">
+                ${isSel ? '✓ ' : ''}${name}
+            </button>`;
+        }).join('');
+
+        // Selection status
+        const selNames = selected.map(idx => items[gameState.inventory[idx]]?.name || '?');
+        const selStatus = selected.length === 0
+            ? `<span style="color:#444; font-size:0.72em; font-style:italic;">Click items below to choose 3 to sacrifice</span>`
+            : selected.length < 3
+                ? `<span style="color:${rc}88; font-size:0.72em;">${selNames.join(', ')} <span style="color:#555;">— pick ${3-selected.length} more</span></span>`
+                : `<span style="color:${rc}; font-size:0.72em; font-weight:bold;">🔥 ${selNames.join(' + ')}</span>`;
 
         container.innerHTML += `
-        <div style="background:linear-gradient(160deg,#0e0910,#1a0e0a); border:1px solid ${rc}33; border-top:3px solid ${rc}; border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden; transition:border-color 0.3s;"
-             onmouseover="this.style.borderColor='${rc}77'" onmouseout="this.style.borderColor='${rc}33'">
+        <div style="background:linear-gradient(160deg,#0e0910,#1a0e0a); border:1px solid ${rc}33; border-top:3px solid ${rc}; border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden; transition:border-color 0.3s;${from === 'legendary' ? ' grid-column:1/-1;' : ''}"
+             onmouseover="this.style.borderColor='${rc}55'" onmouseout="this.style.borderColor='${rc}33'">
             <div style="position:absolute;bottom:-15px;right:-8px;font-size:4em;opacity:0.04;pointer-events:none;">🔥</div>
 
             <!-- Header -->
             <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:1.6em; filter:drop-shadow(0 0 6px ${rc}88);">${rarityEmoji[from] || '⬜'}</span>
+                <span style="font-size:1.5em; filter:drop-shadow(0 0 6px ${rc}88);">${rarityEmoji[from] || '⬜'}</span>
                 <div style="flex:1;">
-                    <div style="color:${rc}; font-weight:bold; font-size:0.95em;">${rarityLabel[from]} → <span style="color:${nrc};">${rarityLabel[to]}</span></div>
-                    <div style="color:#555; font-size:0.7em;">3 ${from} items consumed · 1 ${to} item returned</div>
+                    <div style="color:${rc}; font-weight:bold; font-size:0.95em;">${rarityLabel[from]} <span style="color:#555;">→</span> <span style="color:${nrc};">${rarityLabel[to]}</span></div>
+                    <div style="color:#555; font-size:0.68em;">Choose 3 items to sacrifice · receive 1 random ${rarityLabel[to]}</div>
                 </div>
                 <div style="text-align:right;">
-                    <div style="font-size:1.3em; font-weight:bold; color:${count >= 3 ? rc : '#444'}; text-shadow:${count>=3?`0 0 10px ${rc}66`:''}">${count}<span style="color:#333; font-size:0.65em;">/3</span></div>
+                    <div style="font-size:1.1em; font-weight:bold; color:${count >= 3 ? rc : '#444'};">${count}<span style="color:#333; font-size:0.65em;"> owned</span></div>
+                    <div style="font-size:0.72em; color:${selected.length===3?rc:'#555'};">${selected.length}/3 selected</div>
                 </div>
             </div>
 
             <!-- Progress bar -->
-            <div style="background:#ffffff08; border-radius:4px; height:5px; overflow:hidden; border:1px solid ${rc}22;">
-                <div style="height:100%; width:${pct}%; background:linear-gradient(90deg,${rc}88,${rc}); border-radius:4px; transition:width 0.4s; box-shadow:0 0 8px ${rc}44;"></div>
+            <div style="background:#ffffff08; border-radius:4px; height:4px; overflow:hidden;">
+                <div style="height:100%; width:${pct}%; background:linear-gradient(90deg,${rc}88,${rc}); border-radius:4px; transition:width 0.4s;"></div>
             </div>
 
-            <!-- Your items -->
-            <div style="display:flex; flex-wrap:wrap; gap:4px; min-height:22px;">
-                ${count > 0 ? itemPills + moreLabel : `<span style="color:#333; font-size:0.72em; font-style:italic;">No ${from} items in inventory</span>`}
-            </div>
+            <!-- Selection status -->
+            <div style="min-height:20px;">${selStatus}</div>
+
+            <!-- Item picker -->
+            ${count > 0 ? `<div style="display:flex; flex-wrap:wrap; gap:5px;">${pickerHtml}</div>` : `<div style="color:#333; font-size:0.72em; font-style:italic; padding:4px 0;">No ${from} items in inventory</div>`}
 
             <!-- Possible outputs -->
-            <div style="background:#ffffff05; border:1px solid ${nrc}22; border-radius:6px; padding:6px 10px; font-size:0.7em;">
-                <span style="color:#444; margin-right:6px;">Possible outputs:</span>${outputPreview}
+            <div style="background:#ffffff05; border:1px solid ${nrc}22; border-radius:6px; padding:5px 10px; font-size:0.7em;">
+                <span style="color:#444; margin-right:5px;">Possible outputs:</span>${outputPreview}
             </div>
 
             <!-- Cost + Forge -->
@@ -20595,11 +20823,14 @@ function renderSoulForge() {
                     <div>👻 <span style="color:${canAffordSouls ? '#888' : '#ff4444'};">${formatNumber(souls)} Souls</span></div>
                     <div>🔮 <span style="color:${canAffordFrags ? '#888' : '#ff4444'};">${fragments} Fragments</span></div>
                 </div>
-                <button onclick="performInfusion('${from}')" ${!canInfuse?'disabled':''}
-                    class="${canInfuse?'forge-btn-active':''}"
-                    style="background:${canInfuse?`linear-gradient(135deg,${rc}44,${rc}11)`:'transparent'}; border:1px solid ${canInfuse?rc:'#333'}; border-radius:8px; padding:9px 20px; color:${canInfuse?rc:'#333'}; cursor:${canInfuse?'pointer':'not-allowed'}; font-family:var(--font-title); font-weight:bold; font-size:0.82em; letter-spacing:1px; transition:all 0.2s; white-space:nowrap;">
-                    🔥 ${count >= 3 ? 'FORGE IT' : `Need ${Math.max(0,3-count)} more`}
-                </button>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    ${selected.length > 0 ? `<button onclick="forgeClearSelection('${from}')" style="background:transparent; border:1px solid #2a2a2a; border-radius:6px; padding:7px 12px; color:#555; cursor:pointer; font-size:0.75em;">✕ Clear</button>` : ''}
+                    <button onclick="performInfusion('${from}')" ${!canInfuse?'disabled':''}
+                        class="${canInfuse?'forge-btn-active':''}"
+                        style="background:${canInfuse?`linear-gradient(135deg,${rc}44,${rc}11)`:'transparent'}; border:1px solid ${canInfuse?rc:'#333'}; border-radius:8px; padding:9px 22px; color:${canInfuse?rc:'#333'}; cursor:${canInfuse?'pointer':'not-allowed'}; font-family:var(--font-title); font-weight:bold; font-size:0.82em; letter-spacing:1px; transition:all 0.2s; white-space:nowrap;">
+                        🔥 ${canInfuse ? 'FORGE IT' : (count < 3 ? `Need ${Math.max(0,3-count)} more` : `Select ${Math.max(0,3-selected.length)} more`)}
+                    </button>
+                </div>
             </div>
         </div>`;
     });
@@ -20608,117 +20839,75 @@ function renderSoulForge() {
     renderForgeRecipes();
 }
 
-function renderForgeRecipes() {
-    const rc_container = document.getElementById('forge-recipes-container');
-    if (!rc_container) return;
-    rc_container.innerHTML = '';
+function forgeToggleItem(rarity, invIdx) {
+    if (!window._forgeSelected) window._forgeSelected = {};
+    if (!window._forgeSelected[rarity]) window._forgeSelected[rarity] = [];
+    const sel = window._forgeSelected[rarity];
+    const pos = sel.indexOf(invIdx);
+    if (pos !== -1) {
+        sel.splice(pos, 1);
+    } else if (sel.length < 3) {
+        sel.push(invIdx);
+    }
+    renderSoulForge();
+}
 
-    const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
-
-    FORGE_RECIPES.forEach(recipe => {
-        const inv = gameState.inventory || [];
-        const invCopy = [...inv];
-        // Check if player has all inputs
-        let hasAll = true;
-        const inputChecks = recipe.inputs.map(inputId => {
-            const idx = invCopy.indexOf(inputId);
-            const has = idx !== -1;
-            if (has) invCopy.splice(idx, 1);
-            else hasAll = false;
-            return { id: inputId, has };
-        });
-
-        const canAffordFrags = D(gameState.corruptedFragments||0).gte(recipe.fragments);
-        const canAffordSouls = D(gameState.souls).gte(D(recipe.souls));
-        const canForge = hasAll && canAffordFrags && canAffordSouls;
-
-        const outputItem = items[recipe.output];
-        if (!outputItem) return;
-        const outColor = rarityColor[outputItem.rarity] || '#aaa';
-        const typeIcon = {weapon:'⚔️',idol:'🗿',sigil:'✦',helm:'🪖',tome:'📖',mixed:'🔗'}[recipe.type] || '🎁';
-        const forgedBadge = recipe.forged ? `<span style="background:#ff444433; border:1px solid #ff444466; border-radius:6px; padding:1px 8px; font-size:0.62em; color:#ff6644; letter-spacing:1px;">🔥 FORGED</span>` : '';
-
-        const inputHtml = inputChecks.map(ic => {
-            const itm = items[ic.id];
-            return `<div style="display:flex; align-items:center; gap:5px; padding:4px 8px; background:${ic.has?'#ffffff08':'#ff222208'}; border:1px solid ${ic.has?'#333':'#ff222233'}; border-radius:6px;">
-                <span style="font-size:0.75em;">${ic.has ? '✓' : '✗'}</span>
-                <span style="color:${ic.has?'#aaa':'#ff4444'}; font-size:0.72em;">${itm?.name || ic.id}</span>
-            </div>`;
-        }).join('');
-
-        rc_container.innerHTML += `
-        <div style="background:linear-gradient(160deg,#0e0910,#1a0e16); border:1px solid ${outColor}33; border-top:3px solid ${outColor}; border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden; transition:border-color 0.3s;"
-             onmouseover="this.style.borderColor='${outColor}77'" onmouseout="this.style.borderColor='${outColor}33'">
-            <div style="position:absolute;bottom:-15px;right:-8px;font-size:4em;opacity:0.04;pointer-events:none;">📜</div>
-
-            <!-- Header -->
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <span style="font-size:1.3em;">${typeIcon}</span>
-                <div style="flex:1;">
-                    <div style="color:#888; font-size:0.7em; text-transform:uppercase; letter-spacing:1px;">${recipe.label}</div>
-                    <div style="color:${outColor}; font-weight:bold; font-size:1em; margin-top:1px;">${outputItem.name} ${forgedBadge}</div>
-                </div>
-            </div>
-
-            <!-- Output preview -->
-            <div style="background:${outColor}11; border:1px solid ${outColor}33; border-radius:8px; padding:8px 12px; font-size:0.75em; color:#888; line-height:1.5;">
-                ${outputItem.desc}
-            </div>
-
-            <!-- Required inputs -->
-            <div>
-                <div style="color:#555; font-size:0.68em; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;">Requires:</div>
-                <div style="display:flex; flex-direction:column; gap:4px;">${inputHtml}</div>
-            </div>
-
-            <!-- Cost + Button -->
-            <div style="border-top:1px solid #ffffff08; padding-top:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-                <div style="font-size:0.72em; line-height:1.7;">
-                    <div>👻 <span style="color:${canAffordSouls?'#888':'#ff4444'};">${formatNumber(recipe.souls)} Souls</span></div>
-                    <div>🔮 <span style="color:${canAffordFrags?'#888':'#ff4444'};">${recipe.fragments} Fragments</span></div>
-                </div>
-                <button onclick="performRecipe('${recipe.id}')" ${!canForge?'disabled':''}
-                    class="${canForge?'forge-btn-active':''}"
-                    style="background:${canForge?`linear-gradient(135deg,${outColor}44,${outColor}11)`:'transparent'}; border:1px solid ${canForge?outColor:'#333'}; border-radius:8px; padding:9px 20px; color:${canForge?outColor:'#333'}; cursor:${canForge?'pointer':'not-allowed'}; font-family:var(--font-title); font-weight:bold; font-size:0.82em; letter-spacing:1px; transition:all 0.2s; white-space:nowrap;">
-                    ⚒ ${canForge ? 'CRAFT' : 'Missing Items'}
-                </button>
-            </div>
-        </div>`;
-    });
+function forgeClearSelection(rarity) {
+    if (window._forgeSelected) window._forgeSelected[rarity] = [];
+    renderSoulForge();
 }
 
 function performInfusion(rarity) {
     const TIERS = {
-        common:    { souls:500000,   fragments:50  },
-        uncommon:  { souls:5e6,      fragments:100 },
-        rare:      { souls:30e6,     fragments:200 },
-        epic:      { souls:200e6,    fragments:400 },
-        legendary: { souls:2e9,      fragments:800 },
+        common:    { souls:250000,   fragments:20  },
+        uncommon:  { souls:2e6,      fragments:50  },
+        rare:      { souls:15e6,     fragments:100 },
+        epic:      { souls:100e6,    fragments:150 },
+        legendary: { souls:1e9,      fragments:200 },
     };
     const nextRarityMap = { common:'uncommon', uncommon:'rare', rare:'epic', epic:'legendary', legendary:'forged' };
 
     const tier = TIERS[rarity];
     if (!tier) return;
     const nextRarity = nextRarityMap[rarity];
-    const itemsToInfuse = (gameState.inventory||[]).filter(id => items[id]?.rarity === rarity);
 
-    if (itemsToInfuse.length < 3) { Toastify({text:'🔥 Need 3 items of this rarity.',duration:2500,gravity:'top',position:'center'}).showToast(); return; }
-    if (D(gameState.souls).lt(D(tier.souls))) { Toastify({text:`💀 Need ${formatNumber(tier.souls)} Souls.`,duration:2500,gravity:'top',position:'center'}).showToast(); return; }
-    if (D(gameState.corruptedFragments||0).lt(tier.fragments)) { Toastify({text:`🔮 Need ${tier.fragments} Corrupted Fragments.`,duration:2500,gravity:'top',position:'center'}).showToast(); return; }
+    // Use player's SELECTED items, not random picks
+    const selected = (window._forgeSelected && window._forgeSelected[rarity]) || [];
+    if (selected.length !== 3) {
+        Toastify({text:'🔥 Select exactly 3 items first.',duration:2500,gravity:'top',position:'center'}).showToast();
+        return;
+    }
 
-    const consumed = itemsToInfuse.slice(0,3).map(id => items[id].name);
-    if (!confirm(`Sacrifice ${consumed.join(', ')} → random ${nextRarity} item?
+    // Validate selections still exist in inventory at those indices
+    const selectedIds = selected.map(idx => gameState.inventory[idx]).filter(id => id && items[id]?.rarity === rarity);
+    if (selectedIds.length !== 3) {
+        Toastify({text:'⚠ Selection stale — please re-select.',duration:2500,gravity:'top',position:'center'}).showToast();
+        if (window._forgeSelected) window._forgeSelected[rarity] = [];
+        renderSoulForge(); return;
+    }
 
-Cost: ${formatNumber(tier.souls)} Souls + ${tier.fragments} Fragments
+    if (D(gameState.souls).lt(D(tier.souls))) {
+        Toastify({text:`💀 Need ${formatNumber(tier.souls)} Souls.`,duration:2500,gravity:'top',position:'center'}).showToast(); return;
+    }
+    if (D(gameState.corruptedFragments||0).lt(tier.fragments)) {
+        Toastify({text:`🔮 Need ${tier.fragments} Fragments.`,duration:2500,gravity:'top',position:'center'}).showToast(); return;
+    }
 
-⚠ This cannot be undone.`)) return;
+    const consumed = selectedIds.map(id => items[id].name);
+    if (!confirm(`Sacrifice these 3 items into the forge?\n\n• ${consumed.join('\n• ')}\n\n→ 1 random ${nextRarity} item\nCost: ${formatNumber(tier.souls)} Souls + ${tier.fragments} Fragments\n\n⚠ Cannot be undone.`)) return;
 
+    // Deduct costs
     gameState.souls = D(gameState.souls).sub(D(tier.souls));
     gameState.corruptedFragments = D(gameState.corruptedFragments||0).sub(tier.fragments);
-    for (let i = 0; i < 3; i++) {
-        const idx = gameState.inventory.findIndex(id => items[id]?.rarity === rarity);
-        if (idx !== -1) gameState.inventory.splice(idx, 1);
+
+    // Remove chosen items — sort descending by index so splicing doesn't shift positions
+    const sortedIndices = [...selected].sort((a, b) => b - a);
+    for (const idx of sortedIndices) {
+        gameState.inventory.splice(idx, 1);
     }
+
+    // Clear selection
+    if (window._forgeSelected) window._forgeSelected[rarity] = [];
 
     const possibleRewards = Object.keys(items).filter(id => items[id]?.rarity === nextRarity);
     const rewardId = possibleRewards[Math.floor(Math.random() * possibleRewards.length)];
@@ -20726,6 +20915,7 @@ Cost: ${formatNumber(tier.souls)} Souls + ${tier.fragments} Fragments
     gameState.totalForged = (gameState.totalForged || 0) + 1;
 
     const rc = {common:'#aaa',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00',forged:'#ff6644'}[nextRarity] || '#aaa';
+    if (typeof triggerForgeBlast === 'function') triggerForgeBlast(rc);
     Toastify({text:`🔥 FORGED! ${items[rewardId].name} (${nextRarity})`,duration:6000,gravity:'top',position:'center',style:{background:`linear-gradient(135deg,#1a0505,${rc}44)`}}).showToast();
     playSound('ascend');
     calculateStats(); renderSoulForge(); saveGame();
@@ -20770,6 +20960,7 @@ Cost: ${formatNumber(recipe.souls)} Souls + ${recipe.fragments} Fragments
     gameState.totalForged = (gameState.totalForged || 0) + 1;
 
     const outColor = {common:'#aaa',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00',forged:'#ff6644'}[outputItem?.rarity] || '#aaa';
+    if (typeof triggerForgeBlast === 'function') triggerForgeBlast(outColor);
     Toastify({text:`⚒ CRAFTED: ${outputItem?.name}${outputItem?.rarity==='forged'?' 🔥':''}`,duration:6000,gravity:'top',position:'center',style:{background:`linear-gradient(135deg,#1a0a00,${outColor}55)`}}).showToast();
     playSound('ascend');
     calculateStats(); renderSoulForge(); saveGame();
@@ -26790,7 +26981,7 @@ const CODEX_CHAPTERS = [
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff664422; border-radius:8px; padding:12px;">
                     <div style="color:#ff6644; font-size:0.78em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Secret Minions</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">There are <strong style="color:#ff44cc;">20 hidden minions</strong> in the game that cannot be purchased from the Minions screen. They appear in the Bestiary as ??? until discovered. Each has unique research bonuses.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">There are <strong style="color:#ff44cc;">30 secret minions</strong> in the game. They never appear in the regular Minions tab — discover them through the Hourly Shop (500 Fragments), Abyssal Cache, or Expedition drops. Two special ones (<strong style="color:#ffe066;">God</strong> / <strong style="color:#ff4444;">Satan</strong>) are held by the #1 leaderboard players. All secret minion research bonuses survive Ascension permanently.</div>
                 </div>
             </div>
             ${secretSection}
@@ -27081,7 +27272,7 @@ const CODEX_CHAPTERS = [
                 </div>
                 <div style="background:#0a0812; border:1px solid #aa44ff22; border-radius:8px; padding:12px 16px;">
                     <div style="color:#aa44ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔨 Soul Forge</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">The Soul Forge lets you spend Corrupted Fragments to craft powerful Forged items that cannot be found in caches. Some recipes require specific items as ingredients — check the Forge screen for available recipes. Forged items are permanent and persist through all resets.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">The Soul Forge has two modes. <strong style="color:#ddd;">Rarity Ascension:</strong> choose exactly 3 items of the same rarity — you pick which ones — and sacrifice them for 1 random item of the next rarity tier (20–200 Fragments). <strong style="color:#ddd;">Specific Recipes:</strong> 23 named recipes that turn exact ingredient combinations into a guaranteed output. Five full item chains (Weapon, Idol, Sigil, Helm, Tome) lead to unique Forged-tier items. Forged items persist through all resets.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #aa44ff22; border-radius:8px; padding:12px 16px;">
                     <div style="color:#aa44ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔧 Durability</div>
@@ -27188,7 +27379,7 @@ const CODEX_CHAPTERS = [
                     ["⚔️","Build your Proving Grounds rewards early","Proving Grounds rewards are permanent and stack from day one. Even Tier I bonuses add up significantly over many Ascensions."],
                     ["🌀","Breaches reward preparation","Bring an Imp to reveal tiles and an Ash Golem to absorb traps. A well-prepared breach team makes completion far more consistent."],
                     ["⚔","Soul Raids — bring your strongest party","Pick high-level minions with good HP for the front. Use potions strategically in elite and boss rooms. Fleeing early still rewards fragments — don't wipe for nothing."],
-                    ["📦","Hourly Shop resets every hour exactly","Set a reminder if you want to catch rare stock. Secret minions and market potions appear at very low chance — checking consistently pays off over time."],
+                    ["📦","Hourly Shop resets every hour exactly","Set a reminder if you want to catch rare stock. Secret minions (500 Fragments each) and market potions appear at low chance. Owned secret minions appear in your Minions tab — they survive Ascension permanently."],
                 ].map(([icon,title,tip]) => `
                     <div style="display:flex; gap:12px; align-items:flex-start; background:#0a0812; border:1px solid #44cc8811; border-radius:8px; padding:10px 14px;">
                         <span style="font-size:1.2em; flex-shrink:0;">${icon}</span>
@@ -27734,6 +27925,41 @@ const KEY_IDS = Object.keys(KEYS);
 const LIGHT_KEY_IDS = Object.keys(KEYS).filter(id => KEYS[id].lightOnly);
 const DARK_KEY_IDS  = Object.keys(KEYS).filter(id => !KEYS[id].lightOnly);
 const KEY_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// ── GLOBAL HOURLY SHOP STATE (secret minion global sold-out) ──────────────
+// Works just like keys: one secret minion per shop per hour, globally.
+// Uses Supabase 'shop_globals' table with columns: hour_key TEXT PK, secret_minion_id TEXT
+window._shopGlobalCache = null; // { hourKey, soldMinionId } or null
+
+async function fetchShopGlobalState(hourKey) {
+    if (!supabaseClient) return null;
+    if (window._shopGlobalCache?.hourKey === hourKey) return window._shopGlobalCache;
+    try {
+        const { data } = await supabaseClient
+            .from('shop_globals')
+            .select('secret_minion_id')
+            .eq('hour_key', hourKey)
+            .maybeSingle();
+        window._shopGlobalCache = { hourKey, soldMinionId: data?.secret_minion_id || null };
+        return window._shopGlobalCache;
+    } catch(e) {
+        window._shopGlobalCache = { hourKey, soldMinionId: null };
+        return window._shopGlobalCache;
+    }
+}
+
+async function claimSecretMinionGlobally(hourKey, minionId) {
+    if (!supabaseClient) return false;
+    try {
+        // Atomic insert — fails if row already exists (unique PK on hour_key)
+        const { error } = await supabaseClient
+            .from('shop_globals')
+            .insert({ hour_key: hourKey, secret_minion_id: minionId });
+        if (error) return false; // Someone else already bought it this hour
+        window._shopGlobalCache = { hourKey, soldMinionId: minionId };
+        return true;
+    } catch(e) { return false; }
+}
 const KEY_POOL_TOTAL = 10; // Only 10 keys exist in the entire game world
 
 // ── Pool helpers (Supabase) ──────────────────────────────────────────────
@@ -30787,6 +31013,188 @@ function renderChallengesPanel() {
     el.innerHTML = html;
 }
 
+// ─── Soul Forge Fire Effect ────────────────────────────────────────────────────
+(function() {
+    let forgeFireRAF = null;
+
+    function startForgeFire() {
+        const canvas = document.getElementById('forge-fire-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+
+        const particles = [];
+        const COLORS = [
+            [255, 30,  0],   // deep red
+            [255, 80,  0],   // red-orange
+            [255, 130, 0],   // orange
+            [255, 180, 20],  // amber
+            [255, 220, 80],  // gold
+            [220, 100, 255], // soul purple (accent)
+        ];
+
+        function spawnParticle() {
+            const x = W * 0.2 + Math.random() * W * 0.6;
+            const color = COLORS[Math.floor(Math.random() * (COLORS.length - 1))];
+            // Occasionally spawn a purple soul spark
+            const isSoul = Math.random() < 0.08;
+            return {
+                x,
+                y: H,
+                vx: (Math.random() - 0.5) * 1.2,
+                vy: -(1.5 + Math.random() * 2.5),
+                life: 1.0,
+                decay: 0.012 + Math.random() * 0.018,
+                size: 3 + Math.random() * 6,
+                color: isSoul ? COLORS[5] : color,
+            };
+        }
+
+        function tick() {
+            ctx.clearRect(0, 0, W, H);
+
+            // Spawn new particles
+            for (let i = 0; i < 4; i++) particles.push(spawnParticle());
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx + Math.sin(p.y * 0.08) * 0.4;
+                p.y += p.vy;
+                p.vy *= 0.98;
+                p.life -= p.decay;
+                p.size *= 0.993;
+                if (p.life <= 0 || p.y < 0) { particles.splice(i, 1); continue; }
+
+                const [r, g, b] = p.color;
+                const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+                grad.addColorStop(0,   `rgba(${r},${g},${b},${p.life * 0.9})`);
+                grad.addColorStop(0.5, `rgba(${r},${Math.floor(g*0.5)},0,${p.life * 0.5})`);
+                grad.addColorStop(1,   `rgba(0,0,0,0)`);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+            }
+
+
+
+            forgeFireRAF = requestAnimationFrame(tick);
+        }
+
+        if (forgeFireRAF) cancelAnimationFrame(forgeFireRAF);
+        forgeFireRAF = requestAnimationFrame(tick);
+    }
+
+    function stopForgeFire() {
+        if (forgeFireRAF) { cancelAnimationFrame(forgeFireRAF); forgeFireRAF = null; }
+        const canvas = document.getElementById('forge-fire-canvas');
+        if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Hook into showScreen so fire starts/stops with the forge tab
+    const _origShowScreen = window.showScreen;
+    window.showScreen = function(id) {
+        if (typeof _origShowScreen === 'function') _origShowScreen(id);
+        if (id === 'forge') setTimeout(startForgeFire, 80);
+        else stopForgeFire();
+    };
+
+    // ── Forge Blast Effect ──────────────────────────────────────────────────
+    window.triggerForgeBlast = function(rarityColor) {
+        const color = rarityColor || '#ff6622';
+
+        // 1. Fullscreen flash overlay
+        const flash = document.createElement('div');
+        flash.style.cssText = `
+            position:fixed; inset:0; z-index:99999; pointer-events:none;
+            background: radial-gradient(ellipse at center, ${color}55 0%, ${color}11 50%, transparent 75%);
+            animation: forgeBlastFlash 0.7s ease-out forwards;
+        `;
+        document.body.appendChild(flash);
+        setTimeout(() => flash.remove(), 700);
+
+        // 2. Shockwave ring
+        const ring = document.createElement('div');
+        ring.style.cssText = `
+            position:fixed; left:50%; top:50%; z-index:99998; pointer-events:none;
+            width:40px; height:40px; margin:-20px 0 0 -20px;
+            border-radius:50%; border:3px solid ${color};
+            box-shadow: 0 0 20px ${color}, inset 0 0 20px ${color}44;
+            animation: forgeBlastRing 0.8s ease-out forwards;
+        `;
+        document.body.appendChild(ring);
+        setTimeout(() => ring.remove(), 800);
+
+        // Second bigger ring, slightly delayed
+        const ring2 = document.createElement('div');
+        ring2.style.cssText = ring.style.cssText;
+        ring2.style.animation = 'forgeBlastRing2 1s ease-out 0.15s forwards';
+        ring2.style.borderColor = '#ff6622';
+        ring2.style.boxShadow = `0 0 15px #ff662277`;
+        document.body.appendChild(ring2);
+        setTimeout(() => ring2.remove(), 1200);
+
+        // 3. Particle burst from center
+        const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+        const BURST_COLORS = [color, '#ff6622', '#ff8800', '#ffcc00', '#ff2200', '#cc44ff'];
+        const numParticles = 28;
+        for (let i = 0; i < numParticles; i++) {
+            const angle = (i / numParticles) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+            const speed = 120 + Math.random() * 200;
+            const size = 4 + Math.random() * 8;
+            const c = BURST_COLORS[Math.floor(Math.random() * BURST_COLORS.length)];
+            const p = document.createElement('div');
+            p.style.cssText = `
+                position:fixed; z-index:99997; pointer-events:none;
+                left:${cx}px; top:${cy}px;
+                width:${size}px; height:${size}px;
+                border-radius:50%;
+                background:${c};
+                box-shadow:0 0 ${size*2}px ${c};
+                transform:translate(-50%,-50%);
+                animation: forgeBlastParticle 0.9s ease-out forwards;
+                --vx:${(Math.cos(angle)*speed).toFixed(1)}px;
+                --vy:${(Math.sin(angle)*speed).toFixed(1)}px;
+            `;
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 950);
+        }
+
+        // 4. Central item-reveal flash pulse on the forge canvas area
+        const canvas = document.getElementById('forge-fire-canvas');
+        if (canvas) {
+            canvas.style.transition = 'opacity 0.08s';
+            canvas.style.opacity = '1';
+            canvas.style.filter = `drop-shadow(0 0 30px ${color}) brightness(2)`;
+            setTimeout(() => { canvas.style.filter = ''; canvas.style.opacity = '0.85'; }, 400);
+        }
+    };
+})();
+
+// Inject keyframes for blast animations dynamically
+(function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes forgeBlastFlash {
+            0%   { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        @keyframes forgeBlastRing {
+            0%   { transform: translate(-50%,-50%) scale(1);   opacity: 1; }
+            100% { transform: translate(-50%,-50%) scale(18);  opacity: 0; }
+        }
+        @keyframes forgeBlastRing2 {
+            0%   { transform: translate(-50%,-50%) scale(1);   opacity: 0.7; }
+            100% { transform: translate(-50%,-50%) scale(30);  opacity: 0; }
+        }
+        @keyframes forgeBlastParticle {
+            0%   { transform: translate(-50%,-50%) translate(0px, 0px) scale(1);   opacity: 1; }
+            100% { transform: translate(-50%,-50%) translate(var(--vx), var(--vy)) scale(0); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
 // Call reapply on load after a delay to let gameState load
 setTimeout(() => {
     if (typeof gameState !== 'undefined' && gameState.completedChallenges) {
@@ -30798,6 +31206,7 @@ setTimeout(() => {
     }
 }, 3000);
 </script>
+
 <!-- GIF Picker — lives on body to avoid overflow:hidden clipping inside chat -->
 <div id="gif-picker" style="display:none;position:fixed;background:#0d0a18;border:1px solid #3d2a4a;border-radius:10px;padding:10px;z-index:100000;box-shadow:0 -4px 20px rgba(0,0,0,0.9);width:320px;">
     <input id="gif-search" type="text" placeholder="Search GIFs..." style="width:100%;box-sizing:border-box;background:#080510;border:1px solid #2a1a3a;color:#ddd;padding:7px 10px;border-radius:7px;font-family:inherit;font-size:0.8em;margin-bottom:8px;">

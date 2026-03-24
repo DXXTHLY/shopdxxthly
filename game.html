@@ -22045,7 +22045,7 @@ function _enterRaidedBreach(breach) {
         size: 6,
         map: [],
         playerPosition: { x: 0, y: 0 },
-        energy: 20,
+        energy: 28,
         objective: { ...breachObjectives[Math.floor(Math.random() * breachObjectives.length)] },
         clustersCollected: 0,
         guardianDefeated: false,
@@ -23095,7 +23095,7 @@ const breachMinionAbilities = {
     ghoul: {
         name: 'Feast on Fear', desc: 'Restore 4 Energy from the void.', uses: 1, cost: 0,
         execute: () => {
-            breachState.energy = Math.min(20, breachState.energy + 4);
+            breachState.energy = Math.min(28, breachState.energy + 4);
             _bToast('The Ghoul feasts on fear — +4 Energy!', 'linear-gradient(135deg,#001a00,#003300)');
             renderBreach();
         }
@@ -23145,7 +23145,7 @@ const breachMinionAbilities = {
     hellhound: {
         name: 'Infernal Charge', desc: 'Gain 5 energy — burn through the breach with reckless speed.', uses: 1, cost: 0,
         execute: () => {
-            breachState.energy = Math.min(20, breachState.energy + 5);
+            breachState.energy = Math.min(28, breachState.energy + 5);
             renderBreach();
             _bToast('Hellhound charges ahead — +5 Energy!', 'linear-gradient(135deg,#1a0000,#440000)');
         }
@@ -23170,7 +23170,7 @@ const breachMinionAbilities = {
         execute: () => {
             // Reveal 4 random tiles and move to the best one (closest to objective)
             _revealTiles(4);
-            breachState.energy = Math.min(20, breachState.energy + 2);
+            breachState.energy = Math.min(28, breachState.energy + 2);
             _bToast('Void Spawn tears space — 4 tiles revealed + 2 Energy!', 'linear-gradient(135deg,#0a0020,#220055)');
         }
     },
@@ -23178,9 +23178,9 @@ const breachMinionAbilities = {
         name: 'Divine Mercy', desc: 'Restore energy to full (12 energy, costs nothing).', uses: 1, cost: 0,
         execute: () => {
             const gained = 12 - breachState.energy;
-            breachState.energy = 12;
+            breachState.energy = 16;
             renderBreach();
-            _bToast(`Fallen Angel intervenes — Energy restored to 12 (+${Math.max(0,gained)})!`, 'linear-gradient(135deg,#1a0020,#440066)');
+            _bToast(`Fallen Angel intervenes — Energy restored to 16 (+${Math.max(0,gained)})!`, 'linear-gradient(135deg,#1a0020,#440066)');
         }
     },
     shoggoth: {
@@ -23196,7 +23196,7 @@ const breachMinionAbilities = {
         name: 'Infernal Dominion', desc: 'Reveal 5 tiles AND gain 3 energy.', uses: 1, cost: 0,
         execute: () => {
             const n = _revealTiles(5);
-            breachState.energy = Math.min(20, breachState.energy + 3);
+            breachState.energy = Math.min(28, breachState.energy + 3);
             renderBreach();
             _bToast(`Pit Lord dominates — ${n} tiles revealed + 3 Energy!`, 'linear-gradient(135deg,#1a0000,#550000)');
         }
@@ -23239,9 +23239,9 @@ const breachMinionAbilities = {
         }
     },
     aureate_angel: {
-        name: 'Divine Intervention', desc: 'Fully restore energy to 20 (free).', uses: 1, cost: 0,
+        name: 'Divine Intervention', desc: 'Fully restore energy to 28 (free).', uses: 1, cost: 0,
         execute: () => {
-            breachState.energy = 20;
+            breachState.energy = 28;
             renderBreach();
             _bToast('Aureate Angel intervenes — Energy fully restored to 20!', 'linear-gradient(135deg,#1a1800,#443a00)');
         }
@@ -23269,7 +23269,7 @@ const breachMinionAbilities = {
         name: 'Eternal Bulwark', desc: 'Absorb next 3 traps and gain 5 energy.', uses: 1, cost: 0,
         execute: () => {
             breachState.activeBuffs.ignoreTrap = 3;
-            breachState.energy = Math.min(20, breachState.energy + 5);
+            breachState.energy = Math.min(28, breachState.energy + 5);
             renderBreach();
             _bToast('Throne Guardian stands firm — 3 traps absorbed + 5 Energy!', 'linear-gradient(135deg,#001a10,#004030)');
         }
@@ -23285,7 +23285,7 @@ const breachMinionAbilities = {
     light_titan: {
         name: 'Titan Surge', desc: 'Gain +8 energy and reveal 5 tiles.', uses: 1, cost: 0,
         execute: () => {
-            breachState.energy = Math.min(20, breachState.energy + 8);
+            breachState.energy = Math.min(28, breachState.energy + 8);
             const n = _revealTiles(5);
             renderBreach();
             _bToast(`Light Titan surges — +8 Energy + ${n} tiles revealed!`, 'linear-gradient(135deg,#0a0800,#2a2000)');
@@ -24845,7 +24845,7 @@ function startAbyssalBreach(expeditionId) {
         size: 6,
         map: [],
         playerPosition: { x: 0, y: 0 },
-        energy: 20,
+        energy: 28,
         objective: { ...breachObjectives[Math.floor(Math.random() * breachObjectives.length)] },
         clustersCollected: 0,
         guardianDefeated: false,
@@ -24992,16 +24992,22 @@ function renderBreach() {
     breachState.map.forEach((row, y) => {
         row.forEach((tile, x) => {
             const isPlayer = x === breachState.playerPosition.x && y === breachState.playerPosition.y;
-            const isAdjacent = !isPlayer && !tile.isExplored &&
-                Math.abs(x - breachState.playerPosition.x) + Math.abs(y - breachState.playerPosition.y) === 1;
+            const distToPlayer = Math.abs(x - breachState.playerPosition.x) + Math.abs(y - breachState.playerPosition.y);
+            const isNextTo = !isPlayer && distToPlayer === 1;
+            // Adjacent = next to player AND not yet walked on (explored by walking)
+            // BUT ability-revealed tiles (isExplored but not visited) are ALSO clickable
+            const isAdjacent = isNextTo && !tile.isExplored; // unfogged adjacent (shows ? glow)
+            const isRevealedAdjacent = isNextTo && tile.isExplored && !tile.visited; // ability-revealed, still walkable
+            const isClickable = isAdjacent || isRevealedAdjacent;
 
             const tileDiv = document.createElement('div');
             tileDiv.className = 'breach-tile' +
                 (tile.isExplored ? ' explored' : '') +
                 (isAdjacent ? ' adjacent' : '') +
+                (isRevealedAdjacent ? ' adjacent' : '') + // same glow for revealed adjacent
                 (isPlayer ? ' player-tile' : '');
 
-            if (isAdjacent) tileDiv.onclick = () => movePlayer(x, y);
+            if (isClickable) tileDiv.onclick = () => movePlayer(x, y);
 
             if (tile.isExplored && tile.event && !isPlayer) {
                 tileDiv.dataset.event = tile.event.type;
@@ -25064,6 +25070,7 @@ function movePlayer(x, y) {
     breachState.playerPosition = { x, y };
     const tile = breachState.map[y][x];
     tile.isExplored = true;
+    tile.visited = true; // mark as physically walked on
     if(tile.event) { resolveTileEvent(tile); }
     renderBreach();
     if(breachState.energy <= 2 && breachState.energy > 0) {
@@ -27742,7 +27749,7 @@ Your listing will remain until someone accepts it or it expires.`;
             <!-- Abilities -->
             <div class="breach-panel" style="border-color:#2a2a5a;">
                 <div class="breach-panel-label" style="color:#6666aa;">⚔ Abilities</div>
-                <div id="breach-abilities-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+                <div id="breach-abilities-list" style="display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto; padding-right:2px;"></div>
                 <div id="breach-no-abilities" style="color:#333; font-size:0.75em; font-style:italic; display:none;">No abilities available.</div>
             </div>
 
@@ -29546,8 +29553,12 @@ const CODEX_CHAPTERS = [
                     <div style="color:#888; font-size:0.82em; line-height:1.5;">Challenge real players from the PvP screen. You build a team from your owned minions and fight their defensive lineup. Victories earn <strong style="color:#ddd;">Dark Essence</strong>. Each player can only be challenged once per day. Win 3 in a day for a bonus reward.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
-                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🎯 Raids</div>
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🎯 Soul Raids</div>
                     <div style="color:#888; font-size:0.82em; line-height:1.5;">Raid other players' soul caches to steal a percentage of their current souls. Success pays out immediately. Your own cache can be raided while you're away — use the <strong style="color:#ddd;">Soul Vault (Bank)</strong> to protect your wealth before logging off.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #cc222233; border-left:3px solid #cc2222; border-radius:8px; padding:12px 16px;">
+                    <div style="color:#cc4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔ Breach Raids (Expedition PvP)</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">A new layer of PvP built into expeditions. When a breach appears on your expedition and you ignore it for 15 seconds, it becomes publicly raidable. Other players on the Expeditions screen see it listed under <em>Other Players' Abandoned Breaches</em> with a 3-minute claim window. First to click ⚔ RAID enters your breach and steals the rewards — including Corrupted Fragments. Your breach button vanishes instantly. You receive a notification showing who raided you and what they got. Top players on the PvP leaderboard (top 5) earn daily Essence and potions. Rankings refresh each day.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
                     <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🎰 Abyssal Gauntlet</div>
@@ -29568,25 +29579,63 @@ const CODEX_CHAPTERS = [
         unlockCondition: () => Object.keys(gameState.activeExpeditions||{}).length > 0 || (gameState.breachesCompleted||0) > 0,
         content: () => `
             <div style="color:#ff8844; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">INTO THE UNKNOWN</div>
-            <p style="color:#aaa; margin-bottom:18px;">Some treasures cannot be taken by force of will alone. They must be discovered — sent for — ventured toward.</p>
+            <p style="color:#aaa; margin-bottom:18px;">Send your minions into the dark. While they're gone, reality tears open — and what pours through is yours to plunder.</p>
 
             <div style="display:grid; gap:10px; margin-bottom:18px;">
                 <div style="background:#0a0812; border:1px solid #ff884422; border-radius:8px; padding:12px 16px;">
                     <div style="color:#ff8844; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🗺️ Expeditions</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Send your minions out on timed missions — Explore the Depths, Delve the Void, or Breach the Celestial. They return with Corrupted Fragments, items, and lore. Equip a Sigil or Tome to boost expedition speed and rewards. All expedition types can run at the same time.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Send minions on timed missions ranging from 30 minutes to 48 hours. They return with Corrupted Fragments, Dark Essence, and items. Two fallen-soldier expeditions — <strong style="color:#ddd;">Scavenge the Ruined Wastes</strong> (36h) and <strong style="color:#ddd;">Loot the Ashen Battlefield</strong> (48h) — drop worn items salvaged from dead Soul Collectors, including Cracked Effigies, Tattered Maps, Field Notes, and recovered uncommon gear. All expedition types run simultaneously. Equip a Sigil or Tome to boost speed and rewards.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff884422; border-radius:8px; padding:12px 16px;">
                     <div style="color:#ff8844; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🌀 Abyssal Breach</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">While an expedition runs, an Anomaly can trigger — a rogue-like breach mini-game. Navigate a 5×5 grid using 20 energy. Encounter treasures, traps, fountains, hostiles, and lore tiles. Complete your objective (Stabilizer, Guardian, or 3 Clusters) to earn bonus Corrupted Fragments. Run out of energy and you retreat.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">While an expedition runs, an Anomaly can trigger — a rogue-like mini-game on a <strong style="color:#ddd;">6×6 grid</strong> with 20 starting energy. Explore fog-covered tiles: find <strong style="color:#44cc88;">Treasures</strong> (+Fragments), <strong style="color:#4488ff;">Fountains</strong> (+Energy), <strong style="color:#ff8844;">Lore Journals</strong>, <strong style="color:#ff4444;">Traps</strong> (-Energy), and <strong style="color:#ff6644;">Hostiles</strong> (fight or lose energy). Complete the objective — Stabilizer, Guardian, or collect 3 Soul Clusters — to earn bonus Fragments. Flee anytime if energy runs low.</div>
+                </div>
+                <div style="background:#0a0812; border:1px solid #cc222222; border-radius:8px; padding:12px 16px; border-left:3px solid #cc2222;">
+                    <div style="color:#cc4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔ Breach Raids — PvP</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">If you ignore your breach for <strong style="color:#ff4444;">15 seconds</strong>, it becomes raidable by other players. They see it listed under <em>Other Players' Abandoned Breaches</em> on their expedition screen. The first player to click ⚔ RAID claims it — they enter your breach and take the rewards. Your breach button disappears and the timer resets. Pay attention or lose your loot. If someone raids your breach, you'll get a notification telling you who took it and how many Fragments they stole.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff884422; border-radius:8px; padding:12px 16px;">
                     <div style="color:#ff8844; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">📦 Abyssal Chest</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Rarely, a breach tile will contain a sealed Abyssal Chest. Stepping on it triggers a spinning reel — the reward decelerates and lands on your prize. The loot pool includes all potions, common through legendary items, Corrupted Fragments, and at extremely low odds, a secret minion.</div>
+                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Rarely, a breach tile holds a sealed Abyssal Chest. Stepping on it triggers a spinning reel — prizes include all potions, common through legendary items, Corrupted Fragments, and at extremely low odds, a secret minion.</div>
                 </div>
-                <div style="background:#0a0812; border:1px solid #ff884422; border-radius:8px; padding:12px 16px;">
-                    <div style="color:#ff8844; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔑 Breach Abilities</div>
-                    <div style="color:#888; font-size:0.82em; line-height:1.5;">Certain minions grant special abilities inside a breach if they're part of your expedition team. Imps reveal tiles. Ash Golems absorb traps. Abyssal Stalkers reveal the nearest hostile or chest. Choose your loadout carefully.</div>
-                </div>
+            </div>
+
+            <div style="color:#ff8844; font-size:0.85em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; border-bottom:1px solid #ff884422; padding-bottom:6px;">⚡ Breach Minion Abilities</div>
+            <p style="color:#777; font-size:0.8em; margin-bottom:10px; line-height:1.5;">Minions in your expedition party — and guardian minions if transcended — grant usable abilities inside the breach. Raiders bring abilities from their own owned minions.</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:16px;">
+                ${[
+                    ['🔴','Imp','Scout Ahead','Reveal 3 random tiles (2 uses)'],
+                    ['💀','Ghoul','Feast on Fear','+4 Energy (free)'],
+                    ['😈','Demon','Hellfire Sweep','Reveal all 8 adjacent tiles (2 uses)'],
+                    ['⚫','Ash Golem','Stone Ward','Absorb next 2 traps'],
+                    ['🌀','Cinder Wraith','Ember Echo','+6 Fragments (2 energy)'],
+                    ['🐺','Abyssal Stalker',"Hunter's Sense",'Reveal ALL hostile tiles (2 energy)'],
+                    ['🔥','Hellhound','Infernal Charge','+5 Energy (free)'],
+                    ['👹','Balrog','Sunder Reality','Reveal entire map (4 energy)'],
+                    ['❄️','Frost Lich','Glacial Stasis','Next hostile costs 0 energy'],
+                    ['🌑','Void Spawn','Void Step','Reveal 4 tiles + 2 energy'],
+                    ['👼','Fallen Angel','Divine Mercy','Restore energy to 16'],
+                    ['🟤','Shoggoth','Consume All','+Frags per explored tile (1 energy)'],
+                    ['👑','Pit Lord','Infernal Dominion','Reveal 5 tiles + 3 energy'],
+                    ['🌀','Reality Warper','Rewrite','Delete ALL traps from map'],
+                    ['♾','Alpha & Omega','All or Nothing','Full map reveal (5 energy)'],
+                ].map(([icon,name,ability,desc]) => '<div style="background:#06030f;border:1px solid #ff884415;border-radius:6px;padding:8px 10px;display:flex;gap:8px;align-items:flex-start;"><span style="font-size:1.1em;flex-shrink:0;">' + icon + '</span><div><div style="color:#ff8844;font-size:0.75em;font-weight:bold;">' + name + '</div><div style="color:#ddd;font-size:0.72em;">' + ability + '</div><div style="color:#666;font-size:0.68em;margin-top:2px;">' + desc + '</div></div></div>').join('')}
+            </div>
+
+            <div style="color:#c8b4ff; font-size:0.85em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; border-bottom:1px solid #c8b4ff22; padding-bottom:6px;">✦ Guardian Breach Abilities (Light Side)</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                ${[
+                    ['✨','Luminary Sprite','Illuminate','4 tiles revealed + traps dissolved (2 uses)'],
+                    ['🌅','Dawn Sentinel','Vigilant Ward','3 traps absorbed + next hostile free'],
+                    ['😇','Aureate Angel','Divine Intervention','Restore energy to full 28'],
+                    ['⭐','Stellar Wraith','Starfire Scan','Reveal all treasures & chests (1 energy)'],
+                    ['🔷','Prism Golem','Crystal Refraction','+10 Fragments + 3 tiles'],
+                    ['🛡️','Throne Guardian','Eternal Bulwark','3 traps absorbed + 5 energy'],
+                    ['🌌','Void Seraph','Between Worlds','Full map reveal (3 energy)'],
+                    ['⚡','Light Titan','Titan Surge','+8 energy + 5 tiles revealed'],
+                    ['🐉','Celestial Dragon','Causality Breath','Erase ALL traps AND hostiles'],
+                    ['🌟','Radiant Oracle','Foresight','Reveal objective tile instantly'],
+                ].map(([icon,name,ability,desc]) => '<div style="background:#06030f;border:1px solid #c8b4ff15;border-radius:6px;padding:8px 10px;display:flex;gap:8px;align-items:flex-start;"><span style="font-size:1.1em;flex-shrink:0;">' + icon + '</span><div><div style="color:#c8b4ff;font-size:0.75em;font-weight:bold;">' + name + '</div><div style="color:#ddd;font-size:0.72em;">' + ability + '</div><div style="color:#666;font-size:0.68em;margin-top:2px;">' + desc + '</div></div></div>').join('')}
             </div>
         `
     },

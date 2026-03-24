@@ -3452,13 +3452,21 @@ text-decoration: underline; /* Adds an underline on hover */
                             </div>
                         </div>
 
-                        <!-- Opponents -->
-                        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #ff444433; border-radius:12px; padding:16px; margin-bottom:16px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <!-- Opponents — collapsible -->
+                        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #ff444433; border-radius:12px; margin-bottom:16px; overflow:hidden;">
+                            <div onclick="const d=this.nextElementSibling; d.style.display=d.style.display==='none'?'block':'none'; this.querySelector('.toggle-arrow').textContent=d.style.display==='none'?'▶':'▼';"
+                                style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; user-select:none;">
                                 <h3 style="margin:0; color:#ff4444; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">🎯 Rivals</h3>
-                                <button onclick="arenaFetchOpponents()" style="background:#ff444415; border:1px solid #ff444444; border-radius:6px; padding:4px 12px; color:#ff8888; cursor:pointer; font-family:inherit; font-size:0.75em;">🔄 Refresh</button>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="toggle-arrow" style="color:#ff444466; font-size:0.75em;">▼</span>
+                                </div>
                             </div>
-                            <div id="arena-opponent-list" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px;"></div>
+                            <div style="display:block; padding:0 16px 16px;">
+                                <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                                    <button onclick="event.stopPropagation(); arenaFetchOpponents()" style="background:#ff444415; border:1px solid #ff444444; border-radius:6px; padding:4px 12px; color:#ff8888; cursor:pointer; font-family:inherit; font-size:0.75em;">🔄 Refresh</button>
+                                </div>
+                                <div id="arena-opponent-list" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px;"></div>
+                            </div>
                         </div>
 
                         <!-- Battle Log — collapsible -->

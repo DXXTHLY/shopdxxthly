@@ -12146,7 +12146,7 @@ function executeAscension() {
 const TRANSCENDENCE_THRESHOLD = '1e1000'; // 1e1000 lifetime souls required
 
 function checkTranscendenceUnlock() {
-    if (gameState.isTranscended) return;
+    if (gameState.isTranscended || window._devTranscendTest) return; // already in light mode
     if (gameState.ascensions < 1) return;
     const meetsThreshold = D(gameState.lifetimeSouls).gte(D(TRANSCENDENCE_THRESHOLD));
     const eligible = meetsThreshold || window._devTranscendTest;
@@ -13141,8 +13141,9 @@ function renderAll() {
 
   // Update main action button label based on transcendence state
   const _mainBtn = document.getElementById('main-action-btn');
-  if (_mainBtn && !window._devTranscendTest) {
-      if (gameState.isTranscended) {
+  if (_mainBtn) {
+      const _isLight = gameState.isTranscended || window._devTranscendTest;
+      if (_isLight) {
           _mainBtn.textContent = 'Harvest Light';
           _mainBtn.style.background = 'linear-gradient(160deg,#0a0a2a 0%,#1a0a4a 45%,#0a0a2a 100%)';
           _mainBtn.style.color = '#c8b4ff';
@@ -13150,6 +13151,9 @@ function renderAll() {
           _mainBtn.style.boxShadow = '0 0 20px rgba(100,50,255,0.3),inset 0 0 20px rgba(0,0,0,0.7)';
           _mainBtn.style.letterSpacing = '3px';
           _mainBtn.onclick = function() { mainActionClick(); };
+          // Hide the optional transcend button — you're already transcended
+          const _txOpt = document.getElementById('transcend-opt-in-btn');
+          if (_txOpt) _txOpt.style.display = 'none';
       } else {
           _mainBtn.textContent = 'Harvest Soul';
           _mainBtn.style.background = '';

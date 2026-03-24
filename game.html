@@ -2892,6 +2892,55 @@ text-decoration: underline; /* Adds an underline on hover */
         </div>
     </div>
 
+    <!-- ══ SOUL COLLECTOR PROLOGUE — first-time players only ══ -->
+    <div id="prologue-overlay" style="display:none;position:fixed;inset:0;background:#000;z-index:9999;overflow:hidden;">
+        <!-- Animated background -->
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,#1a0030,#000000 70%);animation:prologueBg 8s ease-in-out infinite;"></div>
+        <div id="prologue-particles" style="position:absolute;inset:0;pointer-events:none;"></div>
+
+        <!-- Content panel -->
+        <div id="prologue-panel" style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;box-sizing:border-box;">
+
+            <!-- Chapter display -->
+            <div id="prologue-chapter" style="color:#3a1a5a;font-size:0.7em;letter-spacing:4px;text-transform:uppercase;margin-bottom:24px;opacity:0;transition:opacity 1s;"></div>
+
+            <!-- Story text -->
+            <div id="prologue-text" style="max-width:680px;text-align:center;line-height:2;font-size:1.05em;color:#9988bb;font-family:'Georgia',serif;min-height:120px;opacity:0;transition:opacity 0.8s;"></div>
+
+            <!-- Name input (hidden until needed) -->
+            <div id="prologue-name-section" style="display:none;margin-top:32px;text-align:center;">
+                <div style="color:#5a3a8a;font-size:0.72em;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;">The abyss waits for your answer...</div>
+                <input id="prologue-name-input" type="text" maxlength="20" placeholder="Enter your name"
+                    style="background:transparent;border:none;border-bottom:1px solid #4a2a6a;color:#c8b4ff;font-size:1.3em;text-align:center;padding:8px 16px;font-family:'Georgia',serif;letter-spacing:2px;outline:none;width:280px;">
+                <div id="prologue-name-error" style="color:#ff4444;font-size:0.72em;margin-top:6px;opacity:0;transition:opacity 0.3s;">The abyss requires a name.</div>
+                <!-- Guest option -->
+                <div style="margin-top:20px;padding-top:16px;border-top:1px solid #1a0a2a;">
+                    <button onclick="window._prologueGuest()"
+                        style="background:transparent;border:none;color:#3a2a4a;font-size:0.72em;letter-spacing:2px;cursor:pointer;font-family:'Georgia',serif;text-decoration:underline;text-underline-offset:3px;transition:color 0.2s;"
+                        onmouseover="this.style.color='#6a4a8a'" onmouseout="this.style.color='#3a2a4a'">
+                        Play as Guest
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action button -->
+            <button id="prologue-btn" style="display:none;margin-top:40px;background:transparent;border:1px solid #3a1a5a;border-radius:4px;padding:12px 40px;color:#6a3a9a;font-size:0.82em;letter-spacing:4px;text-transform:uppercase;cursor:pointer;font-family:'Georgia',serif;transition:all 0.3s;"
+                onmouseover="this.style.borderColor='#aa44ff';this.style.color='#c8b4ff';this.style.boxShadow='0 0 20px #aa44ff33'"
+                onmouseout="this.style.borderColor='#3a1a5a';this.style.color='#6a3a9a';this.style.boxShadow='none'">
+                Continue
+            </button>
+
+            <!-- Progress dots -->
+            <div id="prologue-dots" style="display:flex;gap:8px;margin-top:48px;"></div>
+        </div>
+
+        <style>
+            @keyframes prologueBg { 0%,100%{opacity:1} 50%{opacity:0.7} }
+            @keyframes floatUp { 0%{transform:translateY(0);opacity:0.6} 100%{transform:translateY(-100vh);opacity:0} }
+            #prologue-name-input::placeholder { color:#3a1a5a; }
+        </style>
+    </div>
+
     <!-- UPGRADE OLD CHANNELING DUEL OVERLAY with VFX & Tutorials For Dumb a Cheaters -->
     <div id="duel-overlay" style="display: none;">
         <div id="duel-container">
@@ -5356,7 +5405,14 @@ window.onload = function() {
     }
 
     // Auto-dismiss after 8s
-    setTimeout(dismissIntro, 8000);
+    // For NEW players: prologue launches after title card (if no save detected)
+    // For RETURNING players: just dismiss and let the game continue
+    setTimeout(() => {
+        dismissIntro();
+        // Only launch prologue here if it wasn't already triggered by loadGame
+        // (loadGame sets _afterPrologueShowAuth for new players)
+        setTimeout(launchPrologueIfNew, 1200);
+    }, 8000);
 
 
     // --- The rest of your original onload code continues below this ---
@@ -5541,7 +5597,25 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // Correctly initialize the Supabase client.
 const { createClient } = supabase;
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+        persistSession: false,   // don't use localStorage auth session (we use Firebase for auth)
+        autoRefreshToken: false, // no token refresh needed
+        detectSessionInUrl: false,
+        storage: { getItem:()=>null, setItem:()=>{}, removeItem:()=>{} } // no-op storage
+    },
+    global: {
+        fetch: (url, options = {}) => {
+            // Strip Headers object to plain obj to avoid DataCloneError in postMessage
+            if (options.headers && options.headers instanceof Headers) {
+                const plain = {};
+                options.headers.forEach((v, k) => { plain[k] = v; });
+                options = { ...options, headers: plain };
+            }
+            return fetch(url, options);
+        }
+    }
+});
 
 const audio = {
     bgm: new Audio("https://files.catbox.moe/usk1qh.mp3"),
@@ -11990,17 +12064,26 @@ function loadGame() {
             showAuthScreen();
         }
     } else {
-        // New player — show auth/signup screen
+        // New player — show prologue first, then auth screen after
         gameState = defaultState;
-        // Ensure Decimal types on fresh start
-        gameState.souls = D(gameState.souls || 0);
-        gameState.lifetimeSouls = D(gameState.lifetimeSouls || 0);
+        gameState.souls              = D(0);
+        gameState.lifetimeSouls      = D(0);
         gameState.darkEssence        = D(0);
         gameState.abyssalShards      = D(0);
         gameState.aether             = D(0);
         gameState.corruptedFragments = D(0);
-        // stats.sps recomputed by calculateStats()
-        showAuthScreen();
+        if (localStorage.getItem('scPrologueSeen')) {
+            // Already seen prologue — go straight to auth
+            showAuthScreen();
+        } else {
+            // First ever load — show prologue, auth comes after
+            window._afterPrologueShowAuth = true;
+            // Prologue launches after the title card fades (handled in dismissIntro setTimeout)
+            // But we need to delay auth screen until prologue is done
+            // Hide everything until prologue closes
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('auth-screen').style.display = 'none';
+        }
     }
     loadFontSetting();
     syncCurrency();
@@ -21687,6 +21770,24 @@ function initializeChat() {
                     }
 
                     // Dev command: !lockworld — immediately trigger a world lockdown for testing
+                    if (text === '!playintro') {
+                        if (window._scIsDev && window._scIsDev(uid)) {
+                            // Dev preview — launch prologue without marking as seen
+                            // Name/guest buttons just close it and return to game
+                            window._devProloguePreview = true;
+                            if (typeof launchPrologueIfNew === 'function') {
+                                // Temporarily remove the seen flag so it shows
+                                const _wasSeen = localStorage.getItem('scPrologueSeen');
+                                localStorage.removeItem('scPrologueSeen');
+                                launchPrologueIfNew();
+                                // Restore immediately — dev preview doesn't mark as seen
+                                if (_wasSeen) localStorage.setItem('scPrologueSeen', _wasSeen);
+                            }
+                            Toastify({ text: '🎬 Prologue preview — name/guest buttons return to game.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0030,#440066)' } }).showToast();
+                        }
+                        e.target.value = ''; return;
+                    }
+
                     if (text === '!lockworld') {
                         if (window._scIsDev && window._scIsDev(uid)) {
                             const _db = window._scFirebase?.db;
@@ -34754,6 +34855,263 @@ setTimeout(() => {
         if (typeof updateDynamicDisplays === 'function') updateDynamicDisplays();
     }
 }, 3000);
+
+// ══════════════════════════════════════════════════════════════════
+// SOUL COLLECTOR PROLOGUE — first-time players only
+// ══════════════════════════════════════════════════════════════════
+function launchPrologueIfNew() {
+    if (localStorage.getItem('scPrologueSeen')) return; // returning player — skip
+
+    const overlay = document.getElementById('prologue-overlay');
+    if (!overlay) return;
+
+    // ── Background music ─────────────────────────────────────────
+    const _pMusic = new Audio('https://files.catbox.moe/rwjfmy.mp3');
+    _pMusic.loop = true;
+    _pMusic.volume = 0;
+    _pMusic.play().catch(() => {});
+    // Fade in
+    let _mvol = 0;
+    const _mFadeIn = setInterval(() => {
+        _mvol = Math.min(0.45, _mvol + 0.02);
+        _pMusic.volume = _mvol;
+        if (_mvol >= 0.45) clearInterval(_mFadeIn);
+    }, 100);
+
+    // ── Floating particles ───────────────────────────────────────
+    const pContainer = document.getElementById('prologue-particles');
+    for (let i = 0; i < 35; i++) {
+        const p = document.createElement('div');
+        const size = 1 + Math.random() * 3;
+        p.style.cssText = `position:absolute;left:${Math.random()*100}%;bottom:-10px;width:${size}px;height:${size}px;border-radius:50%;background:rgba(${Math.random()>0.5?'170,68,255':'100,40,200'},${0.3+Math.random()*0.4});animation:floatUp ${8+Math.random()*12}s ${Math.random()*8}s linear infinite;`;
+        pContainer.appendChild(p);
+    }
+
+    overlay.style.display = 'flex';
+    overlay.style.opacity = '0';
+    requestAnimationFrame(() => {
+        overlay.style.transition = 'opacity 1.5s ease';
+        overlay.style.opacity = '1';
+    });
+
+    // ── Beats ────────────────────────────────────────────────────
+    let playerName = '';
+    let currentBeat = 0;
+    let _slideDir = 1; // 1 = coming from right, -1 = coming from left
+
+    const BEATS = [
+        {
+            chapter: 'Before the First World',
+            text: 'There was nothing here.<br><br>Not darkness. Not silence. Not emptiness.<br><br>Just &mdash; <em>absence</em>.',
+            btn: 'I feel it.'
+        },
+        {
+            chapter: 'Before the First World',
+            text: 'Then something shifted. Deep in the space between realities, where neither the living nor the dead have names, a crack formed in the fabric of nothing.<br><br>Small at first. A hairline fracture. A whisper of <span style="color:#aa44ff;">hunger</span>.',
+            btn: 'And then?'
+        },
+        {
+            chapter: 'The Awakening',
+            text: 'You did not wake the way the living do. There was no breath. No body. No moment of warmth returning to cold limbs.<br><br>You simply <em>were</em>.<br><br>And the moment you were &mdash; you wanted.',
+            btn: 'What did I want?'
+        },
+        {
+            chapter: 'The Awakening',
+            text: 'Souls.<br><br>You could feel them. Billions of tiny flames — desperate, warm, <em>full</em>. Each one within reach if you just reached far enough.<br><br>You found the altar. Ancient. Cracked. Waiting.<br><br>You pressed your will into the stone.',
+            btn: 'I pressed harder.'
+        },
+        {
+            chapter: 'The First Harvest',
+            text: 'The first soul tore free like a word spoken too loudly in a quiet room.<br><br>Then ten. Then a hundred. The altar hummed. The dark bent toward you. Things sleeping for ten thousand years opened their eyes and looked in your direction.<br><br>Imps came first. Drawn to power the way rot is drawn to warmth.',
+            btn: 'I let them come.'
+        },
+        {
+            chapter: 'The Name',
+            text: 'The darkness has many collectors. Most go unnamed — forgotten between harvests, their altars cold, their minions scattered.<br><br>But you feel different. Older. Hungrier. Something worth remembering.',
+            nameInput: true,
+            btn: 'That is my name.'
+        },
+        {
+            chapter: 'The Reckoning',
+            text: '',
+            btn: 'Begin the harvest.',
+            final: true
+        }
+    ];
+
+    function buildDots() {
+        const c = document.getElementById('prologue-dots');
+        c.innerHTML = '';
+        BEATS.forEach((_, i) => {
+            const d = document.createElement('div');
+            d.style.cssText = `width:5px;height:5px;border-radius:50%;background:${i===currentBeat?'#aa44ff':'#2a1a3a'};transition:background 0.4s;`;
+            c.appendChild(d);
+        });
+    }
+
+    function showBeat(index, dir) {
+        currentBeat = index;
+        _slideDir = dir || 1;
+        const beat = BEATS[index];
+        const textEl   = document.getElementById('prologue-text');
+        const chapEl   = document.getElementById('prologue-chapter');
+        const btnEl    = document.getElementById('prologue-btn');
+        const nameSection = document.getElementById('prologue-name-section');
+        const nameInput   = document.getElementById('prologue-name-input');
+
+        // Slide OUT to opposite direction
+        const outX = _slideDir * -60;
+        textEl.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        textEl.style.opacity = '0';
+        textEl.style.transform = `translateX(${outX}px)`;
+        chapEl.style.transition = 'opacity 0.4s';
+        chapEl.style.opacity = '0';
+        btnEl.style.display = 'none';
+        nameSection.style.display = 'none';
+
+        buildDots();
+
+        setTimeout(() => {
+            // Snap to entry side (opposite)
+            textEl.style.transition = 'none';
+            textEl.style.transform = `translateX(${_slideDir * 80}px)`;
+
+            chapEl.textContent = beat.chapter || '';
+
+            let txt = beat.text;
+            if (beat.final) {
+                const n = playerName || 'Harvester';
+                txt = `The abyss knows you now, <span style="color:#c8b4ff;font-family:'Georgia',serif;letter-spacing:2px;">${n}</span>.<br><br>There is no mercy here. No ceiling. No end. Only the next soul, and the one after that — and the hunger that never empties. Only deepens.<br><br>The altar is waiting. Your minions are stirring.<br><br><em style="color:#4a2a6a;">The living world has no idea you\'ve arrived.</em>`;
+            }
+            textEl.innerHTML = txt;
+
+            requestAnimationFrame(() => {
+                textEl.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+                textEl.style.opacity = '1';
+                textEl.style.transform = 'translateX(0)';
+                chapEl.style.opacity = '1';
+            });
+
+            if (beat.nameInput) {
+                nameSection.style.display = 'block';
+                setTimeout(() => nameInput.focus(), 400);
+                btnEl.textContent = 'That is my name.';
+                btnEl.style.display = 'inline-block';
+                btnEl.onclick = () => {
+                    const val = nameInput.value.trim();
+                    const errEl = document.getElementById('prologue-name-error');
+                    if (!val) {
+                        errEl.style.opacity = '1';
+                        setTimeout(() => errEl.style.opacity='0', 2500);
+                        return;
+                    }
+                    // Just store locally for the final beat display + pre-fill signup
+                    // Real uniqueness check happens at account creation
+                    playerName = val;
+                    window._prologueName = val; // used to pre-fill signup form
+                    showBeat(index + 1, 1);
+                };
+                nameInput.onkeydown = (e) => { if (e.key === 'Enter') btnEl.click(); };
+            } else if (beat.final) {
+                btnEl.textContent = 'Begin the harvest.';
+                btnEl.style.cssText = 'display:inline-block;margin-top:40px;background:linear-gradient(135deg,#aa44ff22,transparent);border:1px solid #aa44ff;border-radius:4px;padding:14px 52px;color:#c8b4ff;font-size:0.92em;letter-spacing:4px;text-transform:uppercase;cursor:pointer;font-family:Georgia,serif;box-shadow:0 0 30px #aa44ff33;transition:all 0.3s;';
+                btnEl.onmouseover = () => { btnEl.style.boxShadow='0 0 50px #aa44ff66'; };
+                btnEl.onmouseout  = () => { btnEl.style.boxShadow='0 0 30px #aa44ff33'; };
+                btnEl.onclick = closePrologue;
+            } else {
+                btnEl.textContent = beat.btn || 'Continue';
+                btnEl.style.display = 'inline-block';
+                btnEl.onclick = () => showBeat(index + 1, 1);
+            }
+        }, 550);
+    }
+
+    function closePrologue() {
+        // Dev preview mode — just close and return to game, no side effects
+        if (window._devProloguePreview) {
+            window._devProloguePreview = false;
+            overlay.style.transition = 'opacity 1.5s ease';
+            overlay.style.opacity = '0';
+            overlay.addEventListener('transitionend', () => { overlay.style.display = 'none'; }, { once: true });
+            const _mStop = setInterval(() => {
+                _pMusic.volume = Math.max(0, _pMusic.volume - 0.04);
+                if (_pMusic.volume <= 0) { clearInterval(_mStop); _pMusic.pause(); }
+            }, 60);
+            return;
+        }
+        localStorage.setItem('scPrologueSeen', '1');
+        // Pre-fill the signup name field with whatever the player typed in prologue
+        // Actual name validation + uniqueness check happens at account creation
+        const prologueName = window._prologueName;
+        if (prologueName) {
+            setTimeout(() => {
+                const signupNameField = document.getElementById('signup-name');
+                const profileNameField = document.getElementById('playerNameInput');
+                if (signupNameField) signupNameField.value = prologueName;
+                if (profileNameField) profileNameField.value = prologueName;
+            }, 300);
+        }
+        // Fade out music over 2s
+        const _mFadeOut = setInterval(() => {
+            _pMusic.volume = Math.max(0, _pMusic.volume - 0.02);
+            if (_pMusic.volume <= 0) { clearInterval(_mFadeOut); _pMusic.pause(); }
+        }, 80);
+        overlay.style.transition = 'opacity 2s ease';
+        overlay.style.opacity = '0';
+        overlay.addEventListener('transitionend', () => {
+            overlay.style.display = 'none';
+            // After prologue, show auth screen for new players
+            if (window._afterPrologueShowAuth) {
+                window._afterPrologueShowAuth = false;
+                if (typeof showAuthScreen === 'function') {
+                    showAuthScreen();
+                    // Switch to signup tab since they just went through prologue
+                    setTimeout(() => {
+                        if (typeof switchAuthTab === 'function') switchAuthTab('signup');
+                    }, 100);
+                }
+            }
+        }, { once: true });
+    }
+
+    // Guest handler — exposed globally so inline onclick can reach it
+    window._prologueGuest = () => {
+        // Dev preview mode — just close
+        if (window._devProloguePreview) {
+            window._devProloguePreview = false;
+            overlay.style.transition = 'opacity 1.5s ease';
+            overlay.style.opacity = '0';
+            overlay.addEventListener('transitionend', () => { overlay.style.display = 'none'; }, { once: true });
+            const _mStop2 = setInterval(() => {
+                _pMusic.volume = Math.max(0, _pMusic.volume - 0.04);
+                if (_pMusic.volume <= 0) { clearInterval(_mStop2); _pMusic.pause(); }
+            }, 60);
+            return;
+        }
+        // Close prologue and go straight to the "play without account" profile setup
+        localStorage.setItem('scPrologueSeen', '1');
+        const _mFadeOut = setInterval(() => {
+            _pMusic.volume = Math.max(0, _pMusic.volume - 0.03);
+            if (_pMusic.volume <= 0) { clearInterval(_mFadeOut); _pMusic.pause(); }
+        }, 80);
+        overlay.style.transition = 'opacity 1.5s ease';
+        overlay.style.opacity = '0';
+        overlay.addEventListener('transitionend', () => {
+            overlay.style.display = 'none';
+            window._afterPrologueShowAuth = false;
+            // Call the real guest flow — shows profile name setup screen
+            if (typeof authPlayAsGuest === 'function') {
+                authPlayAsGuest();
+            } else if (typeof showAuthScreen === 'function') {
+                showAuthScreen();
+            }
+        }, { once: true });
+    };
+
+    showBeat(0, 1);
+}
+
+
 </script>
 
 <!-- GIF Picker — lives on body to avoid overflow:hidden clipping inside chat -->

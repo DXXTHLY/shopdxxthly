@@ -1461,100 +1461,218 @@
         /* ================================================================= */
         /* ABYSSAL BREACH MINI-GAME STYLES */
         /* ================================================================= */
+
+        /* ── Entrance animation ── */
+        @keyframes breach-enter {
+            from { opacity:0; transform:scale(0.92); filter:brightness(0); }
+            to   { opacity:1; transform:scale(1);    filter:brightness(1); }
+        }
+        #breach-overlay { animation: breach-enter 0.5s ease-out; }
+
+        /* ── Ambient flicker on the overlay bg ── */
+        @keyframes breach-flicker {
+            0%,100%  { background: rgba(0,0,0,0.97); }
+            48%      { background: rgba(5,0,8,0.97); }
+            50%      { background: rgba(0,0,0,0.95); }
+            52%      { background: rgba(5,0,8,0.97); }
+        }
+        #breach-overlay.active { animation: breach-flicker 8s ease-in-out infinite; }
+
+        /* ── Grid ── */
         #breach-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             grid-template-rows: repeat(5, 1fr);
             width: 100%;
             height: 100%;
+            gap: 2px;
+            box-sizing: border-box;
         }
         .breach-tile {
-            width: 90px;
-            height: 90px;
-            border: 1px solid #1a0a1a;
-            background: repeating-linear-gradient(45deg, #070510 0px, #070510 8px, #0a0816 8px, #0a0816 16px);
+            width: 90px; height: 90px;
+            border: 1px solid #120818;
+            background: #04020a;
             cursor: default;
             transition: all 0.2s;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
+            border-radius: 4px;
+            overflow: hidden;
         }
+        /* Fog texture on unexplored */
+        .breach-tile::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: repeating-linear-gradient(
+                60deg,
+                transparent 0px, transparent 6px,
+                rgba(40,10,60,0.15) 6px, rgba(40,10,60,0.15) 7px
+            );
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 0.4s;
+        }
+        .breach-tile.explored::before { opacity: 0; }
+
         .breach-tile.explored {
-            background: #0f0c1a;
-            background-image: none;
-            border-color: #2a1a2a;
+            background: #0c0816;
+            border-color: #1e1228;
         }
         .breach-tile.adjacent {
-            background: radial-gradient(circle at center, #1a0a2a 0%, #070510 100%);
-            border-color: #cc333366;
+            background: radial-gradient(circle at center, #1a0a28 0%, #08040f 100%);
+            border-color: #cc3333aa;
             cursor: pointer;
-            animation: breach-pulse 1.5s ease-in-out infinite;
+            animation: breach-pulse 1.2s ease-in-out infinite;
+        }
+        .breach-tile.adjacent::after {
+            content: '▲';
+            position: absolute;
+            font-size: 0.5em;
+            color: #cc333388;
+            bottom: 4px;
+            right: 5px;
+            pointer-events: none;
         }
         .breach-tile.adjacent:hover {
-            background: radial-gradient(circle at center, #2a1040 0%, #0f0820 100%);
-            border-color: #cc3333;
-            box-shadow: inset 0 0 12px #cc333333;
+            background: radial-gradient(circle at center, #2e1050 0%, #120828 100%);
+            border-color: #ff4444;
+            box-shadow: inset 0 0 20px #cc333322, 0 0 8px #cc333344;
+            transform: scale(1.04);
         }
         @keyframes breach-pulse {
-            0%, 100% { border-color: #cc333344; }
-            50% { border-color: #cc333399; }
+            0%,100% { border-color:#cc333355; box-shadow:none; }
+            50%      { border-color:#cc3333cc; box-shadow:0 0 10px #cc333344; }
         }
         @keyframes spin {
             from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            to   { transform: rotate(360deg); }
         }
         .breach-tile.player-tile {
-            background: radial-gradient(circle at center, #cc333322 0%, #0f0c1a 100%);
+            background: radial-gradient(circle at center, #cc333318 0%, #0c0816 100%);
+            border-color: #cc333366;
         }
-        #breach-player-token {
-            position: absolute;
-            width: 60px;
-            height: 60px;
-            background: radial-gradient(circle, #cc3333, #880000);
-            border: 2px solid #ff6644;
-            border-radius: 50%;
-            box-shadow: 0 0 20px #cc333388, 0 0 40px #cc333344;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.8rem;
-            pointer-events: none;
-            z-index: 10;
+
+        /* ── Event tile reveal ── */
+        @keyframes tile-reveal {
+            0%   { transform:scale(0.3) rotate(-15deg); opacity:0; filter:brightness(3); }
+            60%  { transform:scale(1.15) rotate(3deg);  opacity:1; filter:brightness(1.5); }
+            100% { transform:scale(1) rotate(0deg);     opacity:1; filter:brightness(1); }
         }
         .breach-tile-icon {
             font-size: 2rem;
             opacity: 0;
-            transition: opacity 0.4s, transform 0.4s;
-            transform: scale(0.5);
+            transition: none;
             pointer-events: none;
-            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+            filter: drop-shadow(0 0 6px currentColor);
         }
         .breach-tile.explored .breach-tile-icon {
-            opacity: 1;
-            transform: scale(1);
+            animation: tile-reveal 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards;
         }
-        .breach-fog-overlay {
+
+        /* ── Coloured glow per event type on explored tiles ── */
+        .breach-tile.explored[data-event="treasure"]  { box-shadow:inset 0 0 18px #ffcc0018; border-color:#ffcc0033; }
+        .breach-tile.explored[data-event="hostile"]   { box-shadow:inset 0 0 18px #ff444418; border-color:#ff444433; }
+        .breach-tile.explored[data-event="trap"]      { box-shadow:inset 0 0 18px #ff880018; border-color:#ff880033; }
+        .breach-tile.explored[data-event="fountain"]  { box-shadow:inset 0 0 18px #44ccff18; border-color:#44ccff33; }
+        .breach-tile.explored[data-event="lore"]      { box-shadow:inset 0 0 18px #aa88ff18; border-color:#aa88ff33; }
+        .breach-tile.explored[data-event="chest"]     { box-shadow:inset 0 0 18px #aa44ff18; border-color:#aa44ff33; }
+        .breach-tile.explored[data-event="guardian"]  { box-shadow:inset 0 0 24px #ff224418; border-color:#ff224433; }
+
+        /* ── Player token ── */
+        #breach-player-token {
             position: absolute;
-            inset: 0;
-            background: #070510;
+            width: 58px; height: 58px;
+            background: radial-gradient(circle, #dd2222, #660000);
+            border: 2px solid #ff5533;
+            border-radius: 50%;
+            box-shadow: 0 0 16px #cc333388, 0 0 32px #cc333344, inset 0 0 8px rgba(255,100,50,0.3);
+            transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1);
+            display: flex; justify-content:center; align-items:center;
+            font-size: 1.6rem;
+            pointer-events: none;
+            z-index: 10;
+            animation: player-pulse 2s ease-in-out infinite;
+        }
+        @keyframes player-pulse {
+            0%,100% { box-shadow:0 0 16px #cc333388, 0 0 32px #cc333344; }
+            50%      { box-shadow:0 0 24px #ff4444aa, 0 0 48px #cc333366; }
+        }
+
+        /* ── Event pop notification ── */
+        @keyframes event-pop {
+            0%   { opacity:0; transform:translateY(8px) scale(0.9); }
+            20%  { opacity:1; transform:translateY(-2px) scale(1.02); }
+            80%  { opacity:1; transform:translateY(0) scale(1); }
+            100% { opacity:0; transform:translateY(-6px) scale(0.95); }
+        }
+        #breach-event-pop {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            background: linear-gradient(135deg,#0c0818,#180c28);
+            border: 1px solid #cc3333;
+            border-radius: 14px;
+            padding: 18px 28px;
+            text-align: center;
+            z-index: 600;
+            pointer-events: none;
+            display: none;
+            min-width: 200px;
+            box-shadow: 0 0 40px #cc333344;
+        }
+        #breach-event-pop.show { animation: event-pop 2s ease forwards; display: block; }
+
+        /* ── Fog overlay ── */
+        .breach-fog-overlay {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle at center, #0a0614 0%, #04020a 100%);
             pointer-events: none;
             transition: opacity 0.5s;
         }
-        .breach-tile.explored .breach-fog-overlay { opacity: 0; }
-        .breach-tile.adjacent .breach-fog-overlay { opacity: 0.5; }
+        .breach-tile.explored .breach-fog-overlay  { opacity: 0; }
+        .breach-tile.adjacent .breach-fog-overlay  { opacity: 0.4; }
+
+        /* ── Sidebar panels ── */
+        .breach-panel {
+            background: #07050e;
+            border: 1px solid #1a0a2a;
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+        .breach-panel-label {
+            font-size: 0.65em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            opacity: 0.6;
+        }
+
         #breach-abilities-list button {
             width: 100%;
             margin-bottom: 0;
             font-size: 0.78em;
             padding: 6px 10px;
         }
-        .breach-log-entry { padding: 2px 0; border-bottom: 1px solid #ffffff05; }
-        .breach-log-entry.good { color: #44cc88; }
-        .breach-log-entry.bad { color: #cc4444; }
-        .breach-log-entry.neutral { color: #888; }
+
+        /* ── Log ── */
+        .breach-log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid #ffffff06;
+            font-size: 0.8em;
+            line-height: 1.5;
+        }
+        .breach-log-entry.good      { color: #44cc88; }
+        .breach-log-entry.bad       { color: #ff5544; }
+        .breach-log-entry.neutral   { color: #777; }
         .breach-log-entry.objective { color: #c8a800; font-weight: bold; }
+        .breach-log-entry.new       { color: #fff; animation: log-flash 1s ease; }
+        @keyframes log-flash {
+            from { background: rgba(200,160,0,0.15); }
+            to   { background: transparent; }
+        }
 
         /* ================================================================= */
         /* RIFT 'CRASH' GAME STYLES (NEW!) */
@@ -3089,6 +3207,17 @@ text-decoration: underline; /* Adds an underline on hover */
 
                 <div id="active-expeditions-container" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px; max-width:1000px; margin:0 auto 32px;"></div>
 
+                <!-- Raidable breaches from other players -->
+                <div id="raid-breaches-section" style="display:none; max-width:1000px; margin:0 auto 28px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                        <span style="color:#cc2222; font-size:1.1em;">⚔</span>
+                        <h3 style="color:#cc4444; letter-spacing:2px; font-size:0.85em; text-transform:uppercase; margin:0;">Other Players' Abandoned Breaches</h3>
+                        <div style="flex:1; height:1px; background:linear-gradient(90deg,#cc222233,transparent);"></div>
+                        <span style="color:#551111; font-size:0.7em; font-style:italic;">Raid before they expire</span>
+                    </div>
+                    <div id="raid-breaches-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+                </div>
+
                 <h3 style="color:#888; letter-spacing:2px; font-size:0.85em; text-transform:uppercase; margin-bottom:16px;">Available Expeditions</h3>
                 <div id="expedition-board" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px; max-width:1000px; margin:0 auto;"></div>
             </div>
@@ -3256,32 +3385,29 @@ text-decoration: underline; /* Adds an underline on hover */
                         <div style="flex:1; min-width:300px;">
                             <div id="raid-dungeon-area">
                                  <div id="raid-pregame" style="text-align:center; padding:20px 0;">
-                                     <div style="background:#0a0812; border:1px solid #ff664422; border-radius:10px; padding:16px; margin-bottom:16px; text-align:left; max-width:420px; margin:0 auto 16px;">
-                                         <div style="color:#ff6644; font-size:0.75em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;">How It Works</div>
-                                         <div style="color:#888; font-size:0.82em; line-height:1.7;">
-                                             🗺 Explore a <strong style="color:#ddd;">7×7 dungeon grid</strong> — click adjacent tiles to move<br>
-                                             ⚡ Each move costs <strong style="color:#ddd;">1 energy</strong> (start with 20)<br>
-                                             👤 Enemies are <strong style="color:#ddd;">hidden in the fog</strong> — you won't see them until you step on them<br>
-                                             ⚔ Combat is <strong style="color:#ddd;">turn-based</strong> — use momentum to gain the upper hand<br>
-                                             👥 Your <strong style="color:#ddd;">3 minions fight in order</strong> — when one falls the next steps up<br>
-                                             🚪 Defeat the floor boss and find the exit to descend<br>
-                                             🏃 Flee any time and keep everything you've found
+                                     <!-- Collapsible How It Works -->
+                                     <div style="max-width:420px; margin:0 auto 16px; background:#0a0812; border:1px solid #ff664422; border-radius:10px; overflow:hidden;">
+                                         <div onclick="const d=this.nextElementSibling; d.style.display=d.style.display==='none'?'block':'none'; this.querySelector('.arr').textContent=d.style.display==='none'?'▶':'▼';"
+                                             style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; cursor:pointer; user-select:none;">
+                                             <span style="color:#ff6644; font-size:0.75em; text-transform:uppercase; letter-spacing:2px;">How It Works / Roles / Tiles</span>
+                                             <span class="arr" style="color:#ff664455; font-size:0.7em;">▶</span>
                                          </div>
-                                     </div>
-                                     <div style="background:#0a0812; border:1px solid #ff664422; border-radius:10px; padding:16px; margin-bottom:16px; text-align:left; max-width:420px; margin:0 auto 16px;">
-                                         <div style="color:#ff6644; font-size:0.75em; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">Combat Roles</div>
-                                         <div style="color:#888; font-size:0.82em; line-height:1.8;">
-                                             ⚔ <strong style="color:#ffaa44;">Striker</strong> — high ATK · +25% dmg · AoE Berserker Rush + Burn<br>
-                                             🪨 <strong style="color:#88aaff;">Tank</strong> — high HP · counter-strike on defend · Iron Wall heal+armor<br>
-                                             🌀 <strong style="color:#44cc88;">Duelist</strong> — balanced · 30% double strike · Feint dodge+2.5× hit<br>
-                                             🛡 <strong style="color:#ddd;">Defend</strong> builds momentum &amp; has 40% chance to <strong style="color:#ddd;">stagger</strong> the enemy
-                                         </div>
-                                     </div>
-                                     <div style="background:#0a0812; border:1px solid #ff664422; border-radius:10px; padding:16px; margin-bottom:16px; text-align:left; max-width:420px; margin:0 auto 16px;">
-                                         <div style="color:#ff6644; font-size:0.75em; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">Tile Types</div>
-                                         <div style="color:#888; font-size:0.82em; line-height:1.7;">
-                                             💰 Treasure &nbsp;💧 Fountain (heal + energy) &nbsp;📦 Abyssal Chest (rare)<br>
-                                             👑 Floor Boss &nbsp;🚪 Exit to next floor
+                                         <div style="display:none; padding:0 16px 14px;">
+                                             <div style="color:#888; font-size:0.82em; line-height:1.7; margin-bottom:10px;">
+                                                 🗺 Explore a <strong style="color:#ddd;">7×7 dungeon grid</strong> — click adjacent tiles to move<br>
+                                                 ⚡ Each move costs <strong style="color:#ddd;">1 energy</strong> (start with 20)<br>
+                                                 👤 Enemies <strong style="color:#ddd;">hidden in fog</strong> — you won't see them until you step on them<br>
+                                                 ⚔ <strong style="color:#ddd;">Turn-based</strong> combat with momentum and roles<br>
+                                                 👥 Your <strong style="color:#ddd;">3 minions fight in order</strong> — next steps up when one falls<br>
+                                                 🚪 Defeat floor boss and find the exit to descend
+                                             </div>
+                                             <div style="color:#888; font-size:0.82em; line-height:1.8; border-top:1px solid #ff664411; padding-top:10px; margin-bottom:10px;">
+                                                 ⚔ <strong style="color:#ffaa44;">Striker</strong> · 🪨 <strong style="color:#88aaff;">Tank</strong> · 🌀 <strong style="color:#44cc88;">Duelist</strong><br>
+                                                 🛡 <strong style="color:#ddd;">Defend</strong> builds momentum + 40% stagger
+                                             </div>
+                                             <div style="color:#888; font-size:0.82em; line-height:1.7; border-top:1px solid #ff664411; padding-top:10px;">
+                                                 💰 Treasure &nbsp;💧 Fountain &nbsp;📦 Chest &nbsp;👑 Boss &nbsp;🚪 Exit
+                                             </div>
                                          </div>
                                      </div>
                                      <button id="raid-enter-btn" onclick="startSoulRaid()" disabled style="background:linear-gradient(135deg,#cc3311,#440000); border:2px solid #ff664466; border-radius:10px; padding:14px 40px; color:#ff9988; font-family:var(--font-title); font-size:0.95em; letter-spacing:2px; cursor:pointer; opacity:0.5; margin-top:8px;">⚔ ENTER THE DUNGEON</button>
@@ -3335,25 +3461,41 @@ text-decoration: underline; /* Adds an underline on hover */
                             <div id="arena-opponent-list" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px;"></div>
                         </div>
 
-                        <!-- Battle logs -->
-                        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #33333344; border-radius:12px; padding:16px; margin-bottom:16px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <!-- Battle Log — collapsible -->
+                        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #33333344; border-radius:12px; margin-bottom:16px; overflow:hidden;">
+                            <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='none'?'block':'none'; this.querySelector('.toggle-arrow').textContent = this.nextElementSibling.style.display==='none'?'▶':'▼';"
+                                style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; user-select:none;">
                                 <h3 style="margin:0; color:#888; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">📜 Battle Log <span style="color:#555; font-weight:normal; font-size:0.8em;">(all players)</span></h3>
-                                <button onclick="arenaFetchLogs(0)" style="background:#33333415; border:1px solid #33333444; border-radius:6px; padding:4px 12px; color:#888; cursor:pointer; font-family:inherit; font-size:0.75em;">🔄 Refresh</button>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="toggle-arrow" style="color:#444; font-size:0.75em;">▶</span>
+                                </div>
                             </div>
-                            <ul id="arena-log-list" style="list-style:none; margin:0; padding:0;"></ul>
+                            <div style="display:none; padding:0 16px 16px;">
+                                <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+                                    <button onclick="event.stopPropagation(); arenaFetchLogs(0)" style="background:#33333415; border:1px solid #33333444; border-radius:6px; padding:4px 12px; color:#888; cursor:pointer; font-family:inherit; font-size:0.75em;">🔄 Refresh</button>
+                                </div>
+                                <ul id="arena-log-list" style="list-style:none; margin:0; padding:0;"></ul>
+                            </div>
                         </div>
 
-                        <!-- PVP Rewards -->
-                        <div style="background:linear-gradient(135deg,#0e0a1a,#1c1200); border:1px solid #c8a80033; border-top:3px solid #c8a800; border-radius:12px; padding:16px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <!-- PVP Rewards — collapsible -->
+                        <div style="background:linear-gradient(135deg,#0e0a1a,#1c1200); border:1px solid #c8a80033; border-top:3px solid #c8a800; border-radius:12px; overflow:hidden;">
+                            <div onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='none'?'block':'none'; this.querySelector('.toggle-arrow').textContent = this.nextElementSibling.style.display==='none'?'▶':'▼';"
+                                style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; user-select:none;">
                                 <h3 style="margin:0; color:#c8a800; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">🏆 PvP Rewards</h3>
-                                <button onclick="fetchPvpLeaderboard()" style="background:#c8a80015; border:1px solid #c8a80044; border-radius:6px; padding:4px 12px; color:#c8a800; cursor:pointer; font-family:inherit; font-size:0.75em;">🔄 Refresh</button>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="toggle-arrow" style="color:#c8a80066; font-size:0.75em;">▶</span>
+                                </div>
                             </div>
-                            <div style="color:#666; font-size:0.74em; margin-bottom:12px; line-height:1.5;">Top fighters earn potions and essence every time rankings are checked. Claim your reward if eligible.</div>
-                            <div id="pvp-leaderboard-list" style="margin-bottom:12px;"></div>
-                            <div id="pvp-reward-claim" style="display:none; text-align:center; margin-top:8px;">
-                                <button onclick="claimPvpReward()" style="background:linear-gradient(135deg,#3a2800,#1a1000); border:2px solid #c8a80066; border-radius:10px; padding:10px 24px; color:#c8a800; cursor:pointer; font-family:inherit; font-weight:bold; font-size:0.9em;">🎁 Claim Your Rank Reward</button>
+                            <div style="display:none; padding:0 16px 16px;">
+                                <div style="color:#666; font-size:0.74em; margin-bottom:12px; line-height:1.5;">Top 5 fighters earn potions and essence every time rankings are checked. Claim your reward if eligible.</div>
+                                <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+                                    <button onclick="event.stopPropagation(); fetchPvpLeaderboard()" style="background:#c8a80015; border:1px solid #c8a80044; border-radius:6px; padding:4px 12px; color:#c8a800; cursor:pointer; font-family:inherit; font-size:0.75em;">🔄 Refresh</button>
+                                </div>
+                                <div id="pvp-leaderboard-list" style="margin-bottom:12px;"></div>
+                                <div id="pvp-reward-claim" style="display:none; text-align:center; margin-top:8px;">
+                                    <button onclick="claimPvpReward()" style="background:linear-gradient(135deg,#3a2800,#1a1000); border:2px solid #c8a80066; border-radius:10px; padding:10px 24px; color:#c8a800; cursor:pointer; font-family:inherit; font-weight:bold; font-size:0.9em;">🎁 Claim Your Rank Reward</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -10880,6 +11022,39 @@ const expeditions = {
              { type: 'guaranteed', item: 'corruptedFragments', min: 6, max: 20 },
             { type: 'chance', item: 'legendary_item', chance: 0.05 }
         ]
+    },
+
+    // --- SCAVENGER RUNS — fallen soldier equipment + DE + fragments ---
+    scavenge_ruins: {
+        id: 'scavenge_ruins',
+        name: "Scavenge the Ruined Wastes",
+        desc: "A squad picks through the aftermath of a forgotten battle. The dead left behind tools, journals, and shards of armour. It takes time to sift through the carnage — but the haul is worth it.",
+        duration: 129600, // 36 hours
+        powerReq: 500000,
+        cost: 500,
+        costType: 'essence',
+        rewards: [
+            { type: 'guaranteed', item: 'corruptedFragments', min: 10, max: 20 },
+            { type: 'guaranteed', item: 'darkEssence', min: 300, max: 350 },
+            { type: 'chance', item: 'common_item', chance: 0.80 },
+            { type: 'chance', item: 'uncommon_item', chance: 0.25 }
+        ]
+    },
+
+    loot_battlefield: {
+        id: 'loot_battlefield',
+        name: "Loot the Ashen Battlefield",
+        desc: "A massive graveyard of failed Soul Collectors. Their gear lies broken in the ash — cracked idols, torn tomes, bent weapons. Two days out. Your minions return laden with salvage.",
+        duration: 172800, // 48 hours
+        powerReq: 2000000,
+        cost: 1000,
+        costType: 'essence',
+        rewards: [
+            { type: 'guaranteed', item: 'corruptedFragments', min: 15, max: 20 },
+            { type: 'guaranteed', item: 'darkEssence', min: 330, max: 350 },
+            { type: 'chance', item: 'uncommon_item', chance: 0.60 },
+            { type: 'chance', item: 'epic_item', chance: 0.08 }
+        ]
     }
 };
 
@@ -16439,6 +16614,10 @@ function loadAuthFirebase() {
                 if (typeof initWorldLockdown === 'function') {
                     setTimeout(initWorldLockdown, 1000);
                 }
+                // Start breach raid pool listener
+                if (typeof initBreachRaidListener === 'function') {
+                    setTimeout(initBreachRaidListener, 2000);
+                }
 
                 // If user is already signed in (persistent session), load their save
                 saveAuth.onAuthStateChanged(user => {
@@ -21610,10 +21789,129 @@ function startBreachCheck(expeditionId) {
     if (Date.now() >= gameState.anomalyTimers[expeditionId]) {
         if (hasCompass || Math.random() < (0.60 + codexBonus)) {
             activeExp.breachIsReady = true;
+            activeExp.breachReadyAt = Date.now();
+            // After 15 seconds of ignoring the breach, make it raidable by others
+            const _capId = expeditionId;
+            setTimeout(() => {
+                if (gameState.activeExpeditions[_capId]?.breachIsReady) {
+                    _postBreachToRaidPool(_capId);
+                }
+            }, 15000);
         } else {
             gameState.anomalyTimers[expeditionId] = Date.now() + (30 + Math.random() * 30) * 1000;
         }
     }
+}
+
+// ── Breach Raid Pool (Firebase) ────────────────────────────────────────
+function _postBreachToRaidPool(expeditionId) {
+    const db = window._scFirebase?.db;
+    const name = gameState.playerName;
+    if (!db || !name || name === 'Unnamed') return;
+    const expData = expeditions[expeditionId];
+    if (!expData || !gameState.activeExpeditions[expeditionId]?.breachIsReady) return;
+    const expIcons = { scout_plains:'🌋', scour_wastes:'🌑', raid_crypts:'⚰️', explore_depths:'🔥', delve_void:'🌀', breach_celestial:'✨', scavenge_ruins:'⚔️', loot_battlefield:'🪖' };
+    const key = name.replace(/[.#$[\]]/g, '_') + '__' + expeditionId;
+    const payload = {
+        playerName:    name,
+        expeditionId:  expeditionId,
+        expeditionName: expData.name,
+        expeditionIcon: expIcons[expeditionId] || '🗺️',
+        postedAt:      Date.now(),
+        expiresAt:     Date.now() + 3 * 60 * 1000, // 3-minute claim window
+    };
+    db.ref('availableBreaches/' + key).set(payload)
+        .then(() => console.log('[BreachRaid] Posted:', key))
+        .catch(() => {});
+}
+
+function _removeBreachFromRaidPool(expeditionId, playerName) {
+    const db = window._scFirebase?.db;
+    if (!db) return;
+    const name = (playerName || gameState.playerName).replace(/[.#$[\]]/g, '_');
+    db.ref('availableBreaches/' + name + '__' + expeditionId).remove().catch(() => {});
+}
+
+window._raidableBreaches = {}; // cached from Firebase listener
+
+function initBreachRaidListener() {
+    const db = window._scFirebase?.db;
+    if (!db) return;
+    db.ref('availableBreaches').on('value', snap => {
+        const all = snap.val() || {};
+        const now = Date.now();
+        const myName = gameState.playerName;
+        // Filter: not mine, not expired
+        window._raidableBreaches = {};
+        for (const key in all) {
+            const b = all[key];
+            if (b.playerName === myName) continue; // skip own breaches
+            if (now > b.expiresAt) {
+                // Expired — clean up
+                db.ref('availableBreaches/' + key).remove().catch(() => {});
+                continue;
+            }
+            window._raidableBreaches[key] = b;
+        }
+        // Re-render if on expeditions screen
+        if (document.getElementById('expeditions-screen')?.classList.contains('active')) {
+            renderExpeditions();
+        }
+    });
+}
+
+function raidPlayerBreach(key) {
+    const breach = window._raidableBreaches?.[key];
+    if (!breach) {
+        Toastify({ text: '⚡ This breach has already been claimed!', duration: 3000, gravity: 'top', position: 'center', style: { background: '#1a0000' } }).showToast();
+        return;
+    }
+    const db = window._scFirebase?.db;
+    if (!db) return;
+    // Atomically claim by removing the node (first writer wins)
+    db.ref('availableBreaches/' + key).once('value', snap => {
+        if (!snap.exists()) {
+            Toastify({ text: '⚡ Too late — someone else already raided this breach!', duration: 3500, gravity: 'top', position: 'center', style: { background: '#1a0000' } }).showToast();
+            return;
+        }
+        db.ref('availableBreaches/' + key).remove().then(() => {
+            // Successfully claimed — enter the breach using the expedition's reward pool
+            _enterRaidedBreach(breach);
+        }).catch(() => {
+            Toastify({ text: '⚡ Claim failed — breach may have been taken.', duration: 3000, gravity: 'top', position: 'center' }).showToast();
+        });
+    });
+}
+
+function _enterRaidedBreach(breach) {
+    // Build a fake expedition context so the breach system works normally
+    // Rewards come from the original expedition's reward table
+    const expData = expeditions[breach.expeditionId];
+    if (!expData) return;
+    // Create a temporary raided expedition state
+    window._raidedBreachSource = breach;
+    breachState = {
+        expeditionId: '__raided__' + breach.expeditionId,
+        isRaided: true,
+        raidedFrom: breach.playerName,
+        originalExpId: breach.expeditionId,
+        size: 5,
+        map: [],
+        playerPosition: { x: 0, y: 0 },
+        energy: 20,
+        objective: { ...breachObjectives[Math.floor(Math.random() * breachObjectives.length)] },
+        clustersCollected: 0,
+        guardianDefeated: false,
+        activeBuffs: {},
+        minionAbilities: {}
+    };
+    generateBreachMap(breachState.size);
+    const log = document.getElementById('breach-log');
+    if (log) log.innerHTML = `<div class="breach-log-entry objective" style="font-style:italic;">You raid ${breach.playerName}'s abandoned breach...</div>`;
+    renderBreach();
+    document.getElementById('breach-overlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('breach-overlay')?.classList.add('active'), 500);
+    Toastify({ text: `⚔ Raiding ${breach.playerName}'s breach! Take what you can.`, duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#2a0000,#660000)' } }).showToast();
 }
 
 function repeatExpedition(id) {
@@ -21678,12 +21976,14 @@ function renderExpeditions() {
     activeContainer.innerHTML = '';
 
     const expColors = {
-        scout_plains:     { color:'#ff6644', icon:'🌋' },
-        scour_wastes:     { color:'#ff9944', icon:'🌑' },
-        raid_crypts:      { color:'#4488ff', icon:'⚰️' },
-        explore_depths:   { color:'#ff4444', icon:'🔥' },
-        delve_void:       { color:'#aa44ff', icon:'🌀' },
-        breach_celestial: { color:'#ffcc00', icon:'✨' },
+        scout_plains:      { color:'#ff6644', icon:'🌋' },
+        scour_wastes:      { color:'#ff9944', icon:'🌑' },
+        raid_crypts:       { color:'#4488ff', icon:'⚰️' },
+        explore_depths:    { color:'#ff4444', icon:'🔥' },
+        delve_void:        { color:'#aa44ff', icon:'🌀' },
+        breach_celestial:  { color:'#ffcc00', icon:'✨' },
+        scavenge_ruins:    { color:'#cc8844', icon:'⚔️' },
+        loot_battlefield:  { color:'#886644', icon:'🪖' },
     };
 
     // ---- ACTIVE EXPEDITIONS ----
@@ -21728,13 +22028,15 @@ function renderExpeditions() {
             <!-- Breach button -->
             ${breachReady ? `
             <button onclick="startAbyssalBreach('${id}')"
-                style="background:linear-gradient(135deg,#1a0a00,#2a1500); border:1px solid #ff660066; border-radius:8px; padding:10px; color:#ff8844; cursor:pointer; font-family:inherit; font-size:0.85em; font-weight:bold; animation:breach-pulse 1.5s ease-in-out infinite; letter-spacing:1px;"
-                onmouseover="this.style.borderColor='#ff6600'; this.style.color='#ffaa44';"
-                onmouseout="this.style.borderColor='#ff660066'; this.style.color='#ff8844';">
-                ⚡ ABYSSAL BREACH DETECTED — Enter Now
+                style="background:linear-gradient(135deg,#2a0800,#4a1000); border:2px solid #ff4400aa; border-radius:10px; padding:12px 16px; color:#ff8844; cursor:pointer; font-family:var(--font-title); font-size:0.9em; font-weight:bold; letter-spacing:2px; width:100%; position:relative; overflow:hidden;"
+                onmouseover="this.style.background='linear-gradient(135deg,#3a1000,#5a1800)'; this.style.color='#ffcc44';"
+                onmouseout="this.style.background='linear-gradient(135deg,#2a0800,#4a1000)'; this.style.color='#ff8844';">
+                <span style="animation:breach-pulse 1s ease-in-out infinite; display:inline-block;">⚡</span>
+                ABYSSAL BREACH DETECTED
+                <span style="display:block; font-size:0.65em; color:#ff664488; letter-spacing:1px; margin-top:2px; font-family:var(--font-body);">ENTER NOW — Reality is tearing</span>
             </button>` : `
-            <div style="display:flex; align-items:center; gap:8px; color:#444; font-size:0.77em; font-style:italic;">
-                <span style="animation:spin 2s linear infinite; display:inline-block;">🔍</span>
+            <div style="display:flex; align-items:center; gap:8px; color:#2a1a2a; font-size:0.72em; font-style:italic; padding:4px 0;">
+                <span style="animation:spin 3s linear infinite; display:inline-block; opacity:0.5;">🔍</span>
                 Scanning for anomalies...
             </div>`}
         </div>`;
@@ -21742,6 +22044,43 @@ function renderExpeditions() {
 
     if (!hasActive) {
         activeContainer.innerHTML = `<div style="color:var(--dim-color); text-align:center; padding:30px; border:1px dashed #2a2040; border-radius:10px; grid-column:1/-1;">No active expeditions. Deploy a party below.</div>`;
+    }
+
+    // ---- RAIDABLE BREACHES FROM OTHER PLAYERS ----
+    const raidableBreaches = window._raidableBreaches || {};
+    const raidContainer = document.getElementById('raid-breaches-container');
+    const raidSection = document.getElementById('raid-breaches-section');
+    if (raidContainer && raidSection) {
+        const raidKeys = Object.keys(raidableBreaches).filter(k => Date.now() < raidableBreaches[k].expiresAt);
+        if (raidKeys.length > 0) {
+            raidSection.style.display = 'block';
+            raidContainer.innerHTML = '';
+            raidKeys.forEach(key => {
+                const b = raidableBreaches[key];
+                const remaining = Math.ceil((b.expiresAt - Date.now()) / 1000);
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                const countdown = `${mins}:${secs.toString().padStart(2,'0')}`;
+                raidContainer.innerHTML += `
+                <div style="background:linear-gradient(135deg,#1a0808,#2a0a0a); border:1px solid #cc222244; border-left:3px solid #cc2222; border-radius:12px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+                    <span style="font-size:1.8em;">${b.expeditionIcon}</span>
+                    <div style="flex:1;">
+                        <div style="color:#ff4444; font-weight:bold; font-size:0.85em;">${b.expeditionName}</div>
+                        <div style="color:#663333; font-size:0.72em; margin-top:2px;">
+                            Abandoned by <span style="color:#ff6666;">${b.playerName}</span> · Expires in <span style="color:#ff8844; font-family:monospace;">${countdown}</span>
+                        </div>
+                    </div>
+                    <button onclick="raidPlayerBreach('${key}')"
+                        style="background:linear-gradient(135deg,#3a0000,#660000); border:1px solid #cc222266; border-radius:8px; padding:9px 18px; color:#ff6644; cursor:pointer; font-family:var(--font-title); font-size:0.8em; font-weight:bold; letter-spacing:1px; white-space:nowrap;"
+                        onmouseover="this.style.borderColor='#ff4444'; this.style.color='#ff8844';"
+                        onmouseout="this.style.borderColor='#cc222266'; this.style.color='#ff6644';">
+                        ⚔ RAID
+                    </button>
+                </div>`;
+            });
+        } else {
+            raidSection.style.display = 'none';
+        }
     }
 
     // ---- AVAILABLE EXPEDITIONS ----
@@ -21760,11 +22099,17 @@ function renderExpeditions() {
 
         // Rewards preview
         const rewardPills = data.rewards.map(r => {
-            if (r.type === 'guaranteed') return `<span style="background:#44448822; border:1px solid #44448844; border-radius:6px; padding:1px 7px; font-size:0.7em; color:#8888ff;">🔮 ${r.min}-${r.max} Fragments</span>`;
-            const chance = Math.round(r.chance * 100);
-            const rarity = r.item.split('_')[0];
-            const rc = { common:'#aaa', uncommon:'#44cc44', epic:'#aa44ff', legendary:'#ffaa00' }[rarity] || '#aaa';
-            return `<span style="background:${rc}15; border:1px solid ${rc}33; border-radius:6px; padding:1px 7px; font-size:0.7em; color:${rc};">${chance}% ${rarity} item</span>`;
+            if (r.type === 'guaranteed' && r.item === 'corruptedFragments')
+                return `<span style="background:#44448822; border:1px solid #44448844; border-radius:6px; padding:1px 7px; font-size:0.7em; color:#8888ff;">🔮 ${r.min}-${r.max} Fragments</span>`;
+            if (r.type === 'guaranteed' && r.item === 'darkEssence')
+                return `<span style="background:#c8a80015; border:1px solid #c8a80033; border-radius:6px; padding:1px 7px; font-size:0.7em; color:#c8a800;">🌑 ${r.min}-${r.max} DE</span>`;
+            if (r.type === 'chance') {
+                const chance = Math.round(r.chance * 100);
+                const rarity = r.item.split('_')[0];
+                const rc = { common:'#aaa', uncommon:'#44cc44', epic:'#aa44ff', legendary:'#ffaa00' }[rarity] || '#aaa';
+                return `<span style="background:${rc}15; border:1px solid ${rc}33; border-radius:6px; padding:1px 7px; font-size:0.7em; color:${rc};">${chance}% ${rarity} item</span>`;
+            }
+            return '';
         }).join(' ');
 
         board.innerHTML += `
@@ -21821,14 +22166,18 @@ function updateExpeditions() {
 }
 
 function endBreach(isVictory) {
+    document.getElementById('breach-overlay')?.classList.remove('active');
+    const _isRaided = breachState?.isRaided;
+    const _raidedFrom = breachState?.raidedFrom || 'another player';
     if (isVictory) {
         const _btome = gameState.equipped.tome;
         const _bMult = (_btome && items[_btome] && items[_btome].bonus.type === 'expedition_fragment_multiplier') ? items[_btome].bonus.value : 1.0;
         const bonusFrags = Math.floor(15 * _bMult);
         _addFragments(bonusFrags, true);
-        // Light Essence bonus when transcended
-        if (gameState.isTranscended) {
-            const leReward = Math.floor(1 + Math.random() * 3); // 1–3 LE per breach
+        if (_isRaided) {
+            Toastify({ text: `⚔ Raid successful! Plundered +${bonusFrags} Fragments from ${_raidedFrom}'s breach!`, duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#2a0000,#660000)' } }).showToast();
+        } else if (gameState.isTranscended) {
+            const leReward = Math.floor(1 + Math.random() * 3);
             gameState.lightEssence = D(gameState.lightEssence || 0).add(leReward);
             Toastify({ text: `✦ Breach Cleared! +${bonusFrags} Fragments & +${leReward} Light Essence!`, duration: 5500, style: { background: "linear-gradient(to right, #1a0050, #c8b4ff)" } }).showToast();
         } else {
@@ -21838,7 +22187,11 @@ function endBreach(isVictory) {
             setTimeout(() => rollForKey('breach'), 2000);
         }
     } else {
-         Toastify({ text: "You fled the breach, your energy depleted.", duration: 5000, style: { background: "var(--primary-color)" } }).showToast();
+        if (_isRaided) {
+            Toastify({ text: `⚔ Raid failed — you fled ${_raidedFrom}'s breach.`, duration: 4000, style: { background: "var(--primary-color)" } }).showToast();
+        } else {
+            Toastify({ text: "You fled the breach, your energy depleted.", duration: 5000, style: { background: "var(--primary-color)" } }).showToast();
+        }
     }
 
     const activeExp = gameState.activeExpeditions[breachState.expeditionId];
@@ -21885,9 +22238,16 @@ function completeExpedition(id) {
     if (fragmentsGained > 0) rewardText += `Found ${fragmentsGained} Corrupted Fragments!`;
     
     data.rewards.forEach(reward => {
+        // Guaranteed DE reward
+        if (reward.type === 'guaranteed' && reward.item === 'darkEssence') {
+            const deGained = Math.floor(Math.random() * (reward.max - reward.min + 1)) + reward.min;
+            gameState.darkEssence = D(gameState.darkEssence || 0).add(deGained);
+            rewardText += `\n+${deGained} Dark Essence salvaged!`;
+        }
+        // Chance item reward
         if (reward.type === 'chance' && Math.random() < reward.chance) {
-            // --- NEW LANTERN LOGIC ---
-            let itemRarity = reward.item.split('_')[0]; // e.g., 'common', 'uncommon'
+            // --- LANTERN LOGIC ---
+            let itemRarity = reward.item.split('_')[0];
             const sigilId = gameState.equipped.sigil;
             if (sigilId && items[sigilId] && items[sigilId].bonus.type === 'expedition_speed_and_loot') {
                 if (Math.random() < items[sigilId].bonus.loot_chance) {
@@ -21895,13 +22255,11 @@ function completeExpedition(id) {
                     else if (itemRarity === 'uncommon') itemRarity = 'epic';
                 }
             }
-            // --- END OF NEW LOGIC ---
-
             const possibleItems = Object.keys(items).filter(itemId => items[itemId].rarity === itemRarity);
             const foundItemId = possibleItems[Math.floor(Math.random() * possibleItems.length)];
             if (foundItemId) {
                 gameState.inventory.push(foundItemId);
-                rewardText += `\nAlso discovered a new item: ${items[foundItemId].name}!`;
+                rewardText += `\nAlso found: ${items[foundItemId].name}!`;
             }
         }
     });
@@ -21929,11 +22287,13 @@ function showExpeditionModal(id) {
     const data = expeditions[id];
     const expColors = {
         scout_plains:'#ff6644', scour_wastes:'#ff9944', raid_crypts:'#4488ff',
-        explore_depths:'#ff4444', delve_void:'#aa44ff', breach_celestial:'#ffcc00'
+        explore_depths:'#ff4444', delve_void:'#aa44ff', breach_celestial:'#ffcc00',
+        scavenge_ruins:'#cc8844', loot_battlefield:'#886644'
     };
     const expIcons = {
         scout_plains:'🌋', scour_wastes:'🌑', raid_crypts:'⚰️',
-        explore_depths:'🔥', delve_void:'🌀', breach_celestial:'✨'
+        explore_depths:'🔥', delve_void:'🌀', breach_celestial:'✨',
+        scavenge_ruins:'⚔️', loot_battlefield:'🪖'
     };
     const c = expColors[id] || '#c8a800';
 
@@ -24075,11 +24435,15 @@ function startAbyssalBreach(expeditionId) {
         }
     }
     generateBreachMap(breachState.size);
+    // Remove from raid pool — player entered their own breach
+    _removeBreachFromRaidPool(expeditionId, gameState.playerName);
     // Clear log
     const log = document.getElementById('breach-log');
     if (log) log.innerHTML = `<div class="breach-log-entry neutral" style="font-style:italic;">You enter the breach...</div>`;
     renderBreach();
-    document.getElementById('breach-overlay').style.display = 'flex';
+    const _bo = document.getElementById('breach-overlay');
+    _bo.style.display = 'flex';
+    setTimeout(() => _bo.classList.add('active'), 500);
 }
 function generateBreachMap(size) {
     breachState.map = Array(size).fill(null).map(() => Array(size).fill(null).map(() => ({ isExplored: false, event: null })));
@@ -24189,7 +24553,9 @@ function renderBreach() {
     // Grid
     const gridDiv = document.getElementById('breach-grid');
     if (!gridDiv) return;
-    gridDiv.style.cssText = `display:grid; grid-template-columns:repeat(${breachState.size},1fr); grid-template-rows:repeat(${breachState.size},1fr); width:${breachState.size*90}px; height:${breachState.size*90}px;`;
+    // TILE_SIZE includes the 2px gap between tiles
+    const GRID_SIZE = breachState.size * TILE_SIZE + (breachState.size - 1) * 2;
+    gridDiv.style.cssText = `display:grid; grid-template-columns:repeat(${breachState.size},${TILE_SIZE}px); grid-template-rows:repeat(${breachState.size},${TILE_SIZE}px); width:${GRID_SIZE}px; height:${GRID_SIZE}px; gap:2px;`;
     gridDiv.innerHTML = '';
 
     breachState.map.forEach((row, y) => {
@@ -24207,12 +24573,12 @@ function renderBreach() {
             if (isAdjacent) tileDiv.onclick = () => movePlayer(x, y);
 
             if (tile.isExplored && tile.event && !isPlayer) {
-                // Colour-code events
+                tileDiv.dataset.event = tile.event.type;
                 const eventColors = { treasure:'#ffcc00', hostile:'#ff4444', trap:'#ff8800', fountain:'#44ccff', lore:'#aa88ff', stabilizer:'#00ffcc', guardian:'#ff2244', clusters:'#c8a800', chest:'#aa44ff' };
-                const ec = eventColors[tile.event.type] || '#ffffff';
-                tileDiv.innerHTML = `<div class="breach-tile-icon" style="text-shadow:0 0 10px ${ec}88;">${tile.event.icon}</div>`;
+                const ec = eventColors[tile.event.type] || '#cccccc';
+                tileDiv.innerHTML = `<div class="breach-tile-icon" style="color:${ec};">${tile.event.icon}</div>`;
             } else if (isAdjacent) {
-                tileDiv.innerHTML = `<div style="font-size:1.2em; opacity:0.3; pointer-events:none;">❓</div>`;
+                tileDiv.innerHTML = `<div style="font-size:0.9em; opacity:0.2; pointer-events:none; color:#cc3333;">?</div>`;
             }
 
             gridDiv.appendChild(tileDiv);
@@ -24222,13 +24588,15 @@ function renderBreach() {
     // Player token
     const container = document.getElementById('breach-grid-container');
     if (container) {
-        container.style.width = (breachState.size * TILE_SIZE) + 'px';
-        container.style.height = (breachState.size * TILE_SIZE) + 'px';
+        container.style.width  = GRID_SIZE + 'px';
+        container.style.height = GRID_SIZE + 'px';
     }
     const token = document.getElementById('breach-player-token');
     if (token) {
-        token.style.left = `${breachState.playerPosition.x * TILE_SIZE + 15}px`;
-        token.style.top  = `${breachState.playerPosition.y * TILE_SIZE + 15}px`;
+        // Position token in centre of the correct tile (accounting for 2px gaps)
+        const _cellStep = TILE_SIZE + 2;
+        token.style.left = `${breachState.playerPosition.x * _cellStep + (TILE_SIZE - 58) / 2}px`;
+        token.style.top  = `${breachState.playerPosition.y * _cellStep + (TILE_SIZE - 58) / 2}px`;
         token.textContent = '👤';
     }
 }
@@ -24237,11 +24605,28 @@ function addBreachLog(text, type = 'neutral') {
     const log = document.getElementById('breach-log');
     if (!log) return;
     const entry = document.createElement('div');
-    entry.className = `breach-log-entry ${type}`;
+    entry.className = `breach-log-entry ${type} new`;
+    setTimeout(() => entry.classList.remove('new'), 1000);
     entry.textContent = text;
     log.appendChild(entry);
     log.scrollTop = log.scrollHeight;
 }
+// Show a dramatic center-screen pop when stepping on an event tile
+function showBreachEventPop(icon, title, desc, colorHex) {
+    const pop = document.getElementById('breach-event-pop');
+    if (!pop) return;
+    document.getElementById('breach-event-pop-icon').textContent = icon;
+    document.getElementById('breach-event-pop-title').textContent = title;
+    document.getElementById('breach-event-pop-title').style.color = colorHex || '#fff';
+    document.getElementById('breach-event-pop-desc').textContent = desc || '';
+    pop.style.borderColor = colorHex || '#cc3333';
+    pop.style.boxShadow = `0 0 40px ${colorHex || '#cc3333'}44`;
+    pop.classList.remove('show');
+    void pop.offsetWidth; // force reflow
+    pop.classList.add('show');
+    setTimeout(() => pop.classList.remove('show'), 2200);
+}
+
 function movePlayer(x, y) {
     if(breachState.energy <= 0) return;
     breachState.energy--;
@@ -24266,6 +24651,7 @@ function resolveTileEvent(tile) {
             const _tMult = (_ttome && items[_ttome] && items[_ttome].bonus.type === 'expedition_fragment_multiplier') ? items[_ttome].bonus.value : 1.0;
             const fragments = Math.floor((Math.floor(Math.random() * 4) + 2) * _tMult);
             _addFragments(fragments, true);
+            showBreachEventPop('💰', 'TREASURE FOUND', `+${fragments} Corrupted Fragments`, '#ffcc00');
             let msg = `💰 Treasure! +${fragments} Corrupted Fragments.${_tMult > 1 ? ' (Codex)' : ''}`;
             if (Math.random() < 0.25) {
                 const possibleItems = Object.keys(items).filter(itemId => items[itemId].rarity === 'common');
@@ -24279,68 +24665,73 @@ function resolveTileEvent(tile) {
             Toastify({ text: msg, duration: 3500, style: { background: 'linear-gradient(135deg,#1a1000,#3a2a00)' } }).showToast();
             break;
         }
-        case 'hostile':
-            if (Math.random() > 0.5) {
+        case 'hostile': {
+            const win = Math.random() > 0.5;
+            if (win) {
+                showBreachEventPop('⚔', 'HOSTILE DEFEATED', 'No energy lost', '#ff4444');
                 addBreachLog('⚔ Hostile defeated! No energy lost.', 'good');
-                Toastify({ text: '⚔ Victory! The creature is defeated.', duration: 3000 }).showToast();
             } else {
                 breachState.energy -= 2;
+                showBreachEventPop('💀', 'AMBUSHED', '-2 Energy', '#ff2222');
                 addBreachLog('⚔ Hostile encounter — took a hit! -2 energy.', 'bad');
-                Toastify({ text: '⚔ Defeat! You were wounded. -2 Energy.', duration: 3000, style: { background: 'linear-gradient(135deg,#1a0000,#3a0000)' } }).showToast();
             }
             break;
-        case 'trap':
+        }
+        case 'trap': {
             if (breachState.activeBuffs.ignoreTrap) {
                 breachState.activeBuffs.ignoreTrap = false;
+                showBreachEventPop('🕸', 'TRAP ABSORBED', 'Your minion took the hit', '#ff8800');
                 addBreachLog('🕸 Trap triggered — absorbed by your minion!', 'neutral');
-                Toastify({ text: '🕸 Trap absorbed by your Resilient minion!', duration: 3000 }).showToast();
             } else {
                 breachState.energy -= 3;
+                showBreachEventPop('🕸', 'TRAP TRIGGERED', '-3 Energy', '#ff6600');
                 addBreachLog('🕸 Fell into a trap! -3 energy.', 'bad');
-                Toastify({ text: '🕸 It\'s a trap! -3 Energy.', duration: 3000, style: { background: 'linear-gradient(135deg,#1a0800,#3a1000)' } }).showToast();
             }
             break;
+        }
         case 'fountain':
             breachState.energy += 5;
+            showBreachEventPop('💧', 'FOUNTAIN OF SOULS', '+5 Energy restored', '#44ccff');
             addBreachLog('💧 Fountain of Souls! +5 energy restored.', 'good');
-            Toastify({ text: '💧 Fountain of Souls! +5 Energy.', duration: 3000, style: { background: 'linear-gradient(135deg,#001a1a,#003a3a)' } }).showToast();
             break;
         case 'lore':
-            addBreachLog('📜 Found ancient remains... a Soul Collector\'s journal.', 'neutral');
-            Toastify({ text: '📜 You find the dusty remains of another Soul Collector\'s journal...', duration: 3000 }).showToast();
+            showBreachEventPop('📜', 'ANCIENT LORE', 'Lost journal found...', '#aa88ff');
+            addBreachLog('Found ancient remains... a lost journal.', 'neutral');
             break;
         case 'chest': {
             tile.event = null;
+            showBreachEventPop('📦', 'ABYSSAL CHEST', 'Something stirs inside...', '#aa44ff');
             addBreachLog('📦 An Abyssal Chest — something stirs inside...', 'good');
-            openAbyssalBreachChest();
+            setTimeout(() => openAbyssalBreachChest(), 600);
             break;
         }
         case 'key_room': {
-            tile.event = null; // consume so it cannot trigger twice
+            tile.event = null;
+            showBreachEventPop('🗝️', 'SOMETHING STIRS', 'An ancient presence...', '#c8a800');
             addBreachLog('🗝️ The air changes. Something ancient stirs in the dark.', 'objective');
             const _keyId = KEY_IDS[Math.floor(Math.random() * KEY_IDS.length)];
             setTimeout(() => { if (typeof presentKey === 'function') presentKey(_keyId, 'breach'); }, 800);
             break;
         }
         case 'stabilizer':
+            showBreachEventPop('🌀', 'OBJECTIVE COMPLETE', 'Rift Stabilizer activated!', '#00ffcc');
             addBreachLog('🌀 Objective complete! Rift Stabilizer activated!', 'objective');
-            Toastify({ text: '🌀 Objective Complete! Rift Stabilizer found!', duration: 3500, style: { background: 'linear-gradient(135deg,#001a10,#003a20)' } }).showToast();
-            endBreach(true);
+            setTimeout(() => endBreach(true), 1200);
             break;
         case 'guardian':
             breachState.guardianDefeated = true;
+            showBreachEventPop('👹', 'GUARDIAN SLAIN', 'The Rift tears open!', '#ff2244');
             addBreachLog('👹 Objective complete! The Rift Guardian falls!', 'objective');
-            Toastify({ text: '👹 Objective Complete! The Guardian is vanquished!', duration: 3500, style: { background: 'linear-gradient(135deg,#1a001a,#3a003a)' } }).showToast();
-            endBreach(true);
+            setTimeout(() => endBreach(true), 1200);
             break;
         case 'clusters':
             breachState.clustersCollected++;
             tile.event = null;
+            showBreachEventPop('💎', `SOUL CLUSTER ${breachState.clustersCollected}/3`, breachState.clustersCollected >= 3 ? 'All clusters found!' : 'Keep searching...', '#c8a800');
             addBreachLog(`💎 Soul Cluster collected! (${breachState.clustersCollected}/3)`, breachState.clustersCollected >= 3 ? 'objective' : 'good');
-            Toastify({ text: `💎 Soul Cluster! (${breachState.clustersCollected}/3)`, duration: 3000, style: { background: 'linear-gradient(135deg,#1a1000,#3a2a00)' } }).showToast();
             if (breachState.clustersCollected >= 3) {
                 addBreachLog('🎯 All clusters found! Objective complete!', 'objective');
-                endBreach(true);
+                setTimeout(() => endBreach(true), 1200);
             }
             break;
     }
@@ -25186,7 +25577,7 @@ async function fetchPvpLeaderboard() {
             .from('players')
             .select('name,pvpWins,pvpLosses')
             .order('pvpWins', { ascending: false })
-            .limit(10);
+            .limit(5);
 
         if (error) {
             console.warn('pvpWins column issue:', error.message);
@@ -25255,7 +25646,7 @@ async function fetchPvpLeaderboard() {
         }).join('');
 
         // Show claim button if player is in top 5
-        const eligible = myRank >= 1 && myRank <= 5;
+        const eligible = myRank >= 1 && myRank <= 5; // top 5 only
         const today = new Date().toDateString();
         const alreadyClaimed = gameState.pvpRewardClaimedDate === today;
         if (claimDiv) {
@@ -26846,68 +27237,75 @@ Your listing will remain until someone accepts it or it expires.`;
 <!-- ================================================================= -->
 <!-- NEW: ABYSSAL BREACH MINI-GAME OVERLAY -->
 <!-- ================================================================= -->
-<div id="breach-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.97); z-index:500; backdrop-filter:blur(8px); flex-direction:column; justify-content:center; align-items:center; font-family:var(--font-body);">
+<div id="breach-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.97); z-index:500; backdrop-filter:blur(10px); flex-direction:column; justify-content:center; align-items:center; font-family:var(--font-body);">
 
-    <!-- Header -->
-    <div style="text-align:center; margin-bottom:18px;">
-        <h1 style="margin:0; color:#cc3333; letter-spacing:4px; font-size:1.6em; text-shadow:0 0 20px #cc333388;">⚡ ABYSSAL BREACH ⚡</h1>
-        <p id="breach-objective-display" style="margin:6px 0 0; color:#888; font-style:italic; font-size:0.85em;"></p>
+    <!-- Event pop notification -->
+    <div id="breach-event-pop">
+        <div id="breach-event-pop-icon" style="font-size:2em; margin-bottom:6px;"></div>
+        <div id="breach-event-pop-title" style="color:#fff; font-weight:bold; font-size:0.95em; letter-spacing:1px;"></div>
+        <div id="breach-event-pop-desc" style="color:#888; font-size:0.75em; margin-top:4px;"></div>
     </div>
 
-    <div style="display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; justify-content:center;">
+    <!-- Header -->
+    <div style="text-align:center; margin-bottom:14px;">
+        <div style="color:#cc3333; font-family:var(--font-title); font-size:1.3em; letter-spacing:5px; text-shadow:0 0 20px #cc333399;">⚡ ABYSSAL BREACH ⚡</div>
+        <div id="breach-objective-display" style="margin:5px 0 0; color:#555; font-size:0.78em; font-style:italic;"></div>
+    </div>
+
+    <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; justify-content:center;">
 
         <!-- Grid -->
-        <div style="position:relative;">
-            <div id="breach-grid-container" style="position:relative; background:#070510; border:2px solid #cc333366; border-radius:10px; overflow:hidden; box-shadow:0 0 30px #cc333333;">
+        <div>
+            <div id="breach-grid-container" style="position:relative; background:#04020a; border:1px solid #2a0a2a; border-radius:12px; overflow:hidden; box-shadow:0 0 40px #cc333322, inset 0 0 40px rgba(0,0,0,0.8);">
                 <div id="breach-grid"></div>
                 <div id="breach-player-token"></div>
             </div>
-            <div style="text-align:center; margin-top:8px; color:#555; font-size:0.72em; letter-spacing:2px;">CLICK ADJACENT TILES TO MOVE</div>
+            <div style="text-align:center; margin-top:6px; color:#2a1a2a; font-size:0.62em; letter-spacing:3px;">CLICK GLOWING TILES TO MOVE</div>
         </div>
 
         <!-- Sidebar -->
-        <div style="width:260px; display:flex; flex-direction:column; gap:12px;">
+        <div style="width:250px; display:flex; flex-direction:column; gap:10px;">
 
-            <!-- Energy bar -->
-            <div style="background:#0a0812; border:1px solid #cc333344; border-radius:10px; padding:14px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="color:#cc3333; font-size:0.8em; text-transform:uppercase; letter-spacing:1px;">⚡ Energy</span>
-                    <span id="breach-energy-display" style="color:#fff; font-weight:bold; font-size:1.2em;">20</span>
-                </div>
-                <div style="background:#1a0a0a; border-radius:6px; height:10px; overflow:hidden;">
-                    <div id="breach-energy-bar" style="height:100%; width:100%; background:linear-gradient(90deg,#cc3333,#ff6644); border-radius:6px; transition:width 0.3s;"></div>
+            <!-- Energy -->
+            <div class="breach-panel">
+                <div class="breach-panel-label" style="color:#cc3333;">⚡ Energy</div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="flex:1; background:#0d0010; border-radius:6px; height:12px; overflow:hidden; border:1px solid #2a0a1a;">
+                        <div id="breach-energy-bar" style="height:100%; width:100%; background:linear-gradient(90deg,#cc3333,#ff6644); border-radius:6px; transition:width 0.35s;"></div>
+                    </div>
+                    <span id="breach-energy-display" style="color:#ff8866; font-weight:bold; font-size:1.1em; min-width:24px; text-align:right;">20</span>
                 </div>
             </div>
 
             <!-- Objective -->
-            <div style="background:#0a0812; border:1px solid #c8a80044; border-radius:10px; padding:14px;">
-                <div style="color:#c8a800; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🎯 Objective</div>
-                <div id="breach-objective-short" style="color:#fff; font-size:0.88em; line-height:1.5;"></div>
+            <div class="breach-panel" style="border-color:#c8a80033;">
+                <div class="breach-panel-label" style="color:#c8a800;">🎯 Objective</div>
+                <div id="breach-objective-short" style="color:#ddd; font-size:0.85em; line-height:1.55;"></div>
                 <div id="breach-clusters-progress" style="display:none; margin-top:8px;">
-                    <div style="background:#1a1a00; border-radius:4px; height:6px; overflow:hidden;">
+                    <div style="background:#1a1a00; border-radius:4px; height:5px; overflow:hidden;">
                         <div id="breach-clusters-bar" style="height:100%; background:#c8a800; border-radius:4px; transition:width 0.3s;"></div>
                     </div>
-                    <div id="breach-clusters-text" style="color:#666; font-size:0.72em; margin-top:4px;"></div>
+                    <div id="breach-clusters-text" style="color:#666; font-size:0.7em; margin-top:4px;"></div>
                 </div>
             </div>
 
-            <!-- Event log -->
-            <div style="background:#0a0812; border:1px solid #33334466; border-radius:10px; padding:14px; flex:1;">
-                <div style="color:#888; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">📜 Event Log</div>
-                <div id="breach-log" style="font-size:0.78em; line-height:1.6; color:#aaa; max-height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;">
-                    <div style="color:#555; font-style:italic;">Entering the breach...</div>
+            <!-- Log -->
+            <div class="breach-panel" style="flex:1; border-color:#2a1a3a;">
+                <div class="breach-panel-label" style="color:#664466;">📜 Event Log</div>
+                <div id="breach-log" style="font-size:0.77em; line-height:1.55; color:#666; max-height:140px; overflow-y:auto; display:flex; flex-direction:column-reverse; gap:2px;">
+                    <div style="color:#333; font-style:italic;">You step into the breach…</div>
                 </div>
             </div>
 
             <!-- Abilities -->
-            <div style="background:#0a0812; border:1px solid #4444aa44; border-radius:10px; padding:14px;">
-                <div style="color:#8888ff; font-size:0.75em; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">⚔ Minion Abilities</div>
-                <div id="breach-abilities-list" style="display:flex; flex-direction:column; gap:7px;"></div>
-                <div id="breach-no-abilities" style="color:#444; font-size:0.78em; font-style:italic; display:none;">No ability-granting minions deployed.</div>
+            <div class="breach-panel" style="border-color:#2a2a5a;">
+                <div class="breach-panel-label" style="color:#6666aa;">⚔ Abilities</div>
+                <div id="breach-abilities-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+                <div id="breach-no-abilities" style="color:#333; font-size:0.75em; font-style:italic; display:none;">No abilities available.</div>
             </div>
 
             <!-- Flee -->
-            <button onclick="endBreach(false)" style="background:#1a0808; border:1px solid #663333; border-radius:8px; padding:10px; color:#884444; cursor:pointer; font-family:inherit; font-size:0.85em; transition:all 0.2s;" onmouseover="this.style.borderColor='#cc3333'; this.style.color='#cc6666';" onmouseout="this.style.borderColor='#663333'; this.style.color='#884444';">
+            <button onclick="endBreach(false)" style="background:#0d0008; border:1px solid #441a1a; border-radius:8px; padding:9px; color:#553333; cursor:pointer; font-family:inherit; font-size:0.82em; transition:all 0.2s; letter-spacing:1px;" onmouseover="this.style.borderColor='#aa3333'; this.style.color='#cc5555';" onmouseout="this.style.borderColor='#441a1a'; this.style.color='#553333';">
                 🏃 Flee the Breach
             </button>
         </div>

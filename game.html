@@ -14811,8 +14811,9 @@ function renderInventory() {
     // ── Filter state ────────────────────────────────────────────────
     if (!window._invFilter) window._invFilter = { rarity: 'all', type: 'all' };
     const filterBar = document.getElementById('inv-filter-bar');
-    if (filterBar && !filterBar._built) {
-        filterBar._built = true;
+    if (filterBar) {
+        // Always fully rebuild — never append
+        filterBar.innerHTML = '';
         const rarities = ['all','legendary','forged','epic','rare','uncommon','common'];
         const types    = ['all','weapon','idol','sigil','helm','tome'];
         const makeBtn  = (val, label, group, color) => {
@@ -14820,10 +14821,9 @@ function renderInventory() {
             const btn = document.createElement('button');
             btn.textContent = label;
             btn.style.cssText = `background:${active ? color+'22' : 'transparent'};border:1px solid ${active ? color+'88' : '#2a1a3a'};border-radius:20px;padding:4px 12px;font-size:0.72em;color:${active ? color : '#444'};cursor:pointer;font-family:inherit;letter-spacing:1px;transition:all 0.15s;`;
-            btn.onclick = () => { window._invFilter[group] = val; filterBar._built = false; renderInventory(); };
+            btn.onclick = () => { window._invFilter[group] = val; renderInventory(); };
             return btn;
         };
-        // Rarity row
         const rarityWrap = document.createElement('div');
         rarityWrap.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;';
         rarities.forEach(r => {
@@ -14831,11 +14831,10 @@ function renderInventory() {
             const label = r === 'all' ? '✦ All Rarities' : r.charAt(0).toUpperCase()+r.slice(1);
             rarityWrap.appendChild(makeBtn(r, label, 'rarity', r==='all'?'#888':color));
         });
-        // Type row
         const typeWrap = document.createElement('div');
         typeWrap.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;';
         types.forEach(t => {
-            const label = t === 'all' ? '📦 All Types' : (TI[t]||'')+ ' '+t.charAt(0).toUpperCase()+t.slice(1);
+            const label = t === 'all' ? '📦 All Types' : (TI[t]||'')+' '+t.charAt(0).toUpperCase()+t.slice(1);
             typeWrap.appendChild(makeBtn(t, label, 'type', '#8888ff'));
         });
         filterBar.appendChild(rarityWrap);

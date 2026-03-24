@@ -4931,6 +4931,14 @@ text-decoration: underline; /* Adds an underline on hover */
                                     style="background:#001a08; border:1px solid #00cc4455; border-radius:8px; color:#44ff88; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit;">
                                     🔧 Fix SPS
                                 </button>
+                                <button onclick="devAdminBanPlayer()"
+                                    style="background:#1a0000; border:1px solid #ff000066; border-radius:8px; color:#ff4444; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit;">
+                                    🔨 Ban Player
+                                </button>
+                                <button onclick="devAdminUnbanPlayer()"
+                                    style="background:#001a00; border:1px solid #00ff0044; border-radius:8px; color:#44ff44; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit;">
+                                    ✅ Unban Player
+                                </button>
                                 <button onclick="(function(){ const db=window._scFirebase?.db; if(!db){alert('Firebase not ready');return;} if(typeof _triggerNextLockdown==='function'){_triggerNextLockdown(db,false);} Toastify({text:'🌐 Lockdown triggered — check Worlds tab in ~2s',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a0010,#440020)'}}).showToast(); })()"
                                     style="background:#100010; border:1px solid #aa00aa55; border-radius:8px; color:#dd44dd; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit;">
                                     🌐 Test Lockdown
@@ -11672,11 +11680,13 @@ async function createProfile() {
     // This function tries to convert tricky characters (like leetspeak) to normal letters
     function normalizeString(str) {
         return str.toLowerCase()
-            .replace(/[\*@]/g, 'a')
+            .replace(/[\*@!]/g, 'a')
             .replace(/3/g, 'e')
-            .replace(/1/g, 'i')
+            .replace(/[1!|]/g, 'i')
             .replace(/0/g, 'o')
-            .replace(/\$/g, 's');
+            .replace(/\$/g, 's')
+            .replace(/[_\-\.\s]/g, '')  // strip n_i_g_g_e_r / n.i.g.g.e.r bypass tricks
+            .replace(/[^a-z0-9]/g, ''); // strip remaining non-alphanumeric
     }
 
     const normalizedName = normalizeString(name);
@@ -21440,6 +21450,27 @@ function initializeChat() {
 
                 const chatInput = document.getElementById('chat-input');
                 if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
+
+                // ── On-load ban check: lock out banned users immediately ──
+                (function _checkBanOnLoad() {
+                    const _chatDbBan = (function(){ try { const a = window.firebase && window.firebase.apps.find(a=>a.name==='chatApp'); return a ? a.database() : null; } catch(e){ return null; } })();
+                    if (!_chatDbBan) return;
+                    _chatDbBan.ref('bannedUsers/' + user.uid).once('value').then(banSnap => {
+                        if (!banSnap.exists()) return;
+                        const b = banSnap.val();
+                        const isActive = b.expiresAt === -1 || b.expiresAt > Date.now();
+                        if (!isActive) { _chatDbBan.ref('bannedUsers/' + user.uid).remove(); return; }
+                        // Lock the UI
+                        const _ci = document.getElementById('chat-input');
+                        const _sb = document.getElementById('chat-send-btn');
+                        const _gb = document.getElementById('chat-gif-btn');
+                        if (_ci) { _ci.disabled = true; _ci.value = ''; _ci.placeholder = '⛔ You are banned from chat.'; _ci.style.borderColor = '#660000'; _ci.style.color = '#ff4444'; }
+                        if (_sb) { _sb.disabled = true; _sb.style.opacity = '0.3'; }
+                        if (_gb) { _gb.disabled = true; _gb.style.opacity = '0.3'; }
+                        const expStr = b.expiresAt === -1 ? 'Permanent' : 'Expires: ' + new Date(b.expiresAt).toLocaleString();
+                        Toastify({ text: '⛔ You are banned from chat.\n' + expStr + '\nReason: ' + (b.reason || 'No reason given'), duration: 12000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#330000,#660000)', zIndex: '99999' } }).showToast();
+                    });
+                })();
                 const gifBtn = document.getElementById('chat-gif-btn');
                 if (gifBtn) { gifBtn.disabled = false; }
                 window._chatUid = uid;
@@ -21594,6 +21625,33 @@ function initializeChat() {
             // Check if user is ignored (this is for future-proofing, doesn't do anything yet)
             if (window.standaloneState && window.standaloneState.ignoredUsers && window.standaloneState.ignoredUsers[msg.uid]) return;
             if (!msg || !msg.uid) return;
+
+            // ── Render-side ban filter: drop messages from banned UIDs ──
+            const _sysUids = ['system','discord_bot','system_badge'];
+            if (!_sysUids.includes(msg.uid)) {
+                if (!window._chatBanCache) window._chatBanCache = {};
+                const _bc = window._chatBanCache[msg.uid];
+                if (_bc === true) return; // confirmed banned — drop silently
+                if (_bc === undefined) {
+                    // First time we see this UID — mark pending, fire async check
+                    window._chatBanCache[msg.uid] = null;
+                    const _bdb = (typeof window._getChatDb === 'function') ? window._getChatDb() : null;
+                    if (_bdb) {
+                        _bdb.ref('bannedUsers/' + msg.uid).once('value').then(snap => {
+                            if (snap.exists()) {
+                                const b = snap.val();
+                                const active = b.expiresAt === -1 || b.expiresAt > Date.now();
+                                window._chatBanCache[msg.uid] = active;
+                                if (!active) _bdb.ref('bannedUsers/' + msg.uid).remove();
+                            } else {
+                                window._chatBanCache[msg.uid] = false;
+                            }
+                        });
+                    }
+                    // null = pending: allow this one message through; all future ones blocked once resolved
+                }
+                // _bc === false → not banned, fall through normally
+            }
 
             var _trId=(function(){var pfx='\u0002T\u0003',sfx='\u0002E\u0003';if(!msg.text||msg.text.indexOf(pfx)===-1)return null;var s=msg.text.indexOf(pfx)+pfx.length,e=msg.text.indexOf(sfx,s);return s<e?msg.text.slice(s,e):null;})();
             if(_trId){var tel=document.createElement('div');tel.style.cssText='margin:8px 0;padding:14px 16px;background:linear-gradient(135deg,#0a1a0a,#0e1a0e);border:1px solid #44cc8844;border-left:3px solid #44cc88;border-radius:10px;';tel.dataset.tradeid=_trId;tel.innerHTML='<div style="color:#44cc88;font-size:0.7em;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">🤝 Trade Proposal</div><div style="color:#555;font-size:0.75em;">Loading...</div>';chatBodyElement.appendChild(tel);if(shouldScroll)chatBodyElement.scrollTop=chatBodyElement.scrollHeight;
@@ -22138,11 +22196,35 @@ function initializeChat() {
                 }
                     const name = localStorage.getItem("slitherChatNickname"); 
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
-                    const msgObj = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
-                    if (gameState.donorTitle) msgObj.isDonor = true;
-                    db.ref("slitherChat").push(msgObj);
-                    e.target.value = '';
-                    window._addPassiveRep && window._addPassiveRep(1); 
+                    // ── Ban + slur check before sending ──
+                    (function() {
+                        const _cbd = (typeof window._getChatDb === 'function') ? window._getChatDb() : db;
+                        if (!_cbd) return;
+                        _cbd.ref('bannedUsers/' + uid).once('value').then(banSnap => {
+                            if (banSnap.exists()) {
+                                const b = banSnap.val();
+                                if (b.expiresAt === -1 || b.expiresAt > Date.now()) {
+                                    const ci = document.getElementById('chat-input');
+                                    if (ci) { ci.value = ''; ci.disabled = true; ci.placeholder = '⛔ You are banned from chat.'; ci.style.color = '#ff4444'; }
+                                    Toastify({ text: '⛔ Banned from chat. Reason: ' + (b.reason||'No reason given'), duration: 8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#330000,#660000)'} }).showToast();
+                                    return;
+                                }
+                            }
+                            // Slur filter on message content
+                            const _norm = (text||'').toLowerCase().replace(/[\*@!]/g,'a').replace(/3/g,'e').replace(/[1!|]/g,'i').replace(/0/g,'o').replace(/\$/g,'s').replace(/[_\-\.\s]/g,'');
+                            const _slurRx = /\b(nigger|nigga|n[i!1]gg[e3]r|n[i!1]gg[a@]|faggot|f[a@4]gg[o0]t|chink|sp[i!1]c|k[i!1]ke|gook|tr[a@]nny|r[e3]t[a@]rd)\b/i;
+                            if (_slurRx.test(_norm)) {
+                                Toastify({ text: '⛔ Message blocked: prohibited language.', duration: 5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#330000,#660000)'} }).showToast();
+                                const ci2 = document.getElementById('chat-input'); if (ci2) ci2.value = '';
+                                return;
+                            }
+                            const msgObj = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
+                            if (gameState.donorTitle) msgObj.isDonor = true;
+                            db.ref("slitherChat").push(msgObj);
+                            const ci3 = document.getElementById('chat-input'); if (ci3) ci3.value = '';
+                            window._addPassiveRep && window._addPassiveRep(1);
+                        });
+                    })();
                 } 
             } 
         });
@@ -22264,12 +22346,35 @@ function initializeChat() {
                     }
                     const name = localStorage.getItem("slitherChatNickname");
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
-                    const msgObj2 = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
-                    if (gameState.donorTitle) msgObj2.isDonor = true;
-                    db.ref("slitherChat").push(msgObj2);
-                    input.value = '';
-                    window._addPassiveRep && window._addPassiveRep(1);
-                    input.focus();
+                    // ── Ban + slur check before sending ──
+                    (function() {
+                        const _cbd2 = (typeof window._getChatDb === 'function') ? window._getChatDb() : db;
+                        if (!_cbd2) return;
+                        _cbd2.ref('bannedUsers/' + uid).once('value').then(banSnap => {
+                            if (banSnap.exists()) {
+                                const b = banSnap.val();
+                                if (b.expiresAt === -1 || b.expiresAt > Date.now()) {
+                                    input.value = ''; input.disabled = true; input.placeholder = '⛔ You are banned from chat.'; input.style.color = '#ff4444';
+                                    const _sb2 = document.getElementById('chat-send-btn'); if (_sb2) { _sb2.disabled = true; _sb2.style.opacity='0.3'; }
+                                    Toastify({ text: '⛔ Banned from chat. Reason: ' + (b.reason||'No reason given'), duration: 8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#330000,#660000)'} }).showToast();
+                                    return;
+                                }
+                            }
+                            const _norm2 = (text||'').toLowerCase().replace(/[\*@!]/g,'a').replace(/3/g,'e').replace(/[1!|]/g,'i').replace(/0/g,'o').replace(/\$/g,'s').replace(/[_\-\.\s]/g,'');
+                            const _slurRx2 = /\b(nigger|nigga|n[i!1]gg[e3]r|n[i!1]gg[a@]|faggot|f[a@4]gg[o0]t|chink|sp[i!1]c|k[i!1]ke|gook|tr[a@]nny|r[e3]t[a@]rd)\b/i;
+                            if (_slurRx2.test(_norm2)) {
+                                Toastify({ text: '⛔ Message blocked: prohibited language.', duration: 5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#330000,#660000)'} }).showToast();
+                                input.value = ''; input.focus();
+                                return;
+                            }
+                            const msgObj2 = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
+                            if (gameState.donorTitle) msgObj2.isDonor = true;
+                            db.ref("slitherChat").push(msgObj2);
+                            input.value = '';
+                            window._addPassiveRep && window._addPassiveRep(1);
+                            input.focus();
+                        });
+                    })();
                 }
             });
 
@@ -22286,8 +22391,17 @@ function initializeChat() {
                 settingsOverlay.style.display = 'flex';
             });
             document.getElementById('settings-cancel-btn').addEventListener('click', () => settingsOverlay.style.display = 'none');
-            document.getElementById('settings-save-btn').addEventListener('click', () => { const _mottoColorPick = document.getElementById('settings-motto-color')?.value || '#444444';
-                    const newData = { name: document.getElementById('settings-nickname').value.trim().slice(0, 20) || 'Anon', chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: document.getElementById('settings-avatar').value.trim(), profileMotto: document.getElementById('settings-motto').value.trim(), mottoColor: _mottoColorPick }; localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto); localStorage.setItem("slitherChatMottoColor", _mottoColorPick);
+            document.getElementById('settings-save-btn').addEventListener('click', () => {
+                    // ── Slur check on nickname ──
+                    const _rawNick = document.getElementById('settings-nickname').value.trim().slice(0, 20) || 'Anon';
+                    const _normNick = _rawNick.toLowerCase().replace(/[\*@!]/g,'a').replace(/3/g,'e').replace(/[1!|]/g,'i').replace(/0/g,'o').replace(/\$/g,'s').replace(/[_\-\.\s]/g,'').replace(/[^a-z0-9]/g,'');
+                    const _nickSlurRx = /\b(nigger|nigga|n[i!1]gg[e3]r|n[i!1]gg[a@]|faggot|f[a@4]gg[o0]t|chink|sp[i!1]c|k[i!1]ke|gook|tr[a@]nny|r[e3]t[a@]rd)\b/i;
+                    if (_nickSlurRx.test(_normNick)) {
+                        Toastify({ text: '⛔ That nickname is not allowed.', duration: 5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#330000,#660000)'} }).showToast();
+                        return;
+                    }
+                    const _mottoColorPick = document.getElementById('settings-motto-color')?.value || '#444444';
+                    const newData = { name: _rawNick, chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: document.getElementById('settings-avatar').value.trim(), profileMotto: document.getElementById('settings-motto').value.trim(), mottoColor: _mottoColorPick }; localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto); localStorage.setItem("slitherChatMottoColor", _mottoColorPick);
                     const selBg = document.querySelector('#profile-bg-picker .bg-opt-selected');
                     if (selBg) { newData.profileBg = selBg.dataset.bg; localStorage.setItem('slitherChatProfileBg', selBg.dataset.bg); }
                     db.ref("onlineUsers/" + uid).update(newData); settingsOverlay.style.display = 'none'; });
@@ -35062,6 +35176,107 @@ function renderChallengesPanel() {
         if (el) { el.textContent = msg; el.style.color = msg.startsWith('❌') ? '#cc2222' : msg.startsWith('✅') ? '#44cc88' : '#664433'; }
         console.log('[DevAdmin]', msg);
     }
+
+    // ════════════════════════════════════════════════════════
+    // BAN / UNBAN  — writes to bannedUsers/{uid} in chatDb
+    // ════════════════════════════════════════════════════════
+    window.devAdminBanPlayer = async function() {
+        const t = window._devTarget;
+        if (!t) { devLog('❌ Search for a player first.'); return; }
+
+        // Prompt for reason
+        const reason = prompt('Ban reason for "' + t.name + '":\n(shown to user and logged in Firebase)', 'Prohibited username / hate speech');
+        if (reason === null) return; // cancelled
+        const finalReason = reason.trim() || 'No reason given';
+
+        // Prompt for duration
+        const durChoice = prompt(
+            'Ban duration for "' + t.name + '":\n' +
+            '1 = 1 Hour\n' +
+            '2 = 24 Hours\n' +
+            '3 = 3 Days\n' +
+            '4 = 7 Days\n' +
+            '5 = 30 Days\n' +
+            '6 = PERMANENT\n\nEnter number (default 6 = permanent):', '6');
+        if (durChoice === null) return;
+        const durMap = { '1':3600000, '2':86400000, '3':259200000, '4':604800000, '5':2592000000, '6':-1 };
+        const durLabel = { '1':'1 Hour', '2':'24 Hours', '3':'3 Days', '4':'7 Days', '5':'30 Days', '6':'Permanent' };
+        const durMs = durMap[durChoice.trim()] ?? -1;
+        const durStr = durLabel[durChoice.trim()] ?? 'Permanent';
+
+        if (!confirm('Ban "' + t.name + '" for ' + durStr + '?\nReason: ' + finalReason)) return;
+
+        // Get the CHAT firebase db (chatforslither), not save db
+        const chatDb = _getChatDb();
+        if (!chatDb) { devLog('❌ Chat Firebase not ready.'); return; }
+
+        const banData = {
+            bannedBy: gameState.playerName || 'dev',
+            bannedByUid: (window._scFirebase?.auth?.currentUser?.uid) || '',
+            reason: finalReason,
+            bannedAt: Date.now(),
+            expiresAt: durMs === -1 ? -1 : Date.now() + durMs,
+            duration: durStr,
+            name: t.name
+        };
+
+        try {
+            await chatDb.ref('bannedUsers/' + t.uid).set(banData);
+            // Post system message to slitherChat
+            await chatDb.ref('slitherChat').push({
+                uid: 'system',
+                name: 'System',
+                text: '🔨 ' + t.name + ' has been banned from chat. (' + durStr + ') Reason: ' + finalReason,
+                time: window.firebase.database.ServerValue.TIMESTAMP
+            });
+            // Clear their cached ban status so render filter picks it up immediately
+            if (window._chatBanCache) window._chatBanCache[t.uid] = true;
+            devLog('✅ ' + t.name + ' banned (' + durStr + '). Reason: ' + finalReason);
+            Toastify({ text: '🔨 Banned: ' + t.name + ' — ' + durStr, duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#330000,#660000)' } }).showToast();
+        } catch(e) {
+            devLog('❌ Ban failed: ' + e.message);
+        }
+    };
+
+    window.devAdminUnbanPlayer = async function() {
+        const t = window._devTarget;
+        if (!t) { devLog('❌ Search for a player first.'); return; }
+        if (!confirm('Remove ban for "' + t.name + '"?')) return;
+
+        const chatDb = _getChatDb();
+        if (!chatDb) { devLog('❌ Chat Firebase not ready.'); return; }
+
+        try {
+            // Check if actually banned first
+            const snap = await chatDb.ref('bannedUsers/' + t.uid).once('value');
+            if (!snap.exists()) { devLog('⚠ ' + t.name + ' is not currently banned.'); return; }
+
+            await chatDb.ref('bannedUsers/' + t.uid).remove();
+            // Clear cache so messages render again immediately
+            if (window._chatBanCache) window._chatBanCache[t.uid] = false;
+            // Post system message
+            await chatDb.ref('slitherChat').push({
+                uid: 'system',
+                name: 'System',
+                text: '✅ ' + t.name + ' has been unbanned.',
+                time: window.firebase.database.ServerValue.TIMESTAMP
+            });
+            devLog('✅ ' + t.name + ' has been unbanned.');
+            Toastify({ text: '✅ Unbanned: ' + t.name, duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#003300,#006600)' } }).showToast();
+        } catch(e) {
+            devLog('❌ Unban failed: ' + e.message);
+        }
+    };
+
+    // Helper: get chat Firebase db instance
+    function _getChatDb() {
+        try {
+            const app = window.firebase && window.firebase.apps.find(a => a.name === 'chatApp');
+            return app ? app.database() : null;
+        } catch(e) { return null; }
+    }
+    window._getChatDb = _getChatDb;
+
 })();
 
 (function() {

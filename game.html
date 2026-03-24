@@ -24864,66 +24864,132 @@ function openAbyssalBreachChest() {
     // Inject overlay HTML
 // ── Jester's Box — the useless prize machine ────────────────────
 function openJestersBox() {
-    const JUNK = [
-        { icon:'🪨', label:'A Slightly Warm Stone',    msg:"It's warm. That's it." },
-        { icon:'🧦', label:"Someone Else's Sock",       msg:'Whose is this. Why is it here.' },
-        { icon:'📎', label:'A Bent Paperclip',          msg:"You can't even unfold it properly." },
-        { icon:'🌿', label:'Suspicious Leaf',           msg:'Smells weird. Do not eat.' },
-        { icon:'🫙', label:'An Empty Jar',              msg:"There was something in here. There isn't now." },
-        { icon:'🧻', label:'Half a Roll of Void Paper', msg:'At least it exists.' },
-        { icon:'🪤', label:'A Harmless Mousetrap',      msg:"It went off in the box. Nothing was caught." },
-        { icon:'🍌', label:'Slightly Cursed Banana',    msg:'The Jester thought this was funny.' },
-        { icon:'📮', label:'A Letter Addressed to You', msg:"You open it. It just says 'lol'." },
-        { icon:'🧲', label:'Magnet That Repels Things', msg:"Pushed out of your hand immediately." },
-        { icon:'🪬', label:'Evil Eye Keyfob',           msg:'Protects against nothing. Proven.' },
-        { icon:'🧸', label:'Threadbare Bear',           msg:"One eye. Stares at you. Doesn't blink." },
-        { icon:'🫧', label:'Soap Bubble (Popped)',      msg:"It was there. Now it isn't." },
-        { icon:'📦', label:'A Smaller Box',             msg:'Empty. Completely empty.' },
-        { icon:'🎈', label:'Deflated Balloon',          msg:"The Jester inflated it with disappointment." },
-        { icon:'🔩', label:'Random Screw',              msg:"You have no idea where this goes." },
-        { icon:'🍀', label:'Probably Unlucky Clover',  msg:'Four leaves, but counting was wrong.' },
-        { icon:'🕰️', label:'Stopped Clock',            msg:"Still right twice a day, allegedly." },
-        { icon:'🪆', label:'Matryoshka — One Layer',   msg:"Just this one. No others inside. You checked." },
-        { icon:'🪄', label:'Broken Magic Wand',         msg:'It was probably magic before. Probably.' },
-        { icon:'🎭', label:"Jester's Own Mask",         msg:"He wants it back. But he's gone. It's yours now." },
-        { icon:'🐟', label:'Dry Fish',                  msg:"For snacking. Don't." },
-        { icon:'🎲', label:'Die That Only Rolls 1',     msg:'Every time. Tested.' },
-        { icon:'🪞', label:'Mirror That Shows Yesterday', msg:"Yesterday looked better." },
-        { icon:'🕯️', label:'Candle (Never Lights)',    msg:"The darkness is now ironic." },
+    const JUNK_NAMES = [
+        { label:'A Slightly Warm Stone',             msg:"It's warm. That's it." },
+        { label:"Someone Else's Sock",               msg:'Whose is this. Why is it here.' },
+        { label:'A Bent Paperclip',                  msg:"You can't even unfold it properly." },
+        { label:'Suspicious Leaf',                   msg:'Smells weird. Do not eat.' },
+        { label:'An Empty Jar',                      msg:"There was something in here. There isn't now." },
+        { label:'Half a Roll of Void Paper',         msg:'At least it exists.' },
+        { label:'A Harmless Mousetrap',              msg:"It went off in the box. Nothing was caught." },
+        { label:'Slightly Cursed Banana',            msg:'The Jester thought this was funny.' },
+        { label:'A Letter Addressed to You',         msg:"You open it. It just says 'lol'." },
+        { label:'Magnet That Repels Things',         msg:"Pushed out of your hand immediately." },
+        { label:'Evil Eye Keyfob',                   msg:'Protects against nothing. Proven.' },
+        { label:'Threadbare Bear',                   msg:"One eye. Stares at you. Doesn't blink." },
+        { label:'Soap Bubble (Popped)',              msg:"It was there. Now it isn't." },
+        { label:'A Smaller Box',                     msg:'Empty. Completely empty.' },
+        { label:'Deflated Balloon',                  msg:"The Jester inflated it with disappointment." },
+        { label:'Random Screw',                      msg:"You have no idea where this goes." },
+        { label:'Probably Unlucky Clover',           msg:'Four leaves, but counting was wrong.' },
+        { label:'Stopped Clock',                     msg:"Still right twice a day, allegedly." },
+        { label:'Matryoshka — One Layer',            msg:"Just this one. No others inside. You checked." },
+        { label:'Broken Magic Wand',                 msg:'It was probably magic before. Probably.' },
+        { label:"Jester's Own Mask",                 msg:"He wants it back. But he's gone. It's yours now." },
+        { label:'Dry Fish',                          msg:"For snacking. Don't." },
+        { label:'Die That Only Rolls 1',             msg:'Every time. Tested.' },
+        { label:'Mirror That Shows Yesterday',       msg:"Yesterday looked better." },
+        { label:'Candle (Never Lights)',             msg:"The darkness is now ironic." },
+        { label:'Expired Coupon',                    msg:"Good for one free nothing. Expired last year." },
+        { label:'Rock With Eyes Drawn On It',        msg:"It's watching you. Probably not judging." },
+        { label:'A Fortune Cookie With No Fortune',  msg:"Just the cookie. The fortune escaped." },
+        { label:'Instruction Manual for a Product You Don\'t Own', msg:"Step 4 is missing anyway." },
+        { label:'Slightly Damp Cloth',               msg:"Damp from what, nobody will say." },
+        { label:'Three Buttons, Different Sizes',    msg:"None match anything you own." },
+        { label:'A Single Chopstick',                msg:"The other one is somewhere. Probably." },
+        { label:'Broken Compass (Points Nowhere)',   msg:"Very honest about it." },
+        { label:'A Phone Number With No Name',       msg:"You call it. No one picks up." },
+        { label:'Jar of Someone\'s Luck (Empty)',    msg:"Whoever had this, well." },
+        { label:'A Shoe (Just One)',                 msg:"Wrong size. Wrong foot." },
+        { label:'Half-Eaten Sandwich From When?',   msg:"From when. From where. We don't know." },
+        { label:'Decorative Gourd',                  msg:"Decorative. That's all." },
+        { label:'A Nail That Bends Immediately',     msg:"On contact with air." },
+        { label:'Motivational Poster (Torn)',        msg:"HANG IN — that's where it ends." },
+        { label:'Bag of Almost-Useful Dirt',         msg:"Almost." },
+        { label:'An Old Ticket Stub',                msg:"For a show you didn't see." },
+        { label:'Googly Eyes (Bag Of)',              msg:"What were these for. Answer honestly." },
+        { label:'Broken Hourglass',                  msg:"Sand everywhere. Time means nothing now." },
+        { label:'A Tax Form (Wrong Year)',           msg:"You owe nothing. But only because it's wrong." },
+        { label:'Pair of Novelty Teeth',             msg:"They fit no one's mouth." },
+        { label:'A Candle That Smells Like Regret',  msg:"You know the smell." },
+        { label:'Mystery Cable',                     msg:"Fits nothing. From nowhere. Eternal." },
+        { label:'The Cap From a Bottle You Finished', msg:"Why did you keep this." },
+        { label:'Aggressively Average Pebble',       msg:"A 5 out of 10 pebble. No more, no less." },
+        { label:'Notepad: One Page Used (Shopping List)', msg:"Eggs. Milk. Defeat." },
+        { label:'Broken Kaleidoscope',               msg:"Just shows the inside of itself." },
+        { label:'A Dream You Almost Remembered',     msg:"Gone now." },
+        { label:'Lint of Unknown Origin',            msg:"Curated. Aged. Yours now." },
+        { label:'Map of a Place That Doesn\'t Exist', msg:"Or maybe it does. You\'ll never know." },
+        { label:'A Promise Written on Wet Paper',   msg:"Already unreadable." },
+        { label:'Extremely Specific Recipe',         msg:"For a dish using ingredients that no longer exist." },
+        { label:'Someone\'s Old Grocery List',       msg:"They got the eggs. Not the milk. Interesting." },
+        { label:'Bootleg Snowglobe',                 msg:"Snow is salt. Location is undefined." },
+        { label:'A Trophy for Participation',        msg:"Just for being here. You made it." },
+        { label:'Small Unexplained Gear',            msg:"Something is now missing this. Something out there." },
+        { label:'An Almost-Full Stamp Card',         msg:"One stamp away. The business closed." },
+        { label:'A Postcard Addressed to \'Whoever\'', msg:"It says: \"still thinking about it.\" No signature." },
+        { label:'Miniature Ladder',                  msg:"One rung. Goes nowhere." },
+        { label:'Half a Pair of Sunglasses',         msg:"The cool half, to be fair." },
+        { label:'A Whistle That Doesn\'t Whistle',  msg:"It just breathes." },
+        { label:'Vintage Error Message',             msg:"FATAL: item not found. Item found anyway." },
+        { label:'Mood Ring (Stuck on \'Confused\')', msg:"Relatable." },
+        { label:'A Cloud in a Jar (Evaporated)',     msg:"It was beautiful once." },
+        { label:'Box of Sand Labeled \'TREASURE\'',  msg:"It isn't." },
+        { label:'A Very Small Anchor',               msg:"For a very small boat that sank." },
+        { label:'A Menu From a Restaurant That Burned Down', msg:"The soup was good, apparently." },
+        { label:'Single Googly Eye (Large)',         msg:"For what. For what." },
+        { label:'A Jar Labeled \'DO NOT OPEN\'',     msg:"You opened it. It had a smaller jar inside." },
+        { label:'Broken Yo-Yo',                      msg:"It went down. It did not come back." },
+        { label:'Glitter (Loose)',                   msg:"Congratulations. This is permanent now." },
+        { label:'Half a Business Card',              msg:"Name: D. Title: Unknown. Number: cut off." },
+        { label:'A Squeaky Toy Without the Squeak', msg:"Just sad rubber now." },
+        { label:'A Sock Labeled \'LEFT\'',           msg:"Someone cared that much. Then lost it anyway." },
     ];
 
-    const ITEM_W = 120;
-    const chosen = JUNK[Math.floor(Math.random() * JUNK.length)];
-    const LAND_IDX = 18;
-    const reelItems = [];
-    for (let i = 0; i < 30; i++) reelItems.push(JUNK[Math.floor(Math.random() * JUNK.length)]);
-    reelItems[LAND_IDX] = chosen;
+    // Actual reward: random common or uncommon item
+    const _pool = Object.keys(items).filter(id => {
+        const r = items[id]?.rarity;
+        return (r === 'common' || r === 'uncommon') && items[id]?.name;
+    });
+    const _rewardId   = _pool[Math.floor(Math.random() * _pool.length)];
+    const _rewardItem = items[_rewardId];
+    const chosen      = JUNK_NAMES[Math.floor(Math.random() * JUNK_NAMES.length)];
 
-    let overlayEl = document.getElementById('breach-jester-overlay');
+    const ITEM_W    = 120;
+    const LAND_IDX  = 18;
+    const _rarityColor = r => ({ common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00' })[r] || '#aaa';
+
+    // Reel uses real item icons scrolling, lands on the actual reward
+    const reelIds = [];
+    for (let i = 0; i < 30; i++) reelIds.push(_pool[Math.floor(Math.random() * _pool.length)]);
+    reelIds[LAND_IDX] = _rewardId;
+
+    // Use the SAME overlay element as the real chest so it looks identical
+    let overlayEl = document.getElementById('breach-chest-overlay');
     if (!overlayEl) {
         overlayEl = document.createElement('div');
-        overlayEl.id = 'breach-jester-overlay';
+        overlayEl.id = 'breach-chest-overlay';
         overlayEl.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(8px);';
         document.body.appendChild(overlayEl);
     }
     overlayEl.innerHTML = `
-        <div style="color:#ff88cc;font-family:var(--font-title);font-size:1.1em;letter-spacing:3px;margin-bottom:6px;text-shadow:0 0 20px #ff88cc88;">🃏 JESTER'S BOX 🃏</div>
-        <div style="color:#554444;font-size:0.75em;letter-spacing:2px;margin-bottom:16px;font-style:italic;">please have low expectations</div>
-        <div id="bjr-reel-wrap" style="position:relative;width:440px;height:100px;overflow:hidden;border:2px solid #ff88cc33;border-radius:8px;background:#0a0508;box-shadow:0 0 40px #ff88cc11,inset 0 0 20px rgba(0,0,0,0.8);">
+        <div style="color:#aa44ff;font-family:var(--font-title);font-size:1.1em;letter-spacing:3px;margin-bottom:18px;text-shadow:0 0 20px #aa44ff88;">✦ ABYSSAL CHEST ✦</div>
+        <div id="bjr-reel-wrap" style="position:relative;width:440px;height:100px;overflow:hidden;border:2px solid #aa44ff44;border-radius:8px;background:#08050f;box-shadow:0 0 40px #aa44ff22,inset 0 0 20px rgba(0,0,0,0.8);">
             <div id="bjr-reel" style="display:flex;position:absolute;top:0;left:0;will-change:transform;"></div>
-            <div style="position:absolute;top:0;bottom:0;left:50%;width:2px;background:linear-gradient(to bottom,transparent,#ff88cc,transparent);transform:translateX(-50%);pointer-events:none;z-index:2;"></div>
-            <div style="position:absolute;inset:0;background:linear-gradient(to right,#0a0508 0%,transparent 25%,transparent 75%,#0a0508 100%);pointer-events:none;z-index:3;"></div>
+            <div style="position:absolute;top:0;bottom:0;left:50%;width:2px;background:linear-gradient(to bottom,transparent,#aa44ff,transparent);transform:translateX(-50%);pointer-events:none;z-index:2;"></div>
+            <div style="position:absolute;inset:0;background:linear-gradient(to right,#08050f 0%,transparent 25%,transparent 75%,#08050f 100%);pointer-events:none;z-index:3;"></div>
         </div>
-        <div id="bjr-result" style="margin-top:22px;min-height:80px;text-align:center;opacity:0;transition:opacity 0.5s;"></div>
-        <button id="bjr-close-btn" onclick="document.getElementById('breach-jester-overlay').style.display='none'" style="display:none;margin-top:18px;background:linear-gradient(135deg,#ff88cc22,transparent);border:1px solid #ff88cc44;border-radius:8px;padding:12px 32px;color:#ff88cc;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">ACCEPT</button>
+        <div id="bjr-result" style="margin-top:22px;min-height:90px;text-align:center;opacity:0;transition:opacity 0.5s;"></div>
+        <button id="bjr-close-btn" onclick="closeBccOverlay()" style="display:none;margin-top:18px;background:linear-gradient(135deg,#aa44ff22,transparent);border:1px solid #aa44ff66;border-radius:8px;padding:12px 32px;color:#aa44ff;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;">ACCEPT</button>
     `;
     overlayEl.style.display = 'flex';
 
     const reelDiv = document.getElementById('bjr-reel');
-    reelItems.forEach(entry => {
+    reelIds.forEach(id => {
+        const it   = items[id];
         const cell = document.createElement('div');
-        cell.style.cssText = `min-width:${ITEM_W}px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #ffffff06;gap:4px;`;
-        cell.innerHTML = `<div style="font-size:1.8em;line-height:1;">${entry.icon}</div><div style="font-size:0.55em;color:#ff88cc88;text-align:center;padding:0 6px;max-width:${ITEM_W-8}px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${entry.label}</div>`;
+        cell.style.cssText = `min-width:${ITEM_W}px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #ffffff08;gap:4px;`;
+        cell.innerHTML = `<div style="font-size:1.8em;line-height:1;">${it?.icon||'📦'}</div><div style="font-size:0.55em;color:${_rarityColor(it?.rarity)};text-align:center;padding:0 6px;max-width:${ITEM_W-8}px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${it?.name||'???'}</div>`;
         reelDiv.appendChild(cell);
     });
 
@@ -24931,45 +24997,28 @@ function openJestersBox() {
     reelDiv.style.transform = `translateX(${targetX + ITEM_W * 18}px)`;
     reelDiv.style.transition = 'none';
     requestAnimationFrame(() => requestAnimationFrame(() => {
-        reelDiv.style.transition = 'transform 2.5s cubic-bezier(0.08, 0.82, 0.17, 1.0)';
+        reelDiv.style.transition = 'transform 3s cubic-bezier(0.08, 0.82, 0.17, 1.0)';
         reelDiv.style.transform  = `translateX(${targetX}px)`;
     }));
 
     setTimeout(() => {
-        // Pick a random common or uncommon item as the actual reward
-        const _jesterPool = Object.keys(items).filter(id => {
-            const r = items[id]?.rarity;
-            return (r === 'common' || r === 'uncommon') && items[id]?.name && !['forged'].includes(r);
-        });
-        const _rewardId = _jesterPool[Math.floor(Math.random() * _jesterPool.length)];
-        const _rewardItem = items[_rewardId];
-        const _rewardRarityColor = { common:'#aaa', uncommon:'#44cc44' }[_rewardItem?.rarity] || '#aaa';
-
-        if (_rewardId) {
-            gameState.inventory.push(_rewardId);
-            calculateStats();
-            saveGame();
-        }
-
-        const resultDiv = document.getElementById('bjr-result');
-        if (resultDiv) {
-            resultDiv.style.opacity = '1';
-            resultDiv.innerHTML = `
-                <div style="font-size:2.4em;">${chosen.icon}</div>
-                <div style="color:#ff88cc;font-family:var(--font-title);font-size:0.9em;letter-spacing:2px;margin-top:8px;">${chosen.label}</div>
-                <div style="color:#554444;font-size:0.78em;font-style:italic;margin-top:6px;">${chosen.msg}</div>
-                ${_rewardItem ? `
-                <div style="margin-top:14px;padding-top:12px;border-top:1px solid #3a1a2a;">
-                    <div style="color:#666;font-size:0.72em;letter-spacing:1px;margin-bottom:4px;">...but also, somehow:</div>
-                    <div style="color:${_rewardRarityColor};font-size:0.82em;font-weight:bold;">${_rewardItem.name}</div>
-                    <div style="color:#444;font-size:0.68em;margin-top:2px;">${_rewardItem.rarity} · added to inventory</div>
-                </div>` : ''}
+        if (_rewardId) { gameState.inventory.push(_rewardId); calculateStats(); saveGame(); }
+        const rc  = _rarityColor(_rewardItem?.rarity);
+        const res = document.getElementById('bjr-result');
+        if (res) {
+            res.style.opacity = '1';
+            res.innerHTML = `
+                <div style="color:#aa44ff;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:4px;">${chosen.label}</div>
+                <div style="color:#554455;font-size:0.78em;font-style:italic;margin-bottom:12px;">${chosen.msg}</div>
+                <div style="color:#332233;font-size:0.65em;letter-spacing:1px;margin-bottom:3px;">you actually received:</div>
+                <div style="color:${rc};font-size:0.82em;font-weight:bold;">${_rewardItem?.name || 'Nothing'}</div>
+                <div style="color:#443344;font-size:0.65em;margin-top:2px;">${_rewardItem?.rarity||''} · added to inventory</div>
             `;
         }
-        addBreachLog(`🃏 ${chosen.icon} ${chosen.label}. ${chosen.msg}${_rewardItem ? ' (+' + _rewardItem.name + ')' : ''}`, 'neutral');
+        addBreachLog(`📦 Chest: ${chosen.label} — ${chosen.msg} (+${_rewardItem?.name||'nothing'})`, 'neutral');
         const btn = document.getElementById('bjr-close-btn');
         if (btn) btn.style.display = 'inline-block';
-    }, 2800);
+    }, 3200);
 }
 
     let overlayEl = document.getElementById('breach-chest-overlay');

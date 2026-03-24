@@ -21884,7 +21884,23 @@ function _postBreachToRaidPool(expeditionId) {
         expiresAt:     Date.now() + 3 * 60 * 1000, // 3-minute claim window
     };
     db.ref('availableBreaches/' + key).set(payload)
-        .then(() => console.log('[BreachRaid] Posted:', key))
+        .then(() => {
+            console.log('[BreachRaid] Posted:', key);
+            // Watch this specific key — if it disappears, someone stole it
+            db.ref('availableBreaches/' + key).on('value', snap => {
+                if (!snap.exists() && gameState.activeExpeditions?.[expeditionId]?.breachIsReady) {
+                    // Stolen — clear the button immediately
+                    gameState.activeExpeditions[expeditionId].breachIsReady = false;
+                    const _newDelay = (120 + Math.random() * 180) * 1000;
+                    gameState.anomalyTimers[expeditionId] = Date.now() + _newDelay;
+                    // Stop watching this key
+                    db.ref('availableBreaches/' + key).off();
+                    if (document.getElementById('expeditions-screen')?.classList.contains('active')) {
+                        renderExpeditions();
+                    }
+                }
+            });
+        })
         .catch(() => {});
 }
 
@@ -21937,11 +21953,22 @@ function initBreachRaidListener() {
         // Detect if one of our own previously-posted breaches just disappeared (was raided)
         for (const key in window._myPostedBreaches) {
             if (!myKeysNow[key] && !all[key]) {
-                // Our breach is gone — someone raided it. Check raid notifications.
                 const expId = window._myPostedBreaches[key]?.expeditionId;
                 if (expId && gameState.activeExpeditions[expId]) {
-                    gameState.activeExpeditions[expId].breachIsReady = false;
-                    gameState.activeExpeditions[expId].breachStolenAt = Date.now();
+                    const _stolenExp = gameState.activeExpeditions[expId];
+                    // Only act if breach was still ready (not already entered by owner)
+                    if (_stolenExp.breachIsReady) {
+                        _stolenExp.breachIsReady = false;
+                        _stolenExp.breachStolenAt = Date.now();
+                        // Reset anomaly timer so breach doesn't immediately re-appear
+                        const _newDelay = (120 + Math.random() * 180) * 1000;
+                        gameState.anomalyTimers[expId] = Date.now() + _newDelay;
+                        Toastify({
+                            text: `⚠ Your ${window._myPostedBreaches[key]?.expeditionName || 'expedition'} breach was raided while you were away!`,
+                            duration: 8000, gravity: 'top', position: 'center',
+                            style: { background: 'linear-gradient(135deg,#2a0a00,#550000)' }
+                        }).showToast();
+                    }
                 }
             }
         }

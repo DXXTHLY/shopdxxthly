@@ -1585,29 +1585,29 @@
         /* ================================================================= */
         #proving-grounds-container {
             display: flex;
-            gap: 20px;
+            gap: 16px;
             margin-top: 0;
             align-items: flex-start;
-            max-width: 1000px;
+            max-width: 1040px;
             margin-left: auto;
             margin-right: auto;
         }
         #puzzle-selection-panel {
-            width: 240px;
+            width: 230px;
             flex-shrink: 0;
-            background: linear-gradient(135deg,#0e0a1a,#1a1020);
-            border: 1px solid #2a1a3a;
+            background: #080610;
+            border: 1px solid #1e1630;
             border-radius: 12px;
-            padding: 14px;
-            max-height: 680px;
+            padding: 12px;
+            max-height: 700px;
             overflow-y: auto;
         }
         #arena-panel {
             flex-grow: 1;
-            background: linear-gradient(135deg,#0a0812,#150a1a);
-            border: 1px solid #2a1a3a;
-            border-radius: 12px;
-            padding: 18px;
+            background: #07050f;
+            border: 1px solid #1a1030;
+            border-radius: 14px;
+            padding: 16px 18px;
         }
         #puzzle-list {
             list-style: none;
@@ -1615,97 +1615,156 @@
             margin: 0;
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 4px;
         }
         #puzzle-list li {
-            padding: 9px 12px;
-            background: #0d0a18;
-            border: 1px solid #2a1a3a;
+            padding: 8px 10px;
+            background: #0a0816;
+            border: 1px solid #1e1630;
             border-left: 3px solid #2a1a3a;
-            border-radius: 8px;
+            border-radius: 7px;
             cursor: pointer;
             transition: all 0.15s;
-            font-size: 0.8em;
+            font-size: 0.78em;
         }
         #puzzle-list li:hover:not(.completed):not(.locked) {
             border-left-color: #c8a800;
-            background: #14101f;
+            background: #120e1c;
         }
         #puzzle-list li.completed {
-            background: #081508;
-            border-color: #2a4a2a;
+            background: #050f08;
+            border-color: #1a3a22;
             border-left-color: #44cc88;
-            color: #44cc88;
-            cursor: default;
+            color: #3a9966;
         }
         #puzzle-list li.locked {
-            background: #080611;
-            color: #333;
-            border-color: #1a1028;
-            border-left-color: #1a1028;
+            background: #060511;
+            color: #2a2235;
+            border-color: #0f0d1a;
+            border-left-color: #0f0d1a;
             cursor: not-allowed;
+            opacity: 0.6;
         }
         #puzzle-list li.active-puzzle {
             border-left-color: #c8a800 !important;
-            background: #14100a !important;
-            box-shadow: 0 0 10px #c8a80022;
+            background: #130f06 !important;
+            box-shadow: 0 0 12px #c8a80018;
         }
-        #battle-status-bar {
-            padding: 12px 16px;
-            background: linear-gradient(135deg,#0a0812,#150a0a);
-            border: 1px solid #ff444433;
-            border-left: 4px solid #ff4444;
-            border-radius: 10px;
-            margin-bottom: 12px;
+
+        /* ── Puzzle header card ── */
+        #pg-puzzle-header {
+            background: linear-gradient(135deg,#0d0918,#150d22);
+            border: 1px solid #2a1a3a;
+            border-top: 3px solid #c8a800;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+        #pg-puzzle-title {
+            color: #c8a800;
             font-family: var(--font-title);
-            font-size: 0.92em;
-            color: #ff8888;
-            letter-spacing: 1px;
+            font-size: 1em;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+        #pg-puzzle-desc {
+            color: #666;
+            font-size: 0.78em;
+            line-height: 1.55;
+            margin-bottom: 10px;
+        }
+        #pg-puzzle-hint {
+            background: #0a0a00;
+            border: 1px solid #c8a80022;
+            border-left: 3px solid #c8a80066;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font-size: 0.72em;
+            color: #886600;
+            display: none;
+        }
+
+        /* ── Combat grid ── */
+        #pg-grid-wrapper {
+            position: relative;
+            margin: 0 auto;
+            max-width: 420px;
+        }
+        .pg-row-label {
+            position: absolute;
+            right: calc(100% + 8px);
+            font-size: 0.58em;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #333;
+            white-space: nowrap;
+            pointer-events: none;
         }
         #combat-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(4, 1fr);
-            gap: 4px;
+            gap: 5px;
             width: 100%;
-            max-width: 380px;
-            height: 460px;
-            margin: 0 auto;
-            background: #050310;
-            border: 2px solid #1a0a2a;
-            border-radius: 10px;
-            padding: 4px;
+            height: 440px;
+            background: #040210;
+            border: 1px solid #1a0830;
+            border-radius: 12px;
+            padding: 6px;
             position: relative;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
         }
+        /* Dividing line between enemy and player zones */
         #combat-grid::after {
-            content: '';
+            content: 'BATTLEFIELD';
             position: absolute;
-            left: 4px; right: 4px;
+            left: 0; right: 0;
             top: calc(50% - 1px);
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #c8a80044, transparent);
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #c8a80033, #c8a80055, #c8a80033, transparent);
             pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.55em;
+            letter-spacing: 3px;
+            color: #c8a80055;
         }
         .grid-tile {
-            background: rgba(14, 10, 26, 0.6);
-            border: 1px solid #0d0a18;
+            border-radius: 7px;
             position: relative;
-            border-radius: 4px;
-            transition: all 0.15s;
+            transition: background 0.15s, border-color 0.15s;
+            overflow: hidden;
+        }
+        .grid-tile.enemy-side {
+            background: rgba(40, 5, 5, 0.45);
+            border: 1px solid rgba(180,20,20,0.12);
+            cursor: not-allowed;
+        }
+        .grid-tile.enemy-side::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(180,20,20,0.05), transparent 70%);
+            pointer-events: none;
         }
         .grid-tile.player-side {
-            background: rgba(0, 20, 40, 0.4);
+            background: rgba(0, 15, 35, 0.5);
+            border: 1px dashed rgba(40,100,180,0.2);
             cursor: pointer;
         }
         .grid-tile.player-side:hover {
-            background: rgba(0, 40, 80, 0.5);
-            border-color: #4488ff44;
+            background: rgba(10, 30, 70, 0.6);
+            border-color: rgba(80,160,255,0.35);
+            box-shadow: inset 0 0 12px rgba(40,100,220,0.1);
         }
-        .grid-tile.enemy-side {
-            background: rgba(30, 5, 5, 0.3);
-            cursor: not-allowed;
+        .grid-tile.player-side.has-unit {
+            border-style: solid;
+            border-color: rgba(60,140,255,0.3);
+            cursor: pointer;
         }
 
+        /* ── Minion tokens ── */
         .minion-token {
             width: 100%;
             height: 100%;
@@ -1713,63 +1772,162 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 2.2rem;
             position: absolute;
-            top: 0;
-            left: 0;
-            transition: all 0.2s;
+            inset: 0;
+            transition: transform 0.18s;
             pointer-events: none;
         }
-        .minion-token.player-unit {
-            color: #4caf50;
-            text-shadow: 0 0 10px #4caf50;
+        .minion-token .unit-icon {
+            font-size: 1.9rem;
+            line-height: 1;
+            filter: drop-shadow(0 0 6px currentColor);
         }
-        .minion-token.enemy-unit {
-            color: var(--primary-color);
-            text-shadow: 0 0 10px var(--primary-glow);
+        .minion-token .unit-name {
+            font-size: 0.48em;
+            letter-spacing: 0.5px;
+            margin-top: 1px;
+            opacity: 0.7;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 90%;
         }
+        .minion-token.player-unit { color: #55aaff; }
+        .minion-token.enemy-unit  { color: #ff5544; }
 
+        /* ── Health bars ── */
         .health-bar-container {
             position: absolute;
-            bottom: 5px;
-            left: 5%;
-            width: 90%;
-            height: 10px;
-            background: #111;
+            bottom: 3px;
+            left: 6%;
+            width: 88%;
+            height: 5px;
+            background: #0a0a0a;
+            border-radius: 3px;
+            overflow: hidden;
             border: 1px solid #000;
         }
         .health-bar-fill {
             height: 100%;
-            background: #4caf50;
-            transition: width 0.3s;
+            border-radius: 3px;
+            transition: width 0.35s ease;
+            background: linear-gradient(90deg, #44cc66, #88ffaa);
         }
         .enemy-unit .health-bar-fill {
-            background: var(--primary-color);
+            background: linear-gradient(90deg, #cc3322, #ff6655);
+        }
+        .health-bar-fill.low {
+            background: linear-gradient(90deg, #cc8800, #ffbb00) !important;
+        }
+        .health-bar-fill.critical {
+            background: linear-gradient(90deg, #cc2200, #ff3300) !important;
+            animation: hp-pulse 0.6s ease-in-out infinite;
+        }
+        @keyframes hp-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+        /* ── Stat badge on token ── */
+        .unit-stat-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.42em;
+            background: rgba(0,0,0,0.7);
+            border-radius: 3px;
+            padding: 1px 3px;
+            color: #888;
+            pointer-events: none;
         }
 
-        @keyframes attack-animation {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
+        /* ── Status bar ── */
+        #battle-status-bar {
+            padding: 10px 14px;
+            background: #0a0812;
+            border: 1px solid #1a1030;
+            border-left: 3px solid #c8a800;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 0.82em;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 38px;
         }
-        .is-attacking {
-            animation: attack-animation 0.3s ease-in-out;
+        #battle-status-bar.combat-active {
+            border-left-color: #ff4444;
+            animation: status-glow 1.5s ease-in-out infinite;
+        }
+        @keyframes status-glow {
+            0%,100%{box-shadow:none}
+            50%{box-shadow:0 0 12px rgba(255,50,50,0.2)}
         }
 
-        @keyframes damage-animation {
-            0%, 100% { filter: brightness(1); }
-            50% { filter: brightness(3) contrast(1.5); }
-        }
-        .is-damaged {
-            animation: damage-animation 0.2s ease-in-out;
+        /* ── Turn counter ── */
+        #pg-turn-counter {
+            display: none;
+            text-align: center;
+            font-family: var(--font-title);
+            font-size: 0.72em;
+            color: #443322;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
         }
 
+        /* ── Battle controls ── */
         #battle-controls {
             display: flex;
             justify-content: center;
-            gap: 20px;
-            margin-top: 20px;
+            gap: 10px;
+            margin-top: 14px;
         }
+        #begin-combat-btn {
+            background: linear-gradient(135deg,#2a0808,#1a0000);
+            border: 1px solid #cc333355;
+            border-radius: 10px;
+            padding: 11px 32px;
+            color: #ff6666;
+            cursor: pointer;
+            font-family: var(--font-title);
+            font-weight: bold;
+            font-size: 0.9em;
+            letter-spacing: 2px;
+            transition: all 0.2s;
+        }
+        #begin-combat-btn:hover { background: linear-gradient(135deg,#3a1010,#2a0808); box-shadow: 0 0 16px rgba(200,40,40,0.3); }
+        #reset-puzzle-btn {
+            background: #0a0816;
+            border: 1px solid #2a1a3a;
+            border-radius: 10px;
+            padding: 11px 20px;
+            color: #555;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+        #reset-puzzle-btn:hover { color: #aaa; border-color: #4a3a6a; }
+
+        /* ── Animations ── */
+        @keyframes attack-animation {
+            0%   { transform: scale(1) rotate(0deg); }
+            30%  { transform: scale(1.25) rotate(-4deg); }
+            70%  { transform: scale(1.25) rotate(4deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        .is-attacking { animation: attack-animation 0.35s ease-in-out; }
+
+        @keyframes damage-animation {
+            0%,100% { filter: brightness(1); transform: translateX(0); }
+            25%  { filter: brightness(4) saturate(2); transform: translateX(-3px); }
+            75%  { filter: brightness(2); transform: translateX(3px); }
+        }
+        .is-damaged { animation: damage-animation 0.25s ease-in-out; }
+
+        @keyframes unit-appear {
+            from { transform: scale(0) rotate(-10deg); opacity: 0; }
+            to   { transform: scale(1) rotate(0deg);  opacity: 1; }
+        }
+        .unit-appear { animation: unit-appear 0.25s cubic-bezier(0.34,1.56,0.64,1); }
 
 
 
@@ -4567,27 +4725,40 @@ text-decoration: underline; /* Adds an underline on hover */
 
                     <!-- RIGHT: Arena -->
                     <div id="arena-panel">
-                        <div id="battle-status-bar">Select a challenge to begin.</div>
 
-                        <!-- Budget bar -->
-                        <div id="pg-budget-bar" style="display:none; background:#0a0812; border:1px solid #2a1a3a; border-radius:10px; padding:10px 16px; margin-bottom:14px; display:flex; align-items:center; gap:12px;">
-                            <span style="color:#888; font-size:0.78em; white-space:nowrap;">⚡ Points</span>
-                            <div style="flex:1; background:#1a1030; border-radius:5px; height:7px; overflow:hidden;">
-                                <div id="pg-budget-fill" style="height:100%; width:0%; background:linear-gradient(90deg,#44cc88,#c8a800); border-radius:5px; transition:width 0.3s;"></div>
+                        <!-- Puzzle info card (shown when a puzzle is selected) -->
+                        <div id="pg-puzzle-header" style="display:none;">
+                            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+                                <div style="flex:1;">
+                                    <div id="pg-puzzle-title"></div>
+                                    <div id="pg-puzzle-desc"></div>
+                                    <div id="pg-puzzle-hint">💡 <span id="pg-hint-text"></span></div>
+                                </div>
+                                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+                                    <div id="pg-reward-preview" style="background:#0a0a00;border:1px solid #c8a80033;border-radius:8px;padding:6px 10px;font-size:0.72em;color:#886600;white-space:nowrap;">🏆 <span id="pg-reward-text"></span></div>
+                                    <div id="pg-budget-bar" style="display:flex;align-items:center;gap:8px;background:#0a0812;border:1px solid #2a1a3a;border-radius:8px;padding:6px 10px;">
+                                        <span style="color:#555;font-size:0.7em;">⚡</span>
+                                        <div style="width:80px;background:#1a1030;border-radius:4px;height:6px;overflow:hidden;">
+                                            <div id="pg-budget-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#44cc88,#c8a800);border-radius:4px;transition:width 0.3s;"></div>
+                                        </div>
+                                        <span id="pg-budget-text" style="color:#c8a800;font-size:0.75em;font-weight:bold;font-family:monospace;">0/0</span>
+                                    </div>
+                                </div>
                             </div>
-                            <span id="pg-budget-text" style="color:#c8a800; font-size:0.82em; font-weight:bold; white-space:nowrap; font-family:monospace;">0 / 0</span>
                         </div>
 
-                        <!-- Reward preview -->
-                        <div id="pg-reward-preview" style="display:none; background:linear-gradient(135deg,#0a0a08,#1a1a08); border:1px solid #c8a80033; border-left:3px solid #c8a800; border-radius:10px; padding:10px 14px; margin-bottom:14px; font-size:0.82em; color:#c8a80099;">
-                            🏆 <span id="pg-reward-text"></span>
+                        <div id="battle-status-bar">Select a challenge from the left to begin your trial.</div>
+
+                        <div id="pg-turn-counter">TURN <span id="pg-turn-num">0</span></div>
+
+                        <!-- Grid wrapper with row labels -->
+                        <div id="pg-grid-wrapper">
+                            <div id="combat-grid"></div>
                         </div>
 
-                        <div id="combat-grid"></div>
-
-                        <div id="battle-controls" style="display:flex; justify-content:center; gap:12px; margin-top:16px;">
-                            <button id="begin-combat-btn" style="display:none; background:linear-gradient(135deg,#330000,#1a0000); border:1px solid #ff444466; border-radius:8px; padding:10px 28px; color:#ff6666; cursor:pointer; font-family:inherit; font-weight:bold; font-size:0.95em;" onclick="startCombat()">⚔ Begin Combat</button>
-                            <button id="reset-puzzle-btn" style="display:none; background:#0d0a18; border:1px solid #2a1a3a; border-radius:8px; padding:10px 20px; color:#555; cursor:pointer; font-family:inherit;" onclick="selectPuzzle(currentPuzzleId)">↩ Reset</button>
+                        <div id="battle-controls" style="display:flex;justify-content:center;gap:10px;margin-top:14px;">
+                            <button id="begin-combat-btn" style="display:none;" onclick="startCombat()">⚔ Begin Combat</button>
+                            <button id="reset-puzzle-btn" style="display:none;" onclick="selectPuzzle(currentPuzzleId)">↩ Reset</button>
                         </div>
                     </div>
                 </div>
@@ -7207,7 +7378,7 @@ const puzzles = [
     // ═══════════════════════════════════════════════════════════════
 
     // 1. Lone imp centre-front — place anything and win. Pure intro.
-    { id:'puzzle1', name:"1. The First Trial",
+    { id:'puzzle1', hint:"Place any unit on a tile in the blue (bottom) zone and hit Begin Combat.", name:"1. The First Trial",
       desc:"One imp stands in the centre. Deploy a unit in front of it and learn how combat flows.",
       pointBudget:3,
       enemies:[{id:'imp',x:1,y:1}],
@@ -7215,7 +7386,7 @@ const puzzles = [
 
     // 2. Golem in the back centre — teach that ranged reaches over distance.
     //    Solution: cinder_wraith(4) at (1,3) range3 hits golem at (1,0) dist=3. Easy.
-    { id:'puzzle2', name:"2. The Stone Sentinel",
+    { id:'puzzle2', hint:"Ranged units attack from distance. A unit in your back row can hit the back row enemy.", name:"2. The Stone Sentinel",
       desc:"A stone golem waits in the back row. Melee takes time to close the gap — a ranged unit reaches it immediately from your back row.",
       pointBudget:6,
       enemies:[{id:'ash_golem',x:1,y:0}],
@@ -7223,7 +7394,7 @@ const puzzles = [
 
     // 3. Two imps on the flanks (front row) — teach flank coverage.
     //    Solution: demon(3) centre front hits both as they close, or two imps on your flanks.
-    { id:'puzzle3', name:"3. The Pincer",
+    { id:'puzzle3', hint:"Place a unit in the centre column — both imps converge toward the middle as they advance.", name:"3. The Pincer",
       desc:"Imps charge both outer lanes. A strong centre unit intercepts both as they converge — or mirror them on the flanks.",
       pointBudget:5,
       enemies:[{id:'imp',x:0,y:1},{id:'imp',x:2,y:1}],
@@ -7231,7 +7402,7 @@ const puzzles = [
 
     // 4. Ranged wraith in back-centre behind two imp guards.
     //    Strategy: ranged player unit at (1,3) range3 shoots past guards to wraith at (1,0) dist=3.
-    { id:'puzzle4', name:"4. The Covered Archer",
+    { id:'puzzle4', hint:"Ranged fire goes straight through — your sniper can hit the wraith right past the imp guards.", name:"4. The Covered Archer",
       desc:"A wraith snipes from the back row, sheltered by two imp guards. Use your own ranged units to shoot straight past the guards.",
       pointBudget:8,
       enemies:[{id:'cinder_wraith',x:1,y:0},{id:'imp',x:0,y:1},{id:'imp',x:2,y:1}],
@@ -7239,7 +7410,7 @@ const puzzles = [
 
     // 5. Three ghouls spread across the front row.
     //    Strategy: one strong melee centre handles all three as they converge. Or AoE (demon).
-    { id:'puzzle5', name:"5. Ghoul Tide",
+    { id:'puzzle5', hint:"The demon has area damage that hits every column. One well-placed demon handles all three.", name:"5. Ghoul Tide",
       desc:"Three ghouls fill the entire front row. They will all advance simultaneously — a powerful centre unit or a demon's AoE burst stops them cold.",
       pointBudget:7,
       enemies:[{id:'ghoul',x:0,y:1},{id:'ghoul',x:1,y:1},{id:'ghoul',x:2,y:1}],
@@ -7247,7 +7418,7 @@ const puzzles = [
 
     // 6. Abyssal stalkers in back corners — high ATK, hard to reach.
     //    Strategy: frost_lich(6) at (1,3) range4 hits (0,0) dist=4 and (2,0) dist=4. Perfect sniper mirror.
-    { id:'puzzle6', name:"6. Corner Assassins",
+    { id:'puzzle6', hint:"You need range 4 to reach the back corners from your back row. The frost lich can do it.", name:"6. Corner Assassins",
       desc:"Powerful stalkers lurk in the back corners. Your melee can't reach them without crossing the whole field — bring range-4 units or flank both sides.",
       pointBudget:10,
       enemies:[{id:'abyssal_stalker',x:0,y:0},{id:'abyssal_stalker',x:2,y:0}],
@@ -7255,7 +7426,7 @@ const puzzles = [
 
     // 7. Tank front-centre + ranged sniper behind it.
     //    Strategy: kill guard first with melee, then deal with sniper. Or ranged unit bypasses guard.
-    { id:'puzzle7', name:"7. The Bodyguard",
+    { id:'puzzle7', hint:"The golem blocks the centre lane. Use a ranged unit to shoot over it, or bring melee to tank the golem first.", name:"7. The Bodyguard",
       desc:"A frost lich shelters in the back while a golem bodyguard blocks the centre lane. Kill the golem to clear the path — or use ranged fire over its head.",
       pointBudget:10,
       enemies:[{id:'frost_lich',x:1,y:0},{id:'ash_golem',x:1,y:1}],
@@ -7263,7 +7434,7 @@ const puzzles = [
 
     // 8. Three wraiths across entire back row — maximum ranged pressure.
     //    Strategy: place a high-HP tank at (1,2) as damage sponge; put your own ranged behind it.
-    { id:'puzzle8', name:"8. Artillery Barrage",
+    { id:'puzzle8', hint:"Three wraiths fire from turn 1. A high-HP tank on the front row soaks damage while your ranged returns fire.", name:"8. Artillery Barrage",
       desc:"Three wraiths blanket the back row — all three fire simultaneously from turn one. A durable front-row tank buys your own ranged units time to respond.",
       pointBudget:12,
       enemies:[{id:'cinder_wraith',x:0,y:0},{id:'cinder_wraith',x:1,y:0},{id:'cinder_wraith',x:2,y:0}],
@@ -7273,7 +7444,7 @@ const puzzles = [
     //    Strategy: hellhound(6) + cinder_wraith(4) + imp(1) = 11. Too much. Balrog cost7 to defeat needs atk burst.
     //    fallen_angel(9) at (1,2) = atk16, hp45. vs balrog hp65, atk10. Angel does 65/16=5 turns, balrog does 45/10=5 turns. Tie... add hellhound: 9+6=15, too much for budget 12. Let's do: hellhound(6)+cinder_wraith(4)+imp(1)=11. Or balrog(7)+demon(3)+imp(1)=11.
     //    budget 12: balrog(7)+cinder_wraith(4)+imp(1)=12. Combined atk=10+6+3=19/turn vs balrog 65hp = 4 turns. Balrog atk10 vs balrog+cw+imp hp=65+15+10=90. Fine.
-    { id:'puzzle9', name:"9. Trial by Fire",
+    { id:'puzzle9', hint:"The Balrog has massive HP. Stack multiple units to deal enough burst damage before it destroys your front line.", name:"9. Trial by Fire",
       desc:"A Balrog occupies the centre lane. It deals massive damage — bring burst DPS, a resilient tank, or both. Raw power beats raw power.",
       pointBudget:12,
       enemies:[{id:'balrog',x:1,y:1}],
@@ -7283,7 +7454,7 @@ const puzzles = [
     //     Strategy: prioritise the liches (range attack) while tanking the balrog. Needs long-range.
     //     frost_lich(6) at (1,3): hits (0,0) dist=4 (range4), (1,0) dist=3, (2,0) dist=4. All covered!
     //     Budget 18: frost_lich(6)+balrog(7)+cinder_wraith(4)+imp(1)=18. Strong combo.
-    { id:'puzzle10', name:"10. The Grandmaster",
+    { id:'puzzle10', hint:"Kill the frost liches first — they outlast your tank. A range-4 unit from your back-centre reaches all three enemies.", name:"10. The Grandmaster",
       desc:"A Balrog anchors the back-centre while two frost liches cover the corners. Kill the liches first — they will outlast your tank if ignored. Long-range units are essential.",
       pointBudget:18,
       enemies:[{id:'balrog',x:1,y:0},{id:'frost_lich',x:0,y:0},{id:'frost_lich',x:2,y:0}],
@@ -16796,6 +16967,140 @@ function checkUnlinkedBanner() {
     }
 }
 
+// =================================================================
+// 🌐 WORLD LOCKDOWN SYSTEM
+// Every 30–60 min, a random world gets locked globally for 30–60 min.
+// Stored in Firebase worldLockdown/{dark|light} — all players see same lock.
+// =================================================================
+window._worldLockdown = { worldId: null, unlocksAt: 0, path: null };
+window._lightLockdown = { worldId: null, unlocksAt: 0, path: null };
+
+function initWorldLockdown() {
+    const db = window._scFirebase?.db;
+    if (!db) { setTimeout(initWorldLockdown, 3000); return; }
+
+    // Listen to dark world lockdown
+    db.ref('worldLockdown/dark').on('value', snap => {
+        const data = snap.val();
+        if (data && data.worldId && Date.now() < data.unlocksAt) {
+            window._worldLockdown = data;
+        } else {
+            window._worldLockdown = { worldId: null, unlocksAt: 0 };
+            // If expired, one client (the one who's been online longest) triggers the next one
+            // We use a random delay to avoid all clients firing at once
+            if (data && data.unlocksAt && Date.now() > data.unlocksAt + 5000) {
+                setTimeout(() => _triggerNextLockdown(db, false), Math.random() * 30000);
+            }
+        }
+        _applyWorldLockdown();
+        renderMap();
+    });
+
+    // Listen to light world lockdown
+    db.ref('worldLockdown/light').on('value', snap => {
+        const data = snap.val();
+        if (data && data.worldId && Date.now() < data.unlocksAt) {
+            window._lightLockdown = data;
+        } else {
+            window._lightLockdown = { worldId: null, unlocksAt: 0 };
+        }
+        _applyWorldLockdown();
+        if (gameState.isTranscended) renderMap();
+    });
+
+    // If no lockdown exists at all, kick off the first one after a delay
+    db.ref('worldLockdown/dark').once('value', snap => {
+        if (!snap.exists()) {
+            setTimeout(() => _triggerNextLockdown(db, false), 5000 + Math.random() * 20000);
+        }
+    });
+}
+
+function _triggerNextLockdown(db, isLight) {
+    // Pick a random lockable world from the appropriate pool
+    // Exclude: nether_plains (dark start), celestial_threshold (light start), and very early worlds
+    const darkPool = [
+        'ashen_wastes','stygian_depths','burning_hells','frozen_abyss',
+        'celestial_ruins','void_threshold','singularity','event_horizon',
+        'genesis','pantheon_of_ashes','chronos_fault','omega_point',
+        'true_infinity','akashic_records','plane_of_ideas','the_white_room',
+        'nexus_of_all_realities','the_dreaming_dark','shattered_omniverse','the_primordial_wound'
+    ];
+    const lightPool = typeof lightWorlds !== 'undefined'
+        ? Object.keys(lightWorlds).filter(id => id !== 'celestial_threshold')
+        : [];
+
+    const pool = isLight ? lightPool : darkPool;
+    if (!pool.length) return;
+
+    const picked = pool[Math.floor(Math.random() * pool.length)];
+    const lockDuration = (30 + Math.floor(Math.random() * 31)) * 60 * 1000; // 30–60 min
+    const nextTrigger  = (30 + Math.floor(Math.random() * 31)) * 60 * 1000; // next lockdown after 30–60 min
+
+    const payload = {
+        worldId:    picked,
+        lockedAt:   Date.now(),
+        unlocksAt:  Date.now() + lockDuration,
+        nextAt:     Date.now() + lockDuration + nextTrigger,
+    };
+
+    db.ref('worldLockdown/' + (isLight ? 'light' : 'dark')).set(payload)
+        .catch(() => {}); // silent — another client may win the race, that's fine
+}
+
+function _applyWorldLockdown() {
+    const lock = window._worldLockdown;
+    const llock = window._lightLockdown;
+
+    // If player is currently IN a locked dark world, bump them to previous world
+    if (lock.worldId && !gameState.isTranscended && gameState.currentWorld === lock.worldId) {
+        const worldKeys = Object.keys(worlds || {});
+        const idx = worldKeys.indexOf(lock.worldId);
+        // Travel to previous unlocked world
+        for (let i = idx - 1; i >= 0; i--) {
+            if (gameState.unlockedWorlds.includes(worldKeys[i])) {
+                gameState.currentWorld = worldKeys[i];
+                Toastify({
+                    text: `⚠ ${worlds[lock.worldId]?.name || lock.worldId} has been locked by the Abyss! You've been moved back.`,
+                    duration: 8000, gravity: 'top', position: 'center',
+                    style: { background: 'linear-gradient(135deg,#2a0010,#660030)' }
+                }).showToast();
+                calculateStats(); renderAll(); saveGame();
+                break;
+            }
+        }
+    }
+
+    // Light world bump
+    if (llock.worldId && gameState.isTranscended && gameState.currentWorld === llock.worldId) {
+        const lwKeys = typeof lightWorlds !== 'undefined' ? Object.keys(lightWorlds) : [];
+        const idx = lwKeys.indexOf(llock.worldId);
+        for (let i = idx - 1; i >= 0; i--) {
+            if ((gameState.unlockedLightWorlds || []).includes(lwKeys[i])) {
+                gameState.currentWorld = lwKeys[i];
+                Toastify({
+                    text: `✦ ${lightWorlds[llock.worldId]?.name || llock.worldId} has been sealed! You've been moved back.`,
+                    duration: 8000, gravity: 'top', position: 'center',
+                    style: { background: 'linear-gradient(135deg,#0a0020,#440088)' }
+                }).showToast();
+                calculateStats(); renderAll(); saveGame();
+                break;
+            }
+        }
+    }
+}
+
+function isWorldLocked(worldId, isLight) {
+    const lock = isLight ? window._lightLockdown : window._worldLockdown;
+    return lock.worldId === worldId && Date.now() < lock.unlocksAt;
+}
+
+function getWorldLockRemaining(worldId, isLight) {
+    const lock = isLight ? window._lightLockdown : window._worldLockdown;
+    if (lock.worldId !== worldId) return 0;
+    return Math.max(0, lock.unlocksAt - Date.now());
+}
+
 function enterGame() {
     hideAuthScreen();
     document.getElementById('game-container').style.display = 'block';
@@ -16807,6 +17112,8 @@ function enterGame() {
     // Show banner if player has no linked email account
     setTimeout(checkUnlinkedBanner, 1500);
     initializeChat();
+    // Start world lockdown listener
+    setTimeout(initWorldLockdown, 4000);
     setTimeout(() => refreshMarketTicker(), 2000);
     // Keep retrying until ticker actually has scrolling content (in case Supabase is slow)
     const tickerRetry = setInterval(() => {
@@ -17490,9 +17797,18 @@ function renderMap() {
             grid.innerHTML += `<div style="color:#444; font-size:0.7em; text-transform:uppercase; letter-spacing:3px; text-align:center; padding:4px 0;">${theme.tier}</div>`;
         }
 
+        // Check global lockdown
+        const _worldLocked = isWorldLocked(id, false);
+        const _lockRem = _worldLocked ? getWorldLockRemaining(id, false) : 0;
+        const _lockMins = Math.ceil(_lockRem / 60000);
+
         // State styles
         let borderColor, bgGrad, opacity;
-        if (isActive) {
+        if (_worldLocked && !isActive) {
+            borderColor = '#661122';
+            bgGrad = 'linear-gradient(135deg,#1a0008,#0a0010)';
+            opacity = '0.6';
+        } else if (isActive) {
             borderColor = theme.color;
             bgGrad = `linear-gradient(135deg,${theme.color}18,#0e0a1a)`;
             opacity = '1';
@@ -17515,9 +17831,15 @@ function renderMap() {
         if (isActive) {
             btn = `<div style="background:${theme.color}22; border:1px solid ${theme.color}66; border-radius:8px; padding:6px 16px; font-size:0.8em; color:${theme.color}; white-space:nowrap; font-weight:bold; letter-spacing:1px;">📍 HERE</div>`;
         } else if (isUnlocked) {
-            btn = `<button onclick="travelToWorld('${id}')" style="background:${theme.color}22; border:1px solid ${theme.color}66; border-radius:8px; padding:7px 18px; font-size:0.82em; color:${theme.color}; cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.2s;" onmouseover="this.style.background='${theme.color}33'" onmouseout="this.style.background='${theme.color}22'">
-                🚀 Travel
-            </button>`;
+            if (_worldLocked) {
+                btn = `<div style="background:#33000a; border:1px solid #660015; border-radius:8px; padding:6px 14px; font-size:0.78em; color:#cc2244; white-space:nowrap; text-align:center;">
+                    🔒 Sealed<div style="font-size:0.8em;color:#550015;margin-top:1px;">${_lockMins}m remaining</div>
+                </div>`;
+            } else {
+                btn = `<button onclick="travelToWorld('${id}')" style="background:${theme.color}22; border:1px solid ${theme.color}66; border-radius:8px; padding:7px 18px; font-size:0.82em; color:${theme.color}; cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.2s;" onmouseover="this.style.background='${theme.color}33'" onmouseout="this.style.background='${theme.color}22'">
+                    🚀 Travel
+                </button>`;
+            }
         } else if (canAfford) {
             btn = `<button onclick="travelToWorld('${id}')" style="background:linear-gradient(135deg,${theme.color}22,transparent); border:1px solid ${theme.color}66; border-radius:8px; padding:7px 18px; font-size:0.82em; color:${theme.color}; cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.2s;" onmouseover="this.style.background='${theme.color}33'" onmouseout="this.style.background='${theme.color}22'">
                 🔓 Unlock
@@ -17553,6 +17875,15 @@ function renderMap() {
 }
 function travelToWorld(id)
 {
+	// Block travel to globally-locked worlds
+	const _locked = isWorldLocked(id, gameState.isTranscended);
+	if (_locked) {
+		const rem = getWorldLockRemaining(id, gameState.isTranscended);
+		const mins = Math.ceil(rem / 60000);
+		const wName = (gameState.isTranscended ? (lightWorlds[id]?.name) : (worlds[id]?.name)) || id;
+		Toastify({ text: `🔒 ${wName} is sealed by the Abyss for ${mins} more minute${mins!==1?'s':''}. You cannot travel there.`, duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#2a0010,#550020)' } }).showToast();
+		return;
+	}
 	const isUnlocked = gameState.unlockedWorlds.includes(id);
 	if (isUnlocked)
 	{
@@ -19347,6 +19678,28 @@ function convertCurrency(from, to, amountIn, amountOut) {
         return;
     }
 
+    // === COOLDOWN GATES — prevent spam on high-value conversions ===
+    const CONV_COOLDOWNS = {
+        'shards-de':  45 * 60 * 1000,  // 45 minutes
+        'aether-de':  45 * 60 * 1000,  // 45 minutes
+        'de-shards':  30 * 60 * 1000,  // 30 minutes
+    };
+    const convKey = `${from}-${to}`;
+    const cdMs = CONV_COOLDOWNS[convKey];
+    if (cdMs) {
+        if (!gameState._exchangeCooldowns) gameState._exchangeCooldowns = {};
+        const lastUsed = gameState._exchangeCooldowns[convKey] || 0;
+        const now = Date.now();
+        const remaining = cdMs - (now - lastUsed);
+        if (remaining > 0) {
+            const mins = Math.ceil(remaining / 60000);
+            const secs = Math.ceil((remaining % 60000) / 1000);
+            const label = mins > 1 ? `${mins} min` : `${secs}s`;
+            Toastify({ text: `⏳ This exchange is on cooldown — available in ${label}.`, duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0a00,#442200)' } }).showToast();
+            return;
+        }
+    }
+
     // === FRAGMENT COST — anti-spam gate on every conversion ===
     const CONV_FRAG_COSTS = {
         'shards-de':    15,   // Shards→DE: powerful DE generation
@@ -19355,7 +19708,6 @@ function convertCurrency(from, to, amountIn, amountOut) {
         'de-shards':    20,   // DE→Shards: bypasses ascension grind
         'shards-fragments': 0, // already has escalating shard cost built in
     };
-    const convKey = `${from}-${to}`;
     const fragCost = CONV_FRAG_COSTS[convKey] || 0;
     if (fragCost > 0) {
         if (D(gameState.corruptedFragments || 0).lt(fragCost)) {
@@ -19377,6 +19729,12 @@ function convertCurrency(from, to, amountIn, amountOut) {
 
     const fragStr = fragCost > 0 ? ` + ${fragCost} 🔮 Fragments` : '';
     if (!confirm(`Convert ${formatNumber(amountIn)} ${from} → ${formatNumber(amountOut)} ${to}${fragStr}? Irreversible.`)) return;
+
+    // Record cooldown timestamp BEFORE deducting so it's set even if conversion fails
+    if (cdMs) {
+        if (!gameState._exchangeCooldowns) gameState._exchangeCooldowns = {};
+        gameState._exchangeCooldowns[convKey] = Date.now();
+    }
 
     // Deduct fragments first
     if (fragCost > 0) {
@@ -19510,21 +19868,35 @@ function renderBank() {
     if (fragBal) fragBal.innerText = formatNumber(gameState.corruptedFragments);
 
     const CONV_FRAG_COSTS = { 'shards-de': 15, 'aether-de': 25, 'de-souls': 10, 'de-shards': 20 };
+    const CONV_COOLDOWNS_MS = { 'shards-de': 45*60*1000, 'aether-de': 45*60*1000, 'de-shards': 30*60*1000 };
     const hasFrags = (cost) => D(gameState.corruptedFragments || 0).gte(cost);
     const fragTag = (cost) => `<span style="color:${hasFrags(cost) ? '#aa44ff' : '#ff4444'}; font-size:0.8em;"> + ${cost}🔮</span>`;
 
+    // Returns remaining cooldown string, or '' if ready
+    const cdTag = (key) => {
+        const cdMs = CONV_COOLDOWNS_MS[key]; if (!cdMs) return '';
+        const last = gameState._exchangeCooldowns?.[key] || 0;
+        const rem = cdMs - (Date.now() - last);
+        if (rem <= 0) return '';
+        const m = Math.floor(rem/60000), s = Math.ceil((rem%60000)/1000);
+        return ` <span style="color:#ff8844;font-size:0.75em;"> ⏳ ${m>0?m+'m ':''} ${m>0&&s?'':''}${m===0?s+'s':''}</span>`;
+    };
+    const isOnCd = (key) => { const cdMs = CONV_COOLDOWNS_MS[key]; if (!cdMs) return false; const last = gameState._exchangeCooldowns?.[key]||0; return (cdMs-(Date.now()-last))>0; };
+
     const shardsTier = conversionTiers.shardsToDe[currentConversionIndexes.shardsToDe];
-    document.getElementById('shards-tier-text').innerHTML = `<span class="cost-shards">${formatNumber(shardsTier.fromAmount)} Shards</span> → <span class="cost-essence">${formatNumber(shardsTier.toAmount)} ${_essLabel}</span>${fragTag(15)}`;
+    document.getElementById('shards-tier-text').innerHTML = `<span class="cost-shards">${formatNumber(shardsTier.fromAmount)} Shards</span> → <span class="cost-essence">${formatNumber(shardsTier.toAmount)} ${_essLabel}</span>${fragTag(15)}${cdTag('shards-de')}`;
     const csb = document.getElementById('convert-shards-btn');
     csb.onclick = () => convertCurrency('shards', 'de', shardsTier.fromAmount, shardsTier.toAmount);
-    csb.disabled = D(gameState.abyssalShards).lt(shardsTier.fromAmount) || !hasFrags(15);
+    csb.disabled = D(gameState.abyssalShards).lt(shardsTier.fromAmount) || !hasFrags(15) || isOnCd('shards-de');
+    csb.textContent = isOnCd('shards-de') ? 'On Cooldown' : 'Convert';
 
     const aetherTier = conversionTiers.aetherToDe[currentConversionIndexes.aetherToDe];
     const aetherOut = (currentConversionIndexes.aetherToDe === 0) ? Math.max(5, 50 - (gameState.aetherToDeConversions * 5)) : aetherTier.toAmount;
-    document.getElementById('aether-tier-text').innerHTML = `<span style="color:#00e5ff;">${formatNumber(aetherTier.fromAmount)} Aether</span> → <span class="cost-essence">${formatNumber(aetherOut)} ${_essLabel}</span>${fragTag(25)}`;
+    document.getElementById('aether-tier-text').innerHTML = `<span style="color:#00e5ff;">${formatNumber(aetherTier.fromAmount)} Aether</span> → <span class="cost-essence">${formatNumber(aetherOut)} ${_essLabel}</span>${fragTag(25)}${cdTag('aether-de')}`;
     const cab = document.getElementById('convert-aether-btn');
     cab.onclick = () => convertCurrency('aether', 'de', aetherTier.fromAmount, aetherOut);
-    cab.disabled = D(gameState.aether).lt(aetherTier.fromAmount) || !hasFrags(25);
+    cab.disabled = D(gameState.aether).lt(aetherTier.fromAmount) || !hasFrags(25) || isOnCd('aether-de');
+    cab.textContent = isOnCd('aether-de') ? 'On Cooldown' : 'Convert';
 
     const deTier = conversionTiers.deToSouls[currentConversionIndexes.deToSouls];
     const deSoulsUsed = gameState._deSoulsDate === new Date().toDateString() ? (gameState._deSoulsCount || 0) : 0;
@@ -19536,9 +19908,13 @@ function renderBank() {
     const deShardsTier = conversionTiers.deToShards[currentConversionIndexes.deToShards];
     const dsEl = document.getElementById('de-shards-tier-text');
     if (dsEl) {
-        dsEl.innerHTML = `<span class="cost-essence">${formatNumber(deShardsTier.fromAmount)} ${_essLabel}</span> → <span class="cost-shards">${formatNumber(deShardsTier.toAmount)} Shards</span>${fragTag(20)}`;
+        dsEl.innerHTML = `<span class="cost-essence">${formatNumber(deShardsTier.fromAmount)} ${_essLabel}</span> → <span class="cost-shards">${formatNumber(deShardsTier.toAmount)} Shards</span>${fragTag(20)}${cdTag('de-shards')}`;
         const cdsb = document.getElementById('convert-de-shards-btn');
-        if (cdsb) { cdsb.onclick = () => convertCurrency('de', 'shards', deShardsTier.fromAmount, deShardsTier.toAmount); cdsb.disabled = _essBalance().lt(deShardsTier.fromAmount) || !hasFrags(20); }
+        if (cdsb) {
+            cdsb.onclick = () => convertCurrency('de', 'shards', deShardsTier.fromAmount, deShardsTier.toAmount);
+            cdsb.disabled = _essBalance().lt(deShardsTier.fromAmount) || !hasFrags(20) || isOnCd('de-shards');
+            cdsb.textContent = isOnCd('de-shards') ? 'On Cooldown' : 'Convert';
+        }
     }
 
     // Shards → Fragments (dynamic escalating cost)
@@ -24026,17 +24402,24 @@ function selectPuzzle(puzzleId){
     const activeLi = document.querySelector(`#puzzle-list li[data-puzzle-id="${puzzleId}"]`);
     if (activeLi) activeLi.classList.add('active-puzzle');
 
-    // Show reward preview
-    const rewardEl = document.getElementById('pg-reward-preview');
-    const rewardTxt = document.getElementById('pg-reward-text');
-    if (rewardEl && rewardTxt) {
-        rewardTxt.textContent = `Victory reward: ${puzzle.reward.desc}`;
-        rewardEl.style.display = 'block';
+    // Populate and show the puzzle header card
+    const headerCard = document.getElementById('pg-puzzle-header');
+    if (headerCard) {
+        document.getElementById('pg-puzzle-title').textContent = puzzle.name;
+        document.getElementById('pg-puzzle-desc').textContent = puzzle.desc;
+        // Show hint after 10s of inactivity (or always show for tier1)
+        const hintEl = document.getElementById('pg-puzzle-hint');
+        const hintTxt = document.getElementById('pg-hint-text');
+        if (hintEl && hintTxt && puzzle.hint) {
+            hintTxt.textContent = puzzle.hint;
+            hintEl.style.display = 'block';
+        } else if (hintEl) {
+            hintEl.style.display = 'none';
+        }
+        const rewardTxt = document.getElementById('pg-reward-text');
+        if (rewardTxt) rewardTxt.textContent = puzzle.reward.desc;
+        headerCard.style.display = 'block';
     }
-
-    // Show budget bar
-    const budgetBar = document.getElementById('pg-budget-bar');
-    if (budgetBar) budgetBar.style.display = 'flex';
     updatePgBudget();
 
     document.getElementById('begin-combat-btn').style.display = 'inline-block';
@@ -24071,19 +24454,26 @@ function renderBattleGrid() {
     }
     
     [...battleState.playerUnits, ...battleState.enemyUnits].forEach(unit => {
+        const tile = document.querySelector(`.grid-tile[data-x='${unit.x}'][data-y='${unit.y}']`);
+        if (!tile) return;
+
+        const hpPct = Math.max(0, (unit.currentHp / unit.hp) * 100);
+        const hpClass = hpPct <= 20 ? 'critical' : hpPct <= 50 ? 'low' : '';
+        const shortName = unit.name.split(' ').slice(-1)[0]; // last word for brevity
+
         const token = document.createElement('div');
-        token.className = `minion-token ${unit.isPlayer ? 'player-unit' : 'enemy-unit'}`;
+        token.className = `minion-token ${unit.isPlayer ? 'player-unit' : 'enemy-unit'} unit-appear`;
         token.id = unit.id;
         token.innerHTML = `
-            ${unit.icon}
+            <div class="unit-stat-badge">${unit.atk}⚔</div>
+            <div class="unit-icon">${unit.icon}</div>
+            <div class="unit-name">${shortName}</div>
             <div class="health-bar-container">
-                <div class="health-bar-fill" style="width: ${(unit.currentHp / unit.hp) * 100}%"></div>
+                <div class="health-bar-fill ${hpClass}" style="width:${hpPct}%"></div>
             </div>
         `;
-        const tile = document.querySelector(`.grid-tile[data-x='${unit.x}'][data-y='${unit.y}']`);
-        if (tile) {
-            tile.appendChild(token);
-        }
+        if (unit.isPlayer) tile.classList.add('has-unit');
+        tile.appendChild(token);
     });
 }
 
@@ -24200,20 +24590,26 @@ function closeMinionSelectModal() {
 // Kicks off the automated battle simulation
 function startCombat() {
     if (battleState.playerUnits.length === 0) {
-        alert("You must place at least one minion to begin combat.");
+        Toastify({ text: '⚔ Place at least one minion before entering combat.', duration: 3000, gravity: 'top', position: 'center', style: { background: '#330000' } }).showToast();
         return;
     }
     battleState.isCombatActive = true;
+    battleState.turnCount = 0;
     document.getElementById('begin-combat-btn').style.display = 'none';
     document.getElementById('reset-puzzle-btn').style.display = 'none';
-    renderBattleGrid(); // Re-render to disable tile clicks
-
-    battleState.intervalId = setInterval(runBattleTurn, 1000); // A battle turn happens every second
+    const statusBar = document.getElementById('battle-status-bar');
+    if (statusBar) statusBar.className = 'combat-active';
+    const turnCtr = document.getElementById('pg-turn-counter');
+    if (turnCtr) { turnCtr.style.display = 'block'; document.getElementById('pg-turn-num').textContent = '0'; }
+    renderBattleGrid();
+    battleState.intervalId = setInterval(runBattleTurn, 900);
 }
 
 // The core logic for a single turn of combat (UPGRADED WITH MOVEMENT)
 function runBattleTurn() {
-    // Create a turn order: players then enemies
+    battleState.turnCount = (battleState.turnCount || 0) + 1;
+    const turnNumEl = document.getElementById('pg-turn-num');
+    if (turnNumEl) turnNumEl.textContent = battleState.turnCount;
     const turnOrder = [...battleState.playerUnits, ...battleState.enemyUnits];
 
     for (const unit of turnOrder) {
@@ -24311,8 +24707,12 @@ function moveUnitTowardsTarget(unit, target) {
 // Handles the end of the battle and gives rewards
 // Handles the end of the battle (IMPROVED VERSION)
 function endCombat(isWin) {
-    clearInterval(battleState.intervalId); // This is the crucial line that stops the spam!
+    clearInterval(battleState.intervalId);
     battleState.isCombatActive = false;
+    const _statusBar = document.getElementById('battle-status-bar');
+    if (_statusBar) _statusBar.className = '';
+    const _turnCtr = document.getElementById('pg-turn-counter');
+    if (_turnCtr) _turnCtr.style.display = 'none';
     
     const puzzle = battleState.puzzle;
     

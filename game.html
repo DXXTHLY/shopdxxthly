@@ -12414,7 +12414,7 @@ function activateRitual(id) {
     const _useCount = gameState.ritualUseCounts[id] || 0;
     // Cost multiplier: 1x for first 5 uses, 2x for uses 6-10, 3x for 11-15, etc. Caps at 10x
     const _fragMult = Math.min(10, 1 + Math.floor(_useCount / 5));
-    const fragCost = Math.ceil((RITUAL_FRAG_COSTS[id] || 0) * _fragMult);
+    const fragCost = Math.min(50, Math.ceil((RITUAL_FRAG_COSTS[id] || 0) * _fragMult));
     if (fragCost > 0 && D(gameState.corruptedFragments || 0).lt(fragCost)) {
         const _base = RITUAL_FRAG_COSTS[id] || 0;
         const _msg = _fragMult > 1 ? ` (×${_fragMult} — cast ${_useCount} times)` : '';
@@ -17991,7 +17991,7 @@ function renderRituals() {
         const RITUAL_FRAG_COSTS = { blood_frenzy:5, demonic_horde:5, soul_sear:5, essence_theft:5, unholy_power:5, devils_bargain:5, glacial_freeze:5, divine_curse:10, void_rupture:15, entropic_cascade:20, ascendants_echo:25, reality_fracture:30, void_resonance:30, singularity_pulse:35, horizon_collapse:40, event_loop:30, temporal_rift:50, genesis_surge:50, primal_harvest:40, first_breath:60, godfire:75, ash_resurrection:60, divine_mandate:100, time_shatter:80, chronos_debt:70, age_of_ruin:100, omega_convergence:90, final_theorem:120, point_of_no_return:100, infinite_hunger:150, beyond_everything:200, the_last_ritual:250 };
         const _rUseCount = (gameState.ritualUseCounts || {})[id] || 0;
         const _rFragMult = Math.min(10, 1 + Math.floor(_rUseCount / 5));
-        const fragCost = Math.ceil((RITUAL_FRAG_COSTS[id] || 0) * _rFragMult);
+        const fragCost = Math.min(50, Math.ceil((RITUAL_FRAG_COSTS[id] || 0) * _rFragMult));
         const cannotAffordFrags = fragCost > 0 && D(gameState.corruptedFragments || 0).lt(fragCost);
         const meta = ritualMeta[id] || { icon:'🔮', color:'#8855ff', glow:'#8855ff44' };
         const effectLabel = effectLabels[r.effect?.type] || '✨ Special';

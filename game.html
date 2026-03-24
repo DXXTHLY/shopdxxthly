@@ -11299,7 +11299,12 @@ async function saveGame() {
         // lifetimeSouls: store capped value. For display in leaderboard we use soulsLog.
         // toNumber() returns Infinity when souls > 1.79e308, safe() now caps to 1.7e308.
         lifetimeSouls:     safe(D(gameState.lifetimeSouls).toNumber()),
-        soulsLog:          safe(D(gameState.lifetimeSouls).gt(0) ? D(gameState.lifetimeSouls).log10().toNumber() : 0, 0),
+        // soulsLog = dark souls log — ONLY update when not transcended.
+        // When transcended, lifetimeSouls tracks light souls, so we must NOT overwrite
+        // the dark soulsLog stored in Supabase. We omit it so Supabase keeps the old value.
+        ...(!gameState.isTranscended ? {
+            soulsLog: safe(D(gameState.lifetimeSouls).gt(0) ? D(gameState.lifetimeSouls).log10().toNumber() : 0, 0)
+        } : {}),
         ascensions:        safe(gameState.ascensions),
         aether:            safe(D(gameState.aether).toNumber()),
         totalAetherEarned: safe(gameState.totalAetherEarned),
@@ -11313,9 +11318,10 @@ async function saveGame() {
         // Light Souls transcendence fields
         isTranscended:     gameState.isTranscended ? true : false,
         light_essence:     safe(D(gameState.lightEssence || 0).toNumber()),
-        lightSoulsLog:     gameState.isTranscended && D(gameState.lifetimeSouls).gt(0)
-                               ? safe(D(gameState.lifetimeSouls).log10().toNumber(), 0)
-                               : 0,
+        // lightSoulsLog = light souls log — only write when transcended
+        ...(gameState.isTranscended && D(gameState.lifetimeSouls).gt(0) ? {
+            lightSoulsLog: safe(D(gameState.lifetimeSouls).log10().toNumber(), 0)
+        } : {}),
     };
     try {
         let error;
@@ -16458,17 +16464,26 @@ async function saveGameToCloud(uid, db) {
         // stats.sps is recomputed on load — not serialized
         const ts = Date.now();
         saveData._savedAt = ts;
-        const soulsLogVal = D(gameState.lifetimeSouls).gt(0)
+        // soulsLog = dark souls log. When transcended, lifetimeSouls is light souls —
+        // don't overwrite the dark souls log in Firebase. Use the Supabase-stored value as fallback.
+        const _lsLog = D(gameState.lifetimeSouls).gt(0)
             ? parseFloat(D(gameState.lifetimeSouls).log10().toNumber().toFixed(6))
             : 0;
-        await db.ref('gameSaves/' + uid).set({
+        const _fbPayload = {
             state: JSON.stringify(saveData),
             savedAt: ts,
             playerName: gameState.playerName,
-            soulsLog: soulsLogVal,        // auth-protected — cannot be faked by other users
             ascensions: gameState.ascensions || 0,
             pvpWins: gameState.pvpWins || 0
-        });
+        };
+        if (!gameState.isTranscended) {
+            _fbPayload.soulsLog = _lsLog; // only update dark souls log on dark runs
+        }
+        // Always store light souls log when transcended
+        if (gameState.isTranscended) {
+            _fbPayload.lightSoulsLog = _lsLog;
+        }
+        await db.ref('gameSaves/' + uid).set(_fbPayload);
     } catch(e) { console.error('Cloud save failed:', e); }
 }
 

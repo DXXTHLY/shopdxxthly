@@ -4580,6 +4580,10 @@ text-decoration: underline; /* Adds an underline on hover */
                                     style="background:#001a08; border:1px solid #00cc4455; border-radius:8px; color:#44ff88; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit;">
                                     🔧 Fix SPS
                                 </button>
+                                <button onclick="(function(){ const db=window._scFirebase?.db; if(!db){alert('Firebase not ready');return;} if(typeof _triggerNextLockdown==='function'){_triggerNextLockdown(db,false);} Toastify({text:'🌐 Lockdown triggered — check Worlds tab in ~2s',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a0010,#440020)'}}).showToast(); })()"
+                                    style="background:#100010; border:1px solid #aa00aa55; border-radius:8px; color:#dd44dd; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit;">
+                                    🌐 Test Lockdown
+                                </button>
                             </div>
                         </div>
 
@@ -16431,6 +16435,11 @@ function loadAuthFirebase() {
                 // Make available globally for all auth functions
                 window._scFirebase = { firebase, auth: saveAuth, db: saveDb };
 
+                // Start world lockdown listener now that db is available
+                if (typeof initWorldLockdown === 'function') {
+                    setTimeout(initWorldLockdown, 1000);
+                }
+
                 // If user is already signed in (persistent session), load their save
                 saveAuth.onAuthStateChanged(user => {
                     // ── Dev panel: synchronous check, no async Firebase read ──
@@ -17126,8 +17135,6 @@ function enterGame() {
     // Show banner if player has no linked email account
     setTimeout(checkUnlinkedBanner, 1500);
     initializeChat();
-    // Start world lockdown listener
-    setTimeout(initWorldLockdown, 4000);
     setTimeout(() => refreshMarketTicker(), 2000);
     // Keep retrying until ticker actually has scrolling content (in case Supabase is slow)
     const tickerRetry = setInterval(() => {

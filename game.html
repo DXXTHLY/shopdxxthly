@@ -3276,7 +3276,11 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
                 </div>
 
-                <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:12px;">🧪 YOUR POTION SHELF</h3>
+                <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:10px;">🧪 YOUR POTION SHELF</h3>
+                <!-- Potion filters -->
+                <div style="background:#06030f; border:1px solid #1a0a2a; border-radius:10px; padding:10px 14px; margin-bottom:16px;">
+                    <div id="potion-filter-bar" style="display:flex; flex-direction:column; gap:7px;"></div>
+                </div>
                 <div id="potion-inventory" class="ritual-grid"></div>
                 <hr style="border-color:#3d2a4a; margin:24px 0;">
                 <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:12px;">📜 AVAILABLE RECIPES</h3>
@@ -14856,7 +14860,7 @@ function renderInventory() {
             rarityWrap.appendChild(makeBtn(r, label, 'rarity', r==='all'?'#888':color));
         });
         const typeWrap = document.createElement('div');
-        typeWrap.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;';
+        typeWrap.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;align-items:center;border-top:1px solid #1a0a2a;padding-top:7px;';
         types.forEach(t => {
             const label = t === 'all' ? '📦 All Types' : (TI[t]||'')+' '+t.charAt(0).toUpperCase()+t.slice(1);
             typeWrap.appendChild(makeBtn(t, label, 'type', '#8888ff'));
@@ -15738,6 +15742,69 @@ function renderBrewery() {
         </div>`;
     }
 
+    // ── Potion shelf filters ─────────────────────────────────────
+    if (!window._potionFilter) window._potionFilter = { rarity: 'all', type: 'all' };
+    const _potionFilterBar = document.getElementById('potion-filter-bar');
+    if (_potionFilterBar) {
+        _potionFilterBar.innerHTML = '';
+        const _pRarities = ['all','fused','legendary','epic','rare','uncommon','common'];
+        const _pTypes    = ['all','active','passive','raid','light'];
+        const _pRarColors = { all:'#888', fused:'#ff6644', legendary:'#ffaa00', epic:'#aa44ff', rare:'#4488ff', uncommon:'#44cc44', common:'#aaa' };
+        const _makePBtn = (val, label, group, color) => {
+            const active = window._potionFilter[group] === val;
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            btn.style.cssText = `flex:1;text-align:center;background:${active?color+'1a':'transparent'};border:1px solid ${active?color+'66':'#1a0a2a'};border-radius:6px;padding:4px 6px;font-size:0.68em;color:${active?color:'#3a2a4a'};cursor:pointer;font-family:inherit;letter-spacing:0.5px;transition:all 0.15s;white-space:nowrap;`;
+            btn.onclick = () => { window._potionFilter[group] = val; renderBrewery(); };
+            return btn;
+        };
+        const rarWrap = document.createElement('div');
+        rarWrap.style.cssText = 'display:flex;flex:1;justify-content:space-between;align-items:center;';
+        _pRarities.forEach(r => rarWrap.appendChild(_makePBtn(r, r === 'all' ? '✦ All' : r.charAt(0).toUpperCase()+r.slice(1), 'rarity', _pRarColors[r]||'#888')));
+        const typeWrap = document.createElement('div');
+        typeWrap.style.cssText = 'display:flex;flex:1;justify-content:space-between;align-items:center;border-top:1px solid #1a0a2a;padding-top:7px;';
+        const _typeLabels = { all:'📦 All Types', active:'⚡ Active Buffs', passive:'⬇️ Passive', raid:'⚔ Raid', light:'✦ Light' };
+        _pTypes.forEach(t => typeWrap.appendChild(_makePBtn(t, _typeLabels[t]||t, 'type', '#8888ff')));
+        const _rLabel = document.createElement('div');
+        _rLabel.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;';
+        const _rLabelText = document.createElement('span');
+        _rLabelText.style.cssText = 'color:#2a1a3a;font-size:0.62em;letter-spacing:1.5px;text-transform:uppercase;flex-shrink:0;';
+        _rLabelText.textContent = 'Rarity';
+        _rLabel.appendChild(_rLabelText);
+        _rLabel.appendChild(rarWrap);
+        const _tLabel = document.createElement('div');
+        _tLabel.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;';
+        const _tLabelText = document.createElement('span');
+        _tLabelText.style.cssText = 'color:#2a1a3a;font-size:0.62em;letter-spacing:1.5px;text-transform:uppercase;flex-shrink:0;';
+        _tLabelText.textContent = 'Type';
+        _tLabel.appendChild(_tLabelText);
+        _tLabel.appendChild(typeWrap);
+        _potionFilterBar.appendChild(_rLabel);
+        _potionFilterBar.appendChild(_tLabel);
+    }
+
+    const _pFRarity = window._potionFilter?.rarity || 'all';
+    const _pFType   = window._potionFilter?.type   || 'all';
+
+    function _potionMatchesFilter(id) {
+        const meta = getPotionMeta(id);
+        const p = potions[id];
+        if (!p) return false;
+        if (_pFRarity !== 'all' && meta.rarity !== _pFRarity) return false;
+        if (_pFType !== 'all') {
+            const desc = (p.desc || '').toLowerCase();
+            const isRaid  = desc.includes('raid') || p.raidOnly;
+            const isLight = p.lightOnly || meta.rarity === 'light';
+            const isFused = meta.rarity === 'fused';
+            const isActive = p.effect?.type?.includes('multiplier') || p.effect?.type?.includes('sps') || p.effect?.type?.includes('spc') || p.effect?.type?.includes('buff') || (p.effect?.duration > 0);
+            if (_pFType === 'raid'    && !isRaid)   return false;
+            if (_pFType === 'light'   && !isLight)  return false;
+            if (_pFType === 'active'  && !isActive) return false;
+            if (_pFType === 'passive' && (isRaid||isLight||isFused)) return false;
+        }
+        return true;
+    }
+
     // Render potion inventory — show all potions that are owned OR currently active
     let hasPotions = false;
     const allPotionIds = new Set([
@@ -15745,6 +15812,7 @@ function renderBrewery() {
         ...Object.keys(gameState.activePotions).filter(id => Date.now() < gameState.activePotions[id])
     ]);
     for (const id of allPotionIds) {
+        if (!_potionMatchesFilter(id)) continue;
         hasPotions = true;
         const count = gameState.potions[id] || 0;
         const isActive = gameState.activePotions[id] && Date.now() < gameState.activePotions[id];

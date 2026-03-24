@@ -1706,6 +1706,22 @@
         }
         #breach-event-pop.show { animation: event-pop 2s ease forwards; display: block; }
 
+        /* ── Wall tiles ── */
+        .breach-wall {
+            background: #0a0610 !important;
+            cursor: not-allowed !important;
+            border-color: #1a0a2a !important;
+        }
+        /* ── Danger aura — adjacent to hidden hostile/trap ── */
+        .breach-danger {
+            box-shadow: inset 0 0 12px #ff220018 !important;
+            border-color: #ff222222 !important;
+        }
+        .breach-danger.adjacent {
+            box-shadow: inset 0 0 16px #ff220033, 0 0 8px #ff220022 !important;
+            border-color: #ff444444 !important;
+        }
+
         /* ── Fog overlay ── */
         .breach-fog-overlay {
             position: absolute; inset: 0;
@@ -25227,23 +25243,75 @@ function startAbyssalBreach(expeditionId) {
     setTimeout(() => _bo.classList.add('active'), 500);
 }
 function generateBreachMap(size) {
-    breachState.map = Array(size).fill(null).map(() => Array(size).fill(null).map(() => ({ isExplored: false, event: null })));
+    breachState.map = Array(size).fill(null).map(() => Array(size).fill(null).map(() => ({ isExplored: false, event: null, wall: false })));
     breachState.map[0][0].isExplored = true;
-    let objX, objY;
+
+    // ── Walls — 4-5 impassable tiles that force real pathing decisions ──
+    const wallCount = 4 + Math.floor(Math.random() * 2);
+    let wallsPlaced = 0, wallAttempts = 0;
+    while (wallsPlaced < wallCount && wallAttempts < 100) {
+        wallAttempts++;
+        const wx = 1 + Math.floor(Math.random() * (size - 1));
+        const wy = 1 + Math.floor(Math.random() * (size - 1));
+        if (breachState.map[wy][wx].wall || (wx === 0 && wy === 0)) continue;
+        // Don't wall off player start area (row 0)
+        if (wy === 0) continue;
+        breachState.map[wy][wx].wall = true;
+        wallsPlaced++;
+    }
+
+    // ── Objective — always in back half (rows 3+) so you must traverse ──
+    let objX, objY, objAttempts = 0;
     do {
         objX = Math.floor(Math.random() * size);
-        objY = Math.floor(Math.random() * size);
-    } while (objX < 2 && objY < 2);
-    breachState.map[objY][objX].event = { type: breachState.objective.id, icon: breachState.objective.icon };
-    for(let i = 0; i < 6; i++) {
-        let randX, randY;
+        objY = Math.floor(size / 2) + Math.floor(Math.random() * Math.ceil(size / 2));
+        objAttempts++;
+    } while ((breachState.map[objY]?.[objX]?.wall || breachState.map[objY]?.[objX]?.event) && objAttempts < 50);
+    if (objAttempts < 50) {
+        breachState.map[objY][objX].event = { type: breachState.objective.id, icon: breachState.objective.icon };
+    }
+
+    // ── Weighted event pool — more hostiles and traps for real danger ──
+    // Weight: hostile×3, trap×3, treasure×2, fountain×1, lore×1
+    const weightedEvents = [
+        'hostile','hostile','hostile',
+        'trap','trap','trap',
+        'treasure','treasure',
+        'fountain',
+        'lore'
+    ];
+
+    // Place 8 events (more density than before)
+    for (let i = 0; i < 8; i++) {
+        let randX, randY, attempts = 0;
         do {
             randX = Math.floor(Math.random() * size);
             randY = Math.floor(Math.random() * size);
-        } while (breachState.map[randY][randX].event !== null || (randX === 0 && randY === 0));
-        const eventTypes = ['treasure', 'hostile', 'trap', 'fountain', 'lore'];
-        const randomEventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-        breachState.map[randY][randX].event = { type: randomEventType, icon: breachEvents[randomEventType].icon };
+            attempts++;
+        } while ((breachState.map[randY][randX].event !== null || breachState.map[randY][randX].wall || (randX === 0 && randY === 0)) && attempts < 50);
+        if (attempts < 50) {
+            const eventType = weightedEvents[Math.floor(Math.random() * weightedEvents.length)];
+            breachState.map[randY][randX].event = { type: eventType, icon: breachEvents[eventType].icon };
+        }
+    }
+
+    // ── Trap cluster — place 1-2 extra traps adjacent to an existing trap ──
+    const trapTiles = [];
+    breachState.map.forEach((row,y) => row.forEach((tile,x) => { if (tile.event?.type === 'trap') trapTiles.push({x,y}); }));
+    if (trapTiles.length > 0) {
+        const anchor = trapTiles[Math.floor(Math.random() * trapTiles.length)];
+        const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+        const shuffled = dirs.sort(() => Math.random()-0.5);
+        let clustered = 0;
+        for (const [dx,dy] of shuffled) {
+            if (clustered >= 2) break;
+            const nx = anchor.x+dx, ny = anchor.y+dy;
+            if (nx<0||ny<0||nx>=size||ny>=size) continue;
+            if (!breachState.map[ny][nx].event && !breachState.map[ny][nx].wall && !(nx===0&&ny===0)) {
+                breachState.map[ny][nx].event = { type:'trap', icon: breachEvents.trap.icon };
+                clustered++;
+            }
+        }
     }
 
     // 2% chance this breach contains a hidden key room — one tile, deep in the grid
@@ -25353,33 +25421,53 @@ function renderBreach() {
     gridDiv.style.cssText = `display:grid; grid-template-columns:repeat(${breachState.size},${TILE_SIZE}px); grid-template-rows:repeat(${breachState.size},${TILE_SIZE}px); width:${GRID_SIZE}px; height:${GRID_SIZE}px; gap:2px;`;
     gridDiv.innerHTML = '';
 
+    // Pre-scan for hidden hostiles/traps adjacent to each tile (danger aura)
+    const _dangerAura = new Set();
+    breachState.map.forEach((row, y) => row.forEach((tile, x) => {
+        if (!tile.isExplored && (tile.event?.type === 'hostile' || tile.event?.type === 'trap')) {
+            [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dx,dy]) => {
+                const nx=x+dx, ny=y+dy;
+                if (nx>=0&&ny>=0&&ny<breachState.size&&nx<breachState.size) _dangerAura.add(ny+'_'+nx);
+            });
+        }
+    }));
+
     breachState.map.forEach((row, y) => {
         row.forEach((tile, x) => {
             const isPlayer = x === breachState.playerPosition.x && y === breachState.playerPosition.y;
             const distToPlayer = Math.abs(x - breachState.playerPosition.x) + Math.abs(y - breachState.playerPosition.y);
             const isNextTo = !isPlayer && distToPlayer === 1;
-            // Adjacent = next to player AND not yet walked on (explored by walking)
-            // BUT ability-revealed tiles (isExplored but not visited) are ALSO clickable
-            const isAdjacent = isNextTo && !tile.isExplored; // unfogged adjacent (shows ? glow)
-            const isRevealedAdjacent = isNextTo && tile.isExplored && !tile.visited; // ability-revealed, still walkable
+            const isWall   = tile.wall === true;
+            const isAdjacent        = isNextTo && !tile.isExplored && !isWall;
+            const isRevealedAdjacent = isNextTo && tile.isExplored && !tile.visited && !isWall;
             const isClickable = isAdjacent || isRevealedAdjacent;
+            const hasDanger   = !tile.isExplored && _dangerAura.has(y+'_'+x) && !isWall;
 
             const tileDiv = document.createElement('div');
             tileDiv.className = 'breach-tile' +
                 (tile.isExplored ? ' explored' : '') +
                 (isAdjacent ? ' adjacent' : '') +
-                (isRevealedAdjacent ? ' adjacent' : '') + // same glow for revealed adjacent
-                (isPlayer ? ' player-tile' : '');
+                (isRevealedAdjacent ? ' adjacent' : '') +
+                (isPlayer ? ' player-tile' : '') +
+                (isWall ? ' breach-wall' : '') +
+                (hasDanger ? ' breach-danger' : '');
 
             if (isClickable) tileDiv.onclick = () => movePlayer(x, y);
 
-            if (tile.isExplored && tile.event && !isPlayer) {
+            if (isWall) {
+                tileDiv.innerHTML = `<div style="font-size:1.1em;opacity:0.35;pointer-events:none;">🧱</div>`;
+            } else if (tile.isExplored && tile.event && !isPlayer) {
                 tileDiv.dataset.event = tile.event.type;
                 const eventColors = { treasure:'#ffcc00', hostile:'#ff4444', trap:'#ff8800', fountain:'#44ccff', lore:'#aa88ff', stabilizer:'#00ffcc', guardian:'#ff2244', clusters:'#c8a800', chest:'#aa44ff' };
                 const ec = eventColors[tile.event.type] || '#cccccc';
-                tileDiv.innerHTML = `<div class="breach-tile-icon" style="color:${ec};">${tile.event.icon}</div>`;
+                // Show energy cost badge on hostiles (costs 2) and traps (costs 3 if no ward)
+                const costBadge = tile.event.type === 'hostile' ? `<div style="position:absolute;bottom:2px;right:3px;font-size:0.45em;color:#ff444488;font-weight:bold;">-2⚡</div>` :
+                                  tile.event.type === 'trap'    ? `<div style="position:absolute;bottom:2px;right:3px;font-size:0.45em;color:#ff880088;font-weight:bold;">-3⚡</div>` : '';
+                tileDiv.innerHTML = `<div class="breach-tile-icon" style="color:${ec};position:relative;">${tile.event.icon}${costBadge}</div>`;
+            } else if (isAdjacent && hasDanger) {
+                tileDiv.innerHTML = `<div style="font-size:0.9em;opacity:0.4;pointer-events:none;color:#ff4444;animation:breach-pulse 1s ease-in-out infinite;">⚠</div>`;
             } else if (isAdjacent) {
-                tileDiv.innerHTML = `<div style="font-size:0.9em; opacity:0.2; pointer-events:none; color:#cc3333;">?</div>`;
+                tileDiv.innerHTML = `<div style="font-size:0.9em;opacity:0.2;pointer-events:none;color:#cc3333;">?</div>`;
             }
 
             gridDiv.appendChild(tileDiv);
@@ -25430,9 +25518,17 @@ function showBreachEventPop(icon, title, desc, colorHex) {
 
 function movePlayer(x, y) {
     if(breachState.energy <= 0) return;
-    breachState.energy--;
-    breachState.playerPosition = { x, y };
     const tile = breachState.map[y][x];
+    if (tile.wall) return; // can't walk through walls
+    // Hostiles cost 2 energy, traps cost 3 (unless warded)
+    const moveCost = tile.event?.type === 'hostile' ? 2 : tile.event?.type === 'trap' ? 3 : 1;
+    // Trap ward absorbs cost
+    if (tile.event?.type === 'trap' && breachState.activeBuffs.ignoreTrap) {
+        // warded — proceed free (handler in resolveTileEvent will absorb it)
+    } else {
+        breachState.energy = Math.max(0, breachState.energy - moveCost);
+    }
+    breachState.playerPosition = { x, y };
     tile.isExplored = true;
     tile.visited = true; // mark as physically walked on
     if(tile.event) { resolveTileEvent(tile); }
@@ -25479,7 +25575,7 @@ function movePlayer(x, y) {
             const ny = breachState.playerPosition.y + dy;
             if (nx >= 0 && ny >= 0 && nx < breachState.size && ny < breachState.size) {
                 const tile = breachState.map[ny][nx];
-                const canStep = !tile.visited;
+                const canStep = !tile.visited && !tile.wall;
                 if (canStep) movePlayer(nx, ny);
             }
             return;

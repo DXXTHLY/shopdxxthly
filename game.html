@@ -16977,14 +16977,9 @@ window._worldLockdown = { worldId: null, unlocksAt: 0, path: null };
 window._lightLockdown = { worldId: null, unlocksAt: 0, path: null };
 
 function initWorldLockdown() {
-    const db  = window._scFirebase?.db;
-    const auth = window._scFirebase?.auth;
-    if (!db || !auth) { setTimeout(initWorldLockdown, 3000); return; }
-    // Wait until authenticated before doing any reads/writes
-    if (!auth.currentUser) {
-        setTimeout(initWorldLockdown, 3000);
-        return;
-    }
+    const db = window._scFirebase?.db;
+    if (!db) { setTimeout(initWorldLockdown, 3000); return; }
+    // No auth required — worldLockdown is publicly readable and writable
 
     // Listen to dark world lockdown
     db.ref('worldLockdown/dark').on('value', snap => {
@@ -17035,14 +17030,7 @@ function initWorldLockdown() {
 }
 
 function _triggerNextLockdown(db, isLight) {
-    // Must be authenticated to write
-    const user = window._scFirebase?.auth?.currentUser;
-    if (!user) {
-        // Not authed yet — retry after auth is ready
-        setTimeout(() => _triggerNextLockdown(db, isLight), 5000);
-        return;
-    }
-
+    // No auth required — rule is .write: true
     // Exclude the very first world of each path — players MUST be able to access these
     const darkPool = [
         'ashen_wastes','stygian_depths','burning_hells','frozen_abyss',

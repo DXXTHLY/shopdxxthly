@@ -16986,10 +16986,11 @@ function initWorldLockdown() {
             window._worldLockdown = data;
         } else {
             window._worldLockdown = { worldId: null, unlocksAt: 0 };
-            // If expired, one client (the one who's been online longest) triggers the next one
-            // We use a random delay to avoid all clients firing at once
-            if (data && data.unlocksAt && Date.now() > data.unlocksAt + 5000) {
-                setTimeout(() => _triggerNextLockdown(db, false), Math.random() * 30000);
+            // Expired lockdown — schedule the next one with random delay to avoid client collision
+            if (data && data.unlocksAt && Date.now() > data.unlocksAt) {
+                const nextDelay = (data.nextAt || 0) - Date.now();
+                const delay = nextDelay > 0 ? nextDelay : (5000 + Math.random() * 15000);
+                setTimeout(() => _triggerNextLockdown(db, false), delay + Math.random() * 10000);
             }
         }
         _applyWorldLockdown();
@@ -17010,8 +17011,18 @@ function initWorldLockdown() {
 
     // If no lockdown exists at all, kick off the first one after a delay
     db.ref('worldLockdown/dark').once('value', snap => {
-        if (!snap.exists()) {
-            setTimeout(() => _triggerNextLockdown(db, false), 5000 + Math.random() * 20000);
+        const data = snap.val();
+        const expired = !data || Date.now() > (data.unlocksAt || 0);
+        if (expired) {
+            // No active lockdown — trigger one soon (random delay so all clients don't fire at once)
+            setTimeout(() => _triggerNextLockdown(db, false), 3000 + Math.random() * 10000);
+        }
+    });
+    db.ref('worldLockdown/light').once('value', snap => {
+        const data = snap.val();
+        const expired = !data || Date.now() > (data.unlocksAt || 0);
+        if (expired) {
+            setTimeout(() => _triggerNextLockdown(db, true), 5000 + Math.random() * 10000);
         }
     });
 }
@@ -17841,10 +17852,16 @@ function renderMap() {
                 </button>`;
             }
         } else if (canAfford) {
-            btn = `<button onclick="travelToWorld('${id}')" style="background:linear-gradient(135deg,${theme.color}22,transparent); border:1px solid ${theme.color}66; border-radius:8px; padding:7px 18px; font-size:0.82em; color:${theme.color}; cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.2s;" onmouseover="this.style.background='${theme.color}33'" onmouseout="this.style.background='${theme.color}22'">
-                🔓 Unlock
-                <span style="display:block; font-size:0.75em; color:${theme.color}88; margin-top:1px;">${formatNumber(w.unlockCost)} souls</span>
-            </button>`;
+            if (_worldLocked) {
+                btn = `<div style="background:#33000a; border:1px solid #660015; border-radius:8px; padding:6px 14px; font-size:0.78em; color:#cc2244; white-space:nowrap; text-align:center;">
+                    🔒 Sealed<div style="font-size:0.8em;color:#550015;margin-top:1px;">${_lockMins}m remaining</div>
+                </div>`;
+            } else {
+                btn = `<button onclick="travelToWorld('${id}')" style="background:linear-gradient(135deg,${theme.color}22,transparent); border:1px solid ${theme.color}66; border-radius:8px; padding:7px 18px; font-size:0.82em; color:${theme.color}; cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.2s;" onmouseover="this.style.background='${theme.color}33'" onmouseout="this.style.background='${theme.color}22'">
+                    🔓 Unlock
+                    <span style="display:block; font-size:0.75em; color:${theme.color}88; margin-top:1px;">${formatNumber(w.unlockCost)} souls</span>
+                </button>`;
+            }
         } else {
             btn = `<div style="text-align:right; min-width:100px;">
                 <div style="color:#333; font-size:0.7em; text-transform:uppercase; letter-spacing:1px;">🔒 Locked</div>
@@ -17891,6 +17908,13 @@ function travelToWorld(id)
 	}
 	else if (D(gameState.souls).gte(D(worlds[id].unlockCost)))
 	{
+		// Also block purchasing a locked world
+		if (isWorldLocked(id, false)) {
+			const rem = getWorldLockRemaining(id, false);
+			const mins = Math.ceil(rem / 60000);
+			Toastify({ text: `🔒 ${worlds[id]?.name || id} is sealed — you cannot unlock it for ${mins} more minute${mins!==1?'s':''}.`, duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#2a0010,#550020)' } }).showToast();
+			return;
+		}
 		let actualCost = worlds[id].unlockCost;
 		for (const artId in gameState.ownedArtifacts) {
 			const ab = artifacts[artId]?.bonus;
@@ -21136,6 +21160,19 @@ function initializeChat() {
                             }
                         }
                         // Non-devs: silently ignore — no hint the command exists
+                        e.target.value = ''; return;
+                    }
+
+                    // Dev command: !lockworld — immediately trigger a world lockdown for testing
+                    if (text === '!lockworld') {
+                        if (window._scIsDev && window._scIsDev(uid)) {
+                            const _db = window._scFirebase?.db;
+                            if (_db && typeof _triggerNextLockdown === 'function') {
+                                _triggerNextLockdown(_db, false);
+                                _triggerNextLockdown(_db, true);
+                                Toastify({ text: '🌐 World lockdown triggered — check the Worlds tab.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0010,#440020)' } }).showToast();
+                            }
+                        }
                         e.target.value = ''; return;
                     }
 

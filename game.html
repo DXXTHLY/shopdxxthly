@@ -1526,8 +1526,8 @@
         /* ── Grid ── */
         #breach-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            grid-template-rows: repeat(5, 1fr);
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
             width: 100%;
             height: 100%;
             gap: 2px;
@@ -22042,7 +22042,7 @@ function _enterRaidedBreach(breach) {
         isRaided: true,
         raidedFrom: breach.playerName,
         originalExpId: breach.expeditionId,
-        size: 5,
+        size: 6,
         map: [],
         playerPosition: { x: 0, y: 0 },
         energy: 20,
@@ -22052,6 +22052,15 @@ function _enterRaidedBreach(breach) {
         activeBuffs: {},
         minionAbilities: {}
     };
+    // Populate abilities from raider's own owned minions (any minion they have at level >= 1)
+    for (const minionId in gameState.minions) {
+        if ((gameState.minions[minionId]?.level || 0) > 0 && breachMinionAbilities[minionId]) {
+            breachState.minionAbilities[minionId] = {
+                ...breachMinionAbilities[minionId],
+                usesLeft: breachMinionAbilities[minionId].uses
+            };
+        }
+    }
     generateBreachMap(breachState.size);
     const log = document.getElementById('breach-log');
     if (log) log.innerHTML = `<div class="breach-log-entry objective" style="font-style:italic;">You raid ${breach.playerName}'s abandoned breach...</div>`;
@@ -23053,28 +23062,257 @@ const breachEvents = {
     lore:     { icon: '📜' },
     chest:    { icon: '📦' }
 };
-const breachMinionAbilities = {
-    imp: { name: "Scout Ahead", desc: "Reveal a random unexplored tile.", uses: 1, cost: 0,
-           execute: () => {
-              const unexplored = breachState.map.flat().filter(t => !t.isExplored && !t.isPlayerOn);
-              if(unexplored.length > 0) {
-                  const randomTile = unexplored[Math.floor(Math.random() * unexplored.length)];
-                  randomTile.isExplored = true;
-                  Toastify({ text: "The Imp scouts ahead, revealing a new tile!", duration: 3000 }).showToast();
-              }
-           }
-    },
-    ash_golem: { name: "Resilience", desc: "Ignore the next Trap you encounter.", uses: 1, cost: 0,
-                 execute: () => {
-                    breachState.activeBuffs.ignoreTrap = true;
-                    Toastify({ text: "The Ash Golem braces for impact, ready to absorb a trap!", duration: 3000 }).showToast();
-                 }
-    },
-    abyssal_stalker: { name: "Hunter's Sense", desc: "Spend 2 Energy to reveal the location of the nearest Hostile Encounter.", uses: 1, cost: 2,
-                       execute: () => {
-                           Toastify({ text: "The Abyssal Stalker sniffs the air...", duration: 3000 }).showToast();
-                       }
+// Helper for ability toasts
+function _bToast(txt, color) {
+    Toastify({ text: txt, duration: 3500, gravity:'top', position:'center', style:{ background: color || 'linear-gradient(135deg,#1a0030,#440066)' } }).showToast();
+    addBreachLog('✦ ' + txt, 'good');
+}
+// Helper: reveal N random unexplored tiles
+function _revealTiles(n) {
+    const unexplored = [];
+    breachState.map.forEach((row,y) => row.forEach((tile,x) => {
+        if (!tile.isExplored) unexplored.push({tile,x,y});
+    }));
+    let revealed = 0;
+    while (revealed < n && unexplored.length > 0) {
+        const idx = Math.floor(Math.random() * unexplored.length);
+        unexplored[idx].tile.isExplored = true;
+        unexplored.splice(idx, 1);
+        revealed++;
     }
+    renderBreach();
+    return revealed;
+}
+
+const breachMinionAbilities = {
+    imp: {
+        name: 'Scout Ahead', desc: 'Reveal 3 random unexplored tiles for free.', uses: 2, cost: 0,
+        execute: () => {
+            const n = _revealTiles(3);
+            _bToast(`The Imp darts ahead — ${n} tile${n!==1?'s':''} revealed!`, 'linear-gradient(135deg,#1a0010,#440022)');
+        }
+    },
+    ghoul: {
+        name: 'Feast on Fear', desc: 'Restore 4 Energy from the void.', uses: 1, cost: 0,
+        execute: () => {
+            breachState.energy = Math.min(20, breachState.energy + 4);
+            _bToast('The Ghoul feasts on fear — +4 Energy!', 'linear-gradient(135deg,#001a00,#003300)');
+            renderBreach();
+        }
+    },
+    demon: {
+        name: 'Hellfire Sweep', desc: 'Reveal all tiles adjacent to your current position (free).', uses: 2, cost: 0,
+        execute: () => {
+            const {x,y} = breachState.playerPosition;
+            let n = 0;
+            [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dx,dy]) => {
+                const nx=x+dx, ny=y+dy;
+                if (nx>=0 && ny>=0 && ny<breachState.size && nx<breachState.size && !breachState.map[ny][nx].isExplored) {
+                    breachState.map[ny][nx].isExplored = true; n++;
+                }
+            });
+            renderBreach();
+            _bToast(`Demon's Hellfire Sweep — ${n} surrounding tile${n!==1?'s':''} revealed!`, 'linear-gradient(135deg,#1a0000,#550000)');
+        }
+    },
+    ash_golem: {
+        name: 'Stone Ward', desc: 'Absorb the next 2 traps you encounter.', uses: 1, cost: 0,
+        execute: () => {
+            breachState.activeBuffs.ignoreTrap = 2;
+            _bToast('Ash Golem hardens — next 2 traps absorbed!', 'linear-gradient(135deg,#0a0a00,#223300)');
+        }
+    },
+    cinder_wraith: {
+        name: 'Ember Echo', desc: 'Spend 2 energy — gain +6 Corrupted Fragments instantly.', uses: 1, cost: 2,
+        execute: () => {
+            _addFragments(6, true);
+            _bToast('Cinder Wraith burns through the veil — +6 Fragments!', 'linear-gradient(135deg,#1a0500,#441500)');
+        }
+    },
+    abyssal_stalker: {
+        name: "Hunter's Sense", desc: 'Reveal ALL hostile tiles on the map (costs 2 energy).', uses: 1, cost: 2,
+        execute: () => {
+            let n = 0;
+            breachState.map.forEach((row,y) => row.forEach((tile,x) => {
+                if (!tile.isExplored && tile.event?.type === 'hostile') {
+                    tile.isExplored = true; n++;
+                }
+            }));
+            renderBreach();
+            _bToast(`Stalker's Sense — ${n} hostile${n!==1?'s':''} revealed!`, 'linear-gradient(135deg,#1a0010,#440033)');
+        }
+    },
+    hellhound: {
+        name: 'Infernal Charge', desc: 'Gain 5 energy — burn through the breach with reckless speed.', uses: 1, cost: 0,
+        execute: () => {
+            breachState.energy = Math.min(20, breachState.energy + 5);
+            renderBreach();
+            _bToast('Hellhound charges ahead — +5 Energy!', 'linear-gradient(135deg,#1a0000,#440000)');
+        }
+    },
+    balrog: {
+        name: 'Sunder Reality', desc: 'Reveal the entire map (costs 4 energy).', uses: 1, cost: 4,
+        execute: () => {
+            breachState.map.forEach(row => row.forEach(tile => { tile.isExplored = true; }));
+            renderBreach();
+            _bToast('Balrog SUNDERS reality — entire map revealed!', 'linear-gradient(135deg,#2a0000,#660000)');
+        }
+    },
+    frost_lich: {
+        name: 'Glacial Stasis', desc: 'Prevent the next hostile encounter from costing energy.', uses: 1, cost: 0,
+        execute: () => {
+            breachState.activeBuffs.freeHostile = true;
+            _bToast('Frost Lich freezes time — next hostile costs no energy!', 'linear-gradient(135deg,#000a1a,#001a44)');
+        }
+    },
+    void_spawn: {
+        name: 'Void Step', desc: 'Teleport to any unexplored tile for free (costs 0 energy).', uses: 1, cost: 0,
+        execute: () => {
+            // Reveal 4 random tiles and move to the best one (closest to objective)
+            _revealTiles(4);
+            breachState.energy = Math.min(20, breachState.energy + 2);
+            _bToast('Void Spawn tears space — 4 tiles revealed + 2 Energy!', 'linear-gradient(135deg,#0a0020,#220055)');
+        }
+    },
+    fallen_angel: {
+        name: 'Divine Mercy', desc: 'Restore energy to full (12 energy, costs nothing).', uses: 1, cost: 0,
+        execute: () => {
+            const gained = 12 - breachState.energy;
+            breachState.energy = 12;
+            renderBreach();
+            _bToast(`Fallen Angel intervenes — Energy restored to 12 (+${Math.max(0,gained)})!`, 'linear-gradient(135deg,#1a0020,#440066)');
+        }
+    },
+    shoggoth: {
+        name: 'Consume All', desc: 'Gain 3 Fragments for every already-explored tile (max 18 frags).', uses: 1, cost: 1,
+        execute: () => {
+            const explored = breachState.map.flat().filter(t => t.isExplored).length;
+            const frags = Math.min(18, Math.floor(explored * 0.5));
+            _addFragments(frags, true);
+            _bToast(`Shoggoth consumes the path — +${frags} Fragments!`, 'linear-gradient(135deg,#001a00,#004400)');
+        }
+    },
+    pit_lord: {
+        name: 'Infernal Dominion', desc: 'Reveal 5 tiles AND gain 3 energy.', uses: 1, cost: 0,
+        execute: () => {
+            const n = _revealTiles(5);
+            breachState.energy = Math.min(20, breachState.energy + 3);
+            renderBreach();
+            _bToast(`Pit Lord dominates — ${n} tiles revealed + 3 Energy!`, 'linear-gradient(135deg,#1a0000,#550000)');
+        }
+    },
+    reality_warper: {
+        name: 'Rewrite', desc: 'Nullify all traps on the map permanently.', uses: 1, cost: 0,
+        execute: () => {
+            let n = 0;
+            breachState.map.forEach(row => row.forEach(tile => {
+                if (tile.event?.type === 'trap') { tile.event = null; n++; }
+            }));
+            _bToast(`Reality Warper rewrites fate — ${n} trap${n!==1?'s':''} erased!`, 'linear-gradient(135deg,#0a001a,#2a0055)');
+        }
+    },
+    alpha_omega: {
+        name: 'All or Nothing', desc: 'Reveal the full map but lose 5 energy. Worth it.', uses: 1, cost: 5,
+        execute: () => {
+            breachState.map.forEach(row => row.forEach(tile => { tile.isExplored = true; }));
+            renderBreach();
+            _bToast('Alpha & Omega reveals ALL — full map visible!', 'linear-gradient(135deg,#0a000a,#330033)');
+        }
+    },
+
+    // ── Guardian Minions (Light Side) ────────────────────────────
+    luminary_sprite: {
+        name: 'Illuminate', desc: 'Reveal 4 tiles + remove all traps in revealed area.', uses: 2, cost: 0,
+        execute: () => {
+            const n = _revealTiles(4);
+            let traps = 0;
+            breachState.map.forEach(row => row.forEach(t => { if (t.isExplored && t.event?.type === 'trap') { t.event = null; traps++; } }));
+            _bToast(`Luminary Sprite shines — ${n} tiles revealed, ${traps} traps dissolved!`, 'linear-gradient(135deg,#1a1400,#443a00)');
+        }
+    },
+    dawn_sentinel: {
+        name: 'Vigilant Ward', desc: 'Absorb next 3 traps AND next hostile costs 0 energy.', uses: 1, cost: 0,
+        execute: () => {
+            breachState.activeBuffs.ignoreTrap = 3;
+            breachState.activeBuffs.freeHostile = true;
+            _bToast('Dawn Sentinel stands guard — 3 traps blocked, next hostile free!', 'linear-gradient(135deg,#1a1000,#443000)');
+        }
+    },
+    aureate_angel: {
+        name: 'Divine Intervention', desc: 'Fully restore energy to 20 (free).', uses: 1, cost: 0,
+        execute: () => {
+            breachState.energy = 20;
+            renderBreach();
+            _bToast('Aureate Angel intervenes — Energy fully restored to 20!', 'linear-gradient(135deg,#1a1800,#443a00)');
+        }
+    },
+    stellar_wraith: {
+        name: 'Starfire Scan', desc: 'Reveal all treasure and chest tiles on the map.', uses: 1, cost: 1,
+        execute: () => {
+            let n = 0;
+            breachState.map.forEach(row => row.forEach(t => {
+                if (!t.isExplored && (t.event?.type === 'treasure' || t.event?.type === 'chest')) { t.isExplored = true; n++; }
+            }));
+            renderBreach();
+            _bToast(`Stellar Wraith burns bright — ${n} treasure tile${n!==1?'s':''} revealed!`, 'linear-gradient(135deg,#1a1600,#444000)');
+        }
+    },
+    prism_golem: {
+        name: 'Crystal Refraction', desc: 'Gain +10 Fragments and reveal 3 tiles.', uses: 1, cost: 0,
+        execute: () => {
+            _addFragments(10, true);
+            const n = _revealTiles(3);
+            _bToast(`Prism Golem refracts light — +10 Fragments + ${n} tiles revealed!`, 'linear-gradient(135deg,#001020,#003050)');
+        }
+    },
+    throne_guardian: {
+        name: 'Eternal Bulwark', desc: 'Absorb next 3 traps and gain 5 energy.', uses: 1, cost: 0,
+        execute: () => {
+            breachState.activeBuffs.ignoreTrap = 3;
+            breachState.energy = Math.min(20, breachState.energy + 5);
+            renderBreach();
+            _bToast('Throne Guardian stands firm — 3 traps absorbed + 5 Energy!', 'linear-gradient(135deg,#001a10,#004030)');
+        }
+    },
+    void_seraph: {
+        name: 'Between Worlds', desc: 'Reveal entire map (costs 3 energy, no other cost).', uses: 1, cost: 3,
+        execute: () => {
+            breachState.map.forEach(row => row.forEach(t => { t.isExplored = true; }));
+            renderBreach();
+            _bToast('Void Seraph tears the veil — full map revealed!', 'linear-gradient(135deg,#0a001a,#1a0040)');
+        }
+    },
+    light_titan: {
+        name: 'Titan Surge', desc: 'Gain +8 energy and reveal 5 tiles.', uses: 1, cost: 0,
+        execute: () => {
+            breachState.energy = Math.min(20, breachState.energy + 8);
+            const n = _revealTiles(5);
+            renderBreach();
+            _bToast(`Light Titan surges — +8 Energy + ${n} tiles revealed!`, 'linear-gradient(135deg,#0a0800,#2a2000)');
+        }
+    },
+    celestial_dragon: {
+        name: 'Causality Breath', desc: 'Erase all traps AND all hostiles from the map.', uses: 1, cost: 2,
+        execute: () => {
+            let n = 0;
+            breachState.map.forEach(row => row.forEach(t => {
+                if (!t.isExplored && (t.event?.type === 'trap' || t.event?.type === 'hostile')) { t.event = null; n++; }
+            }));
+            _bToast(`Celestial Dragon breathes causality — ${n} threat${n!==1?'s':''} erased from existence!`, 'linear-gradient(135deg,#001a10,#003a20)');
+        }
+    },
+    radiant_oracle: {
+        name: 'Foresight', desc: 'Reveal the objective tile immediately (free).', uses: 1, cost: 0,
+        execute: () => {
+            breachState.map.forEach((row,y) => row.forEach((t,x) => {
+                if (t.event?.type === breachState.objective.id || t.event?.type === 'stabilizer' || t.event?.type === 'guardian' || t.event?.type === 'clusters') {
+                    t.isExplored = true;
+                }
+            }));
+            renderBreach();
+            _bToast('Radiant Oracle foresees all — objective tile revealed!', 'linear-gradient(135deg,#1a1200,#443200)');
+        }
+    },
 };
 // =================================================================
 // =================================================================
@@ -24604,7 +24842,7 @@ function startAbyssalBreach(expeditionId) {
     const activeExpedition = gameState.activeExpeditions[expeditionId];
     breachState = {
         expeditionId: expeditionId,
-        size: 5,
+        size: 6,
         map: [],
         playerPosition: { x: 0, y: 0 },
         energy: 20,
@@ -24617,6 +24855,14 @@ function startAbyssalBreach(expeditionId) {
     for(const minionId in activeExpedition.sentMinions) {
         if(breachMinionAbilities[minionId] && activeExpedition.sentMinions[minionId] > 0) {
             breachState.minionAbilities[minionId] = { ...breachMinionAbilities[minionId], usesLeft: breachMinionAbilities[minionId].uses };
+        }
+    }
+    // Also add guardian abilities if transcended (light side)
+    if (gameState.isTranscended || window._devTranscendTest) {
+        for (const minionId in gameState.guardianMinions) {
+            if ((gameState.guardianMinions[minionId]?.level || 0) > 0 && breachMinionAbilities[minionId]) {
+                breachState.minionAbilities[minionId] = { ...breachMinionAbilities[minionId], usesLeft: breachMinionAbilities[minionId].uses };
+            }
         }
     }
     generateBreachMap(breachState.size);
@@ -24680,7 +24926,7 @@ function generateBreachMap(size) {
     }
 }
 function renderBreach() {
-    const TILE_SIZE = 90;
+    const TILE_SIZE = 76;
     const maxEnergy = 20;
     
     // Energy bar
@@ -24851,10 +25097,12 @@ function resolveTileEvent(tile) {
             break;
         }
         case 'hostile': {
-            const win = Math.random() > 0.5;
+            const _freeHostile = breachState.activeBuffs.freeHostile;
+            if (_freeHostile) delete breachState.activeBuffs.freeHostile;
+            const win = _freeHostile || Math.random() > 0.5;
             if (win) {
-                showBreachEventPop('⚔', 'HOSTILE DEFEATED', 'No energy lost', '#ff4444');
-                addBreachLog('⚔ Hostile defeated! No energy lost.', 'good');
+                showBreachEventPop('⚔', 'HOSTILE DEFEATED', _freeHostile ? 'Glacial Stasis! Free kill!' : 'No energy lost', '#ff4444');
+                addBreachLog(_freeHostile ? '⚔ Hostile frozen by Frost Lich — no energy cost!' : '⚔ Hostile defeated! No energy lost.', 'good');
             } else {
                 breachState.energy -= 2;
                 showBreachEventPop('💀', 'AMBUSHED', '-2 Energy', '#ff2222');
@@ -24864,9 +25112,10 @@ function resolveTileEvent(tile) {
         }
         case 'trap': {
             if (breachState.activeBuffs.ignoreTrap) {
-                breachState.activeBuffs.ignoreTrap = false;
-                showBreachEventPop('🕸', 'TRAP ABSORBED', 'Your minion took the hit', '#ff8800');
-                addBreachLog('🕸 Trap triggered — absorbed by your minion!', 'neutral');
+                breachState.activeBuffs.ignoreTrap = Math.max(0, (breachState.activeBuffs.ignoreTrap || 1) - 1);
+                if (breachState.activeBuffs.ignoreTrap <= 0) delete breachState.activeBuffs.ignoreTrap;
+                showBreachEventPop('🕸', 'TRAP ABSORBED', 'Stone Ward blocked it!', '#ff8800');
+                addBreachLog('🕸 Trap triggered — absorbed by Stone Ward!', 'neutral');
             } else {
                 breachState.energy -= 3;
                 showBreachEventPop('🕸', 'TRAP TRIGGERED', '-3 Energy', '#ff6600');

@@ -21907,13 +21907,15 @@ function initBreachRaidListener() {
     const db = window._scFirebase?.db;
     if (!db) return;
 
+    // Declare myName at function scope so it's accessible for the notification listener below
+    const myName = gameState.playerName;
+
     // Track which of our own breaches are currently posted so we can detect theft
     window._myPostedBreaches = window._myPostedBreaches || {};
 
     db.ref('availableBreaches').on('value', snap => {
         const all = snap.val() || {};
         const now = Date.now();
-        const myName = gameState.playerName;
         window._raidableBreaches = {};
 
         // Build set of currently posted keys for our own breaches

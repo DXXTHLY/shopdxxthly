@@ -11490,7 +11490,8 @@ async function saveGame() {
         isTranscended:     gameState.isTranscended ? true : false,
         light_essence:     safe(D(gameState.lightEssence || 0).toNumber()),
         // lightSoulsLog = light souls log — only write when transcended
-        ...(gameState.isTranscended && D(gameState.lifetimeSouls).gt(0) ? {
+        // Only write lightSoulsLog for real transcendence — never for dev test mode
+        ...((gameState.isTranscended && !window._devTranscendTest) && D(gameState.lifetimeSouls).gt(0) ? {
             lightSoulsLog: safe(D(gameState.lifetimeSouls).log10().toNumber(), 0)
         } : {}),
     };
@@ -16976,8 +16977,14 @@ window._worldLockdown = { worldId: null, unlocksAt: 0, path: null };
 window._lightLockdown = { worldId: null, unlocksAt: 0, path: null };
 
 function initWorldLockdown() {
-    const db = window._scFirebase?.db;
-    if (!db) { setTimeout(initWorldLockdown, 3000); return; }
+    const db  = window._scFirebase?.db;
+    const auth = window._scFirebase?.auth;
+    if (!db || !auth) { setTimeout(initWorldLockdown, 3000); return; }
+    // Wait until authenticated before doing any reads/writes
+    if (!auth.currentUser) {
+        setTimeout(initWorldLockdown, 3000);
+        return;
+    }
 
     // Listen to dark world lockdown
     db.ref('worldLockdown/dark').on('value', snap => {
@@ -17028,8 +17035,15 @@ function initWorldLockdown() {
 }
 
 function _triggerNextLockdown(db, isLight) {
-    // Pick a random lockable world from the appropriate pool
-    // Exclude: nether_plains (dark start), celestial_threshold (light start), and very early worlds
+    // Must be authenticated to write
+    const user = window._scFirebase?.auth?.currentUser;
+    if (!user) {
+        // Not authed yet — retry after auth is ready
+        setTimeout(() => _triggerNextLockdown(db, isLight), 5000);
+        return;
+    }
+
+    // Exclude the very first world of each path — players MUST be able to access these
     const darkPool = [
         'ashen_wastes','stygian_depths','burning_hells','frozen_abyss',
         'celestial_ruins','void_threshold','singularity','event_horizon',
@@ -17045,8 +17059,8 @@ function _triggerNextLockdown(db, isLight) {
     if (!pool.length) return;
 
     const picked = pool[Math.floor(Math.random() * pool.length)];
-    const lockDuration = (30 + Math.floor(Math.random() * 31)) * 60 * 1000; // 30–60 min
-    const nextTrigger  = (30 + Math.floor(Math.random() * 31)) * 60 * 1000; // next lockdown after 30–60 min
+    const lockDuration = (30 + Math.floor(Math.random() * 31)) * 60 * 1000;
+    const nextTrigger  = (30 + Math.floor(Math.random() * 31)) * 60 * 1000;
 
     const payload = {
         worldId:    picked,
@@ -17056,7 +17070,8 @@ function _triggerNextLockdown(db, isLight) {
     };
 
     db.ref('worldLockdown/' + (isLight ? 'light' : 'dark')).set(payload)
-        .catch(() => {}); // silent — another client may win the race, that's fine
+        .then(() => console.log('[WorldLock] Locked:', picked, 'for', Math.round(lockDuration/60000), 'min'))
+        .catch(err => console.warn('[WorldLock] Write failed:', err.message));
 }
 
 function _applyWorldLockdown() {
@@ -21225,7 +21240,13 @@ function initializeChat() {
                                 calculateStats(); renderAll();
                                 if (typeof gntRenderLocationPicker === 'function') gntRenderLocationPicker();
                                 if (typeof checkLightMusicSwitch === 'function') checkLightMusicSwitch();
-                                Toastify({ text: '🔧 DEV: Light mode OFF.', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a1000,#333300)' } }).showToast();
+                                // Wipe lightSoulsLog from Supabase so dev doesn't appear on light leaderboard after testing
+                                if (typeof supabaseClient !== 'undefined' && supabaseClient && gameState.playerName && gameState.playerName !== 'Unnamed') {
+                                    supabaseClient.from('players').update({ lightSoulsLog: 0, isTranscended: false }).eq('name', gameState.playerName).then(() => {
+                                        console.log('[Dev] Cleared lightSoulsLog after !light1 test');
+                                    }).catch(() => {});
+                                }
+                                Toastify({ text: '🔧 DEV: Light mode OFF — leaderboard entry cleared.', duration: 3000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a1000,#333300)' } }).showToast();
                             } else {
                             // TOGGLE ON
                             window._devTranscendTest = true;

@@ -17046,6 +17046,9 @@ function loadAuthFirebase() {
                 if (typeof initBreachRaidListener === 'function') {
                     setTimeout(initBreachRaidListener, 2000);
                 }
+                if (typeof initGiftListener === 'function') {
+                    setTimeout(initGiftListener, 3000);
+                }
 
                 // If user is already signed in (persistent session), load their save
                 saveAuth.onAuthStateChanged(user => {
@@ -19914,7 +19917,7 @@ function generateHourlyShopItems() {
                 <div style="background:${soldOut?'#11111133':canAfford?theme.color+'33':'#33333333'}; border:1px solid ${soldOut?'#222':canAfford?theme.color+'66':'#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${soldOut?'#333':canAfford?theme.color:'#555'};">
                     ${soldOut ? '✓ Purchased' : canAfford ? '🛒 Buy' : '🔒 Need More'}
                 </div>
-                ${(type === 'item' || type === 'artifact') ? `<button onclick="event.stopPropagation();openGiftModal('${shopItem.id}','${type}')" title="Gift to a player" style="background:#001808;border:1px solid #44ff8833;border-radius:6px;padding:5px 9px;font-size:0.85em;cursor:pointer;color:#44cc88;" onmouseover="this.style.background='#003318'" onmouseout="this.style.background='#001808'">🎁</button>` : ''}
+                ${(type === 'item' || type === 'artifact' || type === 'potion' || type === 'market_potion' || type === 'light_potion') ? `<button onclick="event.stopPropagation();openGiftModal('${shopItem.id}','${type === 'item' ? 'item' : type === 'artifact' ? 'artifact' : 'potion'}')" title="Gift to a player" style="background:#001808;border:1px solid #44ff8833;border-radius:6px;padding:5px 9px;font-size:0.85em;cursor:pointer;color:#44cc88;" onmouseover="this.style.background='#003318'" onmouseout="this.style.background='#001808'">🎁</button>` : ''}
                 </div>
             </div>
         </div>`;
@@ -19923,21 +19926,21 @@ function generateHourlyShopItems() {
 
 
 // =================================================================
-// Gift Item — players can gift market items to each other
+// Gift Item — pendingGifts/{playerName} Firebase path (publicly writable)
 // =================================================================
 let _giftPendingItemId = null;
-let _giftPendingType = null;
+let _giftPendingItemType = null; // 'item','artifact','potion'
 
 function openGiftModal(itemId, type) {
-    _giftPendingItemId = itemId;
-    _giftPendingType = type;
-    const itemData = type === 'item' ? items[itemId] : artifacts[itemId];
+    _giftPendingItemId   = itemId;
+    _giftPendingItemType = type;
+    const itemData = type === 'potion' ? potions[itemId] : type === 'artifact' ? artifacts[itemId] : items[itemId];
     const modal = document.getElementById('gift-modal');
     const nameEl = document.getElementById('gift-modal-item-name');
     const errEl  = document.getElementById('gift-modal-error');
     const inp    = document.getElementById('gift-recipient-input');
     if (!modal) return;
-    if (nameEl) nameEl.textContent = (itemData?.name || itemId) + ' — ' + (itemData?.rarity || '');
+    if (nameEl) nameEl.textContent = (itemData?.name || itemId);
     if (errEl)  errEl.textContent = '';
     if (inp)    { inp.value = ''; setTimeout(() => inp.focus(), 200); }
     modal.style.display = 'flex';
@@ -19948,39 +19951,74 @@ async function submitGift() {
     const errEl = document.getElementById('gift-modal-error');
     if (!recipientName) { if (errEl) errEl.textContent = 'Enter a player name.'; return; }
     if (recipientName.toLowerCase() === (gameState.playerName || '').toLowerCase()) {
-        if (errEl) errEl.textContent = "You can't gift to yourself."; return;
-    }
+        if (errEl) errEl.textContent = "You can't gift to yourself."; return; }
     if (!_giftPendingItemId) { if (errEl) errEl.textContent = 'No item selected.'; return; }
 
     const db = window._scFirebase?.db;
-    if (!db) { if (errEl) errEl.textContent = 'Connection not ready. Try again.'; return; }
+    if (!db) { if (errEl) errEl.textContent = 'Connection not ready.'; return; }
 
     if (errEl) errEl.textContent = 'Sending...';
+    const senderName = gameState.playerName || 'A mysterious stranger';
 
     try {
-        // Find recipient UID
-        let uid = null;
+        // Verify recipient exists in accountNames
+        let found = false;
         for (const v of [recipientName, recipientName.toLowerCase()]) {
             const snap = await db.ref('accountNames/' + v).once('value');
-            if (snap.exists()) { uid = snap.val(); break; }
+            if (snap.exists()) { found = true; break; }
         }
-        if (!uid) { if (errEl) errEl.textContent = 'Player "' + recipientName + '" not found.'; return; }
+        if (!found) { if (errEl) errEl.textContent = 'Player "' + recipientName + '" not found.'; return; }
 
-        // Load recipient save, add item, write back
-        const saveSnap = await db.ref('gameSaves/' + uid).once('value');
-        if (!saveSnap.exists()) { if (errEl) errEl.textContent = 'Player has no save data.'; return; }
-        let state = JSON.parse(saveSnap.val()?.state || '{}');
-        if (!Array.isArray(state.inventory)) state.inventory = [];
-        state.inventory.push(_giftPendingItemId);
-        await db.ref('gameSaves/' + uid).update({ state: JSON.stringify(state) });
+        const safeRecip = recipientName.replace(/[.#$\[\]]/g, '_');
 
-        const itemName = (_giftPendingType === 'item' ? items[_giftPendingItemId]?.name : artifacts[_giftPendingItemId]?.name) || _giftPendingItemId;
+        // Write to pendingGifts/{recipientName} — publicly writable path
+        const giftKey = db.ref('pendingGifts/' + safeRecip).push().key;
+        await db.ref('pendingGifts/' + safeRecip + '/' + giftKey).set({
+            itemId:   _giftPendingItemId,
+            itemType: _giftPendingItemType,
+            from:     senderName,
+            sentAt:   Date.now()
+        });
+
+        const itemData = _giftPendingItemType === 'potion' ? potions[_giftPendingItemId] : _giftPendingItemType === 'artifact' ? artifacts[_giftPendingItemId] : items[_giftPendingItemId];
+        const itemName = itemData?.name || _giftPendingItemId;
         document.getElementById('gift-modal').style.display = 'none';
-        Toastify({ text: '🎁 ' + itemName + ' gifted to ' + recipientName + '!', duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#001808,#00441888)' } }).showToast();
+        Toastify({ text: '🎁 ' + itemName + ' gifted to ' + recipientName + '!', duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#001808,#004422)' } }).showToast();
         _giftPendingItemId = null;
     } catch(e) {
         if (errEl) errEl.textContent = 'Error: ' + e.message;
     }
+}
+
+// Called after Firebase is ready — listens for incoming gifts
+function initGiftListener() {
+    const db = window._scFirebase?.db;
+    if (!db || !gameState.playerName || gameState.playerName === 'Unnamed') return;
+    const safeName = gameState.playerName.replace(/[.#$\[\]]/g, '_');
+    db.ref('pendingGifts/' + safeName).on('value', snap => {
+        if (!snap.exists()) return;
+        snap.forEach(child => {
+            const g = child.val();
+            if (!g) return;
+            // Apply gift to inventory / potions
+            if (g.itemType === 'potion') {
+                if (!gameState.potions[g.itemId]) gameState.potions[g.itemId] = 0;
+                gameState.potions[g.itemId] = Math.min(10, (gameState.potions[g.itemId] || 0) + 1);
+            } else {
+                if (!Array.isArray(gameState.inventory)) gameState.inventory = [];
+                gameState.inventory.push(g.itemId);
+            }
+            const itemData = g.itemType === 'potion' ? potions[g.itemId] : g.itemType === 'artifact' ? artifacts[g.itemId] : items[g.itemId];
+            const itemName = itemData?.name || g.itemId;
+            Toastify({
+                text: '🎁 ' + (g.from || 'Someone') + ' gifted you: ' + itemName + '!',
+                duration: 12000, gravity:'top', position:'center',
+                style:{ background:'linear-gradient(135deg,#001a08,#004422)' }
+            }).showToast();
+            child.ref.remove().catch(() => {});
+        });
+        calculateStats(); saveGame(); renderInventory();
+    });
 }
 
 // =================================================================
@@ -34597,61 +34635,66 @@ function renderChallengesPanel() {
         if (isOpen) { panel.style.display = 'none'; return; }
 
         panel.style.display = 'block';
-        list.innerHTML = '<div style="color:#554400;font-size:0.75em;">Scanning all saves...</div>';
+        list.innerHTML = '<div style="color:#554400;font-size:0.75em;">Scanning saves...</div>';
 
         const db = window._scFirebase?.db;
         if (!db) { list.innerHTML = '<div style="color:#ff4444;">Firebase not ready.</div>'; return; }
 
         try {
-            const snap = await db.ref('gameSaves').once('value');
-            if (!snap.exists()) { list.innerHTML = '<div style="color:#554400;">No saves found.</div>'; return; }
+            // Get all account names, then check each save individually (dev rule required)
+            const accountSnap = await db.ref('accountNames').once('value');
+            if (!accountSnap.exists()) { list.innerHTML = '<div style="color:#554400;">No accounts found.</div>'; return; }
 
             const holders = [];
             const now = Date.now();
-            const KEY_EXPIRY = 48 * 60 * 60 * 1000; // 48h
+            const KEY_EXPIRY = 48 * 60 * 60 * 1000;
+            const checks = [];
 
-            snap.forEach(child => {
-                const uid = child.key;
-                let state = null;
-                try { state = JSON.parse(child.val()?.state || '{}'); } catch(e) {}
-                if (!state) return;
-                const hk = state.heldKey;
-                if (!hk || !hk.id) return;
-                const expired = (now - (hk.obtainedAt || 0)) > KEY_EXPIRY;
-                const keyData = (typeof KEYS !== 'undefined' && KEYS[hk.id]) || {};
-                holders.push({
-                    uid,
-                    name: state.playerName || uid,
-                    keyId: hk.id,
-                    keyName: keyData.name || hk.id,
-                    keyIcon: keyData.icon || '🗝️',
-                    obtainedAt: hk.obtainedAt || 0,
-                    expired
-                });
+            accountSnap.forEach(child => {
+                const uid = child.val();
+                if (!uid) return;
+                checks.push(
+                    db.ref('gameSaves/' + uid).once('value').then(snap => {
+                        if (!snap.exists()) return;
+                        let state = null;
+                        try { state = JSON.parse(snap.val()?.state || '{}'); } catch(e) {}
+                        if (!state) return;
+                        const hk = state.heldKey;
+                        if (!hk?.id) return;
+                        const expired = (now - (hk.obtainedAt || 0)) > KEY_EXPIRY;
+                        const keyData = (typeof KEYS !== 'undefined' && KEYS[hk.id]) || {};
+                        holders.push({ uid, name: state.playerName || uid, keyId: hk.id,
+                            keyName: keyData.name || hk.id, keyIcon: keyData.icon || '🗝️',
+                            obtainedAt: hk.obtainedAt || 0, expired });
+                    }).catch(() => {})
+                );
             });
+
+            await Promise.all(checks);
 
             if (holders.length === 0) {
                 list.innerHTML = '<div style="color:#554400;font-size:0.78em;">No players currently holding a key.</div>';
                 return;
             }
-
+            holders.sort((a,b) => b.obtainedAt - a.obtainedAt);
+            const now2 = Date.now();
             list.innerHTML = holders.map(h => {
-                const hoursAgo = Math.floor((now - h.obtainedAt) / 3600000);
-                const timeStr  = hoursAgo < 1 ? 'just now' : hoursAgo + 'h ago';
+                const hoursAgo = Math.floor((now2 - h.obtainedAt) / 3600000);
+                const timeStr = hoursAgo < 1 ? 'just now' : hoursAgo + 'h ago';
                 return `<div style="background:#0a0600;border:1px solid #ffaa0022;border-left:3px solid ${h.expired?'#ff4444':'#ffcc44'};border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:10px;">
                     <span style="font-size:1.4em;">${h.keyIcon}</span>
                     <div style="flex:1;min-width:0;">
-                        <div style="color:#ffcc44;font-size:0.8em;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${h.name}</div>
+                        <div style="color:#ffcc44;font-size:0.8em;font-weight:bold;">${h.name}</div>
                         <div style="color:#886622;font-size:0.68em;">${h.keyName} · ${timeStr}${h.expired?' · <span style="color:#ff4444;">EXPIRED</span>':''}</div>
                     </div>
                     <button onclick="devKeyholderAction('${h.uid}','${h.name}','${h.keyId}')"
                         style="background:#1a0800;border:1px solid #ff440055;border-radius:6px;color:#ff6644;padding:4px 10px;cursor:pointer;font-size:0.68em;font-family:inherit;flex-shrink:0;">
-                        🗑 Remove Key
+                        🗑 Remove
                     </button>
                 </div>`;
             }).join('');
         } catch(e) {
-            list.innerHTML = '<div style="color:#ff4444;font-size:0.75em;">Error: ' + e.message + '</div>';
+            list.innerHTML = '<div style="color:#ff4444;font-size:0.75em;">Error: ' + e.message + '<br><span style="color:#553300;">Make sure your UID is in Firebase devUsers.</span></div>';
         }
     };
 

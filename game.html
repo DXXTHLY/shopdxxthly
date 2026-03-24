@@ -3267,13 +3267,41 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div id="potion-recipe-grid" class="ritual-grid"></div>
             </div>
             <div id="inventory-screen" class="screen">
-                <h2 style="letter-spacing:3px;">⚔️ INVENTORY & EQUIPMENT ⚔️</h2>
-                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Equip powerful items from your Abyssal Caches. Each slot grants unique bonuses to your soul harvest.</p>
-                <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:12px;">🛡️ EQUIPPED</h3>
-                <div id="equipped-items-grid" class="ritual-grid"></div>
-                <hr style="border-color:#3d2a4a; margin:24px 0;">
-                <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:12px;">🎒 STORED ITEMS</h3>
-                <div id="inventory-items-grid" class="ritual-grid"></div>
+                <!-- Animated header -->
+                <div style="position:relative; text-align:center; padding:24px 0 20px; margin-bottom:24px; overflow:hidden;">
+                    <div style="position:absolute; inset:0; background:radial-gradient(ellipse at 50% 0%,#aa44ff18,transparent 70%); pointer-events:none;"></div>
+                    <h2 style="letter-spacing:4px; color:#c8b4ff; margin:0 0 6px; font-size:1.5em; text-shadow:0 0 30px #aa44ff88;">⚔ VAULT OF RELICS ⚔</h2>
+                    <p style="color:#4a3a5a; font-size:0.82em; margin:0 0 14px; letter-spacing:1px;">Every item tells a story of darkness collected.</p>
+                    <!-- Live stat pills -->
+                    <div id="inv-stat-bar" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;"></div>
+                </div>
+
+                <!-- EQUIPPED SECTION -->
+                <div style="max-width:1000px; margin:0 auto 28px;">
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                        <span style="color:#c8a800; font-size:1.2em;">🛡</span>
+                        <h3 style="color:#c8a800; letter-spacing:3px; font-size:0.88em; text-transform:uppercase; margin:0;">Equipped</h3>
+                        <div style="flex:1; height:1px; background:linear-gradient(90deg,#c8a80033,transparent);"></div>
+                        <span id="equipped-count" style="color:#c8a80066; font-size:0.72em;"></span>
+                    </div>
+                    <div id="equipped-items-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px;"></div>
+                </div>
+
+                <!-- INVENTORY SECTION -->
+                <div style="max-width:1000px; margin:0 auto;">
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                        <span style="color:#aa44ff; font-size:1.2em;">🎒</span>
+                        <h3 style="color:#aa44ff; letter-spacing:3px; font-size:0.88em; text-transform:uppercase; margin:0;">Stored Items</h3>
+                        <div style="flex:1; height:1px; background:linear-gradient(90deg,#aa44ff33,transparent);"></div>
+                        <span id="inv-count" style="color:#aa44ff66; font-size:0.72em;"></span>
+                    </div>
+                    <!-- Filter tabs -->
+                    <div id="inv-filter-bar" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px;"></div>
+                    <!-- Search -->
+                    <input id="inv-search" type="text" placeholder="🔍 Search items..." oninput="renderInventory()"
+                        style="width:100%; max-width:340px; box-sizing:border-box; background:#08050f; border:1px solid #2a1a3a; color:#ccc; padding:8px 14px; border-radius:8px; font-family:inherit; font-size:0.82em; margin-bottom:14px; display:block;">
+                    <div id="inventory-items-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px;"></div>
+                </div>
             </div>
             <div id="minions-screen" class="screen">
                 <h2 style="letter-spacing:3px; color:#ff6644;">😈 DEMONIC MINIONS 😈</h2>
@@ -14748,137 +14776,172 @@ function renderBestiary() {
 // --------------------------------------------------------
 
 function renderInventory() {
-    const equippedGrid = document.getElementById('equipped-items-grid');
+    const equippedGrid  = document.getElementById('equipped-items-grid');
     const inventoryGrid = document.getElementById('inventory-items-grid');
     if (!equippedGrid || !inventoryGrid) return;
 
-    const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
-    const rarityGlow  = { common:'#aaaaaa22', uncommon:'#44cc4422', rare:'#4488ff22', epic:'#aa44ff22', legendary:'#ffaa0022', forged:'#ff444422' };
-    const typeIcon    = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
+    const RC  = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
+    const RG  = { common:'#aaaaaa15', uncommon:'#44cc4418', rare:'#4488ff18', epic:'#aa44ff18', legendary:'#ffaa0018', forged:'#ff444418' };
+    const TI  = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
+    const RORDER = ['legendary','forged','epic','rare','uncommon','common'];
 
+    // ── Stat bar ────────────────────────────────────────────────────
+    const statBar = document.getElementById('inv-stat-bar');
+    if (statBar) {
+        const totalItems  = gameState.inventory.filter(id => items[id]).length;
+        const equippedCnt = Object.values(gameState.equipped).filter(Boolean).length;
+        const rareCounts  = {};
+        gameState.inventory.forEach(id => { const r = items[id]?.rarity; if(r) rareCounts[r] = (rareCounts[r]||0)+1; });
+        const pills = [
+            ['⚔', equippedCnt + ' equipped', '#c8a800'],
+            ['🎒', totalItems + ' stored', '#aa44ff'],
+        ];
+        if (rareCounts.legendary) pills.push(['🟡', rareCounts.legendary + ' legendary', '#ffaa00']);
+        if (rareCounts.epic)      pills.push(['🟣', rareCounts.epic + ' epic', '#aa44ff']);
+        if (rareCounts.rare)      pills.push(['🔵', rareCounts.rare + ' rare', '#4488ff']);
+        statBar.innerHTML = pills.map(([icon,label,color]) =>
+            `<div style="background:${color}12;border:1px solid ${color}33;border-radius:20px;padding:4px 12px;font-size:0.72em;color:${color};letter-spacing:1px;">${icon} ${label}</div>`
+        ).join('');
+        const ec = document.getElementById('equipped-count');
+        const ic = document.getElementById('inv-count');
+        if (ec) ec.textContent = equippedCnt + ' / 5 slots';
+        if (ic) ic.textContent = totalItems + ' items';
+    }
+
+    // ── Filter state ────────────────────────────────────────────────
+    if (!window._invFilter) window._invFilter = { rarity: 'all', type: 'all' };
+    const filterBar = document.getElementById('inv-filter-bar');
+    if (filterBar && !filterBar._built) {
+        filterBar._built = true;
+        const rarities = ['all','legendary','forged','epic','rare','uncommon','common'];
+        const types    = ['all','weapon','idol','sigil','helm','tome'];
+        const makeBtn  = (val, label, group, color) => {
+            const active = window._invFilter[group] === val;
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            btn.style.cssText = `background:${active ? color+'22' : 'transparent'};border:1px solid ${active ? color+'88' : '#2a1a3a'};border-radius:20px;padding:4px 12px;font-size:0.72em;color:${active ? color : '#444'};cursor:pointer;font-family:inherit;letter-spacing:1px;transition:all 0.15s;`;
+            btn.onclick = () => { window._invFilter[group] = val; filterBar._built = false; renderInventory(); };
+            return btn;
+        };
+        // Rarity row
+        const rarityWrap = document.createElement('div');
+        rarityWrap.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;';
+        rarities.forEach(r => {
+            const color = RC[r] || '#888';
+            const label = r === 'all' ? '✦ All Rarities' : r.charAt(0).toUpperCase()+r.slice(1);
+            rarityWrap.appendChild(makeBtn(r, label, 'rarity', r==='all'?'#888':color));
+        });
+        // Type row
+        const typeWrap = document.createElement('div');
+        typeWrap.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;';
+        types.forEach(t => {
+            const label = t === 'all' ? '📦 All Types' : (TI[t]||'')+ ' '+t.charAt(0).toUpperCase()+t.slice(1);
+            typeWrap.appendChild(makeBtn(t, label, 'type', '#8888ff'));
+        });
+        filterBar.appendChild(rarityWrap);
+        filterBar.appendChild(typeWrap);
+    }
+
+    // ── Item card builder ────────────────────────────────────────────
     function itemCard(itemId, isEquipped) {
         const item = items[itemId];
         if (!item) return '';
-        const rc = rarityColor[item.rarity] || '#aaa';
-        const rg = rarityGlow[item.rarity] || '#aaa2';
-        const icon = typeIcon[item.type] || '🔮';
+        const rc  = RC[item.rarity] || '#aaa';
+        const rg  = RG[item.rarity] || '#aaa1';
+        const icon = TI[item.type] || '🔮';
+        const equippedSlot = Object.entries(gameState.equipped || {}).find(([,v]) => v === itemId)?.[0];
+        const maxDur  = typeof getMaxDurability === 'function' ? getMaxDurability(itemId) : 100;
+        const curDur  = (equippedSlot && typeof getSlotDurability === 'function') ? getSlotDurability(equippedSlot) : maxDur;
+        const durPct  = Math.max(0, curDur / maxDur);
+        const durColor = typeof getDurabilityColor === 'function' ? getDurabilityColor(durPct) : '#44cc88';
+        const durLabel = typeof getDurabilityLabel === 'function' ? getDurabilityLabel(durPct) : 'Good';
+        const repairCost = { common:5, uncommon:10, rare:20, epic:40, legendary:80, forged:150 }[item.rarity] || 20;
+        const maxDurItem = item.maxDurability;
+        const isFragile = maxDurItem && maxDurItem <= 20;
 
+        const durBar = `
+            <div style="margin:6px 0 0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                    <span style="color:#333;font-size:0.62em;letter-spacing:1px;text-transform:uppercase;">🔧 Durability</span>
+                    <span style="color:${durColor};font-size:0.68em;font-weight:bold;">${durLabel} (${Math.floor(curDur)}/${maxDur})${isFragile?` <span style="color:#ff6644;font-size:0.85em;">· Fragile</span>`:''}</span>
+                </div>
+                <div style="background:#0a0510;border-radius:4px;height:4px;overflow:hidden;">
+                    <div style="height:100%;width:${Math.round(durPct*100)}%;background:${durColor};border-radius:4px;transition:width 0.5s;box-shadow:0 0 6px ${durColor}88;"></div>
+                </div>
+                ${(curDur < maxDur && equippedSlot) ? `<button style="margin-top:5px;width:100%;background:transparent;border:1px solid ${durColor}44;border-radius:6px;padding:3px 8px;color:${durColor};font-size:0.68em;cursor:pointer;font-family:inherit;" onclick="repairItem('${itemId}');renderInventory();">🔧 Repair (${repairCost} DE)</button>` : ''}
+            </div>`;
+
+        // Activatable ability button
+        let abilityHtml = '';
         if (isEquipped && item.activatable) {
             const ability = item.activatable;
             const cooldownEndTime = gameState.itemCooldowns[ability.id];
             const isOnCooldown = cooldownEndTime && Date.now() < cooldownEndTime;
-            let btnText = `<span style="color:${rc};">⚡ Activate</span>`;
-            let cooldownBar = '';
             if (isOnCooldown) {
                 const timeLeft = Math.ceil((cooldownEndTime - Date.now()) / 1000);
                 const pct = Math.max(0, (timeLeft / ability.cooldown) * 100);
                 const h = Math.floor(timeLeft / 3600), m = Math.floor((timeLeft % 3600) / 60);
-                cooldownBar = `<div style="margin:8px 0 2px; background:#ffffff10; border-radius:4px; height:5px; overflow:hidden;">
-                    <div style="height:100%; width:${pct}%; background:${rc}; border-radius:4px;"></div></div>
-                    <div style="color:${rc}; font-size:0.75em; text-align:right;">⏳ ${h}h ${m}m</div>`;
-                btnText = `<span style="color:#666;">Recharging</span>`;
+                abilityHtml = `<div style="margin-top:6px;background:#0a0510;border-radius:6px;padding:6px 8px;">
+                    <div style="color:#555;font-size:0.68em;margin-bottom:4px;">⚡ ${ability.name} — Recharging</div>
+                    <div style="background:#1a1030;border-radius:3px;height:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${rc};border-radius:3px;"></div></div>
+                    <div style="color:#444;font-size:0.65em;text-align:right;margin-top:2px;">⏳ ${h}h ${m}m</div>
+                </div>`;
+            } else {
+                abilityHtml = `<button style="margin-top:6px;width:100%;background:linear-gradient(135deg,${rc}18,transparent);border:1px solid ${rc}44;border-radius:6px;padding:6px;color:${rc};font-size:0.75em;cursor:pointer;font-family:inherit;letter-spacing:1px;" onclick="activateItemAbility('${itemId}')">⚡ ${ability.name}</button>`;
             }
-            return `<div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${rc}55; border-top:3px solid ${rc}; border-radius:12px; padding:16px; box-shadow:0 0 16px ${rg}; display:flex; flex-direction:column; gap:6px;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:1.6em;">${icon}</span>
-                    <div>
-                        <div style="color:${rc}; font-weight:bold; font-size:0.95em;">${item.name}</div>
-                        <div style="display:flex; gap:4px; margin-top:2px;">
-                            <span style="background:${rc}22; border:1px solid ${rc}44; border-radius:8px; padding:1px 7px; font-size:0.68em; color:${rc}; text-transform:uppercase;">${item.rarity}</span>
-                            <span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa; text-transform:capitalize;">✦ Equipped</span>
-                        </div>
-                    </div>
-                </div>
-                <p style="color:#aaa; font-size:0.82em; margin:2px 0;">${item.desc}</p>
-                ${cooldownBar}
-                <button class="upgrade-btn" style="margin-top:6px; width:100%; border-color:${rc}66;" onclick="activateItemAbility('${itemId}')" ${isOnCooldown ? 'disabled' : ''}>${btnText}</button>
-                <button class="upgrade-btn" style="margin-top:4px; width:100%; border-color:#cc333344; background:#1a0808;" onclick="unequipItem('${itemId}'); renderInventory();"><span style="color:#cc4444;">📤 Unequip</span></button>
-            </div>`;
         }
 
-        const onclick = isEquipped ? '' : `onclick="openItemModal('${itemId}')"`;
-        const badge = isEquipped ? `<span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa;">✦ Equipped</span>` : `<span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aaa; text-transform:capitalize;">${item.type}</span>`;
+        const actionBtn = isEquipped
+            ? `<button style="margin-top:4px;width:100%;background:linear-gradient(135deg,#1a0808,#0a0404);border:1px solid #cc333344;border-radius:6px;padding:6px;color:#cc4444;font-size:0.75em;cursor:pointer;font-family:inherit;letter-spacing:1px;" onclick="unequipItem('${itemId}');renderInventory();">📤 Unequip</button>`
+            : `<button style="margin-top:6px;width:100%;background:linear-gradient(135deg,${rc}12,transparent);border:1px solid ${rc}44;border-radius:6px;padding:6px;color:${rc};font-size:0.75em;cursor:pointer;font-family:inherit;letter-spacing:1px;" onclick="openItemModal('${itemId}')">Manage →</button>`;
 
-        // Durability bar — only show on equipped items, not inventory items
-        const equippedSlot = Object.entries(gameState.equipped || {}).find(([,v]) => v === itemId)?.[0];
-        const maxDur = typeof getMaxDurability === 'function' ? getMaxDurability(itemId) : 100;
-        const curDur = (equippedSlot && typeof getSlotDurability === 'function')
-            ? getSlotDurability(equippedSlot)
-            : maxDur; // inventory items always show full
-        const durPct = Math.max(0, curDur / maxDur);
-        const durColor = typeof getDurabilityColor === 'function' ? getDurabilityColor(durPct) : '#44cc88';
-        const durLabel = typeof getDurabilityLabel === 'function' ? getDurabilityLabel(durPct) : 'Good';
-        const repairCost = { common:5, uncommon:10, rare:20, epic:40, legendary:80, forged:150 }[item.rarity] || 20;
-        const durBar = `
-            <div style="margin-top:6px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-                    <span style="color:#444; font-size:0.65em; letter-spacing:1px; text-transform:uppercase;">🔧 Durability</span>
-                    <span style="color:${durColor}; font-size:0.7em; font-weight:bold;">${durLabel} (${Math.floor(curDur)}/${maxDur})</span>
-                </div>
-                <div style="background:#1a1030; border-radius:4px; height:5px; overflow:hidden;">
-                    <div style="height:100%; width:${Math.round(durPct*100)}%; background:${durColor}; border-radius:4px; transition:width 0.5s;"></div>
-                </div>
-                ${(curDur < maxDur && equippedSlot) ? `<button class="upgrade-btn" style="margin-top:5px; width:100%; border-color:${durColor}44; padding:4px;" onclick="repairItem('${itemId}'); renderInventory();">
-                    <span style="color:${durColor}; font-size:0.75em;">🔧 Repair (${repairCost} DE)</span>
-                </button>` : ''}
-            </div>`;
-
-        const btn = isEquipped
-            ? `<button class="upgrade-btn" style="margin-top:6px; width:100%; border-color:#cc333344; background:#1a0808;" onclick="unequipItem('${itemId}'); renderInventory();"><span style="color:#cc4444;">📤 Unequip</span></button>`
-            : `<button class="upgrade-btn" style="margin-top:6px; width:100%; border-color:${rc}66;" onclick="openItemModal('${itemId}')"><span style="color:${rc};">Manage →</span></button>`;
-        return `<div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${rc}55; border-top:3px solid ${rc}; border-radius:12px; padding:16px; box-shadow:0 0 16px ${rg}; display:flex; flex-direction:column; gap:6px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:1.6em;">${icon}</span>
-                <div>
-                    <div style="color:${rc}; font-weight:bold; font-size:0.95em;">${item.name}</div>
-                    <div style="display:flex; gap:4px; margin-top:2px; flex-wrap:wrap;">
-                        <span style="background:${rc}22; border:1px solid ${rc}44; border-radius:8px; padding:1px 7px; font-size:0.68em; color:${rc}; text-transform:uppercase;">${item.rarity}</span>
-                        ${badge}
+        return `<div style="background:linear-gradient(145deg,#0c0918,#130d1f);border:1px solid ${rc}33;border-top:2px solid ${rc}88;border-radius:12px;padding:14px;box-shadow:0 4px 20px ${rg},inset 0 1px 0 ${rc}11;position:relative;overflow:hidden;transition:transform 0.15s,box-shadow 0.15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 28px ${rg.replace('15','30').replace('18','36')}';" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px ${rg}';">
+            <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:radial-gradient(ellipse at top right,${rc}0a,transparent);pointer-events:none;"></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
+                <div style="width:38px;height:38px;border-radius:8px;background:${rc}15;border:1px solid ${rc}33;display:flex;align-items:center;justify-content:center;font-size:1.3em;flex-shrink:0;">${icon}</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="color:${rc};font-weight:bold;font-size:0.88em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div>
+                    <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap;">
+                        <span style="background:${rc}18;border:1px solid ${rc}33;border-radius:10px;padding:1px 7px;font-size:0.62em;color:${rc};text-transform:uppercase;letter-spacing:1px;">${item.rarity}</span>
+                        <span style="background:#ffffff08;border:1px solid #ffffff12;border-radius:10px;padding:1px 7px;font-size:0.62em;color:#555;text-transform:capitalize;">${isEquipped ? '✦ Equipped' : item.type}</span>
                     </div>
                 </div>
             </div>
-            <p style="color:#aaa; font-size:0.82em; margin:2px 0; line-height:1.4;">${item.desc}</p>
+            <p style="color:#666;font-size:0.78em;margin:0 0 6px;line-height:1.4;">${item.desc}</p>
             ${durBar}
-            ${btn}
+            ${abilityHtml}
+            ${actionBtn}
         </div>`;
     }
 
-    // Equipped
+    // ── Equipped ─────────────────────────────────────────────────────
     const equippedItems = Object.values(gameState.equipped).filter(Boolean);
-    const cursedSlots = {};
-    const isCursed = false;
-    const cursedCards = isCursed ? Object.entries(cursedSlots).map(([slot, id]) => {
-        const item = items[id];
-        if (!item) return '';
-        const secsLeft = 0;
-        const m = Math.floor(secsLeft / 60), s = secsLeft % 60;
-        return `<div style="background:linear-gradient(135deg,#1a0008,#2a0018); border:1px solid #aa44ff55; border-top:3px solid #aa44ff; border-radius:12px; padding:16px; opacity:0.8;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:1.6em; filter:grayscale(1);">🔮</span>
-                <div>
-                    <div style="color:#aa44ff; font-weight:bold; font-size:0.95em;">${item.name}</div>
-                    <div style="display:flex; gap:4px; margin-top:2px;">
-                        <span style="background:#aa44ff22; border:1px solid #aa44ff44; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#aa44ff; text-transform:uppercase;">CURSED</span>
-                        <span style="background:#ffffff0a; border:1px solid #ffffff15; border-radius:8px; padding:1px 7px; font-size:0.68em; color:#666; text-transform:capitalize;">${slot}</span>
-                    </div>
-                </div>
-            </div>
-            <p style="color:#555; font-size:0.78em; margin:8px 0 4px; font-style:italic;">Stripped by the Abyss God. Returns in ${m}m ${s}s.</p>
-        </div>`;
-    }).join('') : '';
-
-    if (equippedItems.length === 0 && !cursedCards) {
-        equippedGrid.innerHTML = `<div style="color:var(--dim-color); padding:20px; grid-column:1/-1;">No items equipped. Open Abyssal Caches from the main altar!</div>`;
+    if (equippedItems.length === 0) {
+        equippedGrid.innerHTML = `<div style="color:#2a1a3a;padding:30px;text-align:center;border:1px dashed #1a0a2a;border-radius:10px;grid-column:1/-1;font-size:0.82em;font-style:italic;">No items equipped. Find relics in Abyssal Caches or the Hourly Market.</div>`;
     } else {
-        equippedGrid.innerHTML = (cursedCards || '') + equippedItems.map(id => itemCard(id, true)).join('');
-        if (!equippedItems.length && !cursedCards) equippedGrid.innerHTML = `<div style="color:var(--dim-color); padding:20px; grid-column:1/-1;">No items equipped. Open Abyssal Caches from the main altar!</div>`;
+        equippedGrid.innerHTML = equippedItems.map(id => itemCard(id, true)).join('');
     }
 
-    // Inventory
-    if (gameState.inventory.length === 0) {
-        inventoryGrid.innerHTML = `<div style="color:var(--dim-color); padding:20px; grid-column:1/-1;"><div style="font-size:2em; margin-bottom:8px;">🎒</div>Your inventory is empty. Open an Abyssal Cache to find items!</div>`;
+    // ── Inventory with filter + search ────────────────────────────────
+    const search   = (document.getElementById('inv-search')?.value || '').toLowerCase();
+    const fRarity  = window._invFilter?.rarity || 'all';
+    const fType    = window._invFilter?.type   || 'all';
+    let filtered = gameState.inventory.filter(id => {
+        if (!items[id]) return false;
+        if (fRarity !== 'all' && items[id].rarity !== fRarity) return false;
+        if (fType   !== 'all' && items[id].type   !== fType)   return false;
+        if (search && !items[id].name.toLowerCase().includes(search) && !items[id].desc.toLowerCase().includes(search)) return false;
+        return true;
+    });
+    // Sort by rarity (legendary first)
+    filtered.sort((a,b) => RORDER.indexOf(items[a]?.rarity) - RORDER.indexOf(items[b]?.rarity));
+
+    if (filtered.length === 0 && gameState.inventory.length === 0) {
+        inventoryGrid.innerHTML = `<div style="color:#2a1a3a;padding:40px;text-align:center;border:1px dashed #1a0a2a;border-radius:10px;grid-column:1/-1;font-style:italic;">Your vault is empty. Open Abyssal Caches to find relics.</div>`;
+    } else if (filtered.length === 0) {
+        inventoryGrid.innerHTML = `<div style="color:#2a1a3a;padding:30px;text-align:center;grid-column:1/-1;font-style:italic;">No items match your filters.</div>`;
     } else {
-        inventoryGrid.innerHTML = gameState.inventory.filter(id => items[id]).map(id => itemCard(id, false)).join('');
+        inventoryGrid.innerHTML = filtered.map(id => itemCard(id, false)).join('');
     }
 }
 

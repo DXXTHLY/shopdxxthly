@@ -4973,28 +4973,7 @@ text-decoration: underline; /* Adds an underline on hover */
 
                 <p id="version-number" style="color:#333; font-size:0.72em; margin-top:24px; text-align:center;"></p>
 
-                <!-- ── Player Gift Modal ── -->
-                <div id="gift-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(6px);">
-                    <div style="background:linear-gradient(135deg,#080d10,#0a1a12);border:1px solid #44ff8844;border-top:3px solid #44ff88;border-radius:16px;width:min(420px,92vw);padding:28px;text-align:center;box-shadow:0 0 60px #44ff8818;">
-                        <div style="color:#44ffaa;font-family:var(--font-title);font-size:1em;letter-spacing:3px;margin-bottom:6px;">🎁 GIFT ITEM</div>
-                        <div id="gift-modal-item-name" style="color:#88ddaa;font-size:0.85em;margin-bottom:20px;"></div>
-                        <div style="margin-bottom:16px;">
-                            <input id="gift-recipient-input" type="text" maxlength="20" placeholder="Enter player name..."
-                                style="width:100%;box-sizing:border-box;background:#06100a;border:1px solid #44ff8833;border-radius:8px;color:#aaddcc;padding:10px 14px;font-family:inherit;font-size:0.88em;outline:none;text-align:center;">
-                            <div id="gift-modal-error" style="color:#ff4444;font-size:0.72em;margin-top:6px;min-height:16px;"></div>
-                        </div>
-                        <div style="display:flex;gap:10px;justify-content:center;">
-                            <button onclick="submitGift()"
-                                style="background:linear-gradient(135deg,#44ff8822,transparent);border:1px solid #44ff8866;border-radius:8px;padding:10px 28px;color:#44ffaa;font-family:var(--font-title);font-size:0.8em;letter-spacing:2px;cursor:pointer;">
-                                SEND GIFT
-                            </button>
-                            <button onclick="document.getElementById('gift-modal').style.display='none'"
-                                style="background:transparent;border:1px solid #2a1a3a;border-radius:8px;padding:10px 20px;color:#444;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;">
-                                CANCEL
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <!-- ── Player Gift Modal moved to body level ── -->
             </div>
             <!-- ================================================================= -->
             <!-- STATS SCREEN -->
@@ -19917,7 +19896,7 @@ function generateHourlyShopItems() {
                 <div style="background:${soldOut?'#11111133':canAfford?theme.color+'33':'#33333333'}; border:1px solid ${soldOut?'#222':canAfford?theme.color+'66':'#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${soldOut?'#333':canAfford?theme.color:'#555'};">
                     ${soldOut ? '✓ Purchased' : canAfford ? '🛒 Buy' : '🔒 Need More'}
                 </div>
-                ${(type === 'item' || type === 'artifact' || type === 'potion' || type === 'market_potion' || type === 'light_potion') ? `<button onclick="event.stopPropagation();openGiftModal('${shopItem.id}','${type === 'item' ? 'item' : type === 'artifact' ? 'artifact' : 'potion'}')" title="Gift to a player" style="background:#001808;border:1px solid #44ff8833;border-radius:6px;padding:5px 9px;font-size:0.85em;cursor:pointer;color:#44cc88;" onmouseover="this.style.background='#003318'" onmouseout="this.style.background='#001808'">🎁</button>` : ''}
+                ${(type === 'item' || type === 'artifact' || type === 'potion' || type === 'market_potion' || type === 'light_potion') && !soldOut ? `<button onclick="event.stopPropagation();event.preventDefault();openGiftModal('${shopItem.id}','${type}','${hourKey}');return false;" title="Gift this item — uses your shop slot for this item" style="background:#001808;border:1px solid #44ff8833;border-radius:6px;padding:5px 9px;font-size:0.85em;cursor:pointer;color:#44cc88;flex-shrink:0;" onmouseover="this.style.background='#003318';this.style.borderColor='#44ff8866';" onmouseout="this.style.background='#001808';this.style.borderColor='#44ff8833';">🎁</button>` : ''}
                 </div>
             </div>
         </div>`;
@@ -19927,23 +19906,31 @@ function generateHourlyShopItems() {
 
 // =================================================================
 // Gift Item — pendingGifts/{playerName} Firebase path (publicly writable)
+// Gifting costs the gifter their shop slot (marks as purchased/sold for them).
+// The recipient gets a free copy added to their inventory on next load.
 // =================================================================
-let _giftPendingItemId = null;
+let _giftPendingItemId   = null;
 let _giftPendingItemType = null; // 'item','artifact','potion'
+let _giftPendingHourKey  = null; // stored so submitGift can mark sold for gifter
 
-function openGiftModal(itemId, type) {
+function openGiftModal(itemId, type, hourKey) {
     _giftPendingItemId   = itemId;
-    _giftPendingItemType = type;
-    const itemData = type === 'potion' ? potions[itemId] : type === 'artifact' ? artifacts[itemId] : items[itemId];
-    const modal = document.getElementById('gift-modal');
+    _giftPendingHourKey  = hourKey || null;
+    // Normalize type: market_potion and light_potion stored as 'potion' in pendingGifts
+    _giftPendingItemType = (type === 'market_potion' || type === 'light_potion') ? 'potion' : type;
+    const itemData = (type === 'potion' || type === 'market_potion' || type === 'light_potion')
+        ? potions[itemId]
+        : type === 'artifact' ? artifacts[itemId] : items[itemId];
+    const modal  = document.getElementById('gift-modal');
     const nameEl = document.getElementById('gift-modal-item-name');
     const errEl  = document.getElementById('gift-modal-error');
     const inp    = document.getElementById('gift-recipient-input');
-    if (!modal) return;
-    if (nameEl) nameEl.textContent = (itemData?.name || itemId);
-    if (errEl)  errEl.textContent = '';
-    if (inp)    { inp.value = ''; setTimeout(() => inp.focus(), 200); }
+    if (!modal) { console.warn('gift-modal not found in DOM'); return; }
+    if (nameEl) nameEl.textContent = itemData?.name || itemId;
+    if (errEl)  errEl.textContent  = '';
+    if (inp)    inp.value = '';
     modal.style.display = 'flex';
+    setTimeout(() => { if (inp) inp.focus(); }, 150);
 }
 
 async function submitGift() {
@@ -19951,56 +19938,99 @@ async function submitGift() {
     const errEl = document.getElementById('gift-modal-error');
     if (!recipientName) { if (errEl) errEl.textContent = 'Enter a player name.'; return; }
     if (recipientName.toLowerCase() === (gameState.playerName || '').toLowerCase()) {
-        if (errEl) errEl.textContent = "You can't gift to yourself."; return; }
+        if (errEl) errEl.textContent = "You cannot gift to yourself."; return;
+    }
     if (!_giftPendingItemId) { if (errEl) errEl.textContent = 'No item selected.'; return; }
 
     const db = window._scFirebase?.db;
-    if (!db) { if (errEl) errEl.textContent = 'Connection not ready.'; return; }
+    if (!db) { if (errEl) errEl.textContent = 'Connection not ready. Are you signed in?'; return; }
 
-    if (errEl) errEl.textContent = 'Sending...';
     const senderName = gameState.playerName || 'A mysterious stranger';
 
     try {
-        // Verify recipient exists in accountNames
+        if (errEl) errEl.textContent = 'Looking up player...';
+
+        // Look up recipient in accountNames (try exact, lowercase, trimmed variants)
         let found = false;
-        for (const v of [recipientName, recipientName.toLowerCase()]) {
+        let resolvedRecipName = recipientName;
+        for (const v of [recipientName, recipientName.toLowerCase(), recipientName.trim(), recipientName.trim().toLowerCase()]) {
             const snap = await db.ref('accountNames/' + v).once('value');
-            if (snap.exists()) { found = true; break; }
+            if (snap.exists()) { found = true; resolvedRecipName = v; break; }
         }
-        if (!found) { if (errEl) errEl.textContent = 'Player "' + recipientName + '" not found.'; return; }
+        if (!found) {
+            if (errEl) errEl.textContent = 'Player "' + recipientName + '" not found. Check the exact spelling.';
+            return;
+        }
 
-        const safeRecip = recipientName.replace(/[.#$\[\]]/g, '_');
+        if (errEl) errEl.textContent = 'Sending gift...';
+        const safeRecip = resolvedRecipName.replace(/[.#$[\]]/g, '_');
 
-        // Write to pendingGifts/{recipientName} — publicly writable path
-        const giftKey = db.ref('pendingGifts/' + safeRecip).push().key;
-        await db.ref('pendingGifts/' + safeRecip + '/' + giftKey).set({
+        // Write gift to Firebase — publicly writable pendingGifts node
+        const giftRef = db.ref('pendingGifts/' + safeRecip).push();
+        await giftRef.set({
             itemId:   _giftPendingItemId,
             itemType: _giftPendingItemType,
             from:     senderName,
             sentAt:   Date.now()
         });
 
-        const itemData = _giftPendingItemType === 'potion' ? potions[_giftPendingItemId] : _giftPendingItemType === 'artifact' ? artifacts[_giftPendingItemId] : items[_giftPendingItemId];
-        const itemName = itemData?.name || _giftPendingItemId;
+        // ── Mark item as purchased/sold for the gifter ──────────────────
+        // This consumes the gifter's shop slot just like a normal buy would.
+        const _itemIdToMark = _giftPendingItemId;
+        const _hourKeyToMark = _giftPendingHourKey;
+        if (_hourKeyToMark) {
+            if (!gameState.shopPurchases) gameState.shopPurchases = {};
+            const _pk = _hourKeyToMark + ':' + _itemIdToMark;
+            const LIMITS_MAP = { item: 1, artifact: 1, potion: 3, market_potion: 1, light_potion: 2, key: 1 };
+            const _lim = LIMITS_MAP[_giftPendingItemType] || 1;
+            gameState.shopPurchases[_pk] = Math.min(_lim, (gameState.shopPurchases[_pk] || 0) + 1);
+            saveGame();
+            generateHourlyShopItems(); // re-render shop so gifter sees item as sold out
+        }
+
+        const itemData = _giftPendingItemType === 'potion' ? potions[_itemIdToMark] : _giftPendingItemType === 'artifact' ? artifacts[_itemIdToMark] : items[_itemIdToMark];
+        const itemName = itemData?.name || _itemIdToMark;
+
+        // Close modal and clear state
         document.getElementById('gift-modal').style.display = 'none';
-        Toastify({ text: '🎁 ' + itemName + ' gifted to ' + recipientName + '!', duration: 5000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#001808,#004422)' } }).showToast();
-        _giftPendingItemId = null;
+        _giftPendingItemId   = null;
+        _giftPendingItemType = null;
+        _giftPendingHourKey  = null;
+
+        Toastify({
+            text: '🎁 ' + itemName + ' gifted to ' + recipientName + '! They will see it when they next load the game.',
+            duration: 7000, gravity: 'top', position: 'center',
+            style: { background: 'linear-gradient(135deg,#001808,#004422)', fontSize: '0.92em' }
+        }).showToast();
+
     } catch(e) {
-        if (errEl) errEl.textContent = 'Error: ' + e.message;
+        if (errEl) errEl.textContent = 'Error: ' + (e.message || 'Unknown error. Check your connection.');
     }
 }
 
 // Called after Firebase is ready — listens for incoming gifts
+// Also shows a launch notification if gifts arrived while offline
 function initGiftListener() {
     const db = window._scFirebase?.db;
     if (!db || !gameState.playerName || gameState.playerName === 'Unnamed') return;
     const safeName = gameState.playerName.replace(/[.#$\[\]]/g, '_');
+
+    let _isFirstLoad = true; // track first vs live delivery
+
     db.ref('pendingGifts/' + safeName).on('value', snap => {
-        if (!snap.exists()) return;
+        if (!snap.exists()) { _isFirstLoad = false; return; }
+
+        const pendingGifts = [];
         snap.forEach(child => {
             const g = child.val();
             if (!g) return;
-            // Apply gift to inventory / potions
+            pendingGifts.push({ g, ref: child.ref });
+        });
+
+        if (pendingGifts.length === 0) { _isFirstLoad = false; return; }
+
+        // Apply all gifts to game state
+        pendingGifts.forEach(({ g, ref }) => {
             if (g.itemType === 'potion') {
                 if (!gameState.potions[g.itemId]) gameState.potions[g.itemId] = 0;
                 gameState.potions[g.itemId] = Math.min(10, (gameState.potions[g.itemId] || 0) + 1);
@@ -20008,16 +20038,52 @@ function initGiftListener() {
                 if (!Array.isArray(gameState.inventory)) gameState.inventory = [];
                 gameState.inventory.push(g.itemId);
             }
-            const itemData = g.itemType === 'potion' ? potions[g.itemId] : g.itemType === 'artifact' ? artifacts[g.itemId] : items[g.itemId];
-            const itemName = itemData?.name || g.itemId;
-            Toastify({
-                text: '🎁 ' + (g.from || 'Someone') + ' gifted you: ' + itemName + '!',
-                duration: 12000, gravity:'top', position:'center',
-                style:{ background:'linear-gradient(135deg,#001a08,#004422)' }
-            }).showToast();
-            child.ref.remove().catch(() => {});
+            ref.remove().catch(() => {});
         });
+
         calculateStats(); saveGame(); renderInventory();
+
+        // Show notifications — grouped on first load, individual on live delivery
+        if (_isFirstLoad && pendingGifts.length > 1) {
+            // Multiple gifts arrived while offline — show a summary then individual toasts
+            const names = [...new Set(pendingGifts.map(({ g }) => g.from || 'Someone'))];
+            const senderStr = names.length === 1 ? names[0] : names.slice(0,-1).join(', ') + ' & ' + names[names.length-1];
+            setTimeout(() => {
+                Toastify({
+                    text: '🎁 You received ' + pendingGifts.length + ' gift' + (pendingGifts.length > 1 ? 's' : '') + ' from ' + senderStr + ' while you were away!',
+                    duration: 10000, gravity: 'top', position: 'center',
+                    style: { background: 'linear-gradient(135deg,#001a08,#004422)', fontSize: '0.95em' }
+                }).showToast();
+            }, 2000); // slight delay so game is fully visible
+            // Then individual toasts staggered
+            pendingGifts.forEach(({ g }, i) => {
+                const itemData = g.itemType === 'potion' ? potions[g.itemId] : g.itemType === 'artifact' ? artifacts[g.itemId] : items[g.itemId];
+                const itemName = itemData?.name || g.itemId;
+                setTimeout(() => {
+                    Toastify({
+                        text: '🎁 ' + (g.from || 'Someone') + ' gifted you: ' + itemName + '!',
+                        duration: 8000, gravity: 'top', position: 'center',
+                        style: { background: 'linear-gradient(135deg,#001808,#003318)' }
+                    }).showToast();
+                }, 3200 + i * 1200);
+            });
+        } else {
+            // Single gift OR live delivery — show toast immediately (with slight delay on first load)
+            pendingGifts.forEach(({ g }, i) => {
+                const itemData = g.itemType === 'potion' ? potions[g.itemId] : g.itemType === 'artifact' ? artifacts[g.itemId] : items[g.itemId];
+                const itemName = itemData?.name || g.itemId;
+                const delay = _isFirstLoad ? 2000 + i * 800 : i * 800;
+                setTimeout(() => {
+                    Toastify({
+                        text: '🎁 ' + (g.from || 'Someone') + ' gifted you: ' + itemName + '!',
+                        duration: 12000, gravity: 'top', position: 'center',
+                        style: { background: 'linear-gradient(135deg,#001a08,#004422)', fontSize: '0.95em', padding: '12px 20px' }
+                    }).showToast();
+                }, delay);
+            });
+        }
+
+        _isFirstLoad = false;
     });
 }
 
@@ -34694,7 +34760,26 @@ function renderChallengesPanel() {
                 </div>`;
             }).join('');
         } catch(e) {
-            list.innerHTML = '<div style="color:#ff4444;font-size:0.75em;">Error: ' + e.message + '<br><span style="color:#553300;">Make sure your UID is in Firebase devUsers.</span></div>';
+            const _isPerm = e.message && (e.message.includes('permission') || e.message.includes('PERMISSION') || e.message.includes('denied'));
+            if (_isPerm) {
+                list.innerHTML = `<div style="background:#1a0500;border:1px solid #ff440022;border-radius:8px;padding:12px 14px;font-size:0.75em;line-height:1.7;">
+                    <div style="color:#ff6644;font-weight:bold;margin-bottom:6px;">🔒 Firebase Permission Denied</div>
+                    <div style="color:#884422;">Your UID must be in <code style="color:#ffaa44;">devUsers</code> in Firebase, AND your Firebase rules must allow devUsers to read <code style="color:#ffaa44;">gameSaves</code>.</div>
+                    <div style="margin-top:10px;color:#664422;">Add this to your Firebase rules under <code style="color:#ffaa44;">&quot;rules&quot;</code>:<br>
+                    <pre style="color:#ffcc44;font-size:0.88em;background:#0a0000;padding:8px;border-radius:6px;margin-top:6px;overflow-x:auto;">"gameSaves": {
+  ".read": "root.child('devUsers').child(auth.uid).val() === true",
+  "$uid": { ".write": "auth.uid === $uid" }
+},
+"pendingGifts": {
+  "$player": {
+    ".read": "$player === auth.uid || root.child('devUsers').child(auth.uid).val() === true",
+    ".write": "auth != null"
+  }
+}</pre></div>
+                </div>`;
+            } else {
+                list.innerHTML = '<div style="color:#ff4444;font-size:0.75em;">Error: ' + e.message + '<br><span style="color:#553300;">Make sure your UID is in Firebase devUsers.</span></div>';
+            }
         }
     };
 
@@ -35433,6 +35518,35 @@ function launchPrologueIfNew() {
 <div id="gif-picker" style="display:none;position:fixed;background:#0d0a18;border:1px solid #3d2a4a;border-radius:10px;padding:10px;z-index:100000;box-shadow:0 -4px 20px rgba(0,0,0,0.9);width:320px;">
     <input id="gif-search" type="text" placeholder="Search GIFs..." style="width:100%;box-sizing:border-box;background:#080510;border:1px solid #2a1a3a;color:#ddd;padding:7px 10px;border-radius:7px;font-family:inherit;font-size:0.8em;margin-bottom:8px;">
     <div id="gif-results" style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-height:220px;overflow-y:auto;"></div>
+</div>
+
+<!-- Player Gift Modal — lives on body level to avoid overflow/display clipping -->
+<div id="gift-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99000;align-items:center;justify-content:center;backdrop-filter:blur(6px);">
+    <div style="background:linear-gradient(135deg,#080d10,#0a1a12);border:1px solid #44ff8844;border-top:3px solid #44ff88;border-radius:16px;width:min(440px,92vw);padding:30px;text-align:center;box-shadow:0 0 60px #44ff8818;position:relative;">
+        <button onclick="document.getElementById('gift-modal').style.display='none'" style="position:absolute;top:12px;right:14px;background:none;border:1px solid #1a3322;border-radius:6px;color:#334;padding:3px 9px;cursor:pointer;font-size:0.85em;">✕</button>
+        <div style="color:#44ffaa;font-family:var(--font-title);font-size:1em;letter-spacing:3px;margin-bottom:4px;">🎁 GIFT ITEM</div>
+        <div id="gift-modal-item-name" style="color:#88ddaa;font-size:0.85em;margin-bottom:6px;font-style:italic;"></div>
+        <div style="color:#556;font-size:0.72em;margin-bottom:18px;line-height:1.5;">Send this item to another player. It will appear in their inventory when they next load.<br>This <strong style="color:#ffcc88;">uses your shop slot</strong> for this item — it will show as purchased for you.</div>
+        <div style="margin-bottom:16px;">
+            <label style="display:block;font-size:0.7em;letter-spacing:2px;color:#446;margin-bottom:6px;text-transform:uppercase;">Recipient Player Name</label>
+            <input id="gift-recipient-input" type="text" maxlength="20" placeholder="Enter exact player name..."
+                style="width:100%;box-sizing:border-box;background:#06100a;border:1px solid #44ff8833;border-radius:8px;color:#aaddcc;padding:11px 14px;font-family:inherit;font-size:0.9em;outline:none;text-align:center;transition:border-color 0.2s;"
+                onfocus="this.style.borderColor='#44ff8877'" onblur="this.style.borderColor='#44ff8833'"
+                onkeydown="if(event.key==='Enter') submitGift()">
+            <div id="gift-modal-error" style="color:#ff4444;font-size:0.72em;margin-top:6px;min-height:16px;"></div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;">
+            <button onclick="submitGift()"
+                style="background:linear-gradient(135deg,#44ff8822,transparent);border:1px solid #44ff8866;border-radius:8px;padding:11px 32px;color:#44ffaa;font-family:var(--font-title);font-size:0.8em;letter-spacing:2px;cursor:pointer;transition:all 0.2s;"
+                onmouseover="this.style.background='linear-gradient(135deg,#44ff8844,#001a08)'" onmouseout="this.style.background='linear-gradient(135deg,#44ff8822,transparent)'">
+                SEND GIFT
+            </button>
+            <button onclick="document.getElementById('gift-modal').style.display='none'"
+                style="background:transparent;border:1px solid #2a1a3a;border-radius:8px;padding:11px 22px;color:#444;font-family:var(--font-title);font-size:0.8em;letter-spacing:1px;cursor:pointer;">
+                CANCEL
+            </button>
+        </div>
+    </div>
 </div>
 </body>
 </html>

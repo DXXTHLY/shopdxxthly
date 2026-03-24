@@ -23113,9 +23113,11 @@ function _bToast(txt, color) {
 }
 // Helper: reveal N random unexplored tiles
 function _revealTiles(n) {
+    // NEVER reveal chest or key_room tiles — those must be found by exploring
     const unexplored = [];
     breachState.map.forEach((row,y) => row.forEach((tile,x) => {
-        if (!tile.isExplored) unexplored.push({tile,x,y});
+        const t = tile.event?.type;
+        if (!tile.isExplored && t !== 'chest' && t !== 'key_room') unexplored.push({tile,x,y});
     }));
     let revealed = 0;
     while (revealed < n && unexplored.length > 0) {
@@ -23129,124 +23131,124 @@ function _revealTiles(n) {
 }
 
 const breachMinionAbilities = {
+    // ── Dark Minions ─────────────────────────────────────────────
     imp: {
-        name: 'Scout Ahead', desc: 'Reveal 3 random unexplored tiles for free.', uses: 2, cost: 0,
+        name: 'Scout Ahead', desc: 'Costs 1 energy — reveal 3 random tiles (never chests or keys).', uses: 2, cost: 1,
         execute: () => {
             const n = _revealTiles(3);
             _bToast(`The Imp darts ahead — ${n} tile${n!==1?'s':''} revealed!`, 'linear-gradient(135deg,#1a0010,#440022)');
         }
     },
     ghoul: {
-        name: 'Feast on Fear', desc: 'Restore 4 Energy from the void.', uses: 1, cost: 0,
+        name: 'Feast on Fear', desc: 'Costs 1 energy — restore 5 energy from drained souls.', uses: 1, cost: 1,
         execute: () => {
-            breachState.energy = Math.min(28, breachState.energy + 4);
-            _bToast('The Ghoul feasts on fear — +4 Energy!', 'linear-gradient(135deg,#001a00,#003300)');
+            breachState.energy = Math.min(20, breachState.energy + 5);
+            _bToast('The Ghoul feasts — +5 Energy!', 'linear-gradient(135deg,#001a00,#003300)');
             renderBreach();
         }
     },
     demon: {
-        name: 'Hellfire Sweep', desc: 'Reveal all tiles adjacent to your current position (free).', uses: 2, cost: 0,
+        name: 'Hellfire Sweep', desc: 'Costs 2 energy — reveal all tiles adjacent to you (never chests/keys).', uses: 2, cost: 2,
         execute: () => {
             const {x,y} = breachState.playerPosition;
             let n = 0;
             [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([dx,dy]) => {
                 const nx=x+dx, ny=y+dy;
-                if (nx>=0 && ny>=0 && ny<breachState.size && nx<breachState.size && !breachState.map[ny][nx].isExplored) {
-                    breachState.map[ny][nx].isExplored = true; n++;
+                if (nx>=0 && ny>=0 && ny<breachState.size && nx<breachState.size) {
+                    const t = breachState.map[ny][nx];
+                    const ev = t.event?.type;
+                    if (!t.isExplored && ev !== 'chest' && ev !== 'key_room') { t.isExplored = true; n++; }
                 }
             });
             renderBreach();
-            _bToast(`Demon's Hellfire Sweep — ${n} surrounding tile${n!==1?'s':''} revealed!`, 'linear-gradient(135deg,#1a0000,#550000)');
+            _bToast(`Demon's Hellfire Sweep — ${n} tiles revealed!`, 'linear-gradient(135deg,#1a0000,#550000)');
         }
     },
     ash_golem: {
-        name: 'Stone Ward', desc: 'Absorb the next 2 traps you encounter.', uses: 1, cost: 0,
+        name: 'Stone Ward', desc: 'Costs 1 energy — absorb the next 2 traps you step on.', uses: 1, cost: 1,
         execute: () => {
             breachState.activeBuffs.ignoreTrap = 2;
             _bToast('Ash Golem hardens — next 2 traps absorbed!', 'linear-gradient(135deg,#0a0a00,#223300)');
         }
     },
     cinder_wraith: {
-        name: 'Ember Echo', desc: 'Spend 2 energy — gain +6 Corrupted Fragments instantly.', uses: 1, cost: 2,
+        name: 'Ember Echo', desc: 'Costs 2 energy — gain +8 Corrupted Fragments instantly.', uses: 1, cost: 2,
         execute: () => {
-            _addFragments(6, true);
-            _bToast('Cinder Wraith burns through the veil — +6 Fragments!', 'linear-gradient(135deg,#1a0500,#441500)');
+            _addFragments(8, true);
+            _bToast('Cinder Wraith burns through the veil — +8 Fragments!', 'linear-gradient(135deg,#1a0500,#441500)');
         }
     },
     abyssal_stalker: {
-        name: "Hunter's Sense", desc: 'Reveal ALL hostile tiles on the map (costs 2 energy).', uses: 1, cost: 2,
+        name: "Hunter's Sense", desc: 'Costs 2 energy — reveal all hostile tile locations.', uses: 1, cost: 2,
         execute: () => {
             let n = 0;
             breachState.map.forEach((row,y) => row.forEach((tile,x) => {
-                if (!tile.isExplored && tile.event?.type === 'hostile') {
-                    tile.isExplored = true; n++;
-                }
+                if (!tile.isExplored && tile.event?.type === 'hostile') { tile.isExplored = true; n++; }
             }));
             renderBreach();
             _bToast(`Stalker's Sense — ${n} hostile${n!==1?'s':''} revealed!`, 'linear-gradient(135deg,#1a0010,#440033)');
         }
     },
     hellhound: {
-        name: 'Infernal Charge', desc: 'Gain 5 energy — burn through the breach with reckless speed.', uses: 1, cost: 0,
+        name: 'Infernal Charge', desc: 'Costs 1 energy — recover 6 energy from the hunt.', uses: 1, cost: 1,
         execute: () => {
-            breachState.energy = Math.min(28, breachState.energy + 5);
+            breachState.energy = Math.min(20, breachState.energy + 6);
             renderBreach();
-            _bToast('Hellhound charges ahead — +5 Energy!', 'linear-gradient(135deg,#1a0000,#440000)');
+            _bToast('Hellhound charges ahead — +6 Energy!', 'linear-gradient(135deg,#1a0000,#440000)');
         }
     },
     balrog: {
-        name: 'Sunder Reality', desc: 'Reveal the entire map (costs 4 energy).', uses: 1, cost: 4,
+        name: 'Tremor Sense', desc: 'Costs 3 energy — reveal 6 random tiles (never chests or keys).', uses: 1, cost: 3,
         execute: () => {
-            breachState.map.forEach(row => row.forEach(tile => { tile.isExplored = true; }));
-            renderBreach();
-            _bToast('Balrog SUNDERS reality — entire map revealed!', 'linear-gradient(135deg,#2a0000,#660000)');
+            const n = _revealTiles(6);
+            _bToast(`Balrog shakes the ground — ${n} tiles into view!`, 'linear-gradient(135deg,#2a0000,#660000)');
         }
     },
     frost_lich: {
-        name: 'Glacial Stasis', desc: 'Prevent the next hostile encounter from costing energy.', uses: 1, cost: 0,
+        name: 'Glacial Stasis', desc: 'Costs 1 energy — next hostile encounter costs no energy.', uses: 1, cost: 1,
         execute: () => {
             breachState.activeBuffs.freeHostile = true;
-            _bToast('Frost Lich freezes time — next hostile costs no energy!', 'linear-gradient(135deg,#000a1a,#001a44)');
+            _bToast('Frost Lich freezes time — next hostile free!', 'linear-gradient(135deg,#000a1a,#001a44)');
         }
     },
     void_spawn: {
-        name: 'Void Step', desc: 'Teleport to any unexplored tile for free (costs 0 energy).', uses: 1, cost: 0,
+        name: 'Void Pulse', desc: 'Costs 2 energy — reveal 4 random tiles + 2 bonus energy back.', uses: 1, cost: 2,
         execute: () => {
-            // Reveal 4 random tiles and move to the best one (closest to objective)
-            _revealTiles(4);
-            breachState.energy = Math.min(28, breachState.energy + 2);
-            _bToast('Void Spawn tears space — 4 tiles revealed + 2 Energy!', 'linear-gradient(135deg,#0a0020,#220055)');
+            const n = _revealTiles(4);
+            breachState.energy = Math.min(20, breachState.energy + 2);
+            renderBreach();
+            _bToast(`Void Spawn pulses — ${n} tiles revealed + 2 Energy back!`, 'linear-gradient(135deg,#0a0020,#220055)');
         }
     },
     fallen_angel: {
-        name: 'Divine Mercy', desc: 'Restore energy to full (12 energy, costs nothing).', uses: 1, cost: 0,
+        name: 'Divine Mercy', desc: 'Costs 2 energy — restore energy to at least 14.', uses: 1, cost: 2,
         execute: () => {
-            const gained = 12 - breachState.energy;
-            breachState.energy = 16;
+            const gained = Math.max(0, 14 - breachState.energy);
+            breachState.energy = Math.max(breachState.energy, 14);
             renderBreach();
-            _bToast(`Fallen Angel intervenes — Energy restored to 16 (+${Math.max(0,gained)})!`, 'linear-gradient(135deg,#1a0020,#440066)');
+            _bToast(`Fallen Angel intervenes — Energy restored (+${gained})!`, 'linear-gradient(135deg,#1a0020,#440066)');
         }
     },
     shoggoth: {
-        name: 'Consume All', desc: 'Gain 3 Fragments for every already-explored tile (max 18 frags).', uses: 1, cost: 1,
+        name: 'Consume All', desc: 'Costs 2 energy — gain 1 Fragment per explored tile (max 20).', uses: 1, cost: 2,
         execute: () => {
             const explored = breachState.map.flat().filter(t => t.isExplored).length;
-            const frags = Math.min(18, Math.floor(explored * 0.5));
+            const frags = Math.min(20, explored);
             _addFragments(frags, true);
             _bToast(`Shoggoth consumes the path — +${frags} Fragments!`, 'linear-gradient(135deg,#001a00,#004400)');
         }
     },
     pit_lord: {
-        name: 'Infernal Dominion', desc: 'Reveal 5 tiles AND gain 3 energy.', uses: 1, cost: 0,
+        name: 'Infernal Dominion', desc: 'Costs 2 energy — reveal 5 tiles + gain 2 energy back.', uses: 1, cost: 2,
         execute: () => {
             const n = _revealTiles(5);
-            breachState.energy = Math.min(28, breachState.energy + 3);
+            breachState.energy = Math.min(20, breachState.energy + 2);
             renderBreach();
-            _bToast(`Pit Lord dominates — ${n} tiles revealed + 3 Energy!`, 'linear-gradient(135deg,#1a0000,#550000)');
+            _bToast(`Pit Lord dominates — ${n} tiles revealed + 2 Energy back!`, 'linear-gradient(135deg,#1a0000,#550000)');
         }
     },
     reality_warper: {
-        name: 'Rewrite', desc: 'Nullify all traps on the map permanently.', uses: 1, cost: 0,
+        name: 'Rewrite', desc: 'Costs 2 energy — nullify all traps on the map permanently.', uses: 1, cost: 2,
         execute: () => {
             let n = 0;
             breachState.map.forEach(row => row.forEach(tile => {
@@ -23256,26 +23258,25 @@ const breachMinionAbilities = {
         }
     },
     alpha_omega: {
-        name: 'All or Nothing', desc: 'Reveal the full map but lose 5 energy. Worth it.', uses: 1, cost: 5,
+        name: 'Duality Scan', desc: 'Costs 3 energy — reveal 8 random tiles (never chests or keys).', uses: 1, cost: 3,
         execute: () => {
-            breachState.map.forEach(row => row.forEach(tile => { tile.isExplored = true; }));
-            renderBreach();
-            _bToast('Alpha & Omega reveals ALL — full map visible!', 'linear-gradient(135deg,#0a000a,#330033)');
+            const n = _revealTiles(8);
+            _bToast(`Alpha & Omega scans the void — ${n} tiles revealed!`, 'linear-gradient(135deg,#0a000a,#330033)');
         }
     },
 
     // ── Guardian Minions (Light Side) ────────────────────────────
     luminary_sprite: {
-        name: 'Illuminate', desc: 'Reveal 4 tiles + remove all traps in revealed area.', uses: 2, cost: 0,
+        name: 'Illuminate', desc: 'Costs 1 energy — reveal 4 tiles + dissolve nearby traps.', uses: 2, cost: 1,
         execute: () => {
             const n = _revealTiles(4);
             let traps = 0;
             breachState.map.forEach(row => row.forEach(t => { if (t.isExplored && t.event?.type === 'trap') { t.event = null; traps++; } }));
-            _bToast(`Luminary Sprite shines — ${n} tiles revealed, ${traps} traps dissolved!`, 'linear-gradient(135deg,#1a1400,#443a00)');
+            _bToast(`Luminary Sprite shines — ${n} tiles, ${traps} traps dissolved!`, 'linear-gradient(135deg,#1a1400,#443a00)');
         }
     },
     dawn_sentinel: {
-        name: 'Vigilant Ward', desc: 'Absorb next 3 traps AND next hostile costs 0 energy.', uses: 1, cost: 0,
+        name: 'Vigilant Ward', desc: 'Costs 1 energy — absorb next 3 traps + next hostile is free.', uses: 1, cost: 1,
         execute: () => {
             breachState.activeBuffs.ignoreTrap = 3;
             breachState.activeBuffs.freeHostile = true;
@@ -23283,78 +23284,78 @@ const breachMinionAbilities = {
         }
     },
     aureate_angel: {
-        name: 'Divine Intervention', desc: 'Fully restore energy to 28 (free).', uses: 1, cost: 0,
+        name: 'Divine Intervention', desc: 'Costs 2 energy — restore energy to at least 18.', uses: 1, cost: 2,
         execute: () => {
-            breachState.energy = 28;
+            const gained = Math.max(0, 18 - breachState.energy);
+            breachState.energy = Math.max(breachState.energy, 18);
             renderBreach();
-            _bToast('Aureate Angel intervenes — Energy fully restored to 20!', 'linear-gradient(135deg,#1a1800,#443a00)');
+            _bToast(`Aureate Angel intervenes — Energy to 18 (+${gained})!`, 'linear-gradient(135deg,#1a1800,#443a00)');
         }
     },
     stellar_wraith: {
-        name: 'Starfire Scan', desc: 'Reveal all treasure and chest tiles on the map.', uses: 1, cost: 1,
+        name: 'Starfire Scan', desc: 'Costs 2 energy — reveal all treasure tile locations (never chests or keys).', uses: 1, cost: 2,
         execute: () => {
             let n = 0;
             breachState.map.forEach(row => row.forEach(t => {
-                if (!t.isExplored && (t.event?.type === 'treasure' || t.event?.type === 'chest')) { t.isExplored = true; n++; }
+                if (!t.isExplored && t.event?.type === 'treasure') { t.isExplored = true; n++; }
             }));
             renderBreach();
-            _bToast(`Stellar Wraith burns bright — ${n} treasure tile${n!==1?'s':''} revealed!`, 'linear-gradient(135deg,#1a1600,#444000)');
+            _bToast(`Stellar Wraith burns bright — ${n} treasure${n!==1?'s':''} revealed!`, 'linear-gradient(135deg,#1a1600,#444000)');
         }
     },
     prism_golem: {
-        name: 'Crystal Refraction', desc: 'Gain +10 Fragments and reveal 3 tiles.', uses: 1, cost: 0,
+        name: 'Crystal Refraction', desc: 'Costs 2 energy — gain +12 Fragments + reveal 3 tiles.', uses: 1, cost: 2,
         execute: () => {
-            _addFragments(10, true);
+            _addFragments(12, true);
             const n = _revealTiles(3);
-            _bToast(`Prism Golem refracts light — +10 Fragments + ${n} tiles revealed!`, 'linear-gradient(135deg,#001020,#003050)');
+            _bToast(`Prism Golem refracts — +12 Fragments + ${n} tiles!`, 'linear-gradient(135deg,#001020,#003050)');
         }
     },
     throne_guardian: {
-        name: 'Eternal Bulwark', desc: 'Absorb next 3 traps and gain 5 energy.', uses: 1, cost: 0,
+        name: 'Eternal Bulwark', desc: 'Costs 1 energy — absorb next 3 traps + gain 4 energy back.', uses: 1, cost: 1,
         execute: () => {
             breachState.activeBuffs.ignoreTrap = 3;
-            breachState.energy = Math.min(28, breachState.energy + 5);
+            breachState.energy = Math.min(20, breachState.energy + 4);
             renderBreach();
-            _bToast('Throne Guardian stands firm — 3 traps absorbed + 5 Energy!', 'linear-gradient(135deg,#001a10,#004030)');
+            _bToast('Throne Guardian stands firm — 3 traps absorbed + 4 Energy!', 'linear-gradient(135deg,#001a10,#004030)');
         }
     },
     void_seraph: {
-        name: 'Between Worlds', desc: 'Reveal entire map (costs 3 energy, no other cost).', uses: 1, cost: 3,
+        name: 'Dimensional Sight', desc: 'Costs 3 energy — reveal 7 random tiles (never chests or keys).', uses: 1, cost: 3,
         execute: () => {
-            breachState.map.forEach(row => row.forEach(t => { t.isExplored = true; }));
-            renderBreach();
-            _bToast('Void Seraph tears the veil — full map revealed!', 'linear-gradient(135deg,#0a001a,#1a0040)');
+            const n = _revealTiles(7);
+            _bToast(`Void Seraph tears the veil — ${n} tiles revealed!`, 'linear-gradient(135deg,#0a001a,#1a0040)');
         }
     },
     light_titan: {
-        name: 'Titan Surge', desc: 'Gain +8 energy and reveal 5 tiles.', uses: 1, cost: 0,
+        name: 'Titan Surge', desc: 'Costs 2 energy — recover 8 energy from sheer force.', uses: 1, cost: 2,
         execute: () => {
-            breachState.energy = Math.min(28, breachState.energy + 8);
-            const n = _revealTiles(5);
+            breachState.energy = Math.min(20, breachState.energy + 8);
             renderBreach();
-            _bToast(`Light Titan surges — +8 Energy + ${n} tiles revealed!`, 'linear-gradient(135deg,#0a0800,#2a2000)');
+            _bToast('Light Titan surges — +8 Energy!', 'linear-gradient(135deg,#0a0800,#2a2000)');
         }
     },
     celestial_dragon: {
-        name: 'Causality Breath', desc: 'Erase all traps AND all hostiles from the map.', uses: 1, cost: 2,
+        name: 'Causality Breath', desc: 'Costs 3 energy — erase all traps AND hostiles from the entire map.', uses: 1, cost: 3,
         execute: () => {
             let n = 0;
             breachState.map.forEach(row => row.forEach(t => {
-                if (!t.isExplored && (t.event?.type === 'trap' || t.event?.type === 'hostile')) { t.event = null; n++; }
+                if (t.event?.type === 'trap' || t.event?.type === 'hostile') { t.event = null; n++; }
             }));
-            _bToast(`Celestial Dragon breathes causality — ${n} threat${n!==1?'s':''} erased from existence!`, 'linear-gradient(135deg,#001a10,#003a20)');
+            _bToast(`Celestial Dragon breathes — ${n} threat${n!==1?'s':''} erased!`, 'linear-gradient(135deg,#001a10,#003a20)');
         }
     },
     radiant_oracle: {
-        name: 'Foresight', desc: 'Reveal the objective tile immediately (free).', uses: 1, cost: 0,
+        name: 'Foresight', desc: 'Costs 2 energy — reveal the objective tile location.', uses: 1, cost: 2,
         execute: () => {
             breachState.map.forEach((row,y) => row.forEach((t,x) => {
-                if (t.event?.type === breachState.objective.id || t.event?.type === 'stabilizer' || t.event?.type === 'guardian' || t.event?.type === 'clusters') {
+                const ev = t.event?.type;
+                if (ev === breachState.objective.id || ev === 'stabilizer' || ev === 'guardian' || ev === 'clusters') {
                     t.isExplored = true;
                 }
             }));
             renderBreach();
-            _bToast('Radiant Oracle foresees all — objective tile revealed!', 'linear-gradient(135deg,#1a1200,#443200)');
+            _bToast('Radiant Oracle foresees — objective tile revealed!', 'linear-gradient(135deg,#1a1200,#443200)');
         }
     },
 };
@@ -29643,42 +29644,41 @@ const CODEX_CHAPTERS = [
                     <div style="color:#888; font-size:0.82em; line-height:1.5;">Rarely, a breach tile holds a sealed Abyssal Chest. Stepping on it triggers a spinning reel — prizes include all potions, common through legendary items, Corrupted Fragments, and at extremely low odds, a secret minion.</div>
                 </div>
             </div>
-
-            <div style="color:#ff8844; font-size:0.85em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; border-bottom:1px solid #ff884422; padding-bottom:6px;">⚡ Breach Minion Abilities</div>
-            <p style="color:#777; font-size:0.8em; margin-bottom:10px; line-height:1.5;">Minions in your expedition party — and guardian minions if transcended — grant usable abilities inside the breach. Raiders bring abilities from their own owned minions.</p>
+            <div style="color:#ff8844; font-size:0.85em; text-transform:uppercase; letter-spacing:2px; margin-bottom:6px; border-bottom:1px solid #ff884422; padding-bottom:6px;">⚡ Breach Minion Abilities</div>
+            <p style="color:#777; font-size:0.8em; margin-bottom:10px; line-height:1.5;">Every ability costs energy. <strong style="color:#ff4444;">Chests and key rooms are never revealed by any ability</strong> — they must be found by physically exploring. Raiders use their own minions' abilities.</p>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:16px;">
                 ${[
-                    ['🔴','Imp','Scout Ahead','Reveal 3 random tiles (2 uses)'],
-                    ['💀','Ghoul','Feast on Fear','+4 Energy (free)'],
-                    ['😈','Demon','Hellfire Sweep','Reveal all 8 adjacent tiles (2 uses)'],
-                    ['⚫','Ash Golem','Stone Ward','Absorb next 2 traps'],
-                    ['🌀','Cinder Wraith','Ember Echo','+6 Fragments (2 energy)'],
-                    ['🐺','Abyssal Stalker',"Hunter's Sense",'Reveal ALL hostile tiles (2 energy)'],
-                    ['🔥','Hellhound','Infernal Charge','+5 Energy (free)'],
-                    ['👹','Balrog','Sunder Reality','Reveal entire map (4 energy)'],
-                    ['❄️','Frost Lich','Glacial Stasis','Next hostile costs 0 energy'],
-                    ['🌑','Void Spawn','Void Step','Reveal 4 tiles + 2 energy'],
-                    ['👼','Fallen Angel','Divine Mercy','Restore energy to 16'],
-                    ['🟤','Shoggoth','Consume All','+Frags per explored tile (1 energy)'],
-                    ['👑','Pit Lord','Infernal Dominion','Reveal 5 tiles + 3 energy'],
-                    ['🌀','Reality Warper','Rewrite','Delete ALL traps from map'],
-                    ['♾','Alpha & Omega','All or Nothing','Full map reveal (5 energy)'],
+                    ['🔴','Imp','Scout Ahead','1e · Reveal 3 tiles (2 uses)'],
+                    ['💀','Ghoul','Feast on Fear','1e · +5 Energy'],
+                    ['😈','Demon','Hellfire Sweep','2e · Reveal 8 adjacent tiles (2 uses)'],
+                    ['⚫','Ash Golem','Stone Ward','1e · Absorb next 2 traps'],
+                    ['🌀','Cinder Wraith','Ember Echo','2e · +8 Fragments'],
+                    ['🐺','Abyssal Stalker',"Hunter's Sense",'2e · Reveal all hostiles'],
+                    ['🔥','Hellhound','Infernal Charge','1e · +6 Energy'],
+                    ['👹','Balrog','Tremor Sense','3e · Reveal 6 tiles'],
+                    ['❄️','Frost Lich','Glacial Stasis','1e · Next hostile free'],
+                    ['🌑','Void Spawn','Void Pulse','2e · Reveal 4 tiles + 2e back'],
+                    ['👼','Fallen Angel','Divine Mercy','2e · Restore to 14 energy'],
+                    ['🟤','Shoggoth','Consume All','2e · +1 Frag per explored tile'],
+                    ['👑','Pit Lord','Infernal Dominion','2e · Reveal 5 tiles + 2e back'],
+                    ['🌀','Reality Warper','Rewrite','2e · Erase all traps'],
+                    ['♾','Alpha & Omega','Duality Scan','3e · Reveal 8 tiles'],
                 ].map(([icon,name,ability,desc]) => '<div style="background:#06030f;border:1px solid #ff884415;border-radius:6px;padding:8px 10px;display:flex;gap:8px;align-items:flex-start;"><span style="font-size:1.1em;flex-shrink:0;">' + icon + '</span><div><div style="color:#ff8844;font-size:0.75em;font-weight:bold;">' + name + '</div><div style="color:#ddd;font-size:0.72em;">' + ability + '</div><div style="color:#666;font-size:0.68em;margin-top:2px;">' + desc + '</div></div></div>').join('')}
             </div>
 
-            <div style="color:#c8b4ff; font-size:0.85em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; border-bottom:1px solid #c8b4ff22; padding-bottom:6px;">✦ Guardian Breach Abilities (Light Side)</div>
+            <div style="color:#c8b4ff; font-size:0.85em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; border-bottom:1px solid #c8b4ff22; padding-bottom:6px;">✦ Guardian Abilities (Light Side — transcended only)</div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
                 ${[
-                    ['✨','Luminary Sprite','Illuminate','4 tiles revealed + traps dissolved (2 uses)'],
-                    ['🌅','Dawn Sentinel','Vigilant Ward','3 traps absorbed + next hostile free'],
-                    ['😇','Aureate Angel','Divine Intervention','Restore energy to full 28'],
-                    ['⭐','Stellar Wraith','Starfire Scan','Reveal all treasures & chests (1 energy)'],
-                    ['🔷','Prism Golem','Crystal Refraction','+10 Fragments + 3 tiles'],
-                    ['🛡️','Throne Guardian','Eternal Bulwark','3 traps absorbed + 5 energy'],
-                    ['🌌','Void Seraph','Between Worlds','Full map reveal (3 energy)'],
-                    ['⚡','Light Titan','Titan Surge','+8 energy + 5 tiles revealed'],
-                    ['🐉','Celestial Dragon','Causality Breath','Erase ALL traps AND hostiles'],
-                    ['🌟','Radiant Oracle','Foresight','Reveal objective tile instantly'],
+                    ['✨','Luminary Sprite','Illuminate','1e · Reveal 4 tiles + dissolve traps (2 uses)'],
+                    ['🌅','Dawn Sentinel','Vigilant Ward','1e · 3 traps absorbed + next hostile free'],
+                    ['😇','Aureate Angel','Divine Intervention','2e · Restore to 18 energy'],
+                    ['⭐','Stellar Wraith','Starfire Scan','2e · Reveal all treasure tiles'],
+                    ['🔷','Prism Golem','Crystal Refraction','2e · +12 Frags + reveal 3 tiles'],
+                    ['🛡️','Throne Guardian','Eternal Bulwark','1e · 3 traps absorbed + 4e back'],
+                    ['🌌','Void Seraph','Dimensional Sight','3e · Reveal 7 tiles'],
+                    ['⚡','Light Titan','Titan Surge','2e · +8 Energy'],
+                    ['🐉','Celestial Dragon','Causality Breath','3e · Erase ALL traps + hostiles'],
+                    ['🌟','Radiant Oracle','Foresight','2e · Reveal objective tile'],
                 ].map(([icon,name,ability,desc]) => '<div style="background:#06030f;border:1px solid #c8b4ff15;border-radius:6px;padding:8px 10px;display:flex;gap:8px;align-items:flex-start;"><span style="font-size:1.1em;flex-shrink:0;">' + icon + '</span><div><div style="color:#c8b4ff;font-size:0.75em;font-weight:bold;">' + name + '</div><div style="color:#ddd;font-size:0.72em;">' + ability + '</div><div style="color:#666;font-size:0.68em;margin-top:2px;">' + desc + '</div></div></div>').join('')}
             </div>
         `

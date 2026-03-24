@@ -1713,13 +1713,13 @@
             border-color: #1a0a2a !important;
         }
         /* ── Danger aura — adjacent to hidden hostile/trap ── */
-        .breach-danger {
-            box-shadow: inset 0 0 12px #ff220018 !important;
-            border-color: #ff222222 !important;
+        /* Only applied to tiles that are NOT adjacent (not glowing), just a faint bg tint */
+        .breach-danger:not(.adjacent) {
+            background: radial-gradient(ellipse at center, #ff110008, transparent) !important;
         }
         .breach-danger.adjacent {
-            box-shadow: inset 0 0 16px #ff220033, 0 0 8px #ff220022 !important;
-            border-color: #ff444444 !important;
+            box-shadow: inset 0 0 14px #ff220044, 0 0 6px #ff220033 !important;
+            border-color: #ff333333 !important;
         }
 
         /* ── Fog overlay ── */
@@ -12404,20 +12404,28 @@ function activateRitual(id) {
         // True endgame — heavy cost
         infinite_hunger: 150, beyond_everything: 200, the_last_ritual: 250,
     };
-    const fragCost = RITUAL_FRAG_COSTS[id] || 0;
+    // Fragment cost scales with how many times this ritual has been cast
+    // Each use increases the cost: multiplier = ceil(uses / 5) * 1 (doubles every 5 uses, triples every 10, etc.)
+    if (!gameState.ritualUseCounts) gameState.ritualUseCounts = {};
+    const _useCount = gameState.ritualUseCounts[id] || 0;
+    // Cost multiplier: 1x for first 5 uses, 2x for uses 6-10, 3x for 11-15, etc. Caps at 10x
+    const _fragMult = Math.min(10, 1 + Math.floor(_useCount / 5));
+    const fragCost = Math.ceil((RITUAL_FRAG_COSTS[id] || 0) * _fragMult);
     if (fragCost > 0 && D(gameState.corruptedFragments || 0).lt(fragCost)) {
-        Toastify({ text: `🔮 ${ritualData.name} requires ${fragCost} Corrupted Fragments.`, duration: 3000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#1a001a,#440044)' } }).showToast();
+        const _base = RITUAL_FRAG_COSTS[id] || 0;
+        const _msg = _fragMult > 1 ? ` (×${_fragMult} — cast ${_useCount} times)` : '';
+        Toastify({ text: `🔮 ${ritualData.name} requires ${fragCost} Corrupted Fragments${_msg}.`, duration: 3500, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#1a001a,#440044)' } }).showToast();
         return;
     }
 
     // --- All checks passed, let's activate it! ---
-    // Transcended players pay 3× more soul cost for rituals
     const transcendRitualMul = gameState.isTranscended ? 3 : 1;
     gameState.souls = D(gameState.souls).sub(D(ritualData.cost).mul(transcendRitualMul));
     gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(ritualData.cost).mul(transcendRitualMul));
     if (fragCost > 0) {
         gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(fragCost);
     }
+    gameState.ritualUseCounts[id] = _useCount + 1;
     gameState.ritualsPerformed++;
 
     const effect = ritualData.effect;
@@ -17388,15 +17396,27 @@ function initWorldLockdown() {
     db.ref('worldLockdown/dark').on('value', snap => {
         const data = snap.val();
         if (data && data.worldId && Date.now() < data.unlocksAt) {
+            // Active lockdown — use it
             window._worldLockdown = data;
         } else {
             window._worldLockdown = { worldId: null, unlocksAt: 0 };
-            // Expired lockdown — schedule the next one with random delay to avoid client collision
-            if (data && data.unlocksAt && Date.now() > data.unlocksAt) {
-                const nextDelay = (data.nextAt || 0) - Date.now();
-                const delay = nextDelay > 0 ? nextDelay : (5000 + Math.random() * 15000);
-                setTimeout(() => _triggerNextLockdown(db, false), delay + Math.random() * 10000);
+            // No active lockdown — schedule the next one
+            // If expired, use nextAt; if null/missing, trigger soon
+            let delay;
+            if (data && data.nextAt) {
+                const nextDelay = data.nextAt - Date.now();
+                delay = nextDelay > 0 ? nextDelay : (5000 + Math.random() * 20000);
+            } else {
+                delay = 5000 + Math.random() * 20000;
             }
+            // Only one client should write — use small random jitter + check-before-write
+            setTimeout(() => {
+                db.ref('worldLockdown/dark').once('value', check => {
+                    const latest = check.val();
+                    const stillExpired = !latest || !latest.worldId || Date.now() >= (latest.unlocksAt || 0);
+                    if (stillExpired) _triggerNextLockdown(db, false);
+                });
+            }, delay + Math.random() * 15000);
         }
         _applyWorldLockdown();
         renderMap();
@@ -17901,7 +17921,9 @@ function renderRituals() {
         const effectiveCost = D(r.cost).mul(gameState.isTranscended ? 3 : 1);
         const cannotAfford = D(gameState.souls).lt(effectiveCost);
         const RITUAL_FRAG_COSTS = { blood_frenzy:5, demonic_horde:5, soul_sear:5, essence_theft:5, unholy_power:5, devils_bargain:5, glacial_freeze:5, divine_curse:10, void_rupture:15, entropic_cascade:20, ascendants_echo:25, reality_fracture:30, void_resonance:30, singularity_pulse:35, horizon_collapse:40, event_loop:30, temporal_rift:50, genesis_surge:50, primal_harvest:40, first_breath:60, godfire:75, ash_resurrection:60, divine_mandate:100, time_shatter:80, chronos_debt:70, age_of_ruin:100, omega_convergence:90, final_theorem:120, point_of_no_return:100, infinite_hunger:150, beyond_everything:200, the_last_ritual:250 };
-        const fragCost = RITUAL_FRAG_COSTS[id] || 0;
+        const _rUseCount = (gameState.ritualUseCounts || {})[id] || 0;
+        const _rFragMult = Math.min(10, 1 + Math.floor(_rUseCount / 5));
+        const fragCost = Math.ceil((RITUAL_FRAG_COSTS[id] || 0) * _rFragMult);
         const cannotAffordFrags = fragCost > 0 && D(gameState.corruptedFragments || 0).lt(fragCost);
         const meta = ritualMeta[id] || { icon:'🔮', color:'#8855ff', glow:'#8855ff44' };
         const effectLabel = effectLabels[r.effect?.type] || '✨ Special';
@@ -17941,7 +17963,7 @@ function renderRituals() {
                     🕐 Cooldown: ${r.cooldown >= 3600 ? (r.cooldown/3600)+'h' : r.cooldown >= 60 ? (r.cooldown/60)+'m' : r.cooldown+'s'}
                 </div>
                 <div style="font-size:0.88em; color:${cannotAfford && !isOnCooldown ? '#ff4444' : '#e8c46a'}; font-weight:bold;">
-                    Cost: ${formatNumber(gameState.isTranscended ? D(r.cost).mul(3) : r.cost)} souls${gameState.isTranscended ? '<span style="color:#c8b4ff;font-size:0.8em;"> ×3</span>' : ''}${fragCost > 0 ? ` <span style="color:${cannotAffordFrags ? '#ff4444' : '#aa44ff'};">+ ${fragCost} 🔮</span>` : ''}
+                    Cost: ${formatNumber(gameState.isTranscended ? D(r.cost).mul(3) : r.cost)} souls${gameState.isTranscended ? '<span style="color:#c8b4ff;font-size:0.8em;"> ×3</span>' : ''}${fragCost > 0 ? ` <span style="color:${cannotAffordFrags ? '#ff4444' : '#aa44ff'};">+ ${fragCost} 🔮${_rFragMult > 1 ? `<span style="color:#ff884488;font-size:0.78em;"> ×${_rFragMult}</span>` : ''}</span>` : ''}
                 </div>
             </div>
             <button id="ritual-btn-${id}" class="upgrade-btn" onclick="activateRitual('${id}')" ${btnDisabled}
@@ -25316,7 +25338,7 @@ function generateBreachMap(size) {
 
     // 2% chance this breach contains a hidden key room — one tile, deep in the grid
     // It looks exactly like an empty unexplored tile. No hint. No marking.
-    if (Math.random() < 0.02) {
+    if (Math.random() < 0.005) {
         let kx, ky;
         let attempts = 0;
         do {

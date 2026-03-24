@@ -1608,20 +1608,18 @@
             100% { opacity:0; transform:translateY(-6px) scale(0.95); }
         }
         #breach-event-pop {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%,-50%);
+            position: relative;
+            margin: 10px auto 0;
             background: linear-gradient(135deg,#0c0818,#180c28);
             border: 1px solid #cc3333;
-            border-radius: 14px;
-            padding: 18px 28px;
+            border-radius: 12px;
+            padding: 12px 24px;
             text-align: center;
-            z-index: 600;
             pointer-events: none;
             display: none;
             min-width: 200px;
-            box-shadow: 0 0 40px #cc333344;
+            max-width: 420px;
+            box-shadow: 0 0 30px #cc333322;
         }
         #breach-event-pop.show { animation: event-pop 2s ease forwards; display: block; }
 
@@ -11044,7 +11042,7 @@ const expeditions = {
         rewards: [
             { type: 'guaranteed', item: 'corruptedFragments', min: 10, max: 20 },
             { type: 'guaranteed', item: 'darkEssence', min: 300, max: 350 },
-            { type: 'chance', item: 'common_item', chance: 0.80 },
+            { type: 'chance', item: 'fallen_soldier_common', chance: 0.90 },
             { type: 'chance', item: 'uncommon_item', chance: 0.25 }
         ]
     },
@@ -11060,7 +11058,8 @@ const expeditions = {
         rewards: [
             { type: 'guaranteed', item: 'corruptedFragments', min: 15, max: 20 },
             { type: 'guaranteed', item: 'darkEssence', min: 330, max: 350 },
-            { type: 'chance', item: 'uncommon_item', chance: 0.60 },
+            { type: 'chance', item: 'fallen_soldier_common', chance: 0.90 },
+            { type: 'chance', item: 'fallen_soldier_uncommon', chance: 0.55 },
             { type: 'chance', item: 'epic_item', chance: 0.08 }
         ]
     }
@@ -21845,27 +21844,68 @@ window._raidableBreaches = {}; // cached from Firebase listener
 function initBreachRaidListener() {
     const db = window._scFirebase?.db;
     if (!db) return;
+
+    // Track which of our own breaches are currently posted so we can detect theft
+    window._myPostedBreaches = window._myPostedBreaches || {};
+
     db.ref('availableBreaches').on('value', snap => {
         const all = snap.val() || {};
         const now = Date.now();
         const myName = gameState.playerName;
-        // Filter: not mine, not expired
         window._raidableBreaches = {};
+
+        // Build set of currently posted keys for our own breaches
+        const myKeysNow = {};
+
         for (const key in all) {
             const b = all[key];
-            if (b.playerName === myName) continue; // skip own breaches
             if (now > b.expiresAt) {
-                // Expired — clean up
                 db.ref('availableBreaches/' + key).remove().catch(() => {});
                 continue;
             }
-            window._raidableBreaches[key] = b;
+            if (b.playerName === myName) {
+                myKeysNow[key] = b; // track own posted breaches
+            } else {
+                window._raidableBreaches[key] = b; // others see raidable
+            }
         }
-        // Re-render if on expeditions screen
+
+        // Detect if one of our own previously-posted breaches just disappeared (was raided)
+        for (const key in window._myPostedBreaches) {
+            if (!myKeysNow[key] && !all[key]) {
+                // Our breach is gone — someone raided it. Check raid notifications.
+                const expId = window._myPostedBreaches[key]?.expeditionId;
+                if (expId && gameState.activeExpeditions[expId]) {
+                    gameState.activeExpeditions[expId].breachIsReady = false;
+                    gameState.activeExpeditions[expId].breachStolenAt = Date.now();
+                }
+            }
+        }
+        window._myPostedBreaches = myKeysNow;
+
         if (document.getElementById('expeditions-screen')?.classList.contains('active')) {
             renderExpeditions();
         }
     });
+
+    // Listen for raid notifications directed at us
+    if (myName && myName !== 'Unnamed') {
+        const safeMyName = myName.replace(/[.#$[\]]/g, '_');
+        db.ref('raidNotifications/' + safeMyName).on('child_added', snap => {
+            const n = snap.val();
+            if (!n) return;
+            // Show the notification
+            Toastify({
+                text: `⚔ ${n.raiderName} raided your ${n.expeditionName} breach and ${n.won ? 'won' : 'fled'}!${n.won ? ' They stole your rewards.' : ' They got nothing.'}`,
+                duration: 9000,
+                gravity: 'top',
+                position: 'center',
+                style: { background: n.won ? 'linear-gradient(135deg,#2a0000,#660000)' : 'linear-gradient(135deg,#1a1000,#333300)' }
+            }).showToast();
+            // Clean up the notification after reading
+            snap.ref.remove().catch(() => {});
+        });
+    }
 }
 
 function raidPlayerBreach(key) {
@@ -21920,6 +21960,20 @@ function _enterRaidedBreach(breach) {
     document.getElementById('breach-overlay').style.display = 'flex';
     setTimeout(() => document.getElementById('breach-overlay')?.classList.add('active'), 500);
     Toastify({ text: `⚔ Raiding ${breach.playerName}'s breach! Take what you can.`, duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#2a0000,#660000)' } }).showToast();
+}
+
+function _writeRaidNotification(breach, won) {
+    const db = window._scFirebase?.db;
+    if (!db) return;
+    const targetName = breach.playerName.replace(/[.#$[\]]/g, '_');
+    const notifKey = db.ref('raidNotifications/' + targetName).push().key;
+    db.ref('raidNotifications/' + targetName + '/' + notifKey).set({
+        raiderName:     gameState.playerName,
+        expeditionName: breach.expeditionName || breach.expeditionId,
+        expeditionIcon: breach.expeditionIcon || '⚔',
+        won:            won,
+        ts:             Date.now()
+    }).catch(() => {});
 }
 
 function repeatExpedition(id) {
@@ -22113,6 +22167,10 @@ function renderExpeditions() {
                 return `<span style="background:#c8a80015; border:1px solid #c8a80033; border-radius:6px; padding:1px 7px; font-size:0.7em; color:#c8a800;">🌑 ${r.min}-${r.max} DE</span>`;
             if (r.type === 'chance') {
                 const chance = Math.round(r.chance * 100);
+                if (r.item === 'fallen_soldier_common')
+                    return `<span style="background:#88664415; border:1px solid #88664433; border-radius:6px; padding:1px 7px; font-size:0.7em; color:#886644;">${chance}% worn item</span>`;
+                if (r.item === 'fallen_soldier_uncommon')
+                    return `<span style="background:#44884415; border:1px solid #44884433; border-radius:6px; padding:1px 7px; font-size:0.7em; color:#44cc44;">${chance}% salvaged gear</span>`;
                 const rarity = r.item.split('_')[0];
                 const rc = { common:'#aaa', uncommon:'#44cc44', epic:'#aa44ff', legendary:'#ffaa00' }[rarity] || '#aaa';
                 return `<span style="background:${rc}15; border:1px solid ${rc}33; border-radius:6px; padding:1px 7px; font-size:0.7em; color:${rc};">${chance}% ${rarity} item</span>`;
@@ -22184,6 +22242,7 @@ function endBreach(isVictory) {
         _addFragments(bonusFrags, true);
         if (_isRaided) {
             Toastify({ text: `⚔ Raid successful! Plundered +${bonusFrags} Fragments from ${_raidedFrom}'s breach!`, duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#2a0000,#660000)' } }).showToast();
+            if (window._raidedBreachSource) _writeRaidNotification(window._raidedBreachSource, true);
         } else if (gameState.isTranscended) {
             const leReward = Math.floor(1 + Math.random() * 3);
             gameState.lightEssence = D(gameState.lightEssence || 0).add(leReward);
@@ -22197,6 +22256,7 @@ function endBreach(isVictory) {
     } else {
         if (_isRaided) {
             Toastify({ text: `⚔ Raid failed — you fled ${_raidedFrom}'s breach.`, duration: 4000, style: { background: "var(--primary-color)" } }).showToast();
+            if (window._raidedBreachSource) _writeRaidNotification(window._raidedBreachSource, false);
         } else {
             Toastify({ text: "You fled the breach, your energy depleted.", duration: 5000, style: { background: "var(--primary-color)" } }).showToast();
         }
@@ -22254,6 +22314,23 @@ function completeExpedition(id) {
         }
         // Chance item reward
         if (reward.type === 'chance' && Math.random() < reward.chance) {
+            // --- FALLEN SOLDIER POOLS — specific worn/cracked items from dead collectors ---
+            if (reward.item === 'fallen_soldier_common') {
+                const _fallenCommon = ['cracked_effigy','cracked_lifestone','tattered_map','cracked_visor','field_notes'];
+                const _picked = _fallenCommon[Math.floor(Math.random() * _fallenCommon.length)];
+                gameState.inventory.push(_picked);
+                rewardText += `\nFound a fallen collector's item: ${items[_picked]?.name || _picked}!`;
+                return;
+            }
+            if (reward.item === 'fallen_soldier_uncommon') {
+                const _fallenUncommon = Object.keys(items).filter(id => items[id].rarity === 'uncommon');
+                if (_fallenUncommon.length) {
+                    const _picked = _fallenUncommon[Math.floor(Math.random() * _fallenUncommon.length)];
+                    gameState.inventory.push(_picked);
+                    rewardText += `\nRecovered salvage: ${items[_picked]?.name || _picked}!`;
+                }
+                return;
+            }
             // --- LANTERN LOGIC ---
             let itemRarity = reward.item.split('_')[0];
             const sigilId = gameState.equipped.sigil;
@@ -27247,13 +27324,6 @@ Your listing will remain until someone accepts it or it expires.`;
 <!-- ================================================================= -->
 <div id="breach-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.97); z-index:500; backdrop-filter:blur(10px); flex-direction:column; justify-content:center; align-items:center; font-family:var(--font-body);">
 
-    <!-- Event pop notification -->
-    <div id="breach-event-pop">
-        <div id="breach-event-pop-icon" style="font-size:2em; margin-bottom:6px;"></div>
-        <div id="breach-event-pop-title" style="color:#fff; font-weight:bold; font-size:0.95em; letter-spacing:1px;"></div>
-        <div id="breach-event-pop-desc" style="color:#888; font-size:0.75em; margin-top:4px;"></div>
-    </div>
-
     <!-- Header -->
     <div style="text-align:center; margin-bottom:14px;">
         <div style="color:#cc3333; font-family:var(--font-title); font-size:1.3em; letter-spacing:5px; text-shadow:0 0 20px #cc333399;">⚡ ABYSSAL BREACH ⚡</div>
@@ -27269,6 +27339,12 @@ Your listing will remain until someone accepts it or it expires.`;
                 <div id="breach-player-token"></div>
             </div>
             <div style="text-align:center; margin-top:6px; color:#2a1a2a; font-size:0.62em; letter-spacing:3px;">CLICK GLOWING TILES TO MOVE</div>
+            <!-- Event pop — appears below the grid -->
+            <div id="breach-event-pop">
+                <div id="breach-event-pop-icon" style="font-size:1.6em; margin-bottom:4px;"></div>
+                <div id="breach-event-pop-title" style="color:#fff; font-weight:bold; font-size:0.88em; letter-spacing:1px;"></div>
+                <div id="breach-event-pop-desc" style="color:#888; font-size:0.72em; margin-top:3px;"></div>
+            </div>
         </div>
 
         <!-- Sidebar -->
@@ -30279,11 +30355,15 @@ const _origActivateRitual = activateRitual;
 activateRitual = function(id) {
     const eclipseActive = gameState.activePotions['eclipse_key_buff'] && Date.now() < gameState.activePotions['eclipse_key_buff'];
     if (eclipseActive) {
-        // Eclipse key makes rituals free — zero the SOUL cost only, fragments still required
+        // Eclipse key: zero BOTH soul cost AND fragment cost for the duration
         const origCost = rituals[id].cost;
         rituals[id].cost = 0;
+        // Temporarily add enough fragments to cover any cost
+        const _origFrags = D(gameState.corruptedFragments || 0);
+        gameState.corruptedFragments = D(9999);
         _origActivateRitual(id);
         rituals[id].cost = origCost;
+        gameState.corruptedFragments = _origFrags; // restore — fragments not consumed
     } else {
         _origActivateRitual(id);
     }

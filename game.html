@@ -34636,10 +34636,15 @@ function renderChallengesPanel() {
 (function() {
     // ── Dev-only guard — MUST pass before any action executes ──────────────
     function _assertDev() {
+        // Trust the session flag — it was set by !isDev which already verified
+        // the chat UID against devList (config.devList) server-side at unlock time.
+        if (window._devPanelUnlocked === true) return true;
+        // Also accept save Firebase UID as a belt-and-suspenders fallback
         const uid = window._scFirebase?.auth?.currentUser?.uid;
         if (uid && typeof _DEV_UIDS !== 'undefined' && _DEV_UIDS.has(uid)) return true;
-        // Also accept if panel was unlocked via chat (belt-and-suspenders)
-        if (window._devPanelUnlocked && uid && typeof _DEV_UIDS !== 'undefined' && _DEV_UIDS.has(uid)) return true;
+        // Also accept chat UID (window._chatUid) against devList
+        const chatUid = window._chatUid;
+        if (chatUid && typeof window._scIsDev === 'function' && window._scIsDev(chatUid)) return true;
         // Silently kill — don't hint that a guard exists
         console.warn('%c⛔ Unauthorized', 'color:#ff4444;font-weight:bold;');
         return false;

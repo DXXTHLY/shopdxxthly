@@ -20035,7 +20035,8 @@ async function submitGift() {
 function initGiftListener() {
     const db = window._scFirebase?.db;
     if (!db || !gameState.playerName || gameState.playerName === 'Unnamed') return;
-    const safeName = gameState.playerName.replace(/[.#$\[\]]/g, '_');
+    // accountNames keys are always stored lowercased, so pendingGifts keys are also lowercased
+    const safeName = gameState.playerName.toLowerCase().replace(/[.#$\[\]]/g, '_');
 
     let _isFirstLoad = true; // track first vs live delivery
 
@@ -21687,7 +21688,24 @@ function initializeChat() {
             if (!_sysUids.includes(msg.uid)) {
                 if (!window._chatBanCache) window._chatBanCache = {};
                 const _bc = window._chatBanCache[msg.uid];
-                if (_bc === true) return; // confirmed banned — drop silently
+                if (_bc === true) {
+                    // Re-verify against Firebase in case player was unbanned — don't trust stale cache
+                    const _bdb2 = (typeof window._getChatDb === 'function') ? window._getChatDb() : null;
+                    if (_bdb2) {
+                        _bdb2.ref('bannedUsers/' + msg.uid).once('value').then(snap => {
+                            if (snap.exists()) {
+                                const b = snap.val();
+                                const active = b.expiresAt === -1 || b.expiresAt > Date.now();
+                                window._chatBanCache[msg.uid] = active;
+                                if (!active) _bdb2.ref('bannedUsers/' + msg.uid).remove();
+                            } else {
+                                // Ban was removed — clear cache so future messages show
+                                delete window._chatBanCache[msg.uid];
+                            }
+                        });
+                    }
+                    return; // still drop this message while we re-check
+                }
                 if (_bc === undefined) {
                     // First time we see this UID — mark pending, fire async check
                     window._chatBanCache[msg.uid] = null;
@@ -35120,6 +35138,11 @@ function renderChallengesPanel() {
             document.getElementById('dev-gift-target')?.focus();
             return;
         }
+        // Prevent devs from gifting items to themselves
+        if (targetName.toLowerCase() === (gameState.playerName || '').toLowerCase()) {
+            if (logEl) logEl.textContent = '⛔ You cannot gift items to yourself.';
+            return;
+        }
         const db = window._scFirebase?.db;
         if (!db) { if (logEl) logEl.textContent = '❌ Firebase not ready.'; return; }
 
@@ -35536,8 +35559,9 @@ function renderChallengesPanel() {
             if (!snap.exists()) { devLog('⚠ ' + t.name + ' is not currently banned.'); return; }
 
             await chatDb.ref('bannedUsers/' + t.uid).remove();
-            // Clear cache so messages render again immediately
-            if (window._chatBanCache) window._chatBanCache[t.uid] = false;
+            // Delete cache entry entirely so the next message triggers a fresh Firebase check
+            // (setting to false only helps the dev's own client; other clients need to re-check)
+            if (window._chatBanCache) delete window._chatBanCache[t.uid];
             // Post system message
             await chatDb.ref('slitherChat').push({
                 uid: 'system',

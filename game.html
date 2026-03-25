@@ -23269,10 +23269,30 @@ function completeExpedition(id) {
         }
     }
 
+    // Build total fragment multiplier from equipped tome (primary + .and bonus)
+    let _fragMultTotal = 1.0;
     const tomeId = gameState.equipped.tome;
-    if (tomeId && items[tomeId] && items[tomeId].bonus.type === 'expedition_fragment_multiplier') {
-        fragmentsGained = Math.floor(fragmentsGained * items[tomeId].bonus.value);
+    if (tomeId && items[tomeId]) {
+        const _tb = items[tomeId].bonus;
+        if (_tb.type === 'expedition_fragment_multiplier') _fragMultTotal *= _tb.value;
+        if (_tb.and && _tb.and.type === 'expedition_fragment_multiplier') _fragMultTotal *= _tb.and.value;
     }
+    // Also check sigil for expedition_fragment_multiplier
+    const sigilId2 = gameState.equipped.sigil;
+    if (sigilId2 && items[sigilId2]) {
+        const _sb = items[sigilId2].bonus;
+        if (_sb.type === 'expedition_fragment_multiplier') _fragMultTotal *= _sb.value;
+        if (_sb.and && _sb.and.type === 'expedition_fragment_multiplier') _fragMultTotal *= _sb.and.value;
+    }
+    // Apply ascension passive bonuses (expedition_fragment_multiplier type)
+    if (gameState.unlockedPassives) {
+        gameState.unlockedPassives.forEach(function(p) {
+            if (p && p.bonus && p.bonus.type === 'expedition_fragment_multiplier') _fragMultTotal *= p.bonus.value;
+        });
+    }
+    // Hard cap: total multiplier never exceeds 6x to prevent runaway fragment generation
+    _fragMultTotal = Math.min(6.0, _fragMultTotal);
+    fragmentsGained = Math.floor(fragmentsGained * _fragMultTotal);
 
     _addFragments(fragmentsGained, true);
     if (fragmentsGained > 0) rewardText += `Found ${fragmentsGained} Corrupted Fragments!`;
@@ -35876,7 +35896,13 @@ function renderChallengesPanel() {
                 _giftLogCache.reverse(); // newest first
             }
             devRenderGiftLog();
-            if (footer) footer.textContent = 'Showing last ' + _giftLogCache.length + ' gift(s). Newest first.';
+            if (footer) {
+                if (_giftLogCache.length === 0) {
+                    footer.textContent = 'No gifts logged yet — logging starts from now. All future gifts will appear here.';
+                } else {
+                    footer.textContent = 'Showing last ' + _giftLogCache.length + ' gift(s). Newest first. Search filters as you type.';
+                }
+            }
         } catch(e) {
             const isPerm = e.message && (e.message.includes('permission') || e.message.includes('denied'));
             if (isPerm) {

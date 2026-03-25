@@ -35989,5 +35989,88 @@ function launchPrologueIfNew() {
         </div>
     </div>
 </div>
+<!-- ══ PROMO ALERTS — rotating hourly messages ══ -->
+<script>
+(function() {
+    var _promoMessages = [
+        {
+            icon: '💬',
+            title: 'Join the Community!',
+            lines: [
+                'Chat with players, get updates & enter giveaways.',
+                '<a href="https://dsc.gg/143X" target="_blank" style="color:#7289da;font-weight:bold;text-decoration:none;">🔗 dsc.gg/143X</a> — Join our Discord!'
+            ]
+        },
+        {
+            icon: '🌐',
+            title: "Check Out the Dev's Site!",
+            lines: [
+                'News, projects & more from the creator of this game.',
+                '<a href="https://dxxthly.com" target="_blank" style="color:#ff6688;font-weight:bold;text-decoration:none;">🔗 dxxthly.com</a> — Visit now!'
+            ]
+        },
+        {
+            icon: '⚙️',
+            title: 'Customize Your Profile!',
+            lines: [
+                'Set your avatar, name colour & motto in chat.',
+                'Press the <b style="color:#ffcc44;">⚙ gear icon</b> in the chat panel to get started!'
+            ]
+        },
+        {
+            icon: '🎮',
+            title: 'Stay in the Loop!',
+            lines: [
+                'Updates, events & dev announcements posted regularly.',
+                '<a href="https://dsc.gg/143X" target="_blank" style="color:#7289da;font-weight:bold;text-decoration:none;">🔗 dsc.gg/143X</a> · <a href="https://dxxthly.com" target="_blank" style="color:#ff6688;font-weight:bold;text-decoration:none;">dxxthly.com</a>'
+            ]
+        }
+    ];
+
+    var _promoIndex = 0;
+
+    function _showPromo() {
+        var msg = _promoMessages[_promoIndex % _promoMessages.length];
+        _promoIndex++;
+
+        // Build the toast HTML
+        var node = document.createElement('div');
+        node.style.cssText = 'min-width:260px;max-width:320px;padding:14px 18px;line-height:1.5;';
+        node.innerHTML =
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+                '<span style="font-size:1.3em;">' + msg.icon + '</span>' +
+                '<span style="font-family:\'Orbitron\',sans-serif;font-size:0.8em;letter-spacing:1.5px;color:#fff;font-weight:bold;">' + msg.title + '</span>' +
+            '</div>' +
+            msg.lines.map(function(l) {
+                return '<div style="font-size:0.8em;color:#ddd;margin-top:3px;">' + l + '</div>';
+            }).join('') +
+            '<div style="margin-top:8px;height:1px;background:linear-gradient(to right,#ff336644,transparent);"></div>' +
+            '<div style="font-size:0.62em;color:#55335588;margin-top:5px;letter-spacing:1px;">SOUL COLLECTOR · DXXTHLY.COM</div>';
+
+        Toastify({
+            node: node,
+            duration: 12000,
+            gravity: 'bottom',
+            position: 'right',
+            stopOnFocus: true,
+            style: {
+                background: 'linear-gradient(135deg,#0e0018,#1a0030)',
+                border: '1px solid #ff336633',
+                borderLeft: '3px solid #ff3366',
+                borderRadius: '12px',
+                boxShadow: '0 4px 24px #ff006622',
+                padding: '0',
+            }
+        }).showToast();
+    }
+
+    // Show first one after 3 minutes (give player time to settle in), then every hour
+    setTimeout(function() {
+        _showPromo();
+        setInterval(_showPromo, 60 * 60 * 1000);
+    }, 3 * 60 * 1000);
+})();
+</script>
+<!-- ══ END PROMO ALERTS ══ -->
 </body>
 </html>

@@ -21463,24 +21463,68 @@ function initializeChat() {
                 const chatInput = document.getElementById('chat-input');
                 if (chatInput) { chatInput.disabled = false; chatInput.placeholder = 'Speak into the abyss...'; }
 
-                // ── On-load ban check: lock out banned users immediately ──
-                (function _checkBanOnLoad() {
+                // ── Real-time ban listener: locks/unlocks chat live & shows countdown ──
+                (function _watchBan() {
                     const _chatDbBan = (function(){ try { const a = window.firebase && window.firebase.apps.find(a=>a.name==='chatApp'); return a ? a.database() : null; } catch(e){ return null; } })();
                     if (!_chatDbBan) return;
-                    _chatDbBan.ref('bannedUsers/' + user.uid).once('value').then(banSnap => {
-                        if (!banSnap.exists()) return;
-                        const b = banSnap.val();
-                        const isActive = b.expiresAt === -1 || b.expiresAt > Date.now();
-                        if (!isActive) { _chatDbBan.ref('bannedUsers/' + user.uid).remove(); return; }
-                        // Lock the UI
+                    let _banCountdownTimer = null;
+                    function _lockChat(b) {
                         const _ci = document.getElementById('chat-input');
                         const _sb = document.getElementById('chat-send-btn');
                         const _gb = document.getElementById('chat-gif-btn');
-                        if (_ci) { _ci.disabled = true; _ci.value = ''; _ci.placeholder = '⛔ You are banned from chat.'; _ci.style.borderColor = '#660000'; _ci.style.color = '#ff4444'; }
                         if (_sb) { _sb.disabled = true; _sb.style.opacity = '0.3'; }
                         if (_gb) { _gb.disabled = true; _gb.style.opacity = '0.3'; }
-                        const expStr = b.expiresAt === -1 ? 'Permanent' : 'Expires: ' + new Date(b.expiresAt).toLocaleString();
+                        if (_ci) { _ci.disabled = true; _ci.value = ''; _ci.style.borderColor = '#660000'; _ci.style.color = '#ff4444'; }
+                        // Show toast once per ban event
+                        const expStr = b.expiresAt === -1 ? 'Permanent ban' : 'Expires: ' + new Date(b.expiresAt).toLocaleString();
                         Toastify({ text: '⛔ You are banned from chat.\n' + expStr + '\nReason: ' + (b.reason || 'No reason given'), duration: 12000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#330000,#660000)', zIndex: '99999' } }).showToast();
+                        // Countdown in placeholder
+                        if (_banCountdownTimer) clearInterval(_banCountdownTimer);
+                        function _updatePlaceholder() {
+                            const ci = document.getElementById('chat-input');
+                            if (!ci) return;
+                            if (b.expiresAt === -1) { ci.placeholder = '⛔ Banned permanently. Reason: ' + (b.reason || 'No reason given'); return; }
+                            const ms = b.expiresAt - Date.now();
+                            if (ms <= 0) { clearInterval(_banCountdownTimer); return; }
+                            const totalSecs = Math.ceil(ms / 1000);
+                            const h = Math.floor(totalSecs / 3600);
+                            const m = Math.floor((totalSecs % 3600) / 60);
+                            const s = totalSecs % 60;
+                            const parts = [];
+                            if (h > 0) parts.push(h + 'h');
+                            if (m > 0 || h > 0) parts.push(m + 'm');
+                            parts.push(s + 's');
+                            ci.placeholder = '⛔ Banned — ' + parts.join(' ') + ' remaining. Reason: ' + (b.reason || 'No reason given');
+                        }
+                        _updatePlaceholder();
+                        _banCountdownTimer = setInterval(_updatePlaceholder, 1000);
+                    }
+                    function _unlockChat() {
+                        if (_banCountdownTimer) { clearInterval(_banCountdownTimer); _banCountdownTimer = null; }
+                        const _ci = document.getElementById('chat-input');
+                        const _sb = document.getElementById('chat-send-btn');
+                        const _gb = document.getElementById('chat-gif-btn');
+                        if (_ci) { _ci.disabled = false; _ci.value = ''; _ci.placeholder = 'Speak into the abyss...'; _ci.style.borderColor = ''; _ci.style.color = ''; }
+                        if (_sb) { _sb.disabled = false; _sb.style.opacity = ''; }
+                        if (_gb) { _gb.disabled = false; _gb.style.opacity = ''; }
+                    }
+                    // Real-time listener — fires on page load AND whenever ban changes in Firebase
+                    _chatDbBan.ref('bannedUsers/' + user.uid).on('value', function(banSnap) {
+                        if (!banSnap.exists()) { _unlockChat(); return; }
+                        const b = banSnap.val();
+                        // Check avatarCleared flag — remove photo mod action
+                        if (b.avatarCleared) {
+                            localStorage.removeItem('slitherChatAvatar');
+                            _chatDbBan.ref('onlineUsers/' + user.uid).update({ profileAvatar: '' }).catch(function(){});
+                            _chatDbBan.ref('bannedUsers/' + user.uid + '/avatarCleared').remove();
+                        }
+                        const isActive = b.expiresAt === -1 || (b.expiresAt && b.expiresAt > Date.now());
+                        if (!isActive && b.expiresAt !== undefined) {
+                            _chatDbBan.ref('bannedUsers/' + user.uid).remove();
+                            _unlockChat();
+                            return;
+                        }
+                        if (isActive) { _lockChat(b); }
                     });
                 })();
                 const gifBtn = document.getElementById('chat-gif-btn');
@@ -35082,25 +35126,27 @@ function renderChallengesPanel() {
         if (logEl) logEl.textContent = 'Gifting ' + (items[itemId]?.name||itemId) + ' to ' + targetName + '...';
 
         try {
-            // Find UID
-            let uid = null;
+            // Use pendingGifts (publicly writable) — same path as the in-game gift system
+            // This avoids PERMISSION_DENIED on gameSaves which requires the player's own auth
+            let resolvedName = null;
             for (const variant of [targetName, targetName.toLowerCase()]) {
                 const snap = await db.ref('accountNames/' + variant).once('value');
-                if (snap.exists()) { uid = snap.val(); break; }
+                if (snap.exists()) { resolvedName = variant; break; }
             }
-            if (!uid) { if (logEl) logEl.textContent = '❌ Player "' + targetName + '" not found.'; return; }
+            if (!resolvedName) { if (logEl) logEl.textContent = '❌ Player "' + targetName + '" not found.'; return; }
 
-            // Load their save, add item, write back
-            const saveSnap = await db.ref('gameSaves/' + uid).once('value');
-            if (!saveSnap.exists()) { if (logEl) logEl.textContent = '❌ No save found for ' + targetName + '.'; return; }
-            let state = JSON.parse(saveSnap.val()?.state || '{}');
-            if (!Array.isArray(state.inventory)) state.inventory = [];
-            state.inventory.push(itemId);
-            await db.ref('gameSaves/' + uid).update({ state: JSON.stringify(state) });
+            const safeRecip = resolvedName.replace(/[.#$[\]]/g, '_');
+            const itemName = (typeof items !== 'undefined' && items[itemId]?.name) || itemId;
+            const giftRef = db.ref('pendingGifts/' + safeRecip).push();
+            await giftRef.set({
+                itemId:   itemId,
+                itemType: 'item',
+                from:     gameState.playerName || 'dev',
+                sentAt:   Date.now()
+            });
 
-            const itemName = items[itemId]?.name || itemId;
-            if (logEl) logEl.textContent = '✅ ' + itemName + ' gifted to ' + targetName + '!';
-            Toastify({ text: '🎁 Gifted ' + itemName + ' → ' + targetName, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#001a08,#00442288)' } }).showToast();
+            if (logEl) logEl.textContent = '✅ ' + itemName + ' gifted to ' + targetName + '! They\'ll receive it on next load.';
+            Toastify({ text: '🎁 Gifted ' + itemName + ' → ' + targetName, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#001a08,#004422)' } }).showToast();
         } catch(e) {
             if (logEl) logEl.textContent = '❌ Error: ' + e.message;
         }
@@ -35319,17 +35365,24 @@ function renderChallengesPanel() {
         devLog('Removing photo for ' + t.name + '...');
         try {
             const chatUidToUse = t._chatUid || t.uid;
-            const updates = { profileAvatar: '' };
-            await chatDb.ref('onlineUsers/' + chatUidToUse).update(updates);
+            // Write avatarCleared to bannedUsers — the client's real-time listener clears their
+            // own onlineUsers entry (avoids PERMISSION_DENIED writing to another user's node).
+            // Also write to playerData/avatarOverride which is dev-writable.
+            const _clearPromises = [
+                chatDb.ref('bannedUsers/' + chatUidToUse + '/avatarCleared').set(Date.now())
+            ];
+            // Try direct write too in case rules allow it
+            _clearPromises.push(chatDb.ref('onlineUsers/' + chatUidToUse + '/profileAvatar').set('').catch(function(){}));
+            await Promise.all(_clearPromises);
             if (saveDb) {
-                const snap = await saveDb.ref('gameSaves/' + t.uid).once('value');
-                if (snap.exists()) {
-                    const raw = snap.val();
+                // Clear from gameSaves too so it doesn't come back on reload
+                saveDb.ref('gameSaves/' + t.uid).once('value').then(function(snap) {
+                    if (!snap.exists()) return;
                     let st = {};
-                    try { st = JSON.parse(raw.state || '{}'); } catch(e) {}
+                    try { st = JSON.parse(snap.val()?.state || '{}'); } catch(e) {}
                     st.profileAvatar = '';
-                    await saveDb.ref('gameSaves/' + t.uid).update({ state: JSON.stringify(st) });
-                }
+                    saveDb.ref('gameSaves/' + t.uid).update({ state: JSON.stringify(st) }).catch(function(){});
+                }).catch(function(){});
             }
             // Post system message in chat
             chatDb.ref('slitherChat').push({
@@ -35378,10 +35431,10 @@ function renderChallengesPanel() {
                 // Ban - prompt for reason
                 const reason = prompt('Avatar ban reason for "' + t.name + '":\n(They will not be able to set a profile photo)', 'Inappropriate profile image');
                 if (reason === null) return;
-                await chatDb.ref('bannedUsers/' + t.uid).update({ avatarBanned: true, avatarBanReason: reason, avatarBannedAt: Date.now() });
-                // Also clear their current photo
-                const chatUidToUse = t._chatUid || t.uid;
-                await chatDb.ref('onlineUsers/' + chatUidToUse).update({ profileAvatar: '' });
+                const chatUidToUse2 = t._chatUid || t.uid;
+                await chatDb.ref('bannedUsers/' + chatUidToUse2).update({ avatarBanned: true, avatarBanReason: reason, avatarBannedAt: Date.now(), avatarCleared: Date.now() });
+                // avatarCleared flag is picked up by the client's real-time ban listener
+                chatDb.ref('onlineUsers/' + chatUidToUse2 + '/profileAvatar').set('').catch(function(){});
                 // Post system message
                 chatDb.ref('slitherChat').push({
                     name: '⚙ System',

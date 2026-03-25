@@ -35169,6 +35169,10 @@ function renderChallengesPanel() {
     ".read": "$player === auth.uid || root.child('devUsers').child(auth.uid).val() === true",
     ".write": "auth != null"
   }
+},
+"giftLog": {
+  ".read": "root.child('devUsers').child(auth.uid).val() === true",
+  ".write": "auth != null"
 }</pre></div>
                 </div>`;
             } else {
@@ -35578,7 +35582,27 @@ function renderChallengesPanel() {
         const avatarBanBadge = document.getElementById('dev-avatar-ban-badge');
         devLog('Checking avatar ban status for ' + t.name + '...');
         try {
-            const chatUidToUse2 = t._chatUid || t.uid;
+            // Always resolve the correct chat UID before checking — t._chatUid may not be set for offline players
+            let chatUidToUse2 = t._chatUid || null;
+            if (!chatUidToUse2) {
+                // Try onlineUsers by save UID
+                const ouSnap = await chatDb.ref('onlineUsers').orderByChild('saveUid').equalTo(t.uid).limitToFirst(1).once('value');
+                if (ouSnap.exists()) { ouSnap.forEach(function(c){ chatUidToUse2 = c.key; }); }
+            }
+            if (!chatUidToUse2) {
+                // Scan bannedUsers by name
+                const buSnap = await chatDb.ref('bannedUsers').once('value');
+                if (buSnap.exists()) {
+                    buSnap.forEach(function(c) {
+                        const d = c.val() || {};
+                        if (!chatUidToUse2 && (d.name || '').toLowerCase() === (t.name || '').toLowerCase()) chatUidToUse2 = c.key;
+                    });
+                }
+            }
+            if (!chatUidToUse2) chatUidToUse2 = t.uid; // last resort
+            t._chatUid = chatUidToUse2; // cache for future calls
+            devLog('Using chat UID: ' + chatUidToUse2);
+
             const banSnap = await chatDb.ref('bannedUsers/' + chatUidToUse2).once('value');
             const banData = banSnap.val() || {};
             const isCurrentlyBanned = !!banData.avatarBanned;
@@ -35854,7 +35878,20 @@ function renderChallengesPanel() {
             devRenderGiftLog();
             if (footer) footer.textContent = 'Showing last ' + _giftLogCache.length + ' gift(s). Newest first.';
         } catch(e) {
-            if (body) body.innerHTML = '<div style="color:#ff4444;font-size:0.8em;font-family:monospace;">Error: ' + e.message + '</div>';
+            const isPerm = e.message && (e.message.includes('permission') || e.message.includes('denied'));
+            if (isPerm) {
+                if (body) body.innerHTML = `<div style="background:#1a0500;border:1px solid #ff440022;border-radius:8px;padding:12px 14px;font-size:0.75em;line-height:1.8;">
+                    <div style="color:#ff6644;font-weight:bold;margin-bottom:6px;">🔒 Firebase Permission Denied</div>
+                    <div style="color:#884422;">Add this to your Firebase Realtime Database rules to allow devs to read the gift log:</div>
+                    <pre style="color:#ffcc44;font-size:0.88em;background:#0a0000;padding:8px;border-radius:6px;margin-top:8px;overflow-x:auto;">"giftLog": {
+  ".read": "root.child('devUsers').child(auth.uid).val() === true",
+  ".write": "auth != null"
+}</pre>
+                    <div style="color:#664422;margin-top:6px;">Then add your UID to <code style="color:#ffaa44;">devUsers</code> in Firebase if not already done.</div>
+                </div>`;
+            } else {
+                if (body) body.innerHTML = '<div style="color:#ff4444;font-size:0.8em;font-family:monospace;">Error: ' + e.message + '</div>';
+            }
         }
     };
 

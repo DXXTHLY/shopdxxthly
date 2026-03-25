@@ -4891,7 +4891,11 @@ text-decoration: underline; /* Adds an underline on hover */
 
                             <!-- Player header row -->
                             <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid #ff004418;">
-                                <div id="dev-result-avatar" style="width:48px;height:48px;border-radius:50%;background:#1a0022;border:2px solid #ff004444;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.6em;"></div>
+                                <div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;">
+                                    <div id="dev-result-avatar" style="width:80px;height:80px;border-radius:10px;background:#1a0022;border:2px solid #ff004444;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:2.2em;"></div>
+                                    <div id="dev-result-avatar-url" style="font-size:0.55em;color:#44224466;font-family:monospace;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;cursor:default;" title=""></div>
+                                    <div id="dev-avatar-ban-badge" style="display:none;background:#ff0000;color:#fff;font-size:0.58em;font-weight:bold;padding:2px 7px;border-radius:4px;letter-spacing:1px;">📵 AVATAR BANNED</div>
+                                </div>
                                 <div style="flex:1;">
                                     <div id="dev-result-name" style="color:#ff6688; font-weight:bold; font-size:1.05em; margin-bottom:2px;"></div>
                                     <div id="dev-result-uid" style="color:#44224466; font-size:0.6em; font-family:monospace;"></div>
@@ -4930,6 +4934,14 @@ text-decoration: underline; /* Adds an underline on hover */
                                 <button onclick="devAdminAction('fixsps')"
                                     style="background:#001a08; border:1px solid #00cc4455; border-radius:8px; color:#44ff88; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit;">
                                     🔧 Fix SPS
+                                </button>
+                                <button id="dev-btn-remove-photo" onclick="devAdminRemovePhoto()"
+                                    style="background:#1a0a00; border:1px solid #ff880066; border-radius:8px; color:#ffaa44; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit; display:none;">
+                                    🚫 Remove Photo
+                                </button>
+                                <button id="dev-btn-ban-avatar" onclick="devAdminToggleAvatarBan()"
+                                    style="background:#1a0000; border:1px solid #ff440066; border-radius:8px; color:#ff6644; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit;">
+                                    📵 Ban from Photos
                                 </button>
                                 <button onclick="devAdminBanPlayer()"
                                     style="background:#1a0000; border:1px solid #ff000066; border-radius:8px; color:#ff4444; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit;">
@@ -22401,10 +22413,24 @@ function initializeChat() {
                         return;
                     }
                     const _mottoColorPick = document.getElementById('settings-motto-color')?.value || '#444444';
-                    const newData = { name: _rawNick, chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: document.getElementById('settings-avatar').value.trim(), profileMotto: document.getElementById('settings-motto').value.trim(), mottoColor: _mottoColorPick }; localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto); localStorage.setItem("slitherChatMottoColor", _mottoColorPick);
+                    const _attemptedAvatar = document.getElementById('settings-avatar').value.trim();
+                    const newData = { name: _rawNick, chatNameColor: document.getElementById('settings-name-color').value, profileAvatar: _attemptedAvatar, profileMotto: document.getElementById('settings-motto').value.trim(), mottoColor: _mottoColorPick };
                     const selBg = document.querySelector('#profile-bg-picker .bg-opt-selected');
                     if (selBg) { newData.profileBg = selBg.dataset.bg; localStorage.setItem('slitherChatProfileBg', selBg.dataset.bg); }
-                    db.ref("onlineUsers/" + uid).update(newData); settingsOverlay.style.display = 'none'; });
+                    const _doSaveProfile = function() {
+                        localStorage.setItem("slitherChatNickname", newData.name); localStorage.setItem("slitherChatNameColor", newData.chatNameColor); localStorage.setItem("slitherChatAvatar", newData.profileAvatar); localStorage.setItem("slitherChatMotto", newData.profileMotto); localStorage.setItem("slitherChatMottoColor", _mottoColorPick);
+                        db.ref("onlineUsers/" + uid).update(newData); settingsOverlay.style.display = 'none';
+                    };
+                    if (_attemptedAvatar) {
+                        db.ref('bannedUsers/' + uid).once('value').then(function(_banChk) {
+                            const _bd = _banChk.val() || {};
+                            if (_bd.avatarBanned) {
+                                newData.profileAvatar = '';
+                                Toastify({ text: '📵 You are not allowed to set a profile photo.', duration: 5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#330000,#1a0000)'} }).showToast();
+                            }
+                            _doSaveProfile();
+                        }).catch(function() { _doSaveProfile(); });
+                    } else { _doSaveProfile(); } });
             document.getElementById('chat-hide-btn').addEventListener('click', () => document.getElementById('chat-container').style.display = 'none');
             document.body.addEventListener('click', e => { const userElement = e.target.closest('.chat-username'); if (userElement) showUserProfile(db, userElement.dataset.uid); });
             makeDraggable(document.getElementById('chat-container'), document.getElementById('chat-header'));
@@ -34686,13 +34712,67 @@ function renderChallengesPanel() {
         if (!resultEl) return;
         resultEl.style.display = 'block';
 
-        // Avatar
+        // Avatar - fetch live from onlineUsers (chat Firebase) first, fall back to gameSaves
         const avatarEl = document.getElementById('dev-result-avatar');
-        if (avatarEl) {
-            if (gs.profileAvatar) {
-                avatarEl.innerHTML = `<img src="${gs.profileAvatar}" style="width:100%;height:100%;object-fit:cover;">`;
-            } else {
-                avatarEl.textContent = '👤';
+        const avatarUrlEl = document.getElementById('dev-result-avatar-url');
+        const avatarBanBadge = document.getElementById('dev-avatar-ban-badge');
+        const removePhotoBtn = document.getElementById('dev-btn-remove-photo');
+        const banAvatarBtn = document.getElementById('dev-btn-ban-avatar');
+
+        // Reset avatar area while loading
+        if (avatarEl) { avatarEl.innerHTML = '<span style="opacity:0.3">&#x1F464;</span>'; }
+        if (avatarUrlEl) { avatarUrlEl.textContent = ''; avatarUrlEl.title = ''; }
+        if (avatarBanBadge) avatarBanBadge.style.display = 'none';
+        if (removePhotoBtn) removePhotoBtn.style.display = 'none';
+        if (banAvatarBtn) { banAvatarBtn.textContent = '📵 Ban from Photos'; banAvatarBtn.style.background = '#1a0000'; banAvatarBtn.style.borderColor = '#ff440066'; banAvatarBtn.style.color = '#ff6644'; }
+
+        const chatDb = window._scFirebase && window._scFirebase.chatDb ? window._scFirebase.chatDb : (window._chatDb || null);
+        if (chatDb && t.uid) {
+            // Check avatar ban status
+            chatDb.ref('bannedUsers/' + t.uid).once('value').then(function(banSnap) {
+                const banData = banSnap.val() || {};
+                if (banData.avatarBanned) {
+                    if (avatarBanBadge) avatarBanBadge.style.display = 'block';
+                    if (banAvatarBtn) { banAvatarBtn.textContent = '✅ Unban Photos'; banAvatarBtn.style.background = '#001a00'; banAvatarBtn.style.borderColor = '#00ff0044'; banAvatarBtn.style.color = '#44ff44'; }
+                }
+            }).catch(function(){});
+
+            // Fetch live avatar from onlineUsers
+            chatDb.ref('onlineUsers/' + t.uid).once('value').then(function(ouSnap) {
+                const ouData = ouSnap.val() || {};
+                const liveAvatar = (ouData.profileAvatar || '').trim() || (gs.profileAvatar || '').trim();
+                if (avatarEl) {
+                    if (liveAvatar) {
+                        avatarEl.innerHTML = '<img src="' + liveAvatar + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML=\'<span style=&quot;opacity:0.4&quot;>&#x1F464;</span>\'">';
+                        if (removePhotoBtn) removePhotoBtn.style.display = 'inline-block';
+                    } else {
+                        avatarEl.innerHTML = '<span style="opacity:0.4">&#x1F464;</span>';
+                    }
+                }
+                if (avatarUrlEl && liveAvatar) {
+                    const short = liveAvatar.length > 28 ? liveAvatar.slice(0, 25) + '...' : liveAvatar;
+                    avatarUrlEl.textContent = short;
+                    avatarUrlEl.title = liveAvatar;
+                }
+                window._devTarget._liveAvatar = liveAvatar;
+            }).catch(function() {
+                const fallback = (gs.profileAvatar || '').trim();
+                if (avatarEl && fallback) {
+                    avatarEl.innerHTML = '<img src="' + fallback + '" style="width:100%;height:100%;object-fit:cover;">';
+                    if (removePhotoBtn) removePhotoBtn.style.display = 'inline-block';
+                } else if (avatarEl) {
+                    avatarEl.innerHTML = '<span style="opacity:0.4">&#x1F464;</span>';
+                }
+            });
+        } else {
+            // No chatDb - fall back to gameSaves avatar
+            const fallback = (gs.profileAvatar || '').trim();
+            if (avatarEl && fallback) {
+                avatarEl.innerHTML = '<img src="' + fallback + '" style="width:100%;height:100%;object-fit:cover;">';
+                if (removePhotoBtn) removePhotoBtn.style.display = 'inline-block';
+                if (avatarUrlEl) { avatarUrlEl.textContent = fallback.length > 28 ? fallback.slice(0,25)+'...' : fallback; avatarUrlEl.title = fallback; }
+            } else if (avatarEl) {
+                avatarEl.innerHTML = '<span style="opacity:0.4">&#x1F464;</span>';
             }
         }
 
@@ -35176,6 +35256,103 @@ function renderChallengesPanel() {
         if (el) { el.textContent = msg; el.style.color = msg.startsWith('❌') ? '#cc2222' : msg.startsWith('✅') ? '#44cc88' : '#664433'; }
         console.log('[DevAdmin]', msg);
     }
+
+    // ════════════════════════════════════════════════════════
+    // AVATAR MODERATION — Remove Photo / Ban from Photos
+    // ════════════════════════════════════════════════════════
+    window.devAdminRemovePhoto = async function() {
+        const t = window._devTarget;
+        if (!t) { devLog('No player selected.'); return; }
+        const chatDb = window._scFirebase && window._scFirebase.chatDb ? window._scFirebase.chatDb : (window._chatDb || null);
+        if (!chatDb) { devLog('Chat Firebase not ready.'); return; }
+        const saveDb = window._scFirebase && window._scFirebase.db ? window._scFirebase.db : null;
+        if (!confirm('Remove profile photo for "' + t.name + '"?\nThis clears it from chat immediately.')) return;
+        devLog('Removing photo for ' + t.name + '...');
+        try {
+            const updates = { profileAvatar: '' };
+            await chatDb.ref('onlineUsers/' + t.uid).update(updates);
+            if (saveDb) {
+                const snap = await saveDb.ref('gameSaves/' + t.uid).once('value');
+                if (snap.exists()) {
+                    const raw = snap.val();
+                    let st = {};
+                    try { st = JSON.parse(raw.state || '{}'); } catch(e) {}
+                    st.profileAvatar = '';
+                    await saveDb.ref('gameSaves/' + t.uid).update({ state: JSON.stringify(st) });
+                }
+            }
+            // Post system message in chat
+            chatDb.ref('slitherChat').push({
+                name: '⚙ System',
+                text: '\u26A0 ' + t.name + '\'s profile photo was removed by a moderator for violating community guidelines.',
+                color: '#ff4444',
+                uid: 'system',
+                timestamp: Date.now()
+            });
+            devLog('✅ Photo removed for ' + t.name + '.');
+            // Refresh avatar display
+            const avatarEl = document.getElementById('dev-result-avatar');
+            const avatarUrlEl = document.getElementById('dev-result-avatar-url');
+            const removePhotoBtn = document.getElementById('dev-btn-remove-photo');
+            if (avatarEl) avatarEl.innerHTML = '<span style="opacity:0.4">&#x1F464;</span>';
+            if (avatarUrlEl) { avatarUrlEl.textContent = ''; avatarUrlEl.title = ''; }
+            if (removePhotoBtn) removePhotoBtn.style.display = 'none';
+            if (t.state) t.state.profileAvatar = '';
+            window._devTarget._liveAvatar = '';
+        } catch(e) {
+            devLog('Failed to remove photo: ' + e.message);
+        }
+    };
+
+    window.devAdminToggleAvatarBan = async function() {
+        const t = window._devTarget;
+        if (!t) { devLog('No player selected.'); return; }
+        const chatDb = window._scFirebase && window._scFirebase.chatDb ? window._scFirebase.chatDb : (window._chatDb || null);
+        if (!chatDb) { devLog('Chat Firebase not ready.'); return; }
+        const banAvatarBtn = document.getElementById('dev-btn-ban-avatar');
+        const avatarBanBadge = document.getElementById('dev-avatar-ban-badge');
+        devLog('Checking avatar ban status for ' + t.name + '...');
+        try {
+            const banSnap = await chatDb.ref('bannedUsers/' + t.uid).once('value');
+            const banData = banSnap.val() || {};
+            const isCurrentlyBanned = !!banData.avatarBanned;
+            if (isCurrentlyBanned) {
+                // Unban
+                await chatDb.ref('bannedUsers/' + t.uid + '/avatarBanned').remove();
+                await chatDb.ref('bannedUsers/' + t.uid + '/avatarBanReason').remove();
+                devLog('✅ Avatar ban lifted for ' + t.name + '.');
+                if (avatarBanBadge) avatarBanBadge.style.display = 'none';
+                if (banAvatarBtn) { banAvatarBtn.textContent = '📵 Ban from Photos'; banAvatarBtn.style.background = '#1a0000'; banAvatarBtn.style.borderColor = '#ff440066'; banAvatarBtn.style.color = '#ff6644'; }
+            } else {
+                // Ban - prompt for reason
+                const reason = prompt('Avatar ban reason for "' + t.name + '":\n(They will not be able to set a profile photo)', 'Inappropriate profile image');
+                if (reason === null) return;
+                await chatDb.ref('bannedUsers/' + t.uid).update({ avatarBanned: true, avatarBanReason: reason, avatarBannedAt: Date.now() });
+                // Also clear their current photo
+                await chatDb.ref('onlineUsers/' + t.uid).update({ profileAvatar: '' });
+                // Post system message
+                chatDb.ref('slitherChat').push({
+                    name: '⚙ System',
+                    text: '\uD83D\uDEAB ' + t.name + ' has been restricted from setting a profile photo.',
+                    color: '#ff4444',
+                    uid: 'system',
+                    timestamp: Date.now()
+                });
+                devLog('✅ ' + t.name + ' is now banned from setting a profile photo.');
+                if (avatarBanBadge) avatarBanBadge.style.display = 'block';
+                if (banAvatarBtn) { banAvatarBtn.textContent = '✅ Unban Photos'; banAvatarBtn.style.background = '#001a00'; banAvatarBtn.style.borderColor = '#00ff0044'; banAvatarBtn.style.color = '#44ff44'; }
+                // Clear avatar display
+                const avatarEl = document.getElementById('dev-result-avatar');
+                const avatarUrlEl = document.getElementById('dev-result-avatar-url');
+                const removePhotoBtn = document.getElementById('dev-btn-remove-photo');
+                if (avatarEl) avatarEl.innerHTML = '<span style="opacity:0.4">&#x1F464;</span>';
+                if (avatarUrlEl) { avatarUrlEl.textContent = ''; avatarUrlEl.title = ''; }
+                if (removePhotoBtn) removePhotoBtn.style.display = 'none';
+            }
+        } catch(e) {
+            devLog('Avatar ban error: ' + e.message);
+        }
+    };
 
     // ════════════════════════════════════════════════════════
     // BAN / UNBAN  — writes to bannedUsers/{uid} in chatDb

@@ -2997,7 +2997,8 @@ text-decoration: underline; /* Adds an underline on hover */
                 <!-- Login form -->
                 <div id="auth-form-login" class="auth-form">
                     <input type="email" id="login-email" placeholder="Email address" autocomplete="email">
-                    <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+                    <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" onkeyup="var w=document.getElementById('caps-warn-login');if(w)w.style.display=event.getModifierState&&event.getModifierState('CapsLock')?'block':'none'">
+                    <div id="caps-warn-login" style="display:none;color:#ffcc44;font-size:0.78em;margin:-4px 0 4px;text-align:left;">&#9651; Caps Lock is on</div>
                     <button class="auth-btn-primary" onclick="authLogin()">Enter the Abyss</button>
                     <button class="auth-btn-ghost" onclick="authForgotPassword()">Forgot password?</button>
                 </div>
@@ -3006,7 +3007,8 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div id="auth-form-signup" class="auth-form" style="display:none;">
                     <input type="text" id="signup-name" placeholder="Your soul's name (display name)" maxlength="15">
                     <input type="email" id="signup-email" placeholder="Email address" autocomplete="email">
-                    <input type="password" id="signup-password" placeholder="Password (min 6 characters)" autocomplete="new-password">
+                    <input type="password" id="signup-password" placeholder="Password (min 6 characters)" autocomplete="new-password" onkeyup="var w=document.getElementById('caps-warn-signup');if(w)w.style.display=event.getModifierState&&event.getModifierState('CapsLock')?'block':'none'">
+                    <div id="caps-warn-signup" style="display:none;color:#ffcc44;font-size:0.78em;margin:-4px 0 4px;text-align:left;">&#9651; Caps Lock is on</div>
                     <button class="auth-btn-primary" onclick="authSignup()">Begin the Harvest</button>
                 </div>
 
@@ -3044,7 +3046,8 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div id="acct-form-attach" class="auth-form">
                         <input type="text" id="acct-attach-name" placeholder="Display name" maxlength="15">
                         <input type="email" id="acct-attach-email" placeholder="Email address">
-                        <input type="password" id="acct-attach-password" placeholder="Password (min 6 chars)">
+                        <input type="password" id="acct-attach-password" placeholder="Password (min 6 chars)" onkeyup="var w=document.getElementById('caps-warn-attach');if(w)w.style.display=event.getModifierState&&event.getModifierState('CapsLock')?'block':'none'">
+                        <div id="caps-warn-attach" style="display:none;color:#ffcc44;font-size:0.78em;margin:-4px 0 4px;text-align:left;">&#9651; Caps Lock is on</div>
                         <button class="auth-btn-primary" onclick="attachAccount()">Link My Progress</button>
                     </div>
 
@@ -3052,7 +3055,8 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div id="acct-form-signin" class="auth-form" style="display:none;">
                         <p style="color:#ffaa44; font-size:0.82rem; margin:0 0 10px;">⚠️ Signing in will replace your current local save with your cloud save.</p>
                         <input type="email" id="acct-signin-email" placeholder="Email address">
-                        <input type="password" id="acct-signin-password" placeholder="Password">
+                        <input type="password" id="acct-signin-password" placeholder="Password" onkeyup="var w=document.getElementById('caps-warn-signin');if(w)w.style.display=event.getModifierState&&event.getModifierState('CapsLock')?'block':'none'">
+                        <div id="caps-warn-signin" style="display:none;color:#ffcc44;font-size:0.78em;margin:-4px 0 4px;text-align:left;">&#9651; Caps Lock is on</div>
                         <button class="auth-btn-primary" onclick="settingsSignIn()">Sign In & Load Cloud Save</button>
                         <button class="auth-btn-ghost" onclick="acctForgotPassword()" style="font-size:0.8rem;">Forgot password?</button>
                     </div>
@@ -35518,13 +35522,14 @@ function renderChallengesPanel() {
         const avatarBanBadge = document.getElementById('dev-avatar-ban-badge');
         devLog('Checking avatar ban status for ' + t.name + '...');
         try {
-            const banSnap = await chatDb.ref('bannedUsers/' + t.uid).once('value');
+            const chatUidToUse2 = t._chatUid || t.uid;
+            const banSnap = await chatDb.ref('bannedUsers/' + chatUidToUse2).once('value');
             const banData = banSnap.val() || {};
             const isCurrentlyBanned = !!banData.avatarBanned;
             if (isCurrentlyBanned) {
                 // Unban
-                await chatDb.ref('bannedUsers/' + t.uid + '/avatarBanned').remove();
-                await chatDb.ref('bannedUsers/' + t.uid + '/avatarBanReason').remove();
+                await chatDb.ref('bannedUsers/' + chatUidToUse2 + '/avatarBanned').remove();
+                await chatDb.ref('bannedUsers/' + chatUidToUse2 + '/avatarBanReason').remove();
                 devLog('✅ Avatar ban lifted for ' + t.name + '.');
                 if (avatarBanBadge) avatarBanBadge.style.display = 'none';
                 if (banAvatarBtn) { banAvatarBtn.textContent = '📵 Ban from Photos'; banAvatarBtn.style.background = '#1a0000'; banAvatarBtn.style.borderColor = '#ff440066'; banAvatarBtn.style.color = '#ff6644'; }
@@ -35532,7 +35537,6 @@ function renderChallengesPanel() {
                 // Ban - prompt for reason
                 const reason = prompt('Avatar ban reason for "' + t.name + '":\n(They will not be able to set a profile photo)', 'Inappropriate profile image');
                 if (reason === null) return;
-                const chatUidToUse2 = t._chatUid || t.uid;
                 await chatDb.ref('bannedUsers/' + chatUidToUse2).update({ avatarBanned: true, avatarBanReason: reason, avatarBannedAt: Date.now(), avatarCleared: Date.now() });
                 // avatarCleared flag is picked up by the client's real-time ban listener
                 chatDb.ref('onlineUsers/' + chatUidToUse2 + '/profileAvatar').set('').catch(function(){});
@@ -35657,132 +35661,6 @@ function renderChallengesPanel() {
         }
     };
 
-    // BANNED USERS LIST — shows all entries in bannedUsers with inline unban
-    window.devShowBannedUsers = async function() {
-        if (!_assertDev()) return;
-        const panel = document.getElementById('dev-banned-panel');
-        const list  = document.getElementById('dev-banned-list');
-        if (!panel || !list) return;
-
-        // Toggle: close if already open
-        if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
-
-        // Close keyholders panel if open
-        const kp = document.getElementById('dev-keyholders-panel');
-        if (kp) kp.style.display = 'none';
-
-        panel.style.display = 'block';
-        list.innerHTML = '<div style="color:#553333;font-size:0.75em;font-family:monospace;">Loading…</div>';
-
-        const chatDb = _getChatDb();
-        if (!chatDb) { list.innerHTML = '<div style="color:#ff4444;font-size:0.75em;">❌ Chat Firebase not ready.</div>'; return; }
-
-        try {
-            const snap = await chatDb.ref('bannedUsers').once('value');
-            if (!snap.exists()) {
-                list.innerHTML = '<div style="color:#44ff88;font-size:0.78em;font-family:monospace;">✅ No banned players right now.</div>';
-                return;
-            }
-
-            const now = Date.now();
-            const rows = [];
-            snap.forEach(function(child) {
-                const uid  = child.key;
-                const data = child.val() || {};
-                // Skip pure avatar-ban entries (they only have avatarBanned key, no 'reason')
-                if (!data.reason && !data.duration) return;
-                rows.push({ uid, data });
-            });
-
-            if (rows.length === 0) {
-                list.innerHTML = '<div style="color:#44ff88;font-size:0.78em;font-family:monospace;">✅ No chat bans active.</div>';
-                return;
-            }
-
-            list.innerHTML = '';
-            rows.forEach(function({ uid, data }) {
-                const name       = data.name || uid;
-                const reason     = data.reason || 'No reason given';
-                const bannedBy   = data.bannedBy || 'unknown';
-                const duration   = data.duration || 'Permanent';
-                const bannedAt   = data.bannedAt ? new Date(data.bannedAt).toLocaleString() : '?';
-                const expiresAt  = data.expiresAt;
-                let expiresStr   = 'Never (Permanent)';
-                let expired      = false;
-                if (expiresAt && expiresAt !== -1) {
-                    if (expiresAt <= now) {
-                        expiresStr = '⚠️ Expired (not yet cleaned up)';
-                        expired = true;
-                    } else {
-                        const diffMs  = expiresAt - now;
-                        const diffMin = Math.floor(diffMs / 60000);
-                        const diffH   = Math.floor(diffMin / 60);
-                        const diffD   = Math.floor(diffH / 24);
-                        if (diffD > 0)      expiresStr = 'In ' + diffD + 'd ' + (diffH % 24) + 'h';
-                        else if (diffH > 0) expiresStr = 'In ' + diffH + 'h ' + (diffMin % 60) + 'm';
-                        else                expiresStr = 'In ' + diffMin + 'm';
-                    }
-                }
-
-                const card = document.createElement('div');
-                card.style.cssText = 'background:#120005;border:1px solid #ff003322;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;';
-                card.innerHTML =
-                    '<div style="flex:1;min-width:0;">' +
-                        '<div style="color:#ff6677;font-weight:bold;font-size:0.85em;margin-bottom:2px;">' + name + '</div>' +
-                        '<div style="color:#884455;font-size:0.7em;font-family:monospace;margin-bottom:4px;">UID: ' + uid + '</div>' +
-                        '<div style="color:#cc8888;font-size:0.75em;margin-bottom:2px;">📋 <strong>Reason:</strong> ' + reason + '</div>' +
-                        '<div style="color:#885555;font-size:0.7em;margin-bottom:1px;">⏱ <strong>Duration:</strong> ' + duration + ' &nbsp;|&nbsp; Banned: ' + bannedAt + '</div>' +
-                        '<div style="color:' + (expired ? '#ffaa44' : '#557755') + ';font-size:0.7em;">⏳ <strong>Expires:</strong> ' + expiresStr + '</div>' +
-                        '<div style="color:#553333;font-size:0.65em;font-family:monospace;">By: ' + bannedBy + '</div>' +
-                    '</div>' +
-                    '<button data-uid="' + uid + '" data-name="' + name.replace(/"/g,'&quot;') + '" onclick="devUnbanFromList(this)" ' +
-                        'style="background:#002200;border:1px solid #00ff4444;border-radius:7px;color:#44ff88;padding:7px 13px;cursor:pointer;font-size:0.72em;font-family:inherit;white-space:nowrap;flex-shrink:0;">' +
-                        '✅ Unban' +
-                    '</button>';
-                list.appendChild(card);
-            });
-        } catch(e) {
-            list.innerHTML = '<div style="color:#ff4444;font-size:0.75em;font-family:monospace;">❌ Error: ' + e.message + '</div>';
-        }
-    };
-
-    // Called when Unban is clicked from the banned list
-    window.devUnbanFromList = async function(btn) {
-        if (!_assertDev()) return;
-        const uid  = btn.getAttribute('data-uid');
-        const name = btn.getAttribute('data-name');
-        if (!confirm('Remove ban for "' + name + '"?')) return;
-
-        const chatDb = _getChatDb();
-        if (!chatDb) { devLog('❌ Chat Firebase not ready.'); return; }
-
-        btn.disabled = true;
-        btn.textContent = '…';
-        try {
-            await chatDb.ref('bannedUsers/' + uid).remove();
-            if (window._chatBanCache) delete window._chatBanCache[uid];
-            await chatDb.ref('slitherChat').push({
-                uid: 'system', name: 'System',
-                text: '✅ ' + name + ' has been unbanned.',
-                time: window.firebase.database.ServerValue.TIMESTAMP
-            });
-            devLog('✅ ' + name + ' unbanned from ban list.');
-            Toastify({ text: '✅ Unbanned: ' + name, duration: 4000, gravity: 'top', position: 'center',
-                style: { background: 'linear-gradient(135deg,#003300,#006600)' } }).showToast();
-            // Remove the card from the list
-            btn.closest('div[style*="background:#120005"]').remove();
-            // If list is now empty, show cleared message
-            const listEl = document.getElementById('dev-banned-list');
-            if (listEl && listEl.children.length === 0) {
-                listEl.innerHTML = '<div style="color:#44ff88;font-size:0.78em;font-family:monospace;">✅ No banned players right now.</div>';
-            }
-        } catch(e) {
-            btn.disabled = false;
-            btn.textContent = '✅ Unban';
-            devLog('❌ Unban failed: ' + e.message);
-        }
-    };
-
     // Helper: get chat Firebase db instance
     function _getChatDb() {
         try {
@@ -35791,6 +35669,108 @@ function renderChallengesPanel() {
         } catch(e) { return null; }
     }
     window._getChatDb = _getChatDb;
+
+    // Robust chatDb getter used by banned-list functions
+    function _getAnyChat() {
+        return (window._scFirebase && window._scFirebase.chatDb)
+            || _getChatDb()
+            || window._chatDb
+            || null;
+    }
+
+    // BANNED USERS LIST
+    window.devShowBannedUsers = async function() {
+        if (!_assertDev()) return;
+        const panel = document.getElementById('dev-banned-panel');
+        const list  = document.getElementById('dev-banned-list');
+        if (!panel || !list) return;
+        if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+        const kp = document.getElementById('dev-keyholders-panel');
+        if (kp) kp.style.display = 'none';
+        panel.style.display = 'block';
+        list.innerHTML = '<div style="color:#553333;font-size:0.75em;font-family:monospace;">Loading...</div>';
+        const chatDb = _getAnyChat();
+        if (!chatDb) { list.innerHTML = '<div style="color:#ff4444;font-size:0.75em;">Chat Firebase not ready.</div>'; return; }
+        try {
+            const snap = await chatDb.ref('bannedUsers').once('value');
+            if (!snap.exists()) { list.innerHTML = '<div style="color:#44ff88;font-size:0.78em;font-family:monospace;">No banned players right now.</div>'; return; }
+            const now = Date.now();
+            const rows = [];
+            snap.forEach(function(child) {
+                const uid = child.key; const data = child.val() || {};
+                if (!data.reason && !data.duration) return;
+                rows.push({ uid, data });
+            });
+            if (rows.length === 0) { list.innerHTML = '<div style="color:#44ff88;font-size:0.78em;font-family:monospace;">No chat bans active.</div>'; return; }
+            list.innerHTML = '';
+            rows.forEach(function({ uid, data }) {
+                const name     = data.name || uid;
+                const reason   = data.reason || 'No reason given';
+                const bannedBy = data.bannedBy || 'unknown';
+                const duration = data.duration || 'Permanent';
+                const bannedAt = data.bannedAt ? new Date(data.bannedAt).toLocaleString() : '?';
+                const expiresAt = data.expiresAt;
+                let expiresStr = 'Never (Permanent)', expired = false;
+                if (expiresAt && expiresAt !== -1) {
+                    if (expiresAt <= now) { expiresStr = 'Expired (pending cleanup)'; expired = true; }
+                    else {
+                        const dm = Math.floor((expiresAt - now) / 60000);
+                        const dh = Math.floor(dm / 60); const dd = Math.floor(dh / 24);
+                        expiresStr = dd > 0 ? 'In ' + dd + 'd ' + (dh % 24) + 'h' : dh > 0 ? 'In ' + dh + 'h ' + (dm % 60) + 'm' : 'In ' + dm + 'm';
+                    }
+                }
+                const card = document.createElement('div');
+                card.setAttribute('data-ban-card', uid);
+                card.style.cssText = 'background:#120005;border:1px solid #ff003322;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;';
+                card.innerHTML =
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="color:#ff6677;font-weight:bold;font-size:0.85em;margin-bottom:2px;">' + name + '</div>' +
+                        '<div style="color:#884455;font-size:0.7em;font-family:monospace;margin-bottom:4px;">UID: ' + uid + '</div>' +
+                        '<div style="color:#cc8888;font-size:0.75em;margin-bottom:2px;"><b>Reason:</b> ' + reason + '</div>' +
+                        '<div style="color:#885555;font-size:0.7em;margin-bottom:1px;"><b>Duration:</b> ' + duration + ' | Banned: ' + bannedAt + '</div>' +
+                        '<div style="color:' + (expired ? '#ffaa44' : '#557755') + ';font-size:0.7em;"><b>Expires:</b> ' + expiresStr + '</div>' +
+                        '<div style="color:#553333;font-size:0.65em;font-family:monospace;">By: ' + bannedBy + '</div>' +
+                    '</div>' +
+                    '<button data-uid="' + uid + '" data-name="' + name.replace(/"/g,'&quot;') + '" onclick="devUnbanFromList(this)" ' +
+                        'style="background:#002200;border:1px solid #00ff4444;border-radius:7px;color:#44ff88;padding:7px 13px;cursor:pointer;font-size:0.72em;font-family:inherit;white-space:nowrap;flex-shrink:0;">Unban</button>';
+                list.appendChild(card);
+            });
+        } catch(e) {
+            list.innerHTML = '<div style="color:#ff4444;font-size:0.75em;font-family:monospace;">Error: ' + e.message + '</div>';
+        }
+    };
+
+    window.devUnbanFromList = async function(btn) {
+        if (!_assertDev()) return;
+        const uid  = btn.getAttribute('data-uid');
+        const name = btn.getAttribute('data-name');
+        if (!confirm('Remove ban for "' + name + '"?')) return;
+        const chatDb = _getAnyChat();
+        if (!chatDb) { devLog('Chat Firebase not ready.'); return; }
+        btn.disabled = true; btn.textContent = '...';
+        try {
+            await chatDb.ref('bannedUsers/' + uid).remove();
+            if (window._chatBanCache) delete window._chatBanCache[uid];
+            try {
+                await chatDb.ref('slitherChat').push({
+                    uid: 'system', name: 'System',
+                    text: name + ' has been unbanned.',
+                    time: window.firebase.database.ServerValue.TIMESTAMP
+                });
+            } catch(_e) {}
+            devLog(name + ' unbanned from ban list.');
+            Toastify({ text: 'Unbanned: ' + name, duration: 4000, gravity: 'top', position: 'center',
+                style: { background: 'linear-gradient(135deg,#003300,#006600)' } }).showToast();
+            const card = btn.closest('[data-ban-card]');
+            if (card) card.remove();
+            const listEl = document.getElementById('dev-banned-list');
+            if (listEl && listEl.children.length === 0)
+                listEl.innerHTML = '<div style="color:#44ff88;font-size:0.78em;font-family:monospace;">No banned players right now.</div>';
+        } catch(e) {
+            btn.disabled = false; btn.textContent = 'Unban';
+            devLog('Unban failed: ' + e.message);
+        }
+    };
 
 })();
 

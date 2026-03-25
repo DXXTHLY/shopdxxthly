@@ -19985,10 +19985,12 @@ async function submitGift() {
         }
 
         if (errEl) errEl.textContent = 'Sending gift...';
-        const safeRecip = resolvedRecipName.replace(/[.#$[\]]/g, '_');
+        // accountNames stores name -> uid, so snap.val() is the recipient's UID
+        const recipUid = (await db.ref('accountNames/' + resolvedRecipName).once('value')).val();
+        if (!recipUid) { if (errEl) errEl.textContent = 'Could not resolve player UID. Try again.'; return; }
 
-        // Write gift to Firebase — publicly writable pendingGifts node
-        const giftRef = db.ref('pendingGifts/' + safeRecip).push();
+        // Write gift to Firebase keyed by recipient UID (matches Firebase rule: $player === auth.uid)
+        const giftRef = db.ref('pendingGifts/' + recipUid).push();
         await giftRef.set({
             itemId:   _giftPendingItemId,
             itemType: _giftPendingItemType,
@@ -20035,12 +20037,13 @@ async function submitGift() {
 function initGiftListener() {
     const db = window._scFirebase?.db;
     if (!db || !gameState.playerName || gameState.playerName === 'Unnamed') return;
-    // accountNames keys are always stored lowercased, so pendingGifts keys are also lowercased
-    const safeName = gameState.playerName.toLowerCase().replace(/[.#$\[\]]/g, '_');
+    // Use the authenticated UID as the key — matches Firebase rule: $player === auth.uid
+    const myUid = window._scFirebase?.auth?.currentUser?.uid;
+    if (!myUid) return;
 
     let _isFirstLoad = true; // track first vs live delivery
 
-    db.ref('pendingGifts/' + safeName).on('value', snap => {
+    db.ref('pendingGifts/' + myUid).on('value', snap => {
         if (!snap.exists()) { _isFirstLoad = false; return; }
 
         const pendingGifts = [];
@@ -21689,7 +21692,7 @@ function initializeChat() {
                 if (!window._chatBanCache) window._chatBanCache = {};
                 const _bc = window._chatBanCache[msg.uid];
                 if (_bc === true) {
-                    // Re-verify against Firebase in case player was unbanned — don't trust stale cache
+                    // Re-verify against Firebase — ban may have been lifted since we cached it
                     const _bdb2 = (typeof window._getChatDb === 'function') ? window._getChatDb() : null;
                     if (_bdb2) {
                         _bdb2.ref('bannedUsers/' + msg.uid).once('value').then(snap => {
@@ -21699,12 +21702,12 @@ function initializeChat() {
                                 window._chatBanCache[msg.uid] = active;
                                 if (!active) _bdb2.ref('bannedUsers/' + msg.uid).remove();
                             } else {
-                                // Ban was removed — clear cache so future messages show
+                                // Unbanned — clear cache so next message renders
                                 delete window._chatBanCache[msg.uid];
                             }
                         });
                     }
-                    return; // still drop this message while we re-check
+                    return; // drop this message while async check runs
                 }
                 if (_bc === undefined) {
                     // First time we see this UID — mark pending, fire async check
@@ -21722,7 +21725,7 @@ function initializeChat() {
                             }
                         });
                     }
-                    // null = pending: allow this one message through; all future ones blocked once resolved
+                    // null = pending: allow this one message through while check resolves
                 }
                 // _bc === false → not banned, fall through normally
             }
@@ -35149,18 +35152,17 @@ function renderChallengesPanel() {
         if (logEl) logEl.textContent = 'Gifting ' + (items[itemId]?.name||itemId) + ' to ' + targetName + '...';
 
         try {
-            // Use pendingGifts (publicly writable) — same path as the in-game gift system
-            // This avoids PERMISSION_DENIED on gameSaves which requires the player's own auth
-            let resolvedName = null;
+            // Look up recipient UID from accountNames
+            let recipUid = null;
             for (const variant of [targetName, targetName.toLowerCase()]) {
                 const snap = await db.ref('accountNames/' + variant).once('value');
-                if (snap.exists()) { resolvedName = variant; break; }
+                if (snap.exists()) { recipUid = snap.val(); break; }
             }
-            if (!resolvedName) { if (logEl) logEl.textContent = '❌ Player "' + targetName + '" not found.'; return; }
+            if (!recipUid) { if (logEl) logEl.textContent = '❌ Player "' + targetName + '" not found.'; return; }
 
-            const safeRecip = resolvedName.replace(/[.#$[\]]/g, '_');
             const itemName = (typeof items !== 'undefined' && items[itemId]?.name) || itemId;
-            const giftRef = db.ref('pendingGifts/' + safeRecip).push();
+            // Use recipient UID as key — matches Firebase rule: $player === auth.uid
+            const giftRef = db.ref('pendingGifts/' + recipUid).push();
             await giftRef.set({
                 itemId:   itemId,
                 itemType: 'item',
@@ -35181,6 +35183,35 @@ function renderChallengesPanel() {
         if (!t) { devLog('No player selected.'); return; }
         const db = window._scFirebase?.db;
         if (!db) { devLog('Firebase not ready.'); return; }
+
+        // ── clear_inventory: patch gameSaves directly instead of devCommands ──
+        // devCommands requires the dev's UID to be in the devUsers node.
+        // Patching gameSaves directly works because devUsers grants write access.
+        if (command === 'clear_inventory') {
+            if (!confirm('Wipe entire inventory for "' + t.name + '"? This cannot be undone.')) return;
+            try {
+                // Read their current save, wipe inventory/equipped, write back
+                const saveSnap = await db.ref('gameSaves/' + t.uid).once('value');
+                if (!saveSnap.exists()) { devLog('❌ No save found for ' + t.name); return; }
+                const saveData = saveSnap.val();
+                let state = {};
+                try { state = JSON.parse(saveData.state || '{}'); } catch(e2) { devLog('❌ Could not parse save.'); return; }
+                const count = (state.inventory || []).length;
+                state.inventory = [];
+                state.equipped = { weapon: null, idol: null, sigil: null, helm: null, tome: null };
+                await db.ref('gameSaves/' + t.uid).update({ state: JSON.stringify(state) });
+                // Also send devCommand so their live session updates immediately if they're online
+                await db.ref('devCommands/' + t.uid).set({ command: 'clear_inventory', issuedAt: Date.now(), issuedBy: gameState.playerName || 'dev' }).catch(() => {});
+                devLog('✅ Wiped ' + count + ' items from ' + t.name + '\'s inventory. Live session will update if they\'re online.');
+                Toastify({ text: '💥 Inventory wiped for ' + t.name, duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0000,#660000)' } }).showToast();
+                // Update local target state
+                t.state.inventory = []; t.state.equipped = { weapon: null, idol: null, sigil: null, helm: null, tome: null };
+                renderDevResult();
+            } catch(e) {
+                devLog('❌ Wipe failed: ' + e.message);
+            }
+            return;
+        }
 
         const payload = { command, issuedAt: Date.now(), issuedBy: gameState.playerName || 'dev' };
         if (extra) Object.assign(payload, extra);
@@ -35559,8 +35590,9 @@ function renderChallengesPanel() {
             if (!snap.exists()) { devLog('⚠ ' + t.name + ' is not currently banned.'); return; }
 
             await chatDb.ref('bannedUsers/' + t.uid).remove();
-            // Delete cache entry entirely so the next message triggers a fresh Firebase check
-            // (setting to false only helps the dev's own client; other clients need to re-check)
+            // Delete from cache entirely — setting false only fixes the dev's client.
+            // Other clients have it cached as true; deleting forces a fresh Firebase check
+            // on their next incoming message from this player.
             if (window._chatBanCache) delete window._chatBanCache[t.uid];
             // Post system message
             await chatDb.ref('slitherChat').push({

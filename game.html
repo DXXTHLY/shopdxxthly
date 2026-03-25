@@ -34634,9 +34634,20 @@ function renderChallengesPanel() {
 // DEV ADMIN PANEL — search/action logic
 // ==================================================================
 (function() {
+    // ── Dev-only guard — MUST pass before any action executes ──────────────
+    function _assertDev() {
+        const uid = window._scFirebase?.auth?.currentUser?.uid;
+        if (uid && typeof _DEV_UIDS !== 'undefined' && _DEV_UIDS.has(uid)) return true;
+        // Also accept if panel was unlocked via chat (belt-and-suspenders)
+        if (window._devPanelUnlocked && uid && typeof _DEV_UIDS !== 'undefined' && _DEV_UIDS.has(uid)) return true;
+        // Silently kill — don't hint that a guard exists
+        console.warn('%c⛔ Unauthorized', 'color:#ff4444;font-weight:bold;');
+        return false;
+    }
     // -- Target state
     window._devTarget = null; // { uid, name, state, db }
     window.devAdminSearch = async function() {
+        if (!_assertDev()) return;
         const nameRaw = (document.getElementById('dev-player-search')?.value || '').trim();
         if (!nameRaw) return;
         const db = window._scFirebase?.db;
@@ -34911,6 +34922,7 @@ function renderChallengesPanel() {
     // -- Actions
     // ── Key Holders viewer ───────────────────────────────────────
     window.devShowKeyholders = async function() {
+        if (!_assertDev()) return;
         const panel = document.getElementById('dev-keyholders-panel');
         const list  = document.getElementById('dev-keyholders-list');
         if (!panel || !list) return;
@@ -35002,6 +35014,7 @@ function renderChallengesPanel() {
     };
 
     window.devKeyholderAction = async function(uid, name, keyId) {
+        if (!_assertDev()) return;
         if (!confirm('Remove ' + keyId + ' from ' + name + '?')) return;
         const db = window._scFirebase?.db;
         if (!db) return;
@@ -35020,6 +35033,7 @@ function renderChallengesPanel() {
 
     // ── Gift Item to Player ───────────────────────────────────────
     window.devGiftItemPicker = function() {
+        if (!_assertDev()) return;
         const modal = document.getElementById('dev-gift-modal');
         const itemList = document.getElementById('dev-gift-item-list');
         if (!modal || !itemList) return;
@@ -35049,6 +35063,7 @@ function renderChallengesPanel() {
     };
 
     window.devGiftItem = async function(itemId) {
+        if (!_assertDev()) return;
         const targetName = (document.getElementById('dev-gift-target')?.value || '').trim();
         const logEl = document.getElementById('dev-gift-log');
         if (!targetName) {
@@ -35087,6 +35102,7 @@ function renderChallengesPanel() {
     };
 
     window.devAdminAction = async function(command, extra) {
+        if (!_assertDev()) return;
         const t = window._devTarget;
         if (!t) { devLog('No player selected.'); return; }
         const db = window._scFirebase?.db;
@@ -35121,11 +35137,13 @@ function renderChallengesPanel() {
 
     // -- Remove item by name (replaces picker since we can't read inventory from Supabase)
     window.devAdminShowItemPicker = function() {
+        if (!_assertDev()) return;
         const inp = document.getElementById('dev-item-name-input');
         if (inp) { inp.focus(); }
     };
 
     window.devAdminViewInventory = async function() {
+        if (!_assertDev()) return;
         const t = window._devTarget;
         if (!t) { devLog('No player loaded.'); return; }
         const modal = document.getElementById('dev-inv-modal');
@@ -35245,6 +35263,7 @@ function renderChallengesPanel() {
     };
 
     window.devAdminRemoveItemByName = function() {
+        if (!_assertDev()) return;
         const t = window._devTarget;
         if (!t) { devLog('No player selected.'); return; }
         const raw = (document.getElementById('dev-item-name-input')?.value || '').trim().toLowerCase();
@@ -35285,6 +35304,7 @@ function renderChallengesPanel() {
     // AVATAR MODERATION — Remove Photo / Ban from Photos
     // ════════════════════════════════════════════════════════
     window.devAdminRemovePhoto = async function() {
+        if (!_assertDev()) return;
         const t = window._devTarget;
         if (!t) { devLog('No player selected.'); return; }
         const chatDb = window._scFirebase && window._scFirebase.chatDb ? window._scFirebase.chatDb : (window._chatDb || null);
@@ -35330,6 +35350,7 @@ function renderChallengesPanel() {
     };
 
     window.devAdminToggleAvatarBan = async function() {
+        if (!_assertDev()) return;
         const t = window._devTarget;
         if (!t) { devLog('No player selected.'); return; }
         const chatDb = window._scFirebase && window._scFirebase.chatDb ? window._scFirebase.chatDb : (window._chatDb || null);
@@ -35384,6 +35405,7 @@ function renderChallengesPanel() {
     // BAN / UNBAN  — writes to bannedUsers/{uid} in chatDb
     // ════════════════════════════════════════════════════════
     window.devAdminBanPlayer = async function() {
+        if (!_assertDev()) return;
         const t = window._devTarget;
         if (!t) { devLog('❌ Search for a player first.'); return; }
 
@@ -35442,6 +35464,7 @@ function renderChallengesPanel() {
     };
 
     window.devAdminUnbanPlayer = async function() {
+        if (!_assertDev()) return;
         const t = window._devTarget;
         if (!t) { devLog('❌ Search for a player first.'); return; }
         if (!confirm('Remove ban for "' + t.name + '"?')) return;

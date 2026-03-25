@@ -68,6 +68,12 @@ Personal website for **DXXTHLY (Brian)** — musician, 3D printing creator, and 
 If you'd like to support my recovery and small business journey, donations can be made via PayPal:
 [paypal.com/donate](https://www.paypal.com/donate/?business=SC3RFTW5QDZJ4&no_recurring=0&currency_code=USD)
 
+## Images
+
+![16a9d25956d19ec46e116db5b09c28eb](https://github.com/user-attachments/assets/0ace369b-b022-4529-9f32-4cc83114b7b1)
+
+![85773030b3986a1c4c7b875ade17c9d1](https://github.com/user-attachments/assets/653ac5da-f1a4-41a9-9f44-2842ed94e44d)
+
 ---
 
 *© 2025 DXXTHLY · All rights reserved*

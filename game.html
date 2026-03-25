@@ -4858,17 +4858,29 @@ text-decoration: underline; /* Adds an underline on hover */
                             <span style="color:#220011;margin-left:4px;">← add this to devUsers in Firebase if inventory access fails</span>
                         </div>
 
-                        <!-- Keyholders + Search bar -->
+                        <!-- Keyholders + Banned Users + Search bar -->
                         <div style="padding:10px 22px 0; border-bottom:1px solid #ff004418;">
                             <button onclick="devShowKeyholders()"
-                                style="background:linear-gradient(135deg,#1a0800,#0a0400); border:1px solid #ffaa0055; border-radius:8px; color:#ffcc44; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit; margin-bottom:10px; width:100%; text-align:left; letter-spacing:1px;">
+                                style="background:linear-gradient(135deg,#1a0800,#0a0400); border:1px solid #ffaa0055; border-radius:8px; color:#ffcc44; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit; margin-bottom:8px; width:100%; text-align:left; letter-spacing:1px;">
                                 🗝️ KEY HOLDERS — View all players currently holding a key
+                            </button>
+                            <button onclick="devShowBannedUsers()"
+                                style="background:linear-gradient(135deg,#1a0000,#0a0000); border:1px solid #ff004455; border-radius:8px; color:#ff5566; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit; margin-bottom:10px; width:100%; text-align:left; letter-spacing:1px;">
+                                🔨 BANNED USERS — View all currently banned players
                             </button>
                         </div>
                         <!-- Keyholders list -->
                         <div id="dev-keyholders-panel" style="display:none; padding:14px 22px; border-bottom:1px solid #ff004418; background:#09000f;">
                             <div style="color:#ffcc44; font-size:0.72em; letter-spacing:2px; margin-bottom:10px;">🗝️ CURRENT KEY HOLDERS</div>
                             <div id="dev-keyholders-list" style="display:grid; gap:6px;"></div>
+                        </div>
+                        <!-- Banned Users list -->
+                        <div id="dev-banned-panel" style="display:none; padding:14px 22px; border-bottom:1px solid #ff004418; background:#0a0005;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                                <div style="color:#ff4455; font-size:0.72em; letter-spacing:2px;">🔨 BANNED PLAYERS</div>
+                                <button onclick="devShowBannedUsers()" style="background:#1a000a; border:1px solid #ff004433; border-radius:6px; color:#ff4466; padding:3px 10px; cursor:pointer; font-size:0.7em; font-family:inherit;">🔄 Refresh</button>
+                            </div>
+                            <div id="dev-banned-list" style="display:grid; gap:8px;"></div>
                         </div>
                         <!-- Search bar -->
                         <div style="padding:16px 22px; border-bottom:1px solid #ff004418;">
@@ -19986,11 +19998,10 @@ async function submitGift() {
 
         if (errEl) errEl.textContent = 'Sending gift...';
         // accountNames value is the recipient's UID — use that as the pendingGifts key
-        // (Firebase rule: $player === auth.uid, so key must be UID not name)
+        // Firebase rule: $player === auth.uid, so key must be UID not name
         const recipUid = (await db.ref('accountNames/' + resolvedRecipName).once('value')).val();
         if (!recipUid) { if (errEl) errEl.textContent = 'Could not resolve player UID. Try again.'; return; }
 
-        // Write gift to Firebase keyed by recipient UID
         const giftRef = db.ref('pendingGifts/' + recipUid).push();
         await giftRef.set({
             itemId:   _giftPendingItemId,
@@ -20038,7 +20049,6 @@ async function submitGift() {
 function initGiftListener() {
     const db = window._scFirebase?.db;
     if (!db || !gameState.playerName || gameState.playerName === 'Unnamed') return;
-    // Use the authenticated UID as key — matches Firebase rule: $player === auth.uid
     const myUid = window._scFirebase?.auth?.currentUser?.uid;
     if (!myUid) return;
 
@@ -21693,7 +21703,7 @@ function initializeChat() {
                 if (!window._chatBanCache) window._chatBanCache = {};
                 const _bc = window._chatBanCache[msg.uid];
                 if (_bc === true) {
-                    // Re-verify against Firebase — ban may have been lifted since we last checked
+                    // Re-verify against Firebase — ban may have been lifted
                     const _bdb2 = (typeof window._getChatDb === 'function') ? window._getChatDb() : null;
                     if (_bdb2) {
                         _bdb2.ref('bannedUsers/' + msg.uid).once('value').then(snap => {
@@ -21703,15 +21713,13 @@ function initializeChat() {
                                 window._chatBanCache[msg.uid] = active;
                                 if (!active) _bdb2.ref('bannedUsers/' + msg.uid).remove();
                             } else {
-                                // Unbanned — clear cache so next message renders
                                 delete window._chatBanCache[msg.uid];
                             }
                         });
                     }
-                    return; // drop this message while async check runs
+                    return;
                 }
                 if (_bc === undefined) {
-                    // First time we see this UID — mark pending, fire async check
                     window._chatBanCache[msg.uid] = null;
                     const _bdb = (typeof window._getChatDb === 'function') ? window._getChatDb() : null;
                     if (_bdb) {
@@ -21726,9 +21734,8 @@ function initializeChat() {
                             }
                         });
                     }
-                    // null = pending: allow this one message through while check resolves
                 }
-                // _bc === false → not banned, fall through normally
+                // _bc === false → not banned, fall through
             }
 
             var _trId=(function(){var pfx='\u0002T\u0003',sfx='\u0002E\u0003';if(!msg.text||msg.text.indexOf(pfx)===-1)return null;var s=msg.text.indexOf(pfx)+pfx.length,e=msg.text.indexOf(sfx,s);return s<e?msg.text.slice(s,e):null;})();
@@ -34810,14 +34817,36 @@ function renderChallengesPanel() {
 
         const chatDb = window._scFirebase && window._scFirebase.chatDb ? window._scFirebase.chatDb : (window._chatDb || null);
         if (chatDb && t.uid) {
-            // Check avatar ban status
-            chatDb.ref('bannedUsers/' + t.uid).once('value').then(function(banSnap) {
-                const banData = banSnap.val() || {};
-                if (banData.avatarBanned) {
-                    if (avatarBanBadge) avatarBanBadge.style.display = 'block';
-                    if (banAvatarBtn) { banAvatarBtn.textContent = '✅ Unban Photos'; banAvatarBtn.style.background = '#001a00'; banAvatarBtn.style.borderColor = '#00ff0044'; banAvatarBtn.style.color = '#44ff44'; }
-                }
-            }).catch(function(){});
+            // ── Resolve the player's CHAT UID (chatforslither) ──────────────────
+            // bannedUsers / onlineUsers are keyed by chatApp UID, not saveApp UID.
+            // We scan bannedUsers by name to find the correct key even when offline.
+            const _resolveAndCheckBans = function(resolvedChatUid) {
+                if (resolvedChatUid) window._devTarget._chatUid = resolvedChatUid;
+                const uidToUse = resolvedChatUid || t.uid;
+
+                // Check chat ban status
+                chatDb.ref('bannedUsers/' + uidToUse).once('value').then(function(banSnap) {
+                    const banData = banSnap.val() || {};
+                    if (banData.avatarBanned) {
+                        if (avatarBanBadge) avatarBanBadge.style.display = 'block';
+                        if (banAvatarBtn) { banAvatarBtn.textContent = '✅ Unban Photos'; banAvatarBtn.style.background = '#001a00'; banAvatarBtn.style.borderColor = '#00ff0044'; banAvatarBtn.style.color = '#44ff44'; }
+                    }
+                    // Show chat ban indicator if currently banned
+                    const isChatBanned = banData.expiresAt === -1 || (banData.expiresAt && banData.expiresAt > Date.now());
+                    const unbanBtn = document.getElementById('dev-unban-btn') || document.querySelector('[onclick="devAdminUnbanPlayer()"]');
+                    if (unbanBtn) {
+                        if (isChatBanned) {
+                            unbanBtn.style.borderColor = '#ff440088';
+                            unbanBtn.style.color = '#ff6644';
+                            const expStr = banData.expiresAt === -1 ? 'Permanent' : new Date(banData.expiresAt).toLocaleString();
+                            devLog('⚠ ' + t.name + ' is currently banned. Expires: ' + expStr + '. Reason: ' + (banData.reason || 'none'));
+                        } else {
+                            unbanBtn.style.borderColor = '';
+                            unbanBtn.style.color = '';
+                        }
+                    }
+                }).catch(function(){});
+            };
 
             // Fetch live avatar from onlineUsers — search by name since chat UID != save UID
             const _applyAvatar = function(liveAvatar, chatUid) {
@@ -34846,6 +34875,7 @@ function renderChallengesPanel() {
                 if (ouData.profileAvatar !== undefined || ouData.name) {
                     // Found by save UID — use it directly
                     _applyAvatar((ouData.profileAvatar || '').trim() || (gs.profileAvatar || '').trim(), t.uid);
+                    _resolveAndCheckBans(t.uid);
                 } else {
                     // Step 2: different UID systems — scan onlineUsers by player name
                     const searchName = (gs.playerName || t.name || '').toLowerCase();
@@ -34857,18 +34887,35 @@ function renderChallengesPanel() {
                             if ((d.name || '').toLowerCase() === searchName) {
                                 found = true;
                                 _applyAvatar((d.profileAvatar || '').trim() || (gs.profileAvatar || '').trim(), child.key);
+                                _resolveAndCheckBans(child.key);
                             }
                         });
                         if (!found) {
-                            // Not online right now — fall back to gameSaves avatar
-                            _applyAvatar((gs.profileAvatar || '').trim(), null);
+                            // Step 3: player is offline — scan bannedUsers by name to find their chat UID
+                            chatDb.ref('bannedUsers').once('value').then(function(allBanSnap) {
+                                let foundChatUid = null;
+                                allBanSnap.forEach(function(child) {
+                                    if (foundChatUid) return;
+                                    const bd = child.val() || {};
+                                    if ((bd.name || '').toLowerCase() === searchName) {
+                                        foundChatUid = child.key;
+                                    }
+                                });
+                                _applyAvatar((gs.profileAvatar || '').trim(), foundChatUid);
+                                _resolveAndCheckBans(foundChatUid);
+                            }).catch(function() {
+                                _applyAvatar((gs.profileAvatar || '').trim(), null);
+                                _resolveAndCheckBans(null);
+                            });
                         }
                     }).catch(function() {
                         _applyAvatar((gs.profileAvatar || '').trim(), null);
+                        _resolveAndCheckBans(null);
                     });
                 }
             }).catch(function() {
                 _applyAvatar((gs.profileAvatar || '').trim(), null);
+                _resolveAndCheckBans(null);
             });
         } else {
             // No chatDb - fall back to gameSaves avatar
@@ -35152,7 +35199,6 @@ function renderChallengesPanel() {
         if (logEl) logEl.textContent = 'Gifting ' + (items[itemId]?.name||itemId) + ' to ' + targetName + '...';
 
         try {
-            // Look up recipient UID from accountNames
             let recipUid = null;
             for (const variant of [targetName, targetName.toLowerCase()]) {
                 const snap = await db.ref('accountNames/' + variant).once('value');
@@ -35184,32 +35230,24 @@ function renderChallengesPanel() {
         const db = window._scFirebase?.db;
         if (!db) { devLog('Firebase not ready.'); return; }
 
-        // ── clear_inventory & remove_item: patch gameSaves directly ──────────
-        // devCommands only fires when the TARGET is online. Patching gameSaves
-        // directly makes the change permanent even if they're offline, THEN we
-        // also send the devCommand so their live session updates immediately.
         if (command === 'clear_inventory') {
             if (!confirm('Wipe entire inventory for "' + t.name + '"? This cannot be undone.')) return;
             try {
                 devLog('Reading save for ' + t.name + '...');
                 const saveSnap = await db.ref('gameSaves/' + t.uid).once('value');
-                if (!saveSnap.exists()) { devLog('❌ No save found for ' + t.name + '. They may not have logged in yet.'); return; }
-                const saveData = saveSnap.val();
+                if (!saveSnap.exists()) { devLog('❌ No save found for ' + t.name + '.'); return; }
                 let state = {};
-                try { state = JSON.parse(saveData.state || '{}'); } catch(e2) { devLog('❌ Could not parse save data.'); return; }
+                try { state = JSON.parse(saveSnap.val().state || '{}'); } catch(e2) { devLog('❌ Could not parse save data.'); return; }
                 const count = (state.inventory || []).length;
                 state.inventory = [];
                 state.equipped = { weapon: null, idol: null, sigil: null, helm: null, tome: null };
                 await db.ref('gameSaves/' + t.uid).update({ state: JSON.stringify(state) });
-                // Also send live command in case they're online right now
                 await db.ref('devCommands/' + t.uid).set({ command: 'clear_inventory', issuedAt: Date.now(), issuedBy: gameState.playerName || 'dev' }).catch(() => {});
-                devLog('✅ Wiped ' + count + ' item(s) from ' + t.name + '\'s inventory. Save updated permanently.');
+                devLog('✅ Wiped ' + count + ' item(s) from ' + t.name + '\'s inventory.');
                 Toastify({ text: '💥 Wiped ' + count + ' items from ' + t.name, duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0000,#660000)' } }).showToast();
                 t.state.inventory = []; t.state.equipped = { weapon: null, idol: null, sigil: null, helm: null, tome: null };
                 renderDevResult();
-            } catch(e) {
-                devLog('❌ Wipe failed: ' + e.message);
-            }
+            } catch(e) { devLog('❌ Wipe failed: ' + e.message); }
             return;
         }
 
@@ -35229,38 +35267,24 @@ function renderChallengesPanel() {
                 state.inventory.splice(idx, 1);
                 await db.ref('gameSaves/' + t.uid).update({ state: JSON.stringify(state) });
                 await db.ref('devCommands/' + t.uid).set({ command: 'remove_item', itemId: extra.itemId, issuedAt: Date.now(), issuedBy: gameState.playerName || 'dev' }).catch(() => {});
-                devLog('✅ Removed "' + itemName + '" from ' + t.name + '\'s inventory. Save updated permanently.');
-                Toastify({ text: '🔧 Removed ' + itemName + ' from ' + t.name, duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0000,#440000)' } }).showToast();
+                devLog('✅ Removed "' + itemName + '" from ' + t.name + '\'s inventory.');
                 t.state.inventory = state.inventory; t.state.equipped = state.equipped;
                 renderDevResult();
-            } catch(e) {
-                devLog('❌ Remove item failed: ' + e.message);
-            }
+            } catch(e) { devLog('❌ Remove item failed: ' + e.message); }
             return;
         }
 
-        // All other commands (remove_key, fixsps) use devCommands as before
         const payload = { command, issuedAt: Date.now(), issuedBy: gameState.playerName || 'dev' };
         if (extra) Object.assign(payload, extra);
 
         try {
             await db.ref('devCommands/' + t.uid).set(payload);
             devLog(`✅ Command "${command}" sent to ${t.name}. It will execute when they next load the game.`);
-
             if (command === 'remove_key') {
-                if (t.state?.heldKey?.id && typeof devForceReleaseKey === 'function') {
-                    devForceReleaseKey(t.state.heldKey.id);
-                }
-                setTimeout(() => {
-                    if (window._devTarget) {
-                        window._devTarget.state.heldKey = null;
-                        renderDevResult();
-                    }
-                }, 2000);
+                if (t.state?.heldKey?.id && typeof devForceReleaseKey === 'function') devForceReleaseKey(t.state.heldKey.id);
+                setTimeout(() => { if (window._devTarget) { window._devTarget.state.heldKey = null; renderDevResult(); } }, 2000);
             }
-        } catch(e) {
-            devLog('❌ Failed: ' + e.message);
-        }
+        } catch(e) { devLog('❌ Failed: ' + e.message); }
     };
 
     // -- Remove item by name (replaces picker since we can't read inventory from Supabase)
@@ -35581,7 +35605,8 @@ function renderChallengesPanel() {
         };
 
         try {
-            await chatDb.ref('bannedUsers/' + t.uid).set(banData);
+            const chatUidToUse = t._chatUid || t.uid;
+            await chatDb.ref('bannedUsers/' + chatUidToUse).set(banData);
             // Post system message to slitherChat
             await chatDb.ref('slitherChat').push({
                 uid: 'system',
@@ -35590,7 +35615,7 @@ function renderChallengesPanel() {
                 time: window.firebase.database.ServerValue.TIMESTAMP
             });
             // Clear their cached ban status so render filter picks it up immediately
-            if (window._chatBanCache) window._chatBanCache[t.uid] = true;
+            if (window._chatBanCache) window._chatBanCache[chatUidToUse] = true;
             devLog('✅ ' + t.name + ' banned (' + durStr + '). Reason: ' + finalReason);
             Toastify({ text: '🔨 Banned: ' + t.name + ' — ' + durStr, duration: 6000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#330000,#660000)' } }).showToast();
         } catch(e) {
@@ -35607,15 +35632,17 @@ function renderChallengesPanel() {
         const chatDb = _getChatDb();
         if (!chatDb) { devLog('❌ Chat Firebase not ready.'); return; }
 
+        // Always use the chat UID — bannedUsers is keyed by chatApp UID, not saveApp UID
+        const chatUidToUse = t._chatUid || t.uid;
+
         try {
             // Check if actually banned first
-            const snap = await chatDb.ref('bannedUsers/' + t.uid).once('value');
-            if (!snap.exists()) { devLog('⚠ ' + t.name + ' is not currently banned.'); return; }
+            const snap = await chatDb.ref('bannedUsers/' + chatUidToUse).once('value');
+            if (!snap.exists()) { devLog('⚠ ' + t.name + ' is not currently banned (checked chat UID: ' + chatUidToUse + ').'); return; }
 
-            await chatDb.ref('bannedUsers/' + t.uid).remove();
-            // Delete from cache entirely — other clients have this UID cached as true.
-            // Deleting forces a fresh Firebase check on the next message they send.
-            if (window._chatBanCache) delete window._chatBanCache[t.uid];
+            await chatDb.ref('bannedUsers/' + chatUidToUse).remove();
+            // Delete from cache entirely so other clients re-verify on next message
+            if (window._chatBanCache) delete window._chatBanCache[chatUidToUse];
             // Post system message
             await chatDb.ref('slitherChat').push({
                 uid: 'system',
@@ -35626,6 +35653,132 @@ function renderChallengesPanel() {
             devLog('✅ ' + t.name + ' has been unbanned.');
             Toastify({ text: '✅ Unbanned: ' + t.name, duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#003300,#006600)' } }).showToast();
         } catch(e) {
+            devLog('❌ Unban failed: ' + e.message);
+        }
+    };
+
+    // BANNED USERS LIST — shows all entries in bannedUsers with inline unban
+    window.devShowBannedUsers = async function() {
+        if (!_assertDev()) return;
+        const panel = document.getElementById('dev-banned-panel');
+        const list  = document.getElementById('dev-banned-list');
+        if (!panel || !list) return;
+
+        // Toggle: close if already open
+        if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+
+        // Close keyholders panel if open
+        const kp = document.getElementById('dev-keyholders-panel');
+        if (kp) kp.style.display = 'none';
+
+        panel.style.display = 'block';
+        list.innerHTML = '<div style="color:#553333;font-size:0.75em;font-family:monospace;">Loading…</div>';
+
+        const chatDb = _getChatDb();
+        if (!chatDb) { list.innerHTML = '<div style="color:#ff4444;font-size:0.75em;">❌ Chat Firebase not ready.</div>'; return; }
+
+        try {
+            const snap = await chatDb.ref('bannedUsers').once('value');
+            if (!snap.exists()) {
+                list.innerHTML = '<div style="color:#44ff88;font-size:0.78em;font-family:monospace;">✅ No banned players right now.</div>';
+                return;
+            }
+
+            const now = Date.now();
+            const rows = [];
+            snap.forEach(function(child) {
+                const uid  = child.key;
+                const data = child.val() || {};
+                // Skip pure avatar-ban entries (they only have avatarBanned key, no 'reason')
+                if (!data.reason && !data.duration) return;
+                rows.push({ uid, data });
+            });
+
+            if (rows.length === 0) {
+                list.innerHTML = '<div style="color:#44ff88;font-size:0.78em;font-family:monospace;">✅ No chat bans active.</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            rows.forEach(function({ uid, data }) {
+                const name       = data.name || uid;
+                const reason     = data.reason || 'No reason given';
+                const bannedBy   = data.bannedBy || 'unknown';
+                const duration   = data.duration || 'Permanent';
+                const bannedAt   = data.bannedAt ? new Date(data.bannedAt).toLocaleString() : '?';
+                const expiresAt  = data.expiresAt;
+                let expiresStr   = 'Never (Permanent)';
+                let expired      = false;
+                if (expiresAt && expiresAt !== -1) {
+                    if (expiresAt <= now) {
+                        expiresStr = '⚠️ Expired (not yet cleaned up)';
+                        expired = true;
+                    } else {
+                        const diffMs  = expiresAt - now;
+                        const diffMin = Math.floor(diffMs / 60000);
+                        const diffH   = Math.floor(diffMin / 60);
+                        const diffD   = Math.floor(diffH / 24);
+                        if (diffD > 0)      expiresStr = 'In ' + diffD + 'd ' + (diffH % 24) + 'h';
+                        else if (diffH > 0) expiresStr = 'In ' + diffH + 'h ' + (diffMin % 60) + 'm';
+                        else                expiresStr = 'In ' + diffMin + 'm';
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.style.cssText = 'background:#120005;border:1px solid #ff003322;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;';
+                card.innerHTML =
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="color:#ff6677;font-weight:bold;font-size:0.85em;margin-bottom:2px;">' + name + '</div>' +
+                        '<div style="color:#884455;font-size:0.7em;font-family:monospace;margin-bottom:4px;">UID: ' + uid + '</div>' +
+                        '<div style="color:#cc8888;font-size:0.75em;margin-bottom:2px;">📋 <strong>Reason:</strong> ' + reason + '</div>' +
+                        '<div style="color:#885555;font-size:0.7em;margin-bottom:1px;">⏱ <strong>Duration:</strong> ' + duration + ' &nbsp;|&nbsp; Banned: ' + bannedAt + '</div>' +
+                        '<div style="color:' + (expired ? '#ffaa44' : '#557755') + ';font-size:0.7em;">⏳ <strong>Expires:</strong> ' + expiresStr + '</div>' +
+                        '<div style="color:#553333;font-size:0.65em;font-family:monospace;">By: ' + bannedBy + '</div>' +
+                    '</div>' +
+                    '<button data-uid="' + uid + '" data-name="' + name.replace(/"/g,'&quot;') + '" onclick="devUnbanFromList(this)" ' +
+                        'style="background:#002200;border:1px solid #00ff4444;border-radius:7px;color:#44ff88;padding:7px 13px;cursor:pointer;font-size:0.72em;font-family:inherit;white-space:nowrap;flex-shrink:0;">' +
+                        '✅ Unban' +
+                    '</button>';
+                list.appendChild(card);
+            });
+        } catch(e) {
+            list.innerHTML = '<div style="color:#ff4444;font-size:0.75em;font-family:monospace;">❌ Error: ' + e.message + '</div>';
+        }
+    };
+
+    // Called when Unban is clicked from the banned list
+    window.devUnbanFromList = async function(btn) {
+        if (!_assertDev()) return;
+        const uid  = btn.getAttribute('data-uid');
+        const name = btn.getAttribute('data-name');
+        if (!confirm('Remove ban for "' + name + '"?')) return;
+
+        const chatDb = _getChatDb();
+        if (!chatDb) { devLog('❌ Chat Firebase not ready.'); return; }
+
+        btn.disabled = true;
+        btn.textContent = '…';
+        try {
+            await chatDb.ref('bannedUsers/' + uid).remove();
+            if (window._chatBanCache) delete window._chatBanCache[uid];
+            await chatDb.ref('slitherChat').push({
+                uid: 'system', name: 'System',
+                text: '✅ ' + name + ' has been unbanned.',
+                time: window.firebase.database.ServerValue.TIMESTAMP
+            });
+            devLog('✅ ' + name + ' unbanned from ban list.');
+            Toastify({ text: '✅ Unbanned: ' + name, duration: 4000, gravity: 'top', position: 'center',
+                style: { background: 'linear-gradient(135deg,#003300,#006600)' } }).showToast();
+            // Remove the card from the list
+            btn.closest('div[style*="background:#120005"]').remove();
+            // If list is now empty, show cleared message
+            const listEl = document.getElementById('dev-banned-list');
+            if (listEl && listEl.children.length === 0) {
+                listEl.innerHTML = '<div style="color:#44ff88;font-size:0.78em;font-family:monospace;">✅ No banned players right now.</div>';
+            }
+        } catch(e) {
+            btn.disabled = false;
+            btn.textContent = '✅ Unban';
             devLog('❌ Unban failed: ' + e.message);
         }
     };

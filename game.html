@@ -20642,18 +20642,28 @@ function convertCurrency(from, to, amountIn, amountOut) {
         }
     }
 
-    // === FRAGMENT COST — anti-spam gate on every conversion ===
-    const CONV_FRAG_COSTS = {
-        'shards-de':    15,   // Shards→DE: powerful DE generation
-        'aether-de':    25,   // Aether→DE: spending deepest currency
-        'de-souls':     10,   // DE→Souls: already has daily cap too
-        'de-shards':    20,   // DE→Shards: bypasses ascension grind
-        'shards-fragments': 0, // already has escalating shard cost built in
+    // === FRAGMENT COST — scales up with each use per day, resets at midnight ===
+    const CONV_FRAG_BASE = {
+        'shards-de':    15,
+        'aether-de':    25,
+        'de-souls':     10,
+        'de-shards':    20,
+        'shards-fragments': 0,
     };
-    const fragCost = CONV_FRAG_COSTS[convKey] || 0;
+    const today = new Date().toDateString();
+    if (!gameState._exchFragCounts) gameState._exchFragCounts = {};
+    if (!gameState._exchFragDate || gameState._exchFragDate !== today) {
+        gameState._exchFragDate = today;
+        gameState._exchFragCounts = {};
+    }
+    const _useCount = gameState._exchFragCounts[convKey] || 0;
+    const _baseFragCost = CONV_FRAG_BASE[convKey] || 0;
+    // Cost doubles every 2 uses: x1 on use 1-2, x2 on 3-4, x4 on 5-6, x8 on 7-8... capped at x64
+    const _fragMult = Math.min(64, Math.pow(2, Math.floor(_useCount / 2)));
+    const fragCost = _baseFragCost > 0 ? Math.ceil(_baseFragCost * _fragMult) : 0;
     if (fragCost > 0) {
         if (D(gameState.corruptedFragments || 0).lt(fragCost)) {
-            Toastify({ text: `🔮 Need ${fragCost} Corrupted Fragments to use this exchange.`, duration: 3500, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#1a001a,#440044)' } }).showToast();
+            Toastify({ text: `🔮 Need ${fragCost} Corrupted Fragments to use this exchange (use #${_useCount+1} today).`, duration: 3500, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#1a001a,#440044)' } }).showToast();
             return;
         }
     }
@@ -20720,6 +20730,9 @@ function convertCurrency(from, to, amountIn, amountOut) {
     }
 
     if (canAfford) {
+        // Increment daily use counter for this exchange type
+        if (!gameState._exchFragCounts) gameState._exchFragCounts = {};
+        gameState._exchFragCounts[convKey] = (_useCount || 0) + 1;
         playSound('upgrade');
         calculateStats();
         renderBank();
@@ -20809,10 +20822,19 @@ function renderBank() {
     const fragBal = document.getElementById('exchange-fragments-balance');
     if (fragBal) fragBal.innerText = formatNumber(gameState.corruptedFragments);
 
-    const CONV_FRAG_COSTS = { 'shards-de': 15, 'aether-de': 25, 'de-souls': 10, 'de-shards': 20 };
+    const CONV_FRAG_BASE_R = { 'shards-de': 15, 'aether-de': 25, 'de-souls': 10, 'de-shards': 20 };
     const CONV_COOLDOWNS_MS = { 'shards-de': 45*60*1000, 'aether-de': 45*60*1000, 'de-shards': 30*60*1000 };
+    // Scaling fragment cost — doubles every 2 uses per day
+    const _rToday = new Date().toDateString();
+    const _rCounts = (gameState._exchFragDate === _rToday ? gameState._exchFragCounts : {}) || {};
+    const scaledFragCost = (key) => {
+        const base = CONV_FRAG_BASE_R[key] || 0;
+        if (!base) return 0;
+        const uses = _rCounts[key] || 0;
+        return Math.ceil(base * Math.min(64, Math.pow(2, Math.floor(uses / 2))));
+    };
     const hasFrags = (cost) => D(gameState.corruptedFragments || 0).gte(cost);
-    const fragTag = (cost) => `<span style="color:${hasFrags(cost) ? '#aa44ff' : '#ff4444'}; font-size:0.8em;"> + ${cost}🔮</span>`;
+    const fragTag = (key) => { const cost = scaledFragCost(key); const uses = _rCounts[key] || 0; return `<span style="color:${hasFrags(cost) ? '#aa44ff' : '#ff4444'}; font-size:0.8em;"> + ${cost}🔮${uses > 0 ? '<span style=\'color:#665500;font-size:0.85em;\'>×'+Math.min(64,Math.pow(2,Math.floor(uses/2)))+'</span>' : ''}</span>`; };
 
     // Returns remaining cooldown string, or '' if ready
     const cdTag = (key) => {
@@ -20826,35 +20848,35 @@ function renderBank() {
     const isOnCd = (key) => { const cdMs = CONV_COOLDOWNS_MS[key]; if (!cdMs) return false; const last = gameState._exchangeCooldowns?.[key]||0; return (cdMs-(Date.now()-last))>0; };
 
     const shardsTier = conversionTiers.shardsToDe[currentConversionIndexes.shardsToDe];
-    document.getElementById('shards-tier-text').innerHTML = `<span class="cost-shards">${formatNumber(shardsTier.fromAmount)} Shards</span> → <span class="cost-essence">${formatNumber(shardsTier.toAmount)} ${_essLabel}</span>${fragTag(15)}${cdTag('shards-de')}`;
+    document.getElementById('shards-tier-text').innerHTML = `<span class="cost-shards">${formatNumber(shardsTier.fromAmount)} Shards</span> → <span class="cost-essence">${formatNumber(shardsTier.toAmount)} ${_essLabel}</span>${fragTag('shards-de')}${cdTag('shards-de')}`;
     const csb = document.getElementById('convert-shards-btn');
     csb.onclick = () => convertCurrency('shards', 'de', shardsTier.fromAmount, shardsTier.toAmount);
-    csb.disabled = D(gameState.abyssalShards).lt(shardsTier.fromAmount) || !hasFrags(15) || isOnCd('shards-de');
+    csb.disabled = D(gameState.abyssalShards).lt(shardsTier.fromAmount) || !hasFrags(scaledFragCost('shards-de')) || isOnCd('shards-de');
     csb.textContent = isOnCd('shards-de') ? 'On Cooldown' : 'Convert';
 
     const aetherTier = conversionTiers.aetherToDe[currentConversionIndexes.aetherToDe];
     const aetherOut = (currentConversionIndexes.aetherToDe === 0) ? Math.max(5, 50 - (gameState.aetherToDeConversions * 5)) : aetherTier.toAmount;
-    document.getElementById('aether-tier-text').innerHTML = `<span style="color:#00e5ff;">${formatNumber(aetherTier.fromAmount)} Aether</span> → <span class="cost-essence">${formatNumber(aetherOut)} ${_essLabel}</span>${fragTag(25)}${cdTag('aether-de')}`;
+    document.getElementById('aether-tier-text').innerHTML = `<span style="color:#00e5ff;">${formatNumber(aetherTier.fromAmount)} Aether</span> → <span class="cost-essence">${formatNumber(aetherOut)} ${_essLabel}</span>${fragTag('aether-de')}${cdTag('aether-de')}`;
     const cab = document.getElementById('convert-aether-btn');
     cab.onclick = () => convertCurrency('aether', 'de', aetherTier.fromAmount, aetherOut);
-    cab.disabled = D(gameState.aether).lt(aetherTier.fromAmount) || !hasFrags(25) || isOnCd('aether-de');
+    cab.disabled = D(gameState.aether).lt(aetherTier.fromAmount) || !hasFrags(scaledFragCost('aether-de')) || isOnCd('aether-de');
     cab.textContent = isOnCd('aether-de') ? 'On Cooldown' : 'Convert';
 
     const deTier = conversionTiers.deToSouls[currentConversionIndexes.deToSouls];
     const deSoulsUsed = gameState._deSoulsDate === new Date().toDateString() ? (gameState._deSoulsCount || 0) : 0;
-    document.getElementById('de-tier-text').innerHTML = `<span class="cost-essence">${formatNumber(deTier.fromAmount)} ${_essLabel}</span> → <span class="cost-souls">${formatNumber(deTier.toAmount)} ${_isTx ? 'Light Souls' : 'Souls'}</span>${fragTag(10)} <span style="color:#555; font-size:0.75em;">(${deSoulsUsed}/5 today)</span>`;
+    document.getElementById('de-tier-text').innerHTML = `<span class="cost-essence">${formatNumber(deTier.fromAmount)} ${_essLabel}</span> → <span class="cost-souls">${formatNumber(deTier.toAmount)} ${_isTx ? 'Light Souls' : 'Souls'}</span>${fragTag('de-souls')} <span style="color:#555; font-size:0.75em;">(${deSoulsUsed}/5 today)</span>`;
     const ceb = document.getElementById('convert-essence-btn');
     ceb.onclick = () => convertCurrency('de', 'souls', deTier.fromAmount, deTier.toAmount);
-    ceb.disabled = _essBalance().lt(deTier.fromAmount) || !hasFrags(10) || deSoulsUsed >= 5;
+    ceb.disabled = _essBalance().lt(deTier.fromAmount) || !hasFrags(scaledFragCost('de-souls')) || deSoulsUsed >= 5;
 
     const deShardsTier = conversionTiers.deToShards[currentConversionIndexes.deToShards];
     const dsEl = document.getElementById('de-shards-tier-text');
     if (dsEl) {
-        dsEl.innerHTML = `<span class="cost-essence">${formatNumber(deShardsTier.fromAmount)} ${_essLabel}</span> → <span class="cost-shards">${formatNumber(deShardsTier.toAmount)} Shards</span>${fragTag(20)}${cdTag('de-shards')}`;
+        dsEl.innerHTML = `<span class="cost-essence">${formatNumber(deShardsTier.fromAmount)} ${_essLabel}</span> → <span class="cost-shards">${formatNumber(deShardsTier.toAmount)} Shards</span>${fragTag('de-shards')}${cdTag('de-shards')}`;
         const cdsb = document.getElementById('convert-de-shards-btn');
         if (cdsb) {
             cdsb.onclick = () => convertCurrency('de', 'shards', deShardsTier.fromAmount, deShardsTier.toAmount);
-            cdsb.disabled = _essBalance().lt(deShardsTier.fromAmount) || !hasFrags(20) || isOnCd('de-shards');
+            cdsb.disabled = _essBalance().lt(deShardsTier.fromAmount) || !hasFrags(scaledFragCost('de-shards')) || isOnCd('de-shards');
             cdsb.textContent = isOnCd('de-shards') ? 'On Cooldown' : 'Convert';
         }
     }

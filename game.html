@@ -19985,11 +19985,12 @@ async function submitGift() {
         }
 
         if (errEl) errEl.textContent = 'Sending gift...';
-        // accountNames stores name -> uid, so snap.val() is the recipient's UID
+        // accountNames value is the recipient's UID — use that as the pendingGifts key
+        // (Firebase rule: $player === auth.uid, so key must be UID not name)
         const recipUid = (await db.ref('accountNames/' + resolvedRecipName).once('value')).val();
         if (!recipUid) { if (errEl) errEl.textContent = 'Could not resolve player UID. Try again.'; return; }
 
-        // Write gift to Firebase keyed by recipient UID (matches Firebase rule: $player === auth.uid)
+        // Write gift to Firebase keyed by recipient UID
         const giftRef = db.ref('pendingGifts/' + recipUid).push();
         await giftRef.set({
             itemId:   _giftPendingItemId,
@@ -20037,7 +20038,7 @@ async function submitGift() {
 function initGiftListener() {
     const db = window._scFirebase?.db;
     if (!db || !gameState.playerName || gameState.playerName === 'Unnamed') return;
-    // Use the authenticated UID as the key — matches Firebase rule: $player === auth.uid
+    // Use the authenticated UID as key — matches Firebase rule: $player === auth.uid
     const myUid = window._scFirebase?.auth?.currentUser?.uid;
     if (!myUid) return;
 
@@ -21692,7 +21693,7 @@ function initializeChat() {
                 if (!window._chatBanCache) window._chatBanCache = {};
                 const _bc = window._chatBanCache[msg.uid];
                 if (_bc === true) {
-                    // Re-verify against Firebase — ban may have been lifted since we cached it
+                    // Re-verify against Firebase — ban may have been lifted since we last checked
                     const _bdb2 = (typeof window._getChatDb === 'function') ? window._getChatDb() : null;
                     if (_bdb2) {
                         _bdb2.ref('bannedUsers/' + msg.uid).once('value').then(snap => {
@@ -35141,7 +35142,6 @@ function renderChallengesPanel() {
             document.getElementById('dev-gift-target')?.focus();
             return;
         }
-        // Prevent devs from gifting items to themselves
         if (targetName.toLowerCase() === (gameState.playerName || '').toLowerCase()) {
             if (logEl) logEl.textContent = '⛔ You cannot gift items to yourself.';
             return;
@@ -35184,27 +35184,27 @@ function renderChallengesPanel() {
         const db = window._scFirebase?.db;
         if (!db) { devLog('Firebase not ready.'); return; }
 
-        // ── clear_inventory: patch gameSaves directly instead of devCommands ──
-        // devCommands requires the dev's UID to be in the devUsers node.
-        // Patching gameSaves directly works because devUsers grants write access.
+        // ── clear_inventory & remove_item: patch gameSaves directly ──────────
+        // devCommands only fires when the TARGET is online. Patching gameSaves
+        // directly makes the change permanent even if they're offline, THEN we
+        // also send the devCommand so their live session updates immediately.
         if (command === 'clear_inventory') {
             if (!confirm('Wipe entire inventory for "' + t.name + '"? This cannot be undone.')) return;
             try {
-                // Read their current save, wipe inventory/equipped, write back
+                devLog('Reading save for ' + t.name + '...');
                 const saveSnap = await db.ref('gameSaves/' + t.uid).once('value');
-                if (!saveSnap.exists()) { devLog('❌ No save found for ' + t.name); return; }
+                if (!saveSnap.exists()) { devLog('❌ No save found for ' + t.name + '. They may not have logged in yet.'); return; }
                 const saveData = saveSnap.val();
                 let state = {};
-                try { state = JSON.parse(saveData.state || '{}'); } catch(e2) { devLog('❌ Could not parse save.'); return; }
+                try { state = JSON.parse(saveData.state || '{}'); } catch(e2) { devLog('❌ Could not parse save data.'); return; }
                 const count = (state.inventory || []).length;
                 state.inventory = [];
                 state.equipped = { weapon: null, idol: null, sigil: null, helm: null, tome: null };
                 await db.ref('gameSaves/' + t.uid).update({ state: JSON.stringify(state) });
-                // Also send devCommand so their live session updates immediately if they're online
+                // Also send live command in case they're online right now
                 await db.ref('devCommands/' + t.uid).set({ command: 'clear_inventory', issuedAt: Date.now(), issuedBy: gameState.playerName || 'dev' }).catch(() => {});
-                devLog('✅ Wiped ' + count + ' items from ' + t.name + '\'s inventory. Live session will update if they\'re online.');
-                Toastify({ text: '💥 Inventory wiped for ' + t.name, duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0000,#660000)' } }).showToast();
-                // Update local target state
+                devLog('✅ Wiped ' + count + ' item(s) from ' + t.name + '\'s inventory. Save updated permanently.');
+                Toastify({ text: '💥 Wiped ' + count + ' items from ' + t.name, duration: 5000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0000,#660000)' } }).showToast();
                 t.state.inventory = []; t.state.equipped = { weapon: null, idol: null, sigil: null, helm: null, tome: null };
                 renderDevResult();
             } catch(e) {
@@ -35213,6 +35213,33 @@ function renderChallengesPanel() {
             return;
         }
 
+        if (command === 'remove_item' && extra?.itemId) {
+            try {
+                devLog('Reading save for ' + t.name + '...');
+                const saveSnap = await db.ref('gameSaves/' + t.uid).once('value');
+                if (!saveSnap.exists()) { devLog('❌ No save found.'); return; }
+                let state = {};
+                try { state = JSON.parse(saveSnap.val().state || '{}'); } catch(e2) { devLog('❌ Could not parse save.'); return; }
+                const idx = (state.inventory || []).indexOf(extra.itemId);
+                const itemName = items[extra.itemId]?.name || extra.itemId;
+                if (idx === -1) { devLog('⚠ Item "' + itemName + '" not found in ' + t.name + '\'s inventory.'); return; }
+                for (const slot in (state.equipped || {})) {
+                    if (state.equipped[slot] === extra.itemId) state.equipped[slot] = null;
+                }
+                state.inventory.splice(idx, 1);
+                await db.ref('gameSaves/' + t.uid).update({ state: JSON.stringify(state) });
+                await db.ref('devCommands/' + t.uid).set({ command: 'remove_item', itemId: extra.itemId, issuedAt: Date.now(), issuedBy: gameState.playerName || 'dev' }).catch(() => {});
+                devLog('✅ Removed "' + itemName + '" from ' + t.name + '\'s inventory. Save updated permanently.');
+                Toastify({ text: '🔧 Removed ' + itemName + ' from ' + t.name, duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a0000,#440000)' } }).showToast();
+                t.state.inventory = state.inventory; t.state.equipped = state.equipped;
+                renderDevResult();
+            } catch(e) {
+                devLog('❌ Remove item failed: ' + e.message);
+            }
+            return;
+        }
+
+        // All other commands (remove_key, fixsps) use devCommands as before
         const payload = { command, issuedAt: Date.now(), issuedBy: gameState.playerName || 'dev' };
         if (extra) Object.assign(payload, extra);
 
@@ -35220,14 +35247,10 @@ function renderChallengesPanel() {
             await db.ref('devCommands/' + t.uid).set(payload);
             devLog(`✅ Command "${command}" sent to ${t.name}. It will execute when they next load the game.`);
 
-            // If they're currently online the command fires immediately via their listener.
-            // Refresh our view of their save after a short delay.
             if (command === 'remove_key') {
-                // Also force-clear from Supabase key_holders immediately
                 if (t.state?.heldKey?.id && typeof devForceReleaseKey === 'function') {
                     devForceReleaseKey(t.state.heldKey.id);
                 }
-                // Optimistically clear key from local target state (no gameSaves re-read needed)
                 setTimeout(() => {
                     if (window._devTarget) {
                         window._devTarget.state.heldKey = null;
@@ -35590,9 +35613,8 @@ function renderChallengesPanel() {
             if (!snap.exists()) { devLog('⚠ ' + t.name + ' is not currently banned.'); return; }
 
             await chatDb.ref('bannedUsers/' + t.uid).remove();
-            // Delete from cache entirely — setting false only fixes the dev's client.
-            // Other clients have it cached as true; deleting forces a fresh Firebase check
-            // on their next incoming message from this player.
+            // Delete from cache entirely — other clients have this UID cached as true.
+            // Deleting forces a fresh Firebase check on the next message they send.
             if (window._chatBanCache) delete window._chatBanCache[t.uid];
             // Post system message
             await chatDb.ref('slitherChat').push({

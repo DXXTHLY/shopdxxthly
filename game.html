@@ -34737,10 +34737,10 @@ function renderChallengesPanel() {
                 }
             }).catch(function(){});
 
-            // Fetch live avatar from onlineUsers
-            chatDb.ref('onlineUsers/' + t.uid).once('value').then(function(ouSnap) {
-                const ouData = ouSnap.val() || {};
-                const liveAvatar = (ouData.profileAvatar || '').trim() || (gs.profileAvatar || '').trim();
+            // Fetch live avatar from onlineUsers — search by name since chat UID != save UID
+            const _applyAvatar = function(liveAvatar, chatUid) {
+                if (chatUid) window._devTarget._chatUid = chatUid;
+                window._devTarget._liveAvatar = liveAvatar || '';
                 if (avatarEl) {
                     if (liveAvatar) {
                         avatarEl.innerHTML = '<img src="' + liveAvatar + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML=\'<span style=&quot;opacity:0.4&quot;>&#x1F464;</span>\'">';
@@ -34753,16 +34753,40 @@ function renderChallengesPanel() {
                     const short = liveAvatar.length > 28 ? liveAvatar.slice(0, 25) + '...' : liveAvatar;
                     avatarUrlEl.textContent = short;
                     avatarUrlEl.title = liveAvatar;
+                } else if (avatarUrlEl) {
+                    avatarUrlEl.textContent = '';
+                    avatarUrlEl.title = '';
                 }
-                window._devTarget._liveAvatar = liveAvatar;
+            };
+            // Step 1: try direct UID lookup (works if same auth project)
+            chatDb.ref('onlineUsers/' + t.uid).once('value').then(function(ouSnap) {
+                const ouData = ouSnap.val() || {};
+                if (ouData.profileAvatar !== undefined || ouData.name) {
+                    // Found by save UID — use it directly
+                    _applyAvatar((ouData.profileAvatar || '').trim() || (gs.profileAvatar || '').trim(), t.uid);
+                } else {
+                    // Step 2: different UID systems — scan onlineUsers by player name
+                    const searchName = (gs.playerName || t.name || '').toLowerCase();
+                    chatDb.ref('onlineUsers').orderByChild('name').equalTo(gs.playerName || t.name).once('value').then(function(allSnap) {
+                        let found = false;
+                        allSnap.forEach(function(child) {
+                            if (found) return;
+                            const d = child.val() || {};
+                            if ((d.name || '').toLowerCase() === searchName) {
+                                found = true;
+                                _applyAvatar((d.profileAvatar || '').trim() || (gs.profileAvatar || '').trim(), child.key);
+                            }
+                        });
+                        if (!found) {
+                            // Not online right now — fall back to gameSaves avatar
+                            _applyAvatar((gs.profileAvatar || '').trim(), null);
+                        }
+                    }).catch(function() {
+                        _applyAvatar((gs.profileAvatar || '').trim(), null);
+                    });
+                }
             }).catch(function() {
-                const fallback = (gs.profileAvatar || '').trim();
-                if (avatarEl && fallback) {
-                    avatarEl.innerHTML = '<img src="' + fallback + '" style="width:100%;height:100%;object-fit:cover;">';
-                    if (removePhotoBtn) removePhotoBtn.style.display = 'inline-block';
-                } else if (avatarEl) {
-                    avatarEl.innerHTML = '<span style="opacity:0.4">&#x1F464;</span>';
-                }
+                _applyAvatar((gs.profileAvatar || '').trim(), null);
             });
         } else {
             // No chatDb - fall back to gameSaves avatar
@@ -35269,8 +35293,9 @@ function renderChallengesPanel() {
         if (!confirm('Remove profile photo for "' + t.name + '"?\nThis clears it from chat immediately.')) return;
         devLog('Removing photo for ' + t.name + '...');
         try {
+            const chatUidToUse = t._chatUid || t.uid;
             const updates = { profileAvatar: '' };
-            await chatDb.ref('onlineUsers/' + t.uid).update(updates);
+            await chatDb.ref('onlineUsers/' + chatUidToUse).update(updates);
             if (saveDb) {
                 const snap = await saveDb.ref('gameSaves/' + t.uid).once('value');
                 if (snap.exists()) {
@@ -35329,7 +35354,8 @@ function renderChallengesPanel() {
                 if (reason === null) return;
                 await chatDb.ref('bannedUsers/' + t.uid).update({ avatarBanned: true, avatarBanReason: reason, avatarBannedAt: Date.now() });
                 // Also clear their current photo
-                await chatDb.ref('onlineUsers/' + t.uid).update({ profileAvatar: '' });
+                const chatUidToUse = t._chatUid || t.uid;
+                await chatDb.ref('onlineUsers/' + chatUidToUse).update({ profileAvatar: '' });
                 // Post system message
                 chatDb.ref('slitherChat').push({
                     name: '⚙ System',

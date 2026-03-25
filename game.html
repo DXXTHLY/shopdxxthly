@@ -4971,6 +4971,10 @@ text-decoration: underline; /* Adds an underline on hover */
                                     style="background:#100010; border:1px solid #aa00aa55; border-radius:8px; color:#dd44dd; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit;">
                                     🌐 Test Lockdown
                                 </button>
+                                <button onclick="devShowGiftLog()"
+                                    style="background:#0a0a00; border:1px solid #aaaa0055; border-radius:8px; color:#dddd44; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit;">
+                                    📋 Gift Log
+                                </button>
                             </div>
                         </div>
 
@@ -4991,6 +4995,28 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
                 </div>
                 <!-- Gift item modal -->
+                <!-- Gift Log modal -->
+                <div id="dev-giftlog-modal" style="display:none; position:fixed; inset:0; background:#000000cc; z-index:10000; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+                    <div style="background:#0c0012; border:1px solid #aaaa4455; border-top:3px solid #aaaa44; border-radius:16px; width:min(720px,96vw); max-height:84vh; overflow:hidden; display:flex; flex-direction:column;">
+                        <div style="padding:14px 20px; border-bottom:1px solid #aaaa4422; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
+                            <div style="color:#dddd66; font-family:var(--font-title); font-size:0.85em; letter-spacing:2px;">📋 GIFT LOG</div>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <select id="dev-giftlog-filter" onchange="devRenderGiftLog()" style="background:#1a1a00;border:1px solid #aaaa4433;border-radius:6px;color:#cccc44;padding:4px 8px;font-size:0.75em;font-family:inherit;cursor:pointer;">
+                                    <option value="all">All gifts</option>
+                                    <option value="dev_panel">Dev panel only</option>
+                                    <option value="player">Players only</option>
+                                </select>
+                                <button onclick="document.getElementById('dev-giftlog-modal').style.display='none'" style="background:none;border:1px solid #44440055;border-radius:6px;color:#666;padding:4px 10px;cursor:pointer;">✕</button>
+                            </div>
+                        </div>
+                        <div id="dev-giftlog-search-bar" style="padding:8px 16px; border-bottom:1px solid #aaaa4418; flex-shrink:0;">
+                            <input id="dev-giftlog-search" type="text" placeholder="Search by player name or item..." oninput="devRenderGiftLog()"
+                                style="width:100%;box-sizing:border-box;background:#0a0a00;border:1px solid #aaaa4433;border-radius:6px;color:#dddd88;padding:7px 12px;font-family:inherit;font-size:0.8em;outline:none;">
+                        </div>
+                        <div id="dev-giftlog-body" style="overflow-y:auto; padding:12px 16px; flex:1;"></div>
+                        <div id="dev-giftlog-footer" style="padding:6px 16px; font-size:0.65em; color:#666633; font-family:monospace; border-top:1px solid #aaaa4411; flex-shrink:0;"></div>
+                    </div>
+                </div>
                 <div id="dev-gift-modal" style="display:none; position:fixed; inset:0; background:#000000cc; z-index:10000; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
                     <div style="background:#0c0012; border:1px solid #44ff8855; border-top:3px solid #44ff88; border-radius:16px; width:min(620px,94vw); max-height:80vh; overflow:hidden; display:flex; flex-direction:column;">
                         <div style="padding:14px 20px; border-bottom:1px solid #44ff8822; display:flex; align-items:center; justify-content:space-between;">
@@ -20013,6 +20039,22 @@ async function submitGift() {
             from:     senderName,
             sentAt:   Date.now()
         });
+        // Write to gift log (best-effort — never blocks the gift)
+        try {
+            const _senderUid = window._scFirebase?.auth?.currentUser?.uid || '';
+            const _logItemData = _giftPendingItemType === 'potion' ? potions[_giftPendingItemId] : _giftPendingItemType === 'artifact' ? artifacts[_giftPendingItemId] : items[_giftPendingItemId];
+            await db.ref('giftLog').push({
+                from:     senderName,
+                fromUid:  _senderUid,
+                to:       resolvedRecipName,
+                toUid:    recipUid,
+                itemId:   _giftPendingItemId,
+                itemName: _logItemData?.name || _giftPendingItemId,
+                itemType: _giftPendingItemType,
+                sentAt:   Date.now(),
+                source:   'player'
+            });
+        } catch(_le) {}
 
         // ── Mark item as purchased/sold for the gifter ──────────────────
         // This consumes the gifter's shop slot just like a normal buy would.
@@ -35220,6 +35262,20 @@ function renderChallengesPanel() {
                 sentAt:   Date.now()
             });
 
+            // Write to gift log
+            try {
+                await db.ref('giftLog').push({
+                    from:     gameState.playerName || 'dev',
+                    fromUid:  window._scFirebase?.auth?.currentUser?.uid || '',
+                    to:       targetName,
+                    toUid:    recipUid,
+                    itemId:   itemId,
+                    itemName: itemName,
+                    itemType: 'item',
+                    sentAt:   Date.now(),
+                    source:   'dev_panel'
+                });
+            } catch(_le) {}
             if (logEl) logEl.textContent = '✅ ' + itemName + ' gifted to ' + targetName + '! They\'ll receive it on next load.';
             Toastify({ text: '🎁 Gifted ' + itemName + ' → ' + targetName, duration: 4000, gravity:'top', position:'center', style:{ background:'linear-gradient(135deg,#001a08,#004422)' } }).showToast();
         } catch(e) {
@@ -35770,6 +35826,83 @@ function renderChallengesPanel() {
             btn.disabled = false; btn.textContent = 'Unban';
             devLog('Unban failed: ' + e.message);
         }
+    };
+
+    // GIFT LOG
+    let _giftLogCache = null;
+
+    window.devShowGiftLog = async function() {
+        if (!_assertDev()) return;
+        const modal = document.getElementById('dev-giftlog-modal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        const body = document.getElementById('dev-giftlog-body');
+        const footer = document.getElementById('dev-giftlog-footer');
+        if (body) body.innerHTML = '<div style="color:#666633;font-size:0.8em;font-family:monospace;padding:20px 0;">Loading...</div>';
+
+        const db = window._scFirebase && window._scFirebase.db;
+        if (!db) { if (body) body.innerHTML = '<div style="color:#ff4444;font-size:0.8em;">Firebase not ready.</div>'; return; }
+
+        try {
+            // Load last 200 entries ordered by sentAt descending
+            const snap = await db.ref('giftLog').orderByChild('sentAt').limitToLast(200).once('value');
+            _giftLogCache = [];
+            if (snap.exists()) {
+                snap.forEach(function(child) { _giftLogCache.push(child.val()); });
+                _giftLogCache.reverse(); // newest first
+            }
+            devRenderGiftLog();
+            if (footer) footer.textContent = 'Showing last ' + _giftLogCache.length + ' gift(s). Newest first.';
+        } catch(e) {
+            if (body) body.innerHTML = '<div style="color:#ff4444;font-size:0.8em;font-family:monospace;">Error: ' + e.message + '</div>';
+        }
+    };
+
+    window.devRenderGiftLog = function() {
+        const body   = document.getElementById('dev-giftlog-body');
+        const filter = (document.getElementById('dev-giftlog-filter')?.value) || 'all';
+        const search = (document.getElementById('dev-giftlog-search')?.value || '').toLowerCase().trim();
+        if (!body || !_giftLogCache) return;
+
+        const rows = _giftLogCache.filter(function(g) {
+            if (filter !== 'all' && g.source !== filter) return false;
+            if (search) {
+                const hay = ((g.from||'') + ' ' + (g.to||'') + ' ' + (g.itemName||'')).toLowerCase();
+                if (!hay.includes(search)) return false;
+            }
+            return true;
+        });
+
+        if (rows.length === 0) {
+            body.innerHTML = '<div style="color:#666633;font-size:0.8em;font-family:monospace;padding:20px 0;">No entries match.</div>';
+            return;
+        }
+
+        body.innerHTML = '';
+        rows.forEach(function(g) {
+            const date    = g.sentAt ? new Date(g.sentAt).toLocaleString() : '?';
+            const srcBadge = g.source === 'dev_panel'
+                ? '<span style="background:#330033;color:#dd88ff;font-size:0.68em;padding:1px 6px;border-radius:4px;margin-left:5px;">DEV</span>'
+                : '<span style="background:#002200;color:#44ff88;font-size:0.68em;padding:1px 6px;border-radius:4px;margin-left:5px;">PLAYER</span>';
+
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #33330011;';
+            row.innerHTML =
+                '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-size:0.82em;color:#cccc88;">' +
+                        '<span style="color:#ffdd66;font-weight:bold;">' + (g.from || '?') + '</span>' +
+                        ' <span style="color:#666644;">→</span> ' +
+                        '<span style="color:#88ffcc;font-weight:bold;">' + (g.to || '?') + '</span>' +
+                        srcBadge +
+                    '</div>' +
+                    '<div style="font-size:0.78em;color:#aaaa66;margin-top:2px;">🎁 ' + (g.itemName || g.itemId || '?') + '</div>' +
+                    '<div style="font-size:0.65em;color:#555533;font-family:monospace;margin-top:2px;">' + date + '</div>' +
+                '</div>';
+            body.appendChild(row);
+        });
+
+        const footer = document.getElementById('dev-giftlog-footer');
+        if (footer) footer.textContent = 'Showing ' + rows.length + ' of ' + _giftLogCache.length + ' gift(s).';
     };
 
 })();

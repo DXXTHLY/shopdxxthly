@@ -3173,7 +3173,6 @@ text-decoration: underline; /* Adds an underline on hover */
                     <button id="rituals-nav-btn" onclick="showScreen('rituals')">Rituals</button>
                     <button onclick="showScreen('map')">Worlds</button>
                     <button onclick="showScreen('pvp')">Raids</button>
-                    <button onclick="showScreen('crashgame')">Gauntlet</button>
                     <button class="nav-market" onclick="showScreen('market'); setTimeout(()=>{updateBarterDropdowns(); fetchBarterListings();}, 100)">Market</button>
                     <button onclick="showScreen('provinggrounds')">Proving Grounds</button>
                     <button onclick="showScreen('pactwars')" style="color:#ff6644;">⚔ Pact Wars</button>
@@ -3530,9 +3529,14 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div id="ritual-grid" class="ritual-grid"></div>
             </div>
             <div id="map-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#c8a800;">🌐 MAP OF THE UNDERWORLDS 🌐</h2>
-                <p style="color:var(--dim-color); max-width:520px; margin:0 auto 28px;">Each realm you unlock grants a permanent bonus and new minions. Your current realm determines your world bonus.</p>
-                <div id="map-grid" style="display:flex; flex-direction:column; gap:10px; max-width:700px; margin:0 auto;"></div>
+                <h2 id="map-screen-title" style="letter-spacing:3px; color:#c8a800;">🌐 MAP OF THE UNDERWORLDS 🌐</h2>
+                <p id="map-screen-subtitle" style="color:var(--dim-color); max-width:520px; margin:0 auto 16px; font-size:0.85em;">Click any world to preview it. Unlocked worlds glow in their realm colour.</p>
+                <div id="map-node-container" style="max-width:860px; margin:0 auto 12px;">
+                    <div id="map-node-cards"></div>
+                </div>
+                <!-- Selected world info panel — stays until dismissed or another world clicked -->
+                <div id="map-world-info" style="display:none; max-width:860px; margin:0 auto 16px;"></div>
+                <div id="map-grid" style="display:none;"></div>
             </div>
             <div id="pvp-screen" class="screen">
                 <h2 style="letter-spacing:3px; color:#ff4444;">⚔️ ABYSSAL ARENA ⚔️</h2>
@@ -14081,6 +14085,15 @@ function showScreen(screenId) {
     if (screenId === 'map')
     {
         renderMap();
+        // Retry in case Firebase lockdown data hasn't arrived yet
+        setTimeout(function() {
+            var ms = document.getElementById('map-screen');
+            if (ms && ms.classList.contains('active')) renderMap();
+        }, 2000);
+        setTimeout(function() {
+            var ms = document.getElementById('map-screen');
+            if (ms && ms.classList.contains('active')) renderMap();
+        }, 5000);
     }
     if (screenId === 'forge')
     {
@@ -17689,7 +17702,7 @@ function initWorldLockdown() {
             window._lightLockdown = { worldId: null, unlocksAt: 0 };
         }
         _applyWorldLockdown();
-        if (gameState.isTranscended) renderMap();
+        renderMap(); // Always refresh map when light lockdown data changes
     });
 
     // If no lockdown exists at all, kick off the first one after a delay
@@ -17708,6 +17721,13 @@ function initWorldLockdown() {
             setTimeout(() => _triggerNextLockdown(db, true), 5000 + Math.random() * 10000);
         }
     });
+
+    // Periodic map refresh — re-renders every 30s so sealed worlds appear/disappear
+    // correctly without requiring the player to navigate away and back
+    setInterval(function() {
+        var ms = document.getElementById('map-screen');
+        if (ms && ms.classList.contains('active')) renderMap();
+    }, 30000);
 }
 
 function _triggerNextLockdown(db, isLight) {
@@ -18418,162 +18438,381 @@ function activatePrayer(id) {
 }
 
 function renderMap() {
-    const grid = document.getElementById('map-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    // If transcended, show Light Worlds
     if (gameState.isTranscended) {
-        renderLightWorldMap(grid);
+        var title = document.getElementById('map-screen-title');
+        var sub   = document.getElementById('map-screen-subtitle');
+        if (title) { title.textContent = '\u2746 MAP OF THE CELESTIAL REALMS \u2746'; title.style.color = '#c8b4ff'; }
+        if (sub)   sub.textContent = 'Click any realm to preview it. Unlocked realms glow in their colour.';
+        _renderVisualWorldMap(true);
         return;
     }
+    var title = document.getElementById('map-screen-title');
+    var sub   = document.getElementById('map-screen-subtitle');
+    if (title) { title.textContent = '\uD83C\uDF10 MAP OF THE UNDERWORLDS \uD83C\uDF10'; title.style.color = '#c8a800'; }
+    if (sub)   sub.textContent = 'Click any world to preview it. Unlocked worlds glow in their realm colour.';
+    _renderVisualWorldMap(false);
+}
 
-    // World themes — icon, colour, tier label
-    const worldThemes = {
-        nether_plains:           { icon:'🌋', color:'#ff6644', tier:'Early Realm'    },
-        ashen_wastes:            { icon:'🌑', color:'#ff9944', tier:'Early Realm'    },
-        stygian_depths:          { icon:'🌊', color:'#4488ff', tier:'Mid Realm'      },
-        burning_hells:           { icon:'🔥', color:'#ff4444', tier:'Mid Realm'      },
-        frozen_abyss:            { icon:'❄️',  color:'#44ccff', tier:'Mid Realm'      },
-        celestial_ruins:         { icon:'✨', color:'#aa88ff', tier:'Late Realm'     },
-        void_threshold:          { icon:'🌀', color:'#aa44ff', tier:'Late Realm'     },
-        singularity:             { icon:'⚫', color:'#888888', tier:'Prestige Realm' },
-        event_horizon:           { icon:'🕳️',  color:'#6644ff', tier:'Prestige Realm' },
-        genesis:                 { icon:'💥', color:'#ff88ff', tier:'Prestige Realm' },
-        pantheon_of_ashes:       { icon:'⚱️',  color:'#cc8844', tier:'Cosmic Realm'  },
-        chronos_fault:           { icon:'⏳', color:'#44ffcc', tier:'Cosmic Realm'  },
-        omega_point:             { icon:'♾️',  color:'#ffff44', tier:'Cosmic Realm'  },
-        true_infinity:           { icon:'🌌', color:'#ffffff', tier:'Transcendent'  },
-        akashic_records:         { icon:'📚', color:'#44aaff', tier:'Transcendent'  },
-        plane_of_ideas:          { icon:'💭', color:'#ff44ff', tier:'Transcendent'  },
-        the_white_room:          { icon:'⬜', color:'#eeeeee', tier:'Transcendent'  },
-        nexus_of_all_realities:  { icon:'🔮', color:'#ff9900', tier:'Final Realm'   },
-        the_dreaming_dark:       { icon:'😴', color:'#8844cc', tier:'Beyond Final'  },
-        shattered_omniverse:     { icon:'💥', color:'#ff4488', tier:'Beyond Final'  },
-        the_primordial_wound:    { icon:'🩸', color:'#cc2222', tier:'Beyond Final'  },
-    };
+var _wmapSelectedId    = null;
+var _wmapSelectedLight = false;
 
-    // Bonus type display
-    const bonusLabel = (bonus) => {
-        if (!bonus || bonus.type === 'none') return null;
-        const map = {
-            sps_multiplier:          v => `+${Math.round((v-1)*100)}% Souls/sec`,
-            spc_multiplier:          v => `+${Math.round((v-1)*100)}% Souls/click`,
-            global_multiplier:       v => `×${v} All Soul Gains`,
-            essence_multiplier:      v => `×${v} Dark Essence`,
-            essence_bonus_chance:    v => `${v*100}% chance extra Essence`,
-            ascension_unlock:        ()  => `🔓 Unlocks Ascension`,
-            collapse_unlock:         ()  => `🔓 Unlocks Reality Collapse`,
-            ascension_shard_bonus:   v => `+${v*100}% Abyssal Shards on Ascend`,
-            resonance_bonus_enhancer:v => `Soul Resonance ×${1+v} effective`,
-            ritual_cooldown_reducer: v => `Ritual cooldowns ×${v}`,
-        };
-        const fn = map[bonus.type];
-        return fn ? fn(bonus.value) : bonus.type.replace(/_/g,' ');
-    };
+function _renderVisualWorldMap(isLight) {
+    var cardsEl = document.getElementById('map-node-cards');
+    if (!cardsEl) return;
+    var mapConfig   = isLight ? GNT_LIGHT_WORLD_MAP_CONFIG : GNT_WORLD_MAP_CONFIG;
+    var connections = isLight ? GNT_LIGHT_MAP_CONNECTIONS  : GNT_MAP_CONNECTIONS;
+    var worldSource = isLight ? lightWorlds : worlds;
+    var unlockedKey = isLight ? 'unlockedLightWorlds' : 'unlockedWorlds';
+    var unlocked    = (gameState && gameState[unlockedKey]) ? gameState[unlockedKey] : (isLight ? ['celestial_threshold'] : ['nether_plains']);
+    var worldIds    = Object.keys(mapConfig);
+    // Different backgrounds for dark vs light realms
+    var bgImg = isLight
+        ? 'https://i.gyazo.com/16a9d25956d19ec46e116db5b09c28eb.jpg'
+        : 'https://i.gyazo.com/85773030b3986a1c4c7b875ade17c9d1.jpg';
 
-    let lastTier = null;
-    const worldKeys = Object.keys(worlds);
-
-    worldKeys.forEach((id, index) => {
-        const w = worlds[id];
-        const theme = worldThemes[id] || { icon:'🌐', color:'#888', tier:'Unknown' };
-        const isUnlocked = gameState.unlockedWorlds.includes(id);
-        const isActive = gameState.currentWorld === id;
-        const canAfford = D(gameState.souls).gte(D(w.unlockCost))
-        const bonus = bonusLabel(w.bonus);
-
-        // Tier divider
-        if (theme.tier !== lastTier) {
-            lastTier = theme.tier;
-            if (index > 0) {
-                grid.innerHTML += `<div style="height:1px; background:linear-gradient(90deg,transparent,#333,transparent); margin:6px 0;"></div>`;
+    // SVG lines — only animate paths that touch the current world
+    var svgLines = '';
+    var animDefs = '';
+    var currentW = gameState.currentWorld || '';
+    connections.forEach(function(pair, idx) {
+        var a = pair[0], b = pair[1], ca = mapConfig[a], cb = mapConfig[b];
+        if (!ca || !cb) return;
+        var both = unlocked.includes(a) && unlocked.includes(b);
+        // Only add the travelling dot on paths directly connected to where the player is
+        var touchesCurrent = (a === currentW || b === currentW);
+        if (both) {
+            var dotColor = isLight ? '#ffeeaa' : '#9977ff';
+            svgLines += '<path id="path' + idx + '" d="M ' + ca.x + ' ' + ca.y + ' L ' + cb.x + ' ' + cb.y + '" stroke="' + (isLight ? '#aa9955' : '#6a5aaa') + '" stroke-width="2.5" opacity="0.9" fill="none"/>';
+            if (touchesCurrent) {
+                animDefs += '<circle r="0.8" fill="' + dotColor + '" opacity="0.85"><animateMotion dur="2.5s" repeatCount="indefinite" begin="0s"><mpath href="#path' + idx + '"/></animateMotion></circle>';
             }
-            grid.innerHTML += `<div style="color:#444; font-size:0.7em; text-transform:uppercase; letter-spacing:3px; text-align:center; padding:4px 0;">${theme.tier}</div>`;
+        } else {
+            svgLines += '<line x1="' + ca.x + '%" y1="' + ca.y + '%" x2="' + cb.x + '%" y2="' + cb.y + '%" stroke="' + (isLight ? '#3a3020' : '#1e1040') + '" stroke-width="1" stroke-dasharray="5 4" opacity="0.5"/>';
         }
+    });
 
-        // Check global lockdown
-        const _worldLocked = isWorldLocked(id, false);
-        const _lockRem = _worldLocked ? getWorldLockRemaining(id, false) : 0;
-        const _lockMins = Math.ceil(_lockRem / 60000);
+    // HTML nodes
+    var nodes = '';
+    worldIds.forEach(function(id) {
+        var cfg = mapConfig[id], w = worldSource ? worldSource[id] : null;
+        if (!cfg) return;
+        var isUnlocked = unlocked.includes(id), isActive = gameState.currentWorld === id;
+        var isSealed   = isWorldLocked(id, isLight);  // random lockdown
+        var canAfford  = w && D(gameState.souls || 0).gte(D(w.unlockCost || 0));
+        var name       = (w && w.name) ? w.name : cfg.label;
 
-        // State styles
-        let borderColor, bgGrad, opacity;
-        if (_worldLocked && !isActive) {
-            borderColor = '#661122';
-            bgGrad = 'linear-gradient(135deg,#1a0008,#0a0010)';
-            opacity = '0.6';
+        // Sealed = red everything regardless of unlock state
+        var borderColor, bgColor, glowCSS, icon, labelColor, labelSize, subLabel;
+        if (isSealed) {
+            borderColor = '#cc1133';
+            bgColor     = 'rgba(40,0,10,0.92)';
+            glowCSS     = '0 0 16px #cc113377';
+            icon        = '\uD83D\uDD12';
+            labelColor  = '#ff2244';
+            labelSize   = '8px';
+            subLabel    = '<div style="font-size:6.5px;color:#ff2244;letter-spacing:1px;margin-top:1px;text-shadow:0 0 6px #ff2244;">SEALED</div>';
         } else if (isActive) {
-            borderColor = theme.color;
-            bgGrad = `linear-gradient(135deg,${theme.color}18,#0e0a1a)`;
-            opacity = '1';
+            borderColor = cfg.color;
+            bgColor     = cfg.color + '40';
+            glowCSS     = '0 0 22px ' + cfg.color + 'aa,0 0 44px ' + cfg.color + '44';
+            icon        = cfg.icon;
+            labelColor  = cfg.color;
+            labelSize   = '8.5px';
+            subLabel    = '<div style="font-size:6.5px;color:' + cfg.color + ';letter-spacing:1px;margin-top:1px;text-shadow:0 0 6px ' + cfg.color + ';">HERE</div>';
         } else if (isUnlocked) {
-            borderColor = theme.color + '55';
-            bgGrad = 'linear-gradient(135deg,#0e0a1a,#1a1020)';
-            opacity = '1';
+            borderColor = cfg.color + 'bb';
+            bgColor     = cfg.color + '22';
+            glowCSS     = '0 0 12px ' + cfg.color + '55';
+            icon        = cfg.icon;
+            labelColor  = cfg.color;  // WORLD COLOR for unlocked
+            labelSize   = '8px';
+            subLabel    = '';
         } else if (canAfford) {
-            borderColor = theme.color + '44';
-            bgGrad = 'linear-gradient(135deg,#0e0a1a,#1a1020)';
-            opacity = '0.9';
+            borderColor = cfg.color + '66';
+            bgColor     = isLight ? 'rgba(240,235,210,0.15)' : 'rgba(8,4,20,0.85)';
+            glowCSS     = 'none';
+            icon        = cfg.icon;
+            labelColor  = isLight ? '#222222' : '#ffffff';  // black for light, white for dark — locked but affordable
+            labelSize   = '8px';
+            subLabel    = '';
         } else {
-            borderColor = '#2a2040';
-            bgGrad = 'linear-gradient(135deg,#08060f,#0e0a1a)';
-            opacity = '0.5';
+            borderColor = isLight ? '#888860' : '#2a1a40';
+            bgColor     = isLight ? 'rgba(240,235,210,0.12)' : 'rgba(8,4,20,0.85)';
+            glowCSS     = 'none';
+            icon        = '\uD83D\uDD12';
+            labelColor  = isLight ? '#111111' : '#ffffff';  // black for light, white for dark — locked
+            labelSize   = '8px';
+            subLabel    = '';
         }
 
-        // Button
-        let btn = '';
-        if (isActive) {
-            btn = `<div style="background:${theme.color}22; border:1px solid ${theme.color}66; border-radius:8px; padding:6px 16px; font-size:0.8em; color:${theme.color}; white-space:nowrap; font-weight:bold; letter-spacing:1px;">📍 HERE</div>`;
+        var isSel    = (_wmapSelectedId === id);
+        var opacity  = 1; // all nodes full opacity, locked ones just show lock icon
+        var ringW    = isActive ? '3px' : (isUnlocked ? '2px' : '1px');
+
+        nodes += '<div style="position:absolute;left:' + cfg.x + '%;top:' + cfg.y + '%;transform:translate(-50%,-50%);text-align:center;width:80px;z-index:2;cursor:pointer;" onclick="wmapNodeClick(\'' + id + '\',' + isLight + ')" onmouseover="wmapNodeHover(\'' + id + '\',true,' + isLight + ')" onmouseout="wmapNodeHover(\'' + id + '\',false,' + isLight + ')">'
+            + '<div id="wmap-node-' + id + '" style="width:48px;height:48px;border-radius:50%;margin:0 auto 5px;background:' + bgColor + ';border:' + ringW + ' solid ' + borderColor + ';' + (isSel ? 'outline:2px solid #ffffff55;outline-offset:3px;' : '') + 'display:flex;align-items:center;justify-content:center;font-size:1.4em;line-height:1;box-shadow:' + glowCSS + ';transition:all 0.2s;">' + icon + '</div>'
+            + '<div id="wmap-label-' + id + '" style="font-size:' + labelSize + ';line-height:1.3;color:' + labelColor + ';white-space:nowrap;text-shadow:0 1px 4px #000000cc;' + (isActive || isSealed ? 'font-weight:bold;' : '') + '">' + name + '</div>'
+            + subLabel
+            + '</div>';
+    });
+
+    cardsEl.innerHTML = '<div style="background:#04020e;border:1px solid #1e1236;border-radius:14px;overflow:hidden;margin-bottom:0;">'
+        + '<div style="position:relative;width:100%;padding-bottom:72%;min-height:360px;">'
+        // Background image — stretched, low opacity
+        + '<img src="' + bgImg + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.22;pointer-events:none;border-radius:14px 14px 0 0;" onerror="this.style.display=\'none\'">'
+        // Overlay — dark/purple for dark realms, soft warm tint for light realms
+        + '<div style="position:absolute;inset:0;background:' + (isLight ? 'linear-gradient(160deg,rgba(20,15,5,0.35),rgba(30,20,5,0.25))' : 'linear-gradient(160deg,rgba(4,2,14,0.5),rgba(9,5,26,0.4))') + ';pointer-events:none;"></div>'
+        // SVG lines with animations
+        + '<svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;" viewBox="0 0 100 100" preserveAspectRatio="none">'
+        + '<pattern id="wdotgrid" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="5" cy="5" r="0.3" fill="#1a0a2a" opacity="0.5"/></pattern>'
+        + '<rect width="100" height="100" fill="url(#wdotgrid)"/>'
+        + svgLines + animDefs
+        + '</svg>'
+        // Nodes
+        + '<div style="position:absolute;inset:0;">' + nodes + '</div>'
+        + '</div>'
+        // Footer
+        + '<div style="padding:7px 16px;border-top:1px solid ' + (isLight ? '#c8b44433' : '#140824') + ';display:flex;gap:20px;flex-wrap:wrap;justify-content:center;background:' + (isLight ? 'rgba(20,16,5,0.95)' : 'rgba(4,2,14,0.95)') + ';">'
+        + '<span style="color:#cc1133;font-size:0.67em;">\uD83D\uDD12 Red = Sealed</span>'
+        + '<span style="color:#555;font-size:0.67em;">Click a world to select it</span>'
+        + '<span style="color:#444;font-size:0.67em;">Glow = current world</span>'
+        + '</div></div>';
+}
+
+function wmapNodeHover(id, entering, isLight) {
+    var mapConfig   = isLight ? GNT_LIGHT_WORLD_MAP_CONFIG : GNT_WORLD_MAP_CONFIG;
+    var unlockedKey = isLight ? 'unlockedLightWorlds' : 'unlockedWorlds';
+    var unlocked    = gameState[unlockedKey] || [];
+    var cfg         = mapConfig[id];
+    if (!cfg) return;
+    var node      = document.getElementById('wmap-node-' + id);
+    if (!node) return;
+    var isActive   = gameState.currentWorld === id;
+    var isUnlocked = unlocked.includes(id);
+    var isSealed   = isWorldLocked(id, isLight);
+    var isSel      = (_wmapSelectedId === id);
+    if (entering) {
+        node.style.transform  = 'scale(1.18)';
+        node.style.boxShadow  = '0 0 28px ' + (isSealed ? '#cc1133' : cfg.color) + 'bb';
+        node.style.background = (isSealed ? '#440010' : cfg.color + '55');
+        node.style.borderColor = isSealed ? '#ff2244' : cfg.color;
+        node.style.borderWidth = '2px';
+    } else {
+        node.style.transform = 'scale(1)';
+        if (isSealed) {
+            node.style.background  = 'rgba(40,0,10,0.92)';
+            node.style.boxShadow   = '0 0 16px #cc113377';
+            node.style.borderColor = '#cc1133';
+            node.style.borderWidth = '1px';
+        } else if (isActive) {
+            node.style.background  = cfg.color + '40';
+            node.style.boxShadow   = '0 0 22px ' + cfg.color + 'aa,0 0 44px ' + cfg.color + '44';
+            node.style.borderColor = cfg.color;
+            node.style.borderWidth = '3px';
         } else if (isUnlocked) {
-            if (_worldLocked) {
-                btn = `<div style="background:#33000a; border:1px solid #660015; border-radius:8px; padding:6px 14px; font-size:0.78em; color:#cc2244; white-space:nowrap; text-align:center;">
-                    🔒 Sealed<div style="font-size:0.8em;color:#550015;margin-top:1px;">${_lockMins}m remaining</div>
-                </div>`;
-            } else {
-                btn = `<button onclick="travelToWorld('${id}')" style="background:${theme.color}22; border:1px solid ${theme.color}66; border-radius:8px; padding:7px 18px; font-size:0.82em; color:${theme.color}; cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.2s;" onmouseover="this.style.background='${theme.color}33'" onmouseout="this.style.background='${theme.color}22'">
-                    🚀 Travel
-                </button>`;
-            }
-        } else if (canAfford) {
-            if (_worldLocked) {
-                btn = `<div style="background:#33000a; border:1px solid #660015; border-radius:8px; padding:6px 14px; font-size:0.78em; color:#cc2244; white-space:nowrap; text-align:center;">
-                    🔒 Sealed<div style="font-size:0.8em;color:#550015;margin-top:1px;">${_lockMins}m remaining</div>
-                </div>`;
-            } else {
-                btn = `<button onclick="travelToWorld('${id}')" style="background:linear-gradient(135deg,${theme.color}22,transparent); border:1px solid ${theme.color}66; border-radius:8px; padding:7px 18px; font-size:0.82em; color:${theme.color}; cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.2s;" onmouseover="this.style.background='${theme.color}33'" onmouseout="this.style.background='${theme.color}22'">
-                    🔓 Unlock
-                    <span style="display:block; font-size:0.75em; color:${theme.color}88; margin-top:1px;">${formatNumber(w.unlockCost)} souls</span>
-                </button>`;
-            }
+            node.style.background  = cfg.color + '22';
+            node.style.boxShadow   = '0 0 12px ' + cfg.color + '55';
+            node.style.borderColor = cfg.color + 'bb';
+            node.style.borderWidth = '2px';
         } else {
-            btn = `<div style="text-align:right; min-width:100px;">
-                <div style="color:#333; font-size:0.7em; text-transform:uppercase; letter-spacing:1px;">🔒 Locked</div>
-                <div style="color:#cc4444; font-size:0.75em; margin-top:2px;">${formatNumber(w.unlockCost)} souls</div>
-            </div>`;
+            node.style.background  = 'rgba(8,4,20,0.85)';
+            node.style.boxShadow   = 'none';
+            node.style.borderColor = '#2a1a40';
+            node.style.borderWidth = '1px';
         }
+        node.style.outline      = isSel ? '2px solid #ffffff55' : 'none';
+        node.style.outlineOffset = '3px';
+    }
+}
 
-        grid.innerHTML += `
-        <div style="background:${bgGrad}; border:1px solid ${borderColor}; border-left:4px solid ${isActive ? theme.color : (isUnlocked ? theme.color+'88' : '#2a2040')}; border-radius:12px; padding:14px 18px; display:flex; align-items:center; gap:14px; opacity:${opacity}; transition:all 0.2s; ${isActive ? `box-shadow:0 0 20px ${theme.color}22;` : ''}">
-            
-            <!-- Icon -->
-            <div style="font-size:2em; line-height:1; flex-shrink:0; ${!isUnlocked && !canAfford ? 'filter:grayscale(1);' : ''}">${theme.icon}</div>
-            
-            <!-- Info -->
-            <div style="flex:1; min-width:0;">
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:3px;">
-                    <span style="color:${isUnlocked || canAfford ? theme.color : '#555'}; font-weight:bold; font-size:1em;">${w.name}</span>
-                    ${isActive ? `<span style="background:${theme.color}22; border:1px solid ${theme.color}44; border-radius:10px; padding:1px 8px; font-size:0.65em; color:${theme.color}; text-transform:uppercase; letter-spacing:1px;">Current</span>` : ''}
-                </div>
-                <div style="color:#666; font-size:0.77em; line-height:1.4; margin-bottom:${bonus?'5px':'0'}; ${!isUnlocked && !canAfford ? '' : ''}">${w.lore}</div>
-                ${bonus ? `<div style="display:inline-flex; align-items:center; gap:5px; background:${theme.color}12; border:1px solid ${theme.color}30; border-radius:6px; padding:2px 8px; font-size:0.72em; color:${theme.color};">⚡ ${bonus}</div>` : ''}
-            </div>
+function wmapNodeClick(id, isLight) {
+    // Clear previous selection outline
+    if (_wmapSelectedId && _wmapSelectedId !== id) {
+        var prev = document.getElementById('wmap-node-' + _wmapSelectedId);
+        if (prev) prev.style.outline = 'none';
+    }
+    _wmapSelectedId    = id;
+    _wmapSelectedLight = isLight;
+    var node = document.getElementById('wmap-node-' + id);
+    if (node) { node.style.outline = '2px solid #ffffff55'; node.style.outlineOffset = '3px'; }
+    wmapShowPanel(id, isLight);
+}
 
-            <!-- Button -->
-            <div style="flex-shrink:0;">${btn}</div>
-        </div>`;
+function wmapShowPanel(id, isLight) {
+    var info = document.getElementById('map-world-info');
+    if (!info) return;
+    var mapConfig   = isLight ? GNT_LIGHT_WORLD_MAP_CONFIG : GNT_WORLD_MAP_CONFIG;
+    var worldSource = isLight ? lightWorlds : worlds;
+    var unlockedKey = isLight ? 'unlockedLightWorlds' : 'unlockedWorlds';
+    var unlocked    = gameState[unlockedKey] || [];
+    var cfg         = mapConfig[id], w = worldSource ? worldSource[id] : null;
+    if (!cfg || !w) return;
+    var isUnlocked = unlocked.includes(id), isActive = gameState.currentWorld === id;
+    var isSealed   = isWorldLocked(id, isLight);
+    var canAfford  = D(gameState.souls || 0).gte(D(w.unlockCost || 0));
+
+    // World bonus label
+    var bonusMap = {
+        sps_multiplier:          function(v){ return '+' + Math.round((v-1)*100) + '% Souls/sec'; },
+        spc_multiplier:          function(v){ return '+' + Math.round((v-1)*100) + '% Souls/click'; },
+        global_multiplier:       function(v){ return '\u00D7' + v + ' All Soul Gains'; },
+        essence_multiplier:      function(v){ return '\u00D7' + v + ' Dark Essence'; },
+        ascension_unlock:        function(){  return '\uD83D\uDD13 Unlocks Ascension'; },
+        collapse_unlock:         function(){  return '\uD83D\uDD13 Unlocks Reality Collapse'; },
+        ascension_shard_bonus:   function(v){ return '+' + Math.round(v*100) + '% Abyssal Shards on Ascend'; },
+        resonance_bonus_enhancer:function(v){ return 'Soul Resonance \u00D7' + (1+v) + ' effective'; },
+        ritual_cooldown_reducer: function(v){ return 'Ritual cooldowns \u00D7' + v; }
+    };
+    var bfn   = w.bonus && bonusMap[w.bonus.type];
+    var bonus = bfn ? bfn(w.bonus.value) : null;
+
+    // Gauntlet effects for this world
+    var effects = (typeof gntGetActiveDailyEffects === 'function') ? gntGetActiveDailyEffects(id) : [];
+    var effectsHTML = '';
+    if (effects.length > 0) {
+        effectsHTML = '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #2a1a3a;">'
+            + '<div style="color:#444;font-size:0.68em;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">&#x2694; Gauntlet Field Effects</div>'
+            + '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+        effects.forEach(function(e) {
+            var isGood = (e.type.includes('player') && e.value > 1) || (e.type === 'mult_modifier' && e.value > 1) || (e.type.includes('enemy') && e.value < 1);
+            var isBad  = (e.type.includes('enemy') && e.value > 1) || (e.type.includes('player') && e.value < 1);
+            var col    = isGood ? '#44cc88' : (isBad ? '#ff6644' : '#aaa');
+            var arrow  = isGood ? '&#x25B2;' : (isBad ? '&#x25BC;' : '&#x25C6;');
+            effectsHTML += '<span style="background:rgba(255,255,255,0.04);border:1px solid ' + (isGood ? '#44cc8833' : '#ff664433') + ';border-radius:6px;padding:3px 9px;font-size:0.72em;color:' + col + ';">' + arrow + ' ' + e.label + '</span>';
+        });
+        effectsHTML += '</div></div>';
+    } else if (isUnlocked) {
+        effectsHTML = '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #2a1a3a;"><span style="color:#333;font-size:0.72em;">&#x25C6; Balanced Field \u2014 no special Gauntlet modifiers</span></div>';
+    }
+
+    // State badge
+    var badge = '';
+    if (isSealed)                     badge = '<span style="background:#330010;color:#ff4466;border:1px solid #660020;border-radius:10px;padding:2px 10px;font-size:0.65em;letter-spacing:1px;">\uD83D\uDD12 SEALED</span>';
+    else if (isActive)                badge = '<span style="background:' + cfg.color + '22;color:' + cfg.color + ';border:1px solid ' + cfg.color + '44;border-radius:10px;padding:2px 10px;font-size:0.65em;letter-spacing:1px;">CURRENT</span>';
+    else if (!isUnlocked && !canAfford) badge = '<span style="background:#110a1a;color:#553366;border:1px solid #2a1040;border-radius:10px;padding:2px 10px;font-size:0.65em;letter-spacing:1px;">\uD83D\uDD12 LOCKED</span>';
+
+    // Primary action button
+    var primaryBtn = '';
+    if (isSealed) {
+        var rem = getWorldLockRemaining(id, isLight), mins = Math.ceil(rem / 60000);
+        primaryBtn = '<div style="background:#220008;border:1px solid #550015;border-radius:10px;padding:11px 24px;color:#cc2244;font-size:0.85em;letter-spacing:1px;">\uD83D\uDD12 Sealed \u2014 ' + mins + ' minute' + (mins!==1?'s':'') + ' remaining</div>';
+    } else if (isActive) {
+        primaryBtn = '<div style="background:' + cfg.color + '18;border:1px solid ' + cfg.color + '44;border-radius:10px;padding:11px 24px;color:' + cfg.color + ';font-size:0.85em;letter-spacing:1px;">\uD83D\uDCCD You are currently here</div>';
+    } else if (isUnlocked) {
+        primaryBtn = '<button onclick="wmapDoTravel(\'' + id + '\',' + isLight + ')" style="background:linear-gradient(135deg,' + cfg.color + '30,transparent);border:1px solid ' + cfg.color + '88;border-radius:10px;padding:11px 28px;color:' + cfg.color + ';font-family:var(--font-title);font-size:0.88em;letter-spacing:2px;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background=\'' + cfg.color + '44\'" onmouseout="this.style.background=\'linear-gradient(135deg,' + cfg.color + '30,transparent)\'">&#128640; TRAVEL TO ' + w.name.toUpperCase() + '</button>';
+    } else if (canAfford) {
+        primaryBtn = '<button onclick="wmapDoUnlock(\'' + id + '\',' + isLight + ')" style="background:linear-gradient(135deg,' + cfg.color + '28,transparent);border:1px solid ' + cfg.color + '77;border-radius:10px;padding:11px 28px;color:' + cfg.color + ';font-family:var(--font-title);font-size:0.88em;letter-spacing:2px;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.background=\'' + cfg.color + '44\'" onmouseout="this.style.background=\'linear-gradient(135deg,' + cfg.color + '28,transparent)\'">\uD83D\uDD13 UNLOCK \u2014 ' + formatNumber(w.unlockCost) + ' souls</button>';
+    } else {
+        primaryBtn = '<div style="color:#3a2a55;font-size:0.82em;padding:8px 0;">\uD83D\uDD12 Need ' + formatNumber(w.unlockCost) + ' souls to unlock</div>';
+    }
+
+    // Gauntlet enter button (only when unlocked and not sealed)
+    var gBtn = (isUnlocked && !isSealed)
+        ? '<button onclick="wmapOpenGauntlet(\'' + id + '\')" style="background:#0a0812;border:1px solid #2a1a3a;border-radius:10px;padding:10px 18px;color:#555;font-family:var(--font-title);font-size:0.75em;letter-spacing:1px;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.borderColor=\'#aa44ff88\';this.style.color=\'#aa44ff\'" onmouseout="this.style.borderColor=\'#2a1a3a\';this.style.color=\'#555\'">&#x2694; ENTER GAUNTLET</button>'
+        : '';
+
+    // Close button
+    var closeBtn = '<button onclick="wmapClosePanel()" style="position:absolute;top:12px;right:14px;background:none;border:1px solid #2a1a3a;border-radius:6px;color:#444;padding:3px 10px;cursor:pointer;font-size:0.78em;line-height:1;" onmouseover="this.style.color=\'#999\'" onmouseout="this.style.color=\'#444\'">\u2715</button>';
+
+    var panelColor = isSealed ? '#cc1133' : cfg.color;
+    info.style.cssText = 'display:block;max-width:860px;margin:0 auto 16px;position:relative;'
+        + 'background:linear-gradient(135deg,#0a0515,#0e0820);'
+        + 'border:1px solid ' + panelColor + '33;border-left:4px solid ' + panelColor + ';'
+        + 'border-radius:12px;padding:18px 52px 18px 20px;'
+        + 'box-shadow:0 4px 24px ' + panelColor + '18;';
+
+    info.innerHTML = closeBtn
+        + '<div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;">'
+        + '<span style="font-size:2.4em;filter:drop-shadow(0 0 10px ' + panelColor + '99);flex-shrink:0;">' + (isSealed ? '\uD83D\uDD12' : cfg.icon) + '</span>'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">'
+        + '<span style="color:' + (isSealed ? '#ff4466' : (isUnlocked ? cfg.color : '#cccccc')) + ';font-family:var(--font-title);font-size:1.1em;letter-spacing:1px;">' + w.name + '</span>'
+        + badge + '</div>'
+        + '<div style="color:#666;font-size:0.8em;font-style:italic;line-height:1.5;margin-bottom:' + (bonus ? '8px' : '0') + ';">' + (w.lore || '') + '</div>'
+        + (bonus ? '<div style="display:inline-flex;align-items:center;gap:6px;background:' + cfg.color + '14;border:1px solid ' + cfg.color + '33;border-radius:8px;padding:3px 10px;font-size:0.75em;color:' + cfg.color + ';">&#x26A1; ' + bonus + '</div>' : '')
+        + '</div></div>'
+        + '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' + primaryBtn + gBtn + '</div>'
+        + effectsHTML;
+}
+
+function wmapClosePanel() {
+    var info = document.getElementById('map-world-info');
+    if (info) info.style.display = 'none';
+    if (_wmapSelectedId) { var n = document.getElementById('wmap-node-' + _wmapSelectedId); if (n) n.style.outline = 'none'; }
+    _wmapSelectedId = null;
+}
+
+// Travel animation — flash the path between current world and destination
+function wmapAnimateTravel(fromId, toId, isLight, callback) {
+    var mapConfig = isLight ? GNT_LIGHT_WORLD_MAP_CONFIG : GNT_WORLD_MAP_CONFIG;
+    var fromNode  = document.getElementById('wmap-node-' + fromId);
+    var toNode    = document.getElementById('wmap-node-' + toId);
+    var cfg       = mapConfig[toId] || {};
+    var flashes   = 0;
+    if (!toNode) { callback(); return; }
+    var iv = setInterval(function() {
+        flashes++;
+        toNode.style.boxShadow = flashes % 2 === 0 ? '0 0 40px ' + (cfg.color || '#ffffff') + 'ff' : 'none';
+        if (flashes >= 6) { clearInterval(iv); toNode.style.boxShadow = ''; callback(); }
+    }, 120);
+}
+
+// Unlock animation — ripple effect on the newly unlocked node
+function wmapAnimateUnlock(id, isLight, callback) {
+    var cfg  = (isLight ? GNT_LIGHT_WORLD_MAP_CONFIG : GNT_WORLD_MAP_CONFIG)[id] || {};
+    var node = document.getElementById('wmap-node-' + id);
+    if (!node) { callback(); return; }
+    var pulses = 0;
+    var iv = setInterval(function() {
+        pulses++;
+        node.style.transform = pulses % 2 === 0 ? 'scale(1.35)' : 'scale(1)';
+        node.style.boxShadow = '0 0 ' + (pulses % 2 === 0 ? '40px' : '12px') + ' ' + (cfg.color || '#ffffff') + '99';
+        if (pulses >= 8) { clearInterval(iv); node.style.transform = ''; callback(); }
+    }, 100);
+}
+
+function wmapDoTravel(id, isLight) {
+    wmapAnimateTravel(gameState.currentWorld, id, isLight, function() {
+        if (isLight) {
+            if (isWorldLocked(id, true)) {
+                var rem = getWorldLockRemaining(id, true), mins = Math.ceil(rem / 60000);
+                Toastify({ text: '\uD83D\uDD12 ' + (lightWorlds[id] ? lightWorlds[id].name : id) + ' is sealed for ' + mins + ' more minute' + (mins!==1?'s':'') + '.', duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#2a0010,#550020)' } }).showToast();
+                return;
+            }
+            gameState.currentWorld = id; calculateStats(); renderAll(); saveGame();
+        } else {
+            travelToWorld(id);
+        }
+        wmapClosePanel();
     });
 }
+
+function wmapDoUnlock(id, isLight) {
+    wmapAnimateUnlock(id, isLight, function() {
+        if (isLight) { unlockLightWorld(id); }
+        else { travelToWorld(id); }
+        wmapClosePanel();
+    });
+}
+
+function wmapOpenGauntlet(id) {
+    // Pre-select this world in gauntlet, then navigate there
+    if (typeof gntState !== 'undefined') { gntState.locationChosen = false; }
+    showScreen('crashgame');
+    wmapClosePanel();
+    // After screen switches, auto-select this location
+    setTimeout(function() {
+        if (typeof gntSelectLocation === 'function') gntSelectLocation(id);
+    }, 200);
+}
+
+// Backward-compat aliases
+function worldMapClick(id, isLight)       { wmapNodeClick(id, isLight); }
+function worldMapHover(id, el, isLight)   { wmapNodeHover(id, true, isLight); }
+function worldMapUnhover(id, el, isLight) { wmapNodeHover(id, false, isLight); }
+function worldMapShowInfo(id, isLight)    { wmapShowPanel(id, isLight); }
+
+
 function travelToWorld(id)
 {
 	// Block travel to globally-locked worlds
@@ -29855,7 +30094,8 @@ function gntBackToMap() {
 
     document.getElementById('gnt-location-picker').style.display = 'block';
     document.getElementById('gnt-container').style.display = 'none';
-    gntRenderLocationPicker();
+    // Go to the Worlds map screen instead of just showing the location picker
+    showScreen('map');
 }
 
 function gntBeginWave(){
@@ -30023,20 +30263,27 @@ const GNT_WORLD_EFFECTS = {
 
 // World visual config for the map
 const GNT_WORLD_MAP_CONFIG = {
-    nether_plains:     { icon:'🌋', color:'#ff6644', x:10,  y:85, label:'Nether Plains'     },
-    ashen_wastes:      { icon:'🌑', color:'#ff9944', x:22,  y:72, label:'Ashen Wastes'      },
-    stygian_depths:    { icon:'🌊', color:'#4488ff', x:18,  y:55, label:'Stygian Depths'    },
-    burning_hells:     { icon:'🔥', color:'#ff3300', x:35,  y:65, label:'The Burning Hells' },
-    frozen_abyss:      { icon:'❄️', color:'#44ccff', x:30,  y:45, label:'The Frozen Abyss'  },
-    celestial_ruins:   { icon:'✨', color:'#ffcc44', x:48,  y:55, label:'Celestial Ruins'   },
-    void_threshold:    { icon:'🌀', color:'#aa44ff', x:55,  y:40, label:'Void Threshold'    },
-    singularity:       { icon:'💜', color:'#cc44ff', x:65,  y:55, label:'The Singularity'   },
-    event_horizon:     { icon:'🕳️', color:'#4444aa', x:72,  y:38, label:'Event Horizon'     },
-    genesis:           { icon:'🌿', color:'#44cc88', x:80,  y:55, label:'Genesis'           },
-    pantheon_of_ashes: { icon:'⚡', color:'#ffd700', x:78,  y:35, label:'Pantheon of Ashes' },
-    chronos_fault:     { icon:'⏳', color:'#00ffcc', x:85,  y:20, label:"Chronos' Fault"    },
-    omega_point:       { icon:'♾️', color:'#ffffff', x:90,  y:38, label:'Omega Point'       },
-    true_infinity:     { icon:'∞',  color:'#ff44ff', x:95,  y:20, label:'True Infinity'     },
+    nether_plains:          { icon:'🌋', color:'#ff6644', x:10,  y:88, label:'Nether Plains'          },
+    ashen_wastes:           { icon:'🌑', color:'#ff9944', x:22,  y:76, label:'Ashen Wastes'           },
+    stygian_depths:         { icon:'🌊', color:'#4488ff', x:18,  y:60, label:'Stygian Depths'         },
+    burning_hells:          { icon:'🔥', color:'#ff3300', x:35,  y:68, label:'The Burning Hells'      },
+    frozen_abyss:           { icon:'❄️', color:'#44ccff', x:30,  y:50, label:'The Frozen Abyss'       },
+    celestial_ruins:        { icon:'✨', color:'#ffcc44', x:48,  y:58, label:'Celestial Ruins'        },
+    void_threshold:         { icon:'🌀', color:'#aa44ff', x:55,  y:44, label:'Void Threshold'         },
+    singularity:            { icon:'💜', color:'#cc44ff', x:65,  y:58, label:'The Singularity'        },
+    event_horizon:          { icon:'🕳️', color:'#4444aa', x:72,  y:42, label:'Event Horizon'          },
+    genesis:                { icon:'🌿', color:'#44cc88', x:80,  y:58, label:'Genesis'                },
+    pantheon_of_ashes:      { icon:'⚡', color:'#ffd700', x:78,  y:38, label:'Pantheon of Ashes'      },
+    chronos_fault:          { icon:'⏳', color:'#00ffcc', x:85,  y:24, label:"Chronos' Fault"         },
+    omega_point:            { icon:'♾️', color:'#ffffff', x:90,  y:42, label:'Omega Point'            },
+    true_infinity:          { icon:'∞',  color:'#ff44ff', x:95,  y:24, label:'True Infinity'          },
+    akashic_records:        { icon:'📚', color:'#aa66ff', x:88,  y:12, label:'Akashic Records'        },
+    plane_of_ideas:         { icon:'💭', color:'#ffaa44', x:78,  y:10, label:'Plane of Ideas'         },
+    the_white_room:         { icon:'⬜', color:'#eeeeee', x:92,  y:6,  label:'The White Room'         },
+    nexus_of_all_realities: { icon:'🌐', color:'#44ffaa', x:70,  y:6,  label:'Nexus of All Realities' },
+    the_dreaming_dark:      { icon:'🌙', color:'#6644cc', x:58,  y:8,  label:'The Dreaming Dark'      },
+    shattered_omniverse:    { icon:'💫', color:'#ff88ff', x:46,  y:6,  label:'Shattered Omniverse'    },
+    the_primordial_wound:   { icon:'💧', color:'#ff4444', x:35,  y:10, label:'The Primordial Wound'   },
 };
 
 // Map connections (path lines between nodes)
@@ -30050,6 +30297,13 @@ const GNT_MAP_CONNECTIONS = [
     ['genesis','pantheon_of_ashes'],['pantheon_of_ashes','chronos_fault'],
     ['chronos_fault','omega_point'],['omega_point','true_infinity'],
     ['pantheon_of_ashes','omega_point'],
+    // Metaphysical & Beyond chain
+    ['true_infinity','akashic_records'],['akashic_records','plane_of_ideas'],
+    ['akashic_records','the_white_room'],['plane_of_ideas','nexus_of_all_realities'],
+    ['the_white_room','nexus_of_all_realities'],
+    ['nexus_of_all_realities','the_dreaming_dark'],
+    ['the_dreaming_dark','shattered_omniverse'],
+    ['shattered_omniverse','the_primordial_wound'],
 ];
 
 // ── LIGHT WORLD MAP CONFIG (used when player is transcended) ─────────

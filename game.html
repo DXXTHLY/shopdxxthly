@@ -35991,7 +35991,10 @@ function renderChallengesPanel() {
         });
 
         if (rows.length === 0) {
-            body.innerHTML = '<div style="color:#666633;font-size:0.8em;font-family:monospace;padding:20px 0;">No entries match.</div>';
+            const hint = _giftLogCache.length > 0
+                ? '<div style="color:#555522;font-size:0.72em;margin-top:6px;">Try switching the filter to <b style="color:#aaaa44;">All gifts</b> or clearing the search.</div>'
+                : '';
+            body.innerHTML = '<div style="color:#666633;font-size:0.8em;font-family:monospace;padding:16px 0;">No entries match.' + hint + '</div>';
             return;
         }
 
@@ -36019,7 +36022,9 @@ function renderChallengesPanel() {
         });
 
         const footer = document.getElementById('dev-giftlog-footer');
-        if (footer) footer.textContent = 'Showing ' + rows.length + ' of ' + _giftLogCache.length + ' gift(s).';
+        const filterVal = (document.getElementById('dev-giftlog-filter')?.value) || 'all';
+        const filterNote = filterVal !== 'all' ? ' (filter active)' : '';
+        if (footer) footer.textContent = 'Showing ' + rows.length + ' of ' + _giftLogCache.length + ' gift(s).' + filterNote;
     };
 
 })();

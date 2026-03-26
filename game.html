@@ -22087,6 +22087,7 @@ function withdrawEssence() {
     if (!confirm(`Withdraw ${formatNumber(gameState.bankedEssence)} Dark Essence for ${withdrawCost} DE fee?`)) return;
     if (gameState.isTranscended||window._devTranscendTest) { gameState.lightEssence = D(gameState.lightEssence||0).sub(5).max(0); } else { gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost); }
     _safeAddCur("darkEssence", gameState.bankedEssence);
+    gameState.bankedEssence = 0;
     gameState.hasWithdrawnEssence = true;
     playSound('ascend');
     Toastify({ text: `🌑 Essence retrieved from the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0a00,#c8a800)'} }).showToast();
@@ -22127,6 +22128,7 @@ function withdrawShards() {
     if (!confirm(`Withdraw ${formatNumber(gameState.bankedShards)} Abyssal Shards for ${withdrawCost} DE fee?`)) return;
     if (gameState.isTranscended||window._devTranscendTest) { gameState.lightEssence = D(gameState.lightEssence||0).sub(withdrawCost).max(0); } else { gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost); }
     gameState.abyssalShards = D(gameState.abyssalShards).add(D(gameState.bankedShards));
+    gameState.bankedShards = D(0);
     gameState.hasWithdrawnShards = true;
     playSound('ascend');
     Toastify({ text: `💎 Shards retrieved from the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#001a2a,#4488ff)'} }).showToast();
@@ -22198,6 +22200,7 @@ function withdrawFragments() {
     if (!confirm(`Withdraw ${formatNumber(gameState.bankedFragments)} fragments for ${withdrawCost} DE?`)) return;
     if (gameState.isTranscended||window._devTranscendTest) { gameState.lightEssence = D(gameState.lightEssence||0).sub(withdrawCost).max(0); } else { gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost); }
     _safeAddCur("corruptedFragments", gameState.bankedFragments);
+    gameState.bankedFragments = 0;
     gameState.hasWithdrawnFragments = true;
     playSound('ascend');
     Toastify({ text: `🔮 Fragments retrieved from the vault!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'} }).showToast();
@@ -22259,9 +22262,10 @@ function withdrawSouls() {
     if (confirm(`This will cost ${withdrawCost} Dark Essence. Are you sure you want to withdraw ${formatNumber(gameState.bankedSouls)} souls?`)) {
         gameState.darkEssence = D(gameState.darkEssence).sub(withdrawCost);
         gameState.souls = D(gameState.souls).add(D(gameState.bankedSouls));
+        gameState.bankedSouls = 0;
         gameState.hasWithdrawn = true;
 
-        playSound('ascend'); // A nice "power up" sound
+        playSound('ascend');
         alert("The vault has been opened! The souls are yours.");
         renderAll();
         saveGame();

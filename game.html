@@ -206,6 +206,8 @@
         #souls-display, #essence-display, #shards-display { text-shadow: 0 0 10px currentColor; }
         #essence-display { color: var(--accent-color); } #shards-display { color: var(--prestige-color); }
         h1, h2, h3 { font-family: var(--font-title); color: var(--primary-color); text-shadow: 0 0 8px var(--primary-glow), 0 0 25px rgba(180,0,0,0.4), 1px 1px 0 #000, 2px 2px 8px #000; text-transform: uppercase; letter-spacing: 4px; }
+        /* White screen titles */
+        .screen h2 { color: #fff !important; -webkit-text-fill-color: #fff !important; text-shadow: 0 0 20px rgba(255,255,255,0.4), 1px 1px 0 #000, 2px 2px 10px #000 !important; }
         h1 { font-size: var(--font-size-xxl); } h2 { font-size: var(--font-size-xl); margin-bottom: 0; }
         h3 { color: var(--secondary-color); text-shadow: 0 0 8px rgba(180,140,220,0.3), 1px 1px 2px #000; letter-spacing: 2px; }
         .screen p { font-size: 1.1rem; text-align: center; }
@@ -322,7 +324,7 @@
         #map-grid li.active-world { border-color: var(--primary-color); background: var(--dark-panel-color); }
         #leaderboard-list li:first-child { border-color: gold; box-shadow: 0 0 15px rgba(255,215,0,0.5); }
         #ascension-screen { border: 2px solid #5a0808; border-top: 1px solid #8a1010; background: radial-gradient(ellipse at center, rgba(100, 10, 10, 0.15), rgba(0,0,0,0) 70%); box-shadow: 0 0 40px rgba(196,24,24,0.15), inset 0 0 40px rgba(0,0,0,0.5); padding: 30px; }
-        #ascension-screen h2 { color: var(--primary-color); } .ascend-btn { background: var(--prestige-color); color: #000; font-family: var(--font-title); font-weight: bold; font-size: 1.3rem; border: 2px solid #000; }
+        #ascension-screen h2 { } .ascend-btn { background: var(--prestige-color); color: #000; font-family: var(--font-title); font-weight: bold; font-size: 1.3rem; border: 2px solid #000; }
         /* ================================================================= */
         /* AUTH SCREEN                                                       */
         /* ================================================================= */
@@ -3634,12 +3636,29 @@ text-decoration: underline; /* Adds an underline on hover */
                 })();
                 </script>
             </div>
-            <div id="inventory-screen" class="screen">
+            <div id="inventory-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #inventory-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #inventory-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#aa44ff1e,transparent 70%);pointer-events:none;}
+                #inventory-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .inventory-s{position:absolute;border-radius:50%;background:#fff;animation:inventoryTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes inventoryTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #inventory-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:inventoryGl 4s ease-in-out infinite alternate;}
+                @keyframes inventoryGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #aa44ff99);}}
+                </style>
+                <div id="inventory-hero">
+                    <div id="inventory-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>⚔ VAULT OF RELICS ⚔</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Every item tells a story of darkness collected.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('inventory-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='inventory-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
                 <!-- Animated header -->
-                <div style="position:relative; text-align:center; padding:24px 0 20px; margin-bottom:24px; overflow:hidden;">
+                <div style="position:relative; text-align:center; margin-bottom:24px; overflow:hidden;">
                     <div style="position:absolute; inset:0; background:radial-gradient(ellipse at 50% 0%,#aa44ff18,transparent 70%); pointer-events:none;"></div>
-                    <h2 style="letter-spacing:4px; color:#c8b4ff; margin:0 0 6px; font-size:1.5em; text-shadow:0 0 30px #aa44ff88;">⚔ VAULT OF RELICS ⚔</h2>
-                    <p style="color:#4a3a5a; font-size:0.82em; margin:0 0 14px; letter-spacing:1px;">Every item tells a story of darkness collected.</p>
+          
                     <!-- Live stat pills -->
                     <div id="inv-stat-bar" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;"></div>
                 </div>
@@ -3671,18 +3690,55 @@ text-decoration: underline; /* Adds an underline on hover */
                     <div id="inventory-items-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px;"></div>
                 </div>
             </div>
-            <div id="minions-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#ff6644;">😈 DEMONIC MINIONS 😈</h2>
-                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Enslave creatures from the abyss to passively harvest souls. Each level increases their power.</p>
+            </div>
+            <div id="minions-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #minions-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #minions-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#ff44221e,transparent 70%);pointer-events:none;}
+                #minions-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .minions-s{position:absolute;border-radius:50%;background:#fff;animation:minionsTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes minionsTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #minions-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:minionsGl 4s ease-in-out infinite alternate;}
+                @keyframes minionsGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #ff664499);}}
+                </style>
+                <div id="minions-hero">
+                    <div id="minions-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>😈 DEMONIC MINIONS 😈</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Enslave creatures from the abyss to passively harvest souls.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('minions-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='minions-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                
                 <div id="minion-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; max-width:1000px; margin:0 auto;"></div>
             </div>
 
             <!-- ================================================================= -->
             <!-- EXPEDITIONS SCREEN (NEW!) -->
             <!-- ================================================================= -->
-            <div id="expeditions-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#c8a800;">🗺️ MINION EXPEDITIONS 🗺️</h2>
-                <p style="color:var(--dim-color); max-width:520px; margin:0 auto 8px;">Deploy your minions on dangerous missions across the abyss. While on expedition, their levels are temporarily reduced.</p>
+            
+            </div>
+            <div id="expeditions-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #expeditions-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #expeditions-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#aa88001e,transparent 70%);pointer-events:none;}
+                #expeditions-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .expeditions-s{position:absolute;border-radius:50%;background:#fff;animation:expeditionsTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes expeditionsTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #expeditions-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:expeditionsGl 4s ease-in-out infinite alternate;}
+                @keyframes expeditionsGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #c8a80099);}}
+                </style>
+                <div id="expeditions-hero">
+                    <div id="expeditions-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>🗺️ MINION EXPEDITIONS 🗺️</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Deploy your minions on dangerous missions across the abyss.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('expeditions-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='expeditions-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                
                 <div style="display:inline-flex; align-items:center; gap:8px; background:#1a0a00; border:1px solid #ff660033; border-radius:8px; padding:7px 14px; margin-bottom:10px; font-size:0.78em; color:#cc8855; max-width:520px;">
                     <span>⚠️</span><span><b style="color:#ff9944;">SPS will decrease</b> while minions are away — deployed minion levels are paused until they return.</span>
                 </div>
@@ -3757,6 +3813,8 @@ text-decoration: underline; /* Adds an underline on hover */
 
 
             <!-- SOUL-FORGE SCREEN -->
+            
+            </div>
             <div id="forge-screen" class="screen">
                 <!-- Animated Header -->
                 <div style="text-align:center; margin-bottom:6px; position:relative; overflow:hidden; padding-bottom:10px;">
@@ -3814,19 +3872,74 @@ text-decoration: underline; /* Adds an underline on hover */
 
 
 
-            <div id="artifacts-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#00bbff;">💎 ABYSSAL ARTIFACTS 💎</h2>
-                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Spend Abyssal Shards or Dark Essence on powerful permanent upgrades. Each artifact scales infinitely with level.</p>
+            <div id="artifacts-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #artifacts-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #artifacts-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#2266cc1e,transparent 70%);pointer-events:none;}
+                #artifacts-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .artifacts-s{position:absolute;border-radius:50%;background:#fff;animation:artifactsTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes artifactsTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #artifacts-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:artifactsGl 4s ease-in-out infinite alternate;}
+                @keyframes artifactsGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #4488ff99);}}
+                </style>
+                <div id="artifacts-hero">
+                    <div id="artifacts-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>💎 ABYSSAL ARTIFACTS 💎</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Spend Shards or Essence on permanent upgrades that scale infinitely.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('artifacts-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='artifacts-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                
                 <div id="artifact-grid" class="ritual-grid"></div>
             </div>
-            <div id="rituals-screen" class="screen">
-                <h2 id="rituals-header" style="letter-spacing:3px; color:#cc3333;">🔮 DARK RITUALS 🔮</h2>
-                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Channel forbidden power through blood and sacrifice. Each ritual costs souls and enters a cooldown before it can be performed again.</p>
+            
+            </div>
+            <div id="rituals-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #rituals-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #rituals-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#aa11111e,transparent 70%);pointer-events:none;}
+                #rituals-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .rituals-s{position:absolute;border-radius:50%;background:#fff;animation:ritualsTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes ritualsTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #rituals-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:ritualsGl 4s ease-in-out infinite alternate;}
+                @keyframes ritualsGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #cc333399);}}
+                </style>
+                <div id="rituals-hero">
+                    <div id="rituals-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>🔮 DARK RITUALS 🔮</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Channel forbidden power through blood and sacrifice.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('rituals-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='rituals-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                <h2 id="rituals-header" style="display:none;"></h2>
                 <div id="ritual-grid" class="ritual-grid"></div>
             </div>
-            <div id="map-screen" class="screen">
-                <h2 id="map-screen-title" style="letter-spacing:3px; color:#c8a800;">🌐 MAP OF THE UNDERWORLDS 🌐</h2>
-                <p id="map-screen-subtitle" style="color:var(--dim-color); max-width:520px; margin:0 auto 16px; font-size:0.85em;">Click any world to preview it. Unlocked worlds glow in their realm colour.</p>
+            
+            </div>
+            <div id="map-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #map-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #map-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#aa88001e,transparent 70%);pointer-events:none;}
+                #map-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .map-s{position:absolute;border-radius:50%;background:#fff;animation:mapTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes mapTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #map-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:mapGl 4s ease-in-out infinite alternate;}
+                @keyframes mapGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #c8a80099);}}
+                </style>
+                <div id="map-hero">
+                    <div id="map-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>🌐 MAP OF THE UNDERWORLDS 🌐</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Click any world to preview it. Unlocked worlds glow in their realm colour.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('map-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='map-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                <h2 id="map-screen-title" style="display:none;"></h2><p id="map-screen-subtitle" style="display:none;"></p>
                 <div id="map-node-container" style="max-width:860px; margin:0 auto 12px;">
                     <div id="map-node-cards"></div>
                 </div>
@@ -3834,9 +3947,28 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div id="map-world-info" style="display:none; max-width:860px; margin:0 auto 16px;"></div>
                 <div id="map-grid" style="display:none;"></div>
             </div>
-            <div id="pvp-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#ff4444;">⚔️ ABYSSAL ARENA ⚔️</h2>
-                <p style="color:var(--dim-color); max-width:540px; margin:0 auto 16px;">Challenge other Soul Collectors in tactical combat. Set your defense formation, then raid your rivals.</p>
+            
+            </div>
+            <div id="pvp-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #pvp-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #pvp-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#cc22221e,transparent 70%);pointer-events:none;}
+                #pvp-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .pvp-s{position:absolute;border-radius:50%;background:#fff;animation:pvpTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes pvpTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #pvp-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:pvpGl 4s ease-in-out infinite alternate;}
+                @keyframes pvpGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #ff444499);}}
+                </style>
+                <div id="pvp-hero">
+                    <div id="pvp-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>⚔️ ABYSSAL ARENA ⚔️</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Challenge other Soul Collectors in tactical combat.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('pvp-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='pvp-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                
 
                 <!-- Soul Raids entry banner -->
                 <div style="max-width:700px; margin:0 auto 20px; background:linear-gradient(135deg,#1a0805,#0e0a1a); border:1px solid #ff664433; border-left:4px solid #ff6644; border-radius:12px; padding:16px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
@@ -4031,9 +4163,29 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- ================================================================= -->
             <!-- ABYSSAL GAUNTLET SCREEN -->
             <!-- ================================================================= -->
-            <div id="crashgame-screen" class="screen">
-                <h2 id="gauntlet-title" style="letter-spacing:3px; color:#ff6644;">⚔️ THE ABYSSAL GAUNTLET ⚔️</h2>
-                <p style="color:var(--dim-color); max-width:580px; margin:0 auto 20px; font-size:0.85em;">Choose your battlefield. Each location has unique buffs and debuffs that shift every day. Wave difficulty and enemy rosters rotate daily — what worked yesterday may not work today.</p>
+            
+            </div>
+            <div id="crashgame-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #crashgame-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #crashgame-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#cc33111e,transparent 70%);pointer-events:none;}
+                #crashgame-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .crashgame-s{position:absolute;border-radius:50%;background:#fff;animation:crashgameTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes crashgameTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #crashgame-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:crashgameGl 4s ease-in-out infinite alternate;}
+                @keyframes crashgameGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #ff664499);}}
+                </style>
+                <div id="crashgame-hero">
+                    <div id="crashgame-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>⚔️ THE ABYSSAL GAUNTLET ⚔️</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Survive endless waves. How far can you push your soul?</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('crashgame-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='crashgame-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                <h2 id="gauntlet-title" style="display:none;"></h2>
+                <p style="display:none;">Choose your battlefield. Each location has unique buffs and debuffs that shift every day. Wave difficulty and enemy rosters rotate daily — what worked yesterday may not work today.</p>
 
                 <!-- Location picker — shown before lobby -->
                 <div id="gnt-location-picker" style="max-width:860px; margin:0 auto 20px;">
@@ -4175,9 +4327,28 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- ================================================================= -->
             <!-- MARKETPLACE SCREEN (NEW & WORKING) -->
             <!-- ================================================================= -->
-            <div id="market-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#c8a800;">💎 ABYSSAL MARKETPLACE 💎</h2>
-                <p style="color:var(--dim-color); max-width:500px; margin:0 auto 28px;">Trade with other Soul Collectors. All listings are server-wide.</p>
+            
+            </div>
+            <div id="market-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #market-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #market-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#c8a80022,transparent 70%);pointer-events:none;}
+                #market-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .market-s{position:absolute;border-radius:50%;background:#fff;animation:marketTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes marketTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #market-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:marketGl 4s ease-in-out infinite alternate;}
+                @keyframes marketGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #c8a80099);}}
+                </style>
+                <div id="market-hero">
+                    <div id="market-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>💎 ABYSSAL MARKETPLACE 💎</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Trade with other Soul Collectors. Listings refresh every hour.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('market-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='market-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                
 
                 <!-- HOURLY OFFERINGS -->
                 <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #c8a80044; border-top:3px solid #c8a800; border-radius:14px; padding:22px; max-width:900px; margin:0 auto 28px;">
@@ -4320,36 +4491,83 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
             </div><!-- /sell-price-modal -->
             </div><!-- /market-screen -->
-            <div id="leaderboard-screen" class="screen">
-                <h2>🏆 Leaderboards 🏆</h2>
-                <div class="upgrade-section">
-                    <button class="upgrade-btn" onclick="fetchLeaderboard('lifetimeSouls')">⚔ By Total Power</button>
-                    <button class="upgrade-btn" onclick="fetchLeaderboard('darkOnly')" style="border-color:#c8280044;">☠ Dark Only</button>
-                    <button class="upgrade-btn" onclick="fetchLeaderboard('lightOnly')" style="border-color:#9966ff44;">✦ Light Only</button>
-                    <button class="upgrade-btn" onclick="fetchLeaderboard('ascensions')">By Ascensions</button>
-                    <button class="upgrade-btn" onclick="fetchLeaderboard('aether')">By Aether</button>
-                    <button class="upgrade-btn" onclick="fetchLeaderboard('pvpWins')">By PvP Wins</button>
-                </div>
-                <h3 id="leaderboard-title">Ranking by Total Souls</h3><ul id="leaderboard-list"></ul>
-
-                <!-- Player profile popup -->
-                <div id="lb-player-popup" style="display:none;position:fixed;inset:0;background:#000000cc;z-index:5000;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none';">
-                    <div style="background:#0c0012;border:1px solid #c8a80044;border-top:3px solid #c8a800;border-radius:16px;width:min(440px,92vw);overflow:hidden;">
-                        <div style="padding:16px 20px;border-bottom:1px solid #c8a80022;display:flex;align-items:center;justify-content:space-between;">
-                            <div id="lb-popup-title" style="color:#c8a800;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;">SOUL COLLECTOR</div>
-                            <button onclick="document.getElementById('lb-player-popup').style.display='none'" style="background:none;border:1px solid #33224433;border-radius:6px;color:#555;padding:3px 10px;cursor:pointer;font-size:1em;">✕</button>
-                        </div>
-                        <div id="lb-popup-body" style="padding:18px 20px;"></div>
+            
+            </div>
+            <div id="leaderboard-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #lb-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#080600 50%,#120c00 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px 22px;text-align:center;}
+                #lb-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#c8a80022,transparent 70%);pointer-events:none;}
+                #lb-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .lb-star{position:absolute;border-radius:50%;background:#fff;animation:lbStarTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes lbStarTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.45);transform:scale(1)}}
+                #lb-hero h2{font-family:var(--font-title);font-size:1.9em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#fff8e0,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 20px rgba(255,230,100,.55));margin:0 0 5px;animation:lbTitleGlow 4s ease-in-out infinite alternate;}
+                @keyframes lbTitleGlow{0%{filter:drop-shadow(0 0 10px rgba(255,220,80,.3));}100%{filter:drop-shadow(0 0 30px rgba(255,240,130,.7));}}
+                #lb-body{padding:20px 24px;max-width:800px;margin:0 auto;}
+                @keyframes lbPulse1{0%,100%{box-shadow:0 0 30px #c8a80044,0 0 60px #c8a80018}50%{box-shadow:0 0 50px #c8a80066,0 0 90px #c8a80030}}
+                @keyframes lbPulse2{0%,100%{box-shadow:0 0 20px #aaaacc33}50%{box-shadow:0 0 35px #aaaacc55}}
+                @keyframes lbPulse3{0%,100%{box-shadow:0 0 16px #cc772233}50%{box-shadow:0 0 28px #cc772244}}
+                @keyframes lbShimmer{0%{left:-100%}60%,100%{left:160%}}
+                </style>
+                <div id="lb-hero">
+                    <div id="lb-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>🏆 LEADERBOARDS 🏆</h2>
+                        <p style="color:#665500;font-size:0.82em;max-width:500px;margin:0 auto;letter-spacing:1px;">Ranked by lifetime souls, ascensions, Aether, and PvP dominance.</p>
                     </div>
+                </div>
+                <script>(function(){const b=document.getElementById('lb-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<35;i++){const s=document.createElement('div');s.className='lb-star';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div id="lb-body">
+                <!-- Tab buttons -->
+                <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:20px;">
+                    <button onclick="fetchLeaderboard('lifetimeSouls')" style="background:linear-gradient(135deg,#1a1200,#2a1e00);border:1px solid #c8a80066;border-bottom:2px solid #c8a800;border-radius:10px;padding:8px 16px;color:#c8a800;font-family:var(--font-title);font-size:0.72em;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">⚔ TOTAL POWER</button>
+                    <button onclick="fetchLeaderboard('darkOnly')" style="background:linear-gradient(135deg,#140606,#200a0a);border:1px solid #cc222244;border-bottom:2px solid #cc3333;border-radius:10px;padding:8px 16px;color:#ff6666;font-family:var(--font-title);font-size:0.72em;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">☠ DARK ONLY</button>
+                    <button onclick="fetchLeaderboard('lightOnly')" style="background:linear-gradient(135deg,#100820,#180e30);border:1px solid #9966ff44;border-bottom:2px solid #9966ff;border-radius:10px;padding:8px 16px;color:#c8b4ff;font-family:var(--font-title);font-size:0.72em;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">✦ LIGHT ONLY</button>
+                    <button onclick="fetchLeaderboard('ascensions')" style="background:linear-gradient(135deg,#140a00,#201200);border:1px solid #ff880044;border-bottom:2px solid #ff8800;border-radius:10px;padding:8px 16px;color:#ff9944;font-family:var(--font-title);font-size:0.72em;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">↑ ASCENSIONS</button>
+                    <button onclick="fetchLeaderboard('aether')" style="background:linear-gradient(135deg,#001416,#001e22);border:1px solid #00e5ff33;border-bottom:2px solid #00e5ff;border-radius:10px;padding:8px 16px;color:#00e5ff;font-family:var(--font-title);font-size:0.72em;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">🌀 AETHER</button>
+                    <button onclick="fetchLeaderboard('pvpWins')" style="background:linear-gradient(135deg,#041408,#081e0e);border:1px solid #44cc8844;border-bottom:2px solid #44cc88;border-radius:10px;padding:8px 16px;color:#44cc88;font-family:var(--font-title);font-size:0.72em;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">⚔ PVP WINS</button>
+                </div>
+                <!-- Title bar -->
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #1a0d26;">
+                    <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,#c8a80033);"></div>
+                    <h3 id="leaderboard-title" style="margin:0;color:#c8a800;font-family:var(--font-title);font-size:0.8em;letter-spacing:4px;text-transform:uppercase;white-space:nowrap;">Ranking by Total Power</h3>
+                    <div style="flex:1;height:1px;background:linear-gradient(90deg,#c8a80033,transparent);"></div>
+                </div>
+                <!-- Rankings list -->
+                <div id="leaderboard-list"></div>
+                <!-- Profile popup -->
+                <div id="lb-player-popup" style="display:none;position:fixed;inset:0;background:#000000cc;z-index:5000;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none';">
+                    <div style="background:linear-gradient(160deg,#0a0016,#100020);border:1px solid #c8a80044;border-top:3px solid #c8a800;border-radius:20px;width:min(460px,92vw);overflow:hidden;box-shadow:0 0 60px #c8a80022;">
+                        <div style="padding:18px 22px;border-bottom:1px solid #c8a80018;display:flex;align-items:center;justify-content:space-between;">
+                            <div id="lb-popup-title" style="color:#c8a800;font-family:var(--font-title);font-size:0.85em;letter-spacing:3px;">SOUL COLLECTOR</div>
+                            <button onclick="document.getElementById('lb-player-popup').style.display='none'" style="background:#1a0a2a;border:1px solid #3a2a4a;border-radius:8px;color:#aa44ff;padding:4px 11px;cursor:pointer;">✕</button>
+                        </div>
+                        <div id="lb-popup-body" style="padding:20px 22px;"></div>
+                    </div>
+                </div>
                 </div>
             </div>
 
             <!-- PACTS SCREEN -->
-            <div id="pacts-screen" class="screen">
+            <div id="pacts-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #pacts-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #pacts-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#7722cc1e,transparent 70%);pointer-events:none;}
+                #pacts-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .pacts-s{position:absolute;border-radius:50%;background:#fff;animation:pactsTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes pactsTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #pacts-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:pactsGl 4s ease-in-out infinite alternate;}
+                @keyframes pactsGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #aa44ff99);}}
+                </style>
+                <div id="pacts-hero">
+                    <div id="pacts-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>⚔️ SOUL PACTS ⚔️</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Forge a blood alliance. Every active member empowers your harvest.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('pacts-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='pacts-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
 
-                <!-- ── HEADER ── -->
-                <h2 style="font-size:1.8em; letter-spacing:3px;">⚔️ SOUL PACTS ⚔️</h2>
-                <p style="color:var(--dim-color); max-width:560px; margin:0 auto 6px; font-size:0.85em;">Forge a blood alliance. Every active pact member empowers your harvest — and your clan tag marks your presence in chat.</p>
 
                 <!-- Pact stats strip -->
                 <div style="display:flex; justify-content:center; gap:14px; flex-wrap:wrap; margin-bottom:20px;">
@@ -4530,9 +4748,28 @@ text-decoration: underline; /* Adds an underline on hover */
             </div>
 
             <!-- PACT WARS SCREEN -->
-            <div id="pactwars-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#ff6644;">⚔ PACT WARS ⚔</h2>
-                <p style="color:var(--dim-color); max-width:600px; margin:0 auto 20px;">Guilds battle for dominion over the Abyss. Claim nodes, crush rivals, and collect the spoils of war.</p>
+            
+            </div>
+            <div id="pactwars-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #pactwars-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #pactwars-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#cc33221e,transparent 70%);pointer-events:none;}
+                #pactwars-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .pactwars-s{position:absolute;border-radius:50%;background:#fff;animation:pactwarsTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes pactwarsTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #pactwars-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:pactwarsGl 4s ease-in-out infinite alternate;}
+                @keyframes pactwarsGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #ff664499);}}
+                </style>
+                <div id="pactwars-hero">
+                    <div id="pactwars-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>⚔ PACT WARS ⚔</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Guilds battle for dominion over the Abyss. Claim nodes, crush rivals.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('pactwars-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='pactwars-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                
 
                 <!-- Unclaimed reward alert -->
                 <div id="pw-reward-alert" style="display:none; background:linear-gradient(135deg,#1a1a00,#2a2a00); border:2px solid #c8a80088; border-top:3px solid #c8a800; border-radius:12px; padding:16px 20px; max-width:900px; margin:0 auto 16px; text-align:center; cursor:pointer; animation:pwRewardPulse 2s ease-in-out infinite;" onclick="pwClaimRewards()">
@@ -4693,6 +4930,8 @@ text-decoration: underline; /* Adds an underline on hover */
 
             <!-- ================================================================= -->
             <!-- BANK SCREEN -->
+            
+            </div>
             <div id="bank-screen" class="screen" style="padding:0; overflow:hidden;">
                 <style>
                 /* ═══ ABYSSAL VAULT STYLES ═══ */
@@ -4733,19 +4972,19 @@ text-decoration: underline; /* Adds an underline on hover */
                     border:1px solid #ff444444; border-radius:20px;
                     padding:5px 14px; font-size:0.72em; color:#ff6666; margin:3px 4px;
                 }
-                #vault-body { padding:24px; max-width:760px; margin:0 auto; }
+                #vault-body { padding:28px 24px; max-width:800px; margin:0 auto; }
 
                 /* Vault cards */
                 .vault-card {
                     position:relative; overflow:hidden; border-radius:16px;
-                    padding:20px; transition:transform 0.2s, box-shadow 0.2s;
+                    padding:22px; transition:transform 0.2s, box-shadow 0.2s;
                 }
                 .vault-card::before {
                     content:''; position:absolute; inset:0;
                     background:radial-gradient(ellipse 80% 60% at 50% -10%, var(--vc-glow) 0%, transparent 60%);
                     pointer-events:none;
                 }
-                .vault-card:hover { transform:translateY(-2px); }
+                .vault-card:hover { transform:translateY(-3px); box-shadow:0 8px 30px rgba(0,0,0,0.5), 0 0 20px var(--vc-glow); }
                 .vault-card-icon {
                     width:44px; height:44px; border-radius:12px;
                     display:flex; align-items:center; justify-content:center;
@@ -4768,18 +5007,18 @@ text-decoration: underline; /* Adds an underline on hover */
                 }
                 .vault-card-btn:hover { filter:brightness(1.2); box-shadow:0 0 18px var(--vc-glow); }
                 .vault-card-btn.withdraw-btn {
-                    background:transparent; color:var(--vc-dim);
-                    border-color:var(--vc-border-dim);
-                    font-size:0.72em;
+                    background:transparent; color:#667799;
+                    border:1px solid rgba(255,255,255,0.07);
+                    font-size:0.72em; letter-spacing:1px;
                 }
-                .vault-card-btn.withdraw-btn:hover { color:var(--vc-color); filter:brightness(1); }
+                .vault-card-btn.withdraw-btn:hover { color:var(--vc-color); border-color:var(--vc-border); }
 
                 /* Exchange redesign */
                 #exchange-section {
-                    margin-top:28px; position:relative; overflow:hidden;
+                    margin-top:32px; position:relative; overflow:hidden;
                     background:linear-gradient(160deg,#030814,#06101e,#030814);
                     border:1px solid #00e5ff22; border-top:3px solid #00e5ff;
-                    border-radius:16px; padding:28px 24px;
+                    border-radius:16px; padding:32px 28px;
                 }
                 #exchange-section::before {
                     content:''; position:absolute; inset:0;
@@ -4840,8 +5079,8 @@ text-decoration: underline; /* Adds an underline on hover */
                 #vault-interest-bar {
                     display:flex; align-items:center; gap:10px; flex-wrap:wrap;
                     background:linear-gradient(135deg,#050d10,#080f18); border:1px solid #0a2030;
-                    border-left:3px solid #00e5ff44; border-radius:12px; padding:14px 18px;
-                    margin-top:20px; font-size:0.78em;
+                    border-left:3px solid #00e5ff44; border-radius:12px; padding:16px 20px;
+                    margin-top:24px; font-size:0.78em;
                 }
                 .interest-pill {
                     display:inline-flex; align-items:center; gap:5px;
@@ -4868,20 +5107,20 @@ text-decoration: underline; /* Adds an underline on hover */
 
                 <div id="vault-body">
                     <!-- Vault cards grid -->
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:6px;">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:8px;">
 
                         <!-- Soul Vault -->
                         <div class="vault-card" style="background:linear-gradient(160deg,#0e0c00,#1a1600); border:1px solid #c8a80033; border-top:3px solid #c8a800; --vc-color:#c8a800; --vc-glow:#c8a80030; --vc-bg1:#2a2000; --vc-bg2:#1a1400; --vc-border:#c8a80044; --vc-border-dim:#c8a80022; --vc-btnbg:#c8a80018; --vc-dim:#886600;">
                             <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
                                 <div class="vault-card-icon" style="--vc-bg1:#3a2800; --vc-bg2:#1a1400;">👻</div>
                                 <div style="flex:1;">
-                                    <div style="color:#664400; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Soul Vault <span style="color:#c8a80044;">· 0.5%/hr</span></div>
+                                    <div style="color:#998833; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Soul Vault <span style="color:#c8a80044;">· 0.5%/hr</span></div>
                                     <div class="vault-amount" id="banked-souls-display">0</div>
-                                    <div style="color:#443300; font-size:0.68em; margin-top:1px;">souls secured</div>
+                                    <div style="color:#887733; font-size:0.68em; margin-top:1px;">souls secured</div>
                                 </div>
                             </div>
                             <button class="vault-card-btn" onclick="depositSouls()">⬆ Deposit Souls</button>
-                            <div style="color:#443300; font-size:0.68em; text-align:center; margin:-4px 0 2px;">Store 10× SPS · max 100k · costs 25 DE</div>
+                            <div style="color:#776622; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Store 10× SPS · max 100k · costs 25 DE</div>
                             <button class="vault-card-btn withdraw-btn" id="withdrawBtn" onclick="withdrawSouls()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawCost">10</span> DE · once per life</button>
                         </div>
 
@@ -4890,13 +5129,13 @@ text-decoration: underline; /* Adds an underline on hover */
                             <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
                                 <div class="vault-card-icon" style="--vc-bg1:#2a1e00; --vc-bg2:#1a1200;">🌑</div>
                                 <div style="flex:1;">
-                                    <div style="color:#664400; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Essence Vault <span style="color:#c8a80044;">· 0.3%/hr</span></div>
+                                    <div style="color:#998833; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Essence Vault <span style="color:#c8a80044;">· 0.3%/hr</span></div>
                                     <div class="vault-amount" id="banked-essence-display">0</div>
-                                    <div style="color:#443300; font-size:0.68em; margin-top:1px;">essence secured</div>
+                                    <div style="color:#887733; font-size:0.68em; margin-top:1px;">essence secured</div>
                                 </div>
                             </div>
                             <button class="vault-card-btn" onclick="depositEssence()">⬆ Deposit Essence</button>
-                            <div style="color:#443300; font-size:0.68em; text-align:center; margin:-4px 0 2px;">Vault 50% of essence · max 100k · costs 30 DE</div>
+                            <div style="color:#776622; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Vault 50% of essence · max 100k · costs 30 DE</div>
                             <button class="vault-card-btn withdraw-btn" id="withdrawEssenceBtn" onclick="withdrawEssence()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawEssenceCost">20</span> DE · once per life</button>
                         </div>
 
@@ -4905,13 +5144,13 @@ text-decoration: underline; /* Adds an underline on hover */
                             <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
                                 <div class="vault-card-icon" style="--vc-bg1:#001840; --vc-bg2:#000f28;">💎</div>
                                 <div style="flex:1;">
-                                    <div style="color:#224466; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Shard Vault <span style="color:#4488ff44;">· 0.2%/hr</span></div>
+                                    <div style="color:#4488cc; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Shard Vault <span style="color:#4488ff44;">· 0.2%/hr</span></div>
                                     <div class="vault-amount" id="banked-shards-display">0</div>
-                                    <div style="color:#162844; font-size:0.68em; margin-top:1px;">shards secured</div>
+                                    <div style="color:#336688; font-size:0.68em; margin-top:1px;">shards secured</div>
                                 </div>
                             </div>
                             <button class="vault-card-btn" onclick="depositShards()">⬆ Deposit Shards</button>
-                            <div style="color:#162844; font-size:0.68em; text-align:center; margin:-4px 0 2px;">Vault 50% of shards · max 100k · costs 40 DE</div>
+                            <div style="color:#2255aa; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Vault 50% of shards · max 100k · costs 40 DE</div>
                             <button class="vault-card-btn withdraw-btn" id="withdrawShardsBtn" onclick="withdrawShards()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawShardsCost">30</span> DE · once per life</button>
                         </div>
 
@@ -4920,13 +5159,13 @@ text-decoration: underline; /* Adds an underline on hover */
                             <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
                                 <div class="vault-card-icon" style="--vc-bg1:#2a0a50; --vc-bg2:#180630;">🔮</div>
                                 <div style="flex:1;">
-                                    <div style="color:#442266; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Fragment Vault <span style="color:#66668888;">· no interest</span></div>
+                                    <div style="color:#8844cc; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Fragment Vault <span style="color:#66668888;">· no interest</span></div>
                                     <div class="vault-amount" id="banked-fragments-display">0</div>
-                                    <div style="color:#2a1444; font-size:0.68em; margin-top:1px;">fragments secured</div>
+                                    <div style="color:#775599; font-size:0.68em; margin-top:1px;">fragments secured</div>
                                 </div>
                             </div>
                             <button class="vault-card-btn" onclick="depositFragments()">⬆ Deposit Fragments</button>
-                            <div style="color:#2a1444; font-size:0.68em; text-align:center; margin:-4px 0 2px;">Vault all fragments · max 100k · costs 50 DE</div>
+                            <div style="color:#6633aa; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Vault all fragments · max 100k · costs 50 DE</div>
                             <button class="vault-card-btn withdraw-btn" id="withdrawFragmentsBtn" onclick="withdrawFragments()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawFragsCost">25</span> DE · once per life</button>
                         </div>
 
@@ -4969,7 +5208,7 @@ text-decoration: underline; /* Adds an underline on hover */
                             </div>
 
                             <!-- Live balances -->
-                            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid #0a2030;">
+                            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid #0a2030; padding-bottom:18px; margin-bottom:4px;">
                                 <div class="exchange-balance-pill">👻 <span id="exchange-souls-balance" class="cost-souls" style="color:#c8a800; font-weight:bold;">0</span></div>
                                 <div class="exchange-balance-pill">🌑 <span id="exchange-essence-balance" class="cost-essence" style="color:#c8a800; font-weight:bold;">0</span> <span id="exchange-essence-label" style="color:#666; font-size:0.85em;">DE</span></div>
                                 <div class="exchange-balance-pill">💎 <span id="exchange-shards-balance" class="cost-shards" style="color:#4488ff; font-weight:bold;">0</span> <span style="color:#444; font-size:0.85em;">Shards</span></div>
@@ -4978,7 +5217,7 @@ text-decoration: underline; /* Adds an underline on hover */
                             </div>
 
                             <!-- Exchange cards -->
-                            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:14px; max-width:700px; margin:0 auto;">
+                            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(195px,1fr)); gap:16px; max-width:720px; margin:0 auto;">
 
                                 <!-- Shards → DE -->
                                 <div class="exch-card" style="--ec-color:#4488ff; --ec-bg1:#001030; --ec-bg2:#002060;">
@@ -5037,9 +5276,26 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
                 </div>
             </div>
-            <div id="ascension-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#c8a800;">✨ ASCENSION ✨</h2>
-                <p style="color:var(--dim-color); max-width:520px; margin:0 auto 28px; font-size:0.88em;">Shatter your Soul Core to transcend this cycle. Your current souls, minions, upgrades, and worlds are reset — but your power echoes forward as Abyssal Shards.</p>
+            <div id="ascension-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #ascension-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #ascension-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#aa88001e,transparent 70%);pointer-events:none;}
+                #ascension-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .ascension-s{position:absolute;border-radius:50%;background:#fff;animation:ascensionTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes ascensionTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #ascension-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:ascensionGl 4s ease-in-out infinite alternate;}
+                @keyframes ascensionGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #c8a80099);}}
+                </style>
+                <div id="ascension-hero">
+                    <div id="ascension-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>✨ ASCENSION ✨</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Shatter your Soul Core. Power echoes forward as Abyssal Shards.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('ascension-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='ascension-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                
 
                 <div style="max-width:680px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
 
@@ -5111,9 +5367,28 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
             </div>
             <!-- Screen 12: Collapse -->
-            <div id="collapse-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#00e5ff;">🌀 COLLAPSE REALITY 🌀</h2>
-                <p style="color:var(--dim-color); max-width:520px; margin:0 auto 28px; font-size:0.88em;">You have reached the centre of all things. Tear reality apart and start again — gaining Aether, the only force that persists beyond the end of everything.</p>
+            
+            </div>
+            <div id="collapse-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #collapse-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #collapse-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#0099991e,transparent 70%);pointer-events:none;}
+                #collapse-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .collapse-s{position:absolute;border-radius:50%;background:#fff;animation:collapseTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes collapseTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #collapse-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:collapseGl 4s ease-in-out infinite alternate;}
+                @keyframes collapseGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #00e5ff99);}}
+                </style>
+                <div id="collapse-hero">
+                    <div id="collapse-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>🌀 COLLAPSE REALITY 🌀</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Tear reality apart. Everything crumbles — but Aether survives forever.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('collapse-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='collapse-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                <p style="display:none;">You have reached the centre of all things. Tear reality apart and start again — gaining Aether, the only force that persists beyond the end of everything.</p>
 
                 <div style="max-width:680px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
 
@@ -5194,7 +5469,27 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
             </div>
                         <!-- Screen 11: Settings -->
-            <div id="settings-screen" class="screen">
+            
+            </div>
+            <div id="settings-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #settings-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #settings-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#7722cc1e,transparent 70%);pointer-events:none;}
+                #settings-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .settings-s{position:absolute;border-radius:50%;background:#fff;animation:settingsTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes settingsTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #settings-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:settingsGl 4s ease-in-out infinite alternate;}
+                @keyframes settingsGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #aa44ff99);}}
+                </style>
+                <div id="settings-hero">
+                    <div id="settings-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>⚙️ SETTINGS ⚙️</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Configure your experience. Changes save automatically.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('settings-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='settings-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
             <!-- Abyssal Scroll toggle at top of settings -->
             <div style="background:#0d0a1a; border:1px solid #3a1a5a; border-radius:10px; padding:14px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between;">
                 <div>
@@ -5203,7 +5498,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
                 <button onclick="toggleAbyssalScroll()" style="background:linear-gradient(135deg,#1a0a2a,#2a1040); border:1px solid #6a3a8a; border-radius:8px; color:#c8b4ff; padding:7px 14px; cursor:pointer; font-size:0.82em;">Open Scroll</button>
             </div>
-                <h2 style="letter-spacing:3px; color:#aa44ff;">⚙️ SETTINGS ⚙️</h2>
+                
                 <p style="color:var(--dim-color); max-width:500px; margin:0 auto 28px;">Customize your experience in the abyss.</p>
 
                 <div style="max-width:700px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
@@ -5541,9 +5836,28 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- ================================================================= -->
             <!-- STATS SCREEN -->
             <!-- ================================================================= -->
-            <div id="stats-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#c8a800;">📜 ABYSSAL LEDGER 📜</h2>
-                <p style="color:var(--dim-color); max-width:500px; margin:0 auto 6px; font-size:0.85em;">A record of your journey through the realms.</p>
+            
+            </div>
+            <div id="stats-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #stats-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #stats-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#8877001e,transparent 70%);pointer-events:none;}
+                #stats-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .stats-s{position:absolute;border-radius:50%;background:#fff;animation:statsTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes statsTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #stats-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:statsGl 4s ease-in-out infinite alternate;}
+                @keyframes statsGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #c8a80099);}}
+                </style>
+                <div id="stats-hero">
+                    <div id="stats-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>📜 ABYSSAL LEDGER 📜</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">A record of every soul claimed, every world conquered, every power gained.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('stats-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='stats-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+      
                 <!-- Live ticker strip -->
                 <div id="stats-live-strip" style="max-width:900px; margin:0 auto 20px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center;"></div>
                 <div id="stats-grid-container" style="max-width:900px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;">
@@ -5614,9 +5928,28 @@ text-decoration: underline; /* Adds an underline on hover */
             </div>
 
 
-            <div id="bestiary-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#cc4488;">📖 ABYSSAL BESTIARY 📖</h2>
-                <p style="color:var(--dim-color); max-width:540px; margin:0 auto 8px;">Level your minions to unlock research tiers and earn permanent bonuses.</p>
+            
+            </div>
+            <div id="bestiary-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #bestiary-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #bestiary-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#9911551e,transparent 70%);pointer-events:none;}
+                #bestiary-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .bestiary-s{position:absolute;border-radius:50%;background:#fff;animation:bestiaryTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes bestiaryTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #bestiary-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:bestiaryGl 4s ease-in-out infinite alternate;}
+                @keyframes bestiaryGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #cc448899);}}
+                </style>
+                <div id="bestiary-hero">
+                    <div id="bestiary-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>📖 ABYSSAL BESTIARY 📖</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Level your minions to unlock research entries on every creature.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('bestiary-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='bestiary-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+      
 
                 <!-- Progress -->
                 <div style="max-width:900px; margin:0 auto 24px; background:#0a0812; border:1px solid #2a1a3a; border-radius:10px; padding:10px 18px; display:flex; align-items:center; gap:14px;">
@@ -5635,9 +5968,28 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- INFERNAL PROVING GROUNDS SCREEN (NEW!) -->
             <!-- ================================================================= -->
             <!-- SOUL RAIDS SCREEN -->
-            <div id="provinggrounds-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#c8a800;">⚔️ INFERNAL PROVING GROUNDS ⚔️</h2>
-                <p style="color:var(--dim-color); max-width:540px; margin:0 auto 8px;">Place your minions to defeat enemy formations. Each victory grants a permanent bonus that persists through Ascensions.</p>
+            
+            </div>
+            <div id="provinggrounds-screen" class="screen" style="padding:0;overflow:hidden;">
+                <style>
+                #provinggrounds-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
+                #provinggrounds-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#cc33111e,transparent 70%);pointer-events:none;}
+                #provinggrounds-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+                .provinggrounds-s{position:absolute;border-radius:50%;background:#fff;animation:provinggroundsTw var(--d,3s) ease-in-out infinite;opacity:0;}
+                @keyframes provinggroundsTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
+                #provinggrounds-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:provinggroundsGl 4s ease-in-out infinite alternate;}
+                @keyframes provinggroundsGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #ff664499);}}
+                </style>
+                <div id="provinggrounds-hero">
+                    <div id="provinggrounds-stars"></div>
+                    <div style="position:relative;z-index:1;">
+                        <h2>⚔️ INFERNAL PROVING GROUNDS ⚔️</h2>
+                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Place your minions to defeat enemy formations. Earn permanent bonuses.</p>
+                    </div>
+                </div>
+                <script>(function(){const b=document.getElementById('provinggrounds-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='provinggrounds-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
+                <div style="padding:24px;">
+                
 
                 <!-- Progress bar -->
                 <div style="max-width:700px; margin:0 auto 24px; background:#0a0812; border:1px solid #2a1a3a; border-radius:10px; padding:12px 18px;">
@@ -5701,7 +6053,9 @@ text-decoration: underline; /* Adds an underline on hover */
                 </div>
             </div>
 
-        </main>
+        
+            </div>
+            </main>
 
                     <!--moved abyssal cache here--> 
                     <div id="cache-container">
@@ -16260,8 +16614,10 @@ function executeFusion() {
         Toastify({ text: "You need at least one of each potion in your shelf.", duration:3000, gravity:'top', position:'center', style:{background:'#550000'} }).showToast();
         return;
     }
-    if (D(gameState.corruptedFragments || 0).lt(5)) {
-        Toastify({ text: "🔮 Fusion requires 5 Corrupted Fragments.", duration:3000, gravity:'top', position:'center', style:{background:'#550033'} }).showToast();
+    const _fusDE = D(gameState.darkEssence||0).toNumber(), _fusSh = D(gameState.abyssalShards||0).toNumber();
+    const _fusCost = Math.max(15, 15 + Math.max(_fusDE>500?Math.floor(Math.log10(_fusDE/500)*8):0, _fusSh>50?Math.floor(Math.log10(_fusSh/50)*5):0));
+    if (D(gameState.corruptedFragments || 0).lt(_fusCost)) {
+        Toastify({ text: `🔮 Fusion requires ${_fusCost} Corrupted Fragments.`, duration:3000, gravity:'top', position:'center', style:{background:'#550033'} }).showToast();
         return;
     }
 
@@ -16286,7 +16642,7 @@ Both potions will be consumed. Proceed?`;
     // Consume both potions + 5 fragments
     gameState.potions[a]--;
     gameState.potions[b]--;
-    gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(5);
+    gameState.corruptedFragments = D(gameState.corruptedFragments || 0).sub(_fusCost);
 
     // Grant result
     if (!gameState.potions[resultId]) gameState.potions[resultId] = 0;
@@ -19701,115 +20057,86 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
 
         list.innerHTML = '';
 
-        // ── Grant God/Satan to #1 players ─────────────────────────────
-        // Also trigger the background check to sync immediately
-        if (type === 'lifetimeSouls' && players.length > 0) {
-            checkLeaderboardMinions();
-        }
+        if (type === 'lifetimeSouls' && players.length > 0) checkLeaderboardMinions();
+
+        const tabTheme = {
+            lifetimeSouls:{ accent:'#c8a800', dim:'#664400' },
+            darkOnly:     { accent:'#ff4444', dim:'#660000' },
+            lightOnly:    { accent:'#c8b4ff', dim:'#553388' },
+            ascensions:   { accent:'#ff9944', dim:'#663300' },
+            aether:       { accent:'#00e5ff', dim:'#005566' },
+            pvpWins:      { accent:'#44cc88', dim:'#226644' },
+        };
+        const theme = tabTheme[type] || tabTheme.lifetimeSouls;
+
+        const rankCfg = [
+            { bg:'linear-gradient(135deg,#1a1400,#2a2000)', border:'#c8a800', anim:'lbPulse1', label:'CHAMPION',    textGlow:'0 0 12px #c8a80088' },
+            { bg:'linear-gradient(135deg,#0e0e12,#1a1a20)', border:'#aaaacc', anim:'lbPulse2', label:'RUNNER UP',   textGlow:'0 0 8px #aaaacc55'  },
+            { bg:'linear-gradient(135deg,#120a06,#1e1008)', border:'#cc7722', anim:'lbPulse3', label:'THIRD PLACE', textGlow:'0 0 8px #cc772244'  },
+        ];
 
         players.slice(0, 10).forEach((player, index) => {
-            const li    = document.createElement('li');
-            const isMe  = player.name === gameState.playerName;
-            // Badge: on darkOnly always show ☠, on lightOnly always show ✦ LIGHT,
-            // on total power show whichever soul type is bigger
-            let transcendBadge = '';
-            if (type === 'lightOnly') {
-                transcendBadge = `<span style="background:linear-gradient(135deg,#220055,#4400aa); color:#c8b4ff; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ LIGHT</span>`;
-            } else if (type === 'darkOnly') {
-                transcendBadge = ''; // no badge on dark tab — they're all dark souls here
-            } else if (player.isTranscended) {
-                transcendBadge = `<span style="background:linear-gradient(135deg,#220055,#4400aa); color:#c8b4ff; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ LIGHT</span>`;
-            } else if ((player.lightSoulsLog || 0) > 0) {
-                transcendBadge = `<span style="background:linear-gradient(135deg,#220033,#440055); color:#aa88cc; font-size:0.6em; padding:1px 6px; border-radius:4px; margin-left:5px; letter-spacing:1px; vertical-align:middle;">✦ PREV LIGHT</span>`;
-            }
+            const isMe = player.name === gameState.playerName;
+            const rank = index + 1;
+            const rc   = rankCfg[index] || { bg:'linear-gradient(135deg,#0e0a1a,#120d1e)', border:theme.accent+'33', anim:'', label:'', textGlow:'none' };
 
+            // Badge
+            let badge = '';
+            if (type === 'lightOnly' || (type !== 'darkOnly' && player.isTranscended))
+                badge = `<span style="background:linear-gradient(135deg,#220055,#4400aa);color:#c8b4ff;font-size:0.55em;padding:2px 7px;border-radius:8px;letter-spacing:1px;border:1px solid #7744cc44;vertical-align:middle;">✦ LIGHT</span>`;
+            else if ((player.lightSoulsLog||0) > 0 && type === 'lifetimeSouls')
+                badge = `<span style="background:#220033;color:#aa88cc;font-size:0.52em;padding:1px 6px;border-radius:8px;letter-spacing:1px;border:1px solid #44224455;vertical-align:middle;">∞ PREV</span>`;
+
+            // Value
             let valueHTML;
             if (type === 'lifetimeSouls' || type === 'darkOnly' || type === 'lightOnly') {
-                // useLog determines which souls number to display — always match the tab
-                const useLog = type === 'lightOnly' ? (player.lightSoulsLog || 0)
-                             : type === 'darkOnly'  ? (player.soulsLog || 0)
-                             : _bestLog(player);
-                // Reconstruct the numeric value from log10 so display matches the correct soul type
-                const displayVal = useLog > 0 ? Math.pow(10, useLog) : 0;
-                const baseHTML = formatSoulsLeaderboard(displayVal, useLog);
-                const showAsLight = type === 'lightOnly' || (type === 'lifetimeSouls' && (player.lightSoulsLog || 0) > (player.soulsLog || 0));
-                valueHTML = showAsLight
-                    ? `<span style="color:#c8b4ff;">${baseHTML} <span style="font-size:0.7em;color:#9966ff;">✦ Light</span></span>`
-                    : `<span style="color:#c8a800;">${baseHTML} <span style="font-size:0.7em;color:#886600;">☠</span></span>`;
+                const useLog = type === 'lightOnly' ? (player.lightSoulsLog||0) : type === 'darkOnly' ? (player.soulsLog||0) : _bestLog(player);
+                const dv = useLog > 0 ? Math.pow(10, useLog) : 0;
+                const bH = formatSoulsLeaderboard(dv, useLog);
+                const isLight = type === 'lightOnly' || (type === 'lifetimeSouls' && (player.lightSoulsLog||0) > (player.soulsLog||0));
+                const vc = isLight ? '#c8b4ff' : '#c8a800';
+                valueHTML = `<span style="color:${vc};font-weight:bold;font-size:${rank<=3?'1.05':'0.9'}em;">${bH}<span style="font-size:0.6em;margin-left:3px;opacity:0.7;">${isLight?'✦':'☠'}</span></span>`;
             } else if (type === 'aether') {
-                const c = player.totalCollapses || 0;
-                const a = player.totalAetherEarned || player.aether || 0;
-                valueHTML = `<span style="font-size:0.95em;">
-                    <span style="color:#00e5ff;font-weight:bold;">⚡ ${c} collapse${c !== 1 ? 's' : ''}</span>
-                    <span style="color:#666;margin-left:8px;">/ ${formatNumber(a)} Aether</span>
-                </span>`;
+                const c = player.totalCollapses||0, a = player.totalAetherEarned||player.aether||0;
+                valueHTML = `<div style="text-align:right;"><span style="color:#00e5ff;font-weight:bold;">⚡ ${c}</span><span style="color:#336677;font-size:0.7em;margin-left:4px;">collapse${c!==1?'s':''}</span><div style="color:#225566;font-size:0.65em;">${formatNumber(a)} Aether</div></div>`;
             } else if (type === 'ascensions') {
-                const asc = player.ascensions || 0;
-                // Color tiers based on ascension count
-                const ascColor = asc >= 10 ? '#ff4444'   // red — legendary
-                               : asc >= 7  ? '#ff8c00'   // orange
-                               : asc >= 5  ? '#ffd700'   // gold
-                               : asc >= 3  ? '#c0c0c0'   // silver
-                               : asc >= 1  ? '#cd7f32'   // bronze
-                               :             '#555';      // none
-                const ascGlow  = asc >= 10 ? '0 0 12px #ff444488'
-                               : asc >= 7  ? '0 0 10px #ff8c0066'
-                               : asc >= 5  ? '0 0 10px #ffd70066'
-                               :             'none';
-                // Star icons (fill up to max 10)
-                const stars    = asc > 0 ? '✦'.repeat(Math.min(asc, 10)) : '—';
-                const starsEl  = asc > 0
-                    ? `<span style="color:${ascColor};font-size:0.7em;letter-spacing:1px;opacity:0.7;">${stars}</span> `
-                    : '';
-                valueHTML = `<span style="text-align:right;">
-                    ${starsEl}<span style="color:${ascColor};font-weight:bold;font-size:1.1em;text-shadow:${ascGlow};">${asc}</span>
-                    <span style="color:#666;font-size:0.85em;margin-left:4px;">ascension${asc !== 1 ? 's' : ''}</span>
-                </span>`;
-                // Style the whole row based on tier
-                if (!isMe) {
-                    if      (asc >= 10) li.style.cssText = 'border-left-color:#ff4444;background:linear-gradient(135deg,#1a0a0a,#2a0a0a);';
-                    else if (asc >= 7)  li.style.cssText = 'border-left-color:#ff8c00;background:linear-gradient(135deg,#1a110a,#261508);';
-                    else if (asc >= 5)  li.style.cssText = 'border-left-color:#ffd700;background:linear-gradient(135deg,#141208,#1e1b08);';
-                    else if (asc >= 3)  li.style.cssText = 'border-left-color:#c0c0c0;';
-                }
+                const asc = player.ascensions||0;
+                const ac = asc>=10?'#ff4444':asc>=7?'#ff8c00':asc>=5?'#ffd700':asc>=3?'#c0c0c0':asc>=1?'#cd7f32':'#555';
+                const stars = asc>0?'✦'.repeat(Math.min(asc,10)):'';
+                valueHTML = `<div style="text-align:right;"><span style="color:${ac};font-weight:bold;font-size:${rank<=3?'1.1':'0.95'}em;">${asc}</span><span style="color:${theme.dim};font-size:0.7em;margin-left:4px;">asc${asc!==1?'s':''}</span>${stars?`<div style="color:${ac};font-size:0.6em;letter-spacing:2px;opacity:0.6;">${stars}</div>`:''}`;
             } else {
-                // pvpWins tab — show full W/L ratio, KD and win% bar (same as arena leaderboard)
-                const wins   = player.pvpWins   || 0;
-                const losses = player.pvpLosses || 0;
-                const total  = wins + losses;
-                const ratio  = losses === 0 ? (wins > 0 ? '∞' : '—') : (wins / losses).toFixed(2);
-                const ratioColor = losses === 0
-                    ? (wins > 0 ? '#44cc88' : '#555')
-                    : (wins / (wins + losses)) >= 0.6 ? '#44cc88'
-                    : (wins / (wins + losses)) >= 0.4 ? '#ff9944'
-                    : '#ff4444';
-                const winPct = total > 0 ? Math.round((wins / total) * 100) : 0;
-                valueHTML = `
-                    <div style="text-align:right; min-width:130px;">
-                        <div style="display:flex; align-items:center; gap:5px; justify-content:flex-end;">
-                            <span style="color:#44cc88; font-size:0.82em; font-weight:bold;">${wins}W</span>
-                            <span style="color:#444; font-size:0.7em;">·</span>
-                            <span style="color:#cc4444; font-size:0.82em; font-weight:bold;">${losses}L</span>
-                            <span style="color:#444; font-size:0.7em;">·</span>
-                            <span style="color:${ratioColor}; font-size:0.82em; font-weight:bold;">${ratio} KD</span>
-                            ${total > 0 ? `<span style="color:#555; font-size:0.7em;">(${winPct}%)</span>` : ''}
-                        </div>
-                        ${total > 0 ? `<div style="width:100px; height:4px; background:#1a1030; border-radius:2px; overflow:hidden; margin-top:4px; margin-left:auto;"><div style="height:100%; width:${winPct}%; background:linear-gradient(90deg,#44cc88,#88ffaa); border-radius:2px;"></div></div>` : ''}
-                    </div>`;
+                const w = player.pvpWins||0, l = player.pvpLosses||0, t = w+l;
+                const ratio = l===0?(w>0?'∞':'—'):(w/l).toFixed(2);
+                const rc2 = l===0?(w>0?'#44cc88':'#555'):(w/t)>=0.6?'#44cc88':(w/t)>=0.4?'#ff9944':'#ff4444';
+                const wp = t>0?Math.round(w/t*100):0;
+                valueHTML = `<div style="text-align:right;min-width:130px;"><div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;"><span style="color:#44cc88;font-weight:bold;">${w}W</span><span style="color:#333;font-size:0.65em;">·</span><span style="color:#cc4444;">${l}L</span><span style="color:#333;font-size:0.65em;">·</span><span style="color:${rc2};font-weight:bold;">${ratio}</span></div>${t>0?`<div style="height:3px;background:#0a0812;border-radius:2px;overflow:hidden;margin-top:4px;"><div style="height:100%;width:${wp}%;background:linear-gradient(90deg,#44cc88,#88ffaa);"></div></div>`:''}`;
             }
 
-            // Rank medal for top 3
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
-            li.innerHTML = `<span style="display:flex;align-items:center;gap:6px;">${medal} ${player.name}${transcendBadge}</span> ${valueHTML}`;
-            if (isMe) li.style.cssText = 'color:var(--primary-color);font-weight:bold;border-color:var(--primary-color);';
-            // Click to open player profile popup
-            li.style.cursor = 'pointer';
-            li.title = 'Click to view ' + player.name + '\'s profile';
-            li.addEventListener('click', () => showLeaderboardPlayerPopup(player, type));
-            list.appendChild(li);
+            const rankDisp = rank<=3
+                ? `<span style="font-size:1.6em;line-height:1;filter:drop-shadow(0 0 6px ${rc.border}88);">${['🥇','🥈','🥉'][index]}</span>`
+                : `<div style="width:30px;height:30px;background:${rc.bg};border:1px solid ${rc.border};border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--font-title);font-size:0.7em;color:${rc.border};flex-shrink:0;">#${rank}</div>`;
+
+            const youBadge = isMe ? `<span style="background:#c41818;color:#fff;font-size:0.5em;padding:2px 6px;border-radius:6px;letter-spacing:1.5px;vertical-align:middle;margin-left:4px;">YOU</span>` : '';
+
+            const div = document.createElement('div');
+            div.style.cssText = `background:${isMe?'linear-gradient(135deg,#1a0808,#2a0808)':rc.bg};border:1px solid ${isMe?'#c41818':rc.border};${rank===1?`border-top:3px solid ${rc.border};`:''}border-radius:12px;padding:${rank<=3?'14px 18px':'10px 16px'};display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all 0.2s;box-shadow:${isMe?'0 0 20px #c4181833':''};${rc.anim?`animation:${rc.anim} 3s ease-in-out infinite;`:''}position:relative;overflow:hidden;margin-bottom:${rank<=3?'10px':'7px'};`;
+
+            if (rank<=3) {
+                const shimmer = document.createElement('div');
+                shimmer.style.cssText = `position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,${rc.border}15,transparent);transform:skewX(-15deg);animation:lbShimmer ${3+rank}s ease-in-out infinite;pointer-events:none;`;
+                div.appendChild(shimmer);
+            }
+
+            const nameStyle = rank<=3 ? `font-weight:bold;color:#fff;text-shadow:${rc.textGlow};font-size:1em;` : 'color:#bbb;font-size:0.9em;';
+            div.innerHTML += `<div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">${rankDisp}<div style="min-width:0;"><div style="${nameStyle}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${player.name}${youBadge}${badge?' '+badge:''}</div>${rank<=3?`<div style="color:${rc.border};font-size:0.58em;letter-spacing:2px;opacity:0.7;text-transform:uppercase;">${rc.label}</div>`:''}</div></div><div style="flex-shrink:0;margin-left:12px;">${valueHTML}</div>`;
+
+            div.addEventListener('mouseenter', () => { div.style.transform='translateY(-1px)'; if(!isMe) div.style.borderColor=theme.accent+'88'; });
+            div.addEventListener('mouseleave', () => { div.style.transform=''; if(!isMe) div.style.borderColor=rc.border; });
+            div.addEventListener('click', () => showLeaderboardPlayerPopup(player, type));
+            list.appendChild(div);
         });
     } catch (e) {
-        list.innerHTML = `<li>Error summoning spirits. The abyss is unstable.</li>`;
+        list.innerHTML = `<div style="padding:20px;color:#666;text-align:center;">Error summoning spirits. The abyss is unstable.</div>`;
         console.error("Leaderboard Error:", e);
     }
 }

@@ -15214,6 +15214,8 @@ function showScreen(screenId) {
     {
         renderPactScreen();
         fetchPactLeaderboard();
+        // Re-fetch pact data so clan_tag is always fresh when screen opens
+        loadMyPact();
     }
     if (screenId === 'pactwars') { requestAnimationFrame(() => { pwRefresh(); setTimeout(pwCheckActiveRallies, 1500); }); }
     if (screenId === 'provinggrounds')
@@ -28958,41 +28960,48 @@ window.playerPact = null; // { id, name, members[] }
 async function loadMyPact() {
     if (!supabaseClient || !gameState.playerName) return;
     try {
-        const { data } = await supabaseClient
+        const { data, error } = await supabaseClient
             .from('pacts')
             .select('*')
             .contains('members', [gameState.playerName])
             .limit(1)
-            .single();
+            .maybeSingle(); // maybeSingle() returns null instead of error when no rows found
+
+        if (error) {
+            console.warn('[Pact] loadMyPact error:', error.message);
+            // Don't clear playerPact on network error — keep existing state
+            return;
+        }
+
         window.playerPact = data || null;
 
         // Sync the pact's clan tag to this member's localStorage
-        // so it shows in their chat profile and outgoing messages
         if (window.playerPact) {
             const pactTag   = window.playerPact.clan_tag || null;
             const pactColor = window.playerPact.clan_tag_color || '#aa44ff';
             if (pactTag) {
                 localStorage.setItem('myClanTag', pactTag);
                 localStorage.setItem('myClanTagColor', pactColor);
-                // Don't override myClanTagShow — let member choose to show/hide
                 if (localStorage.getItem('myClanTagShow') === null) {
                     localStorage.setItem('myClanTagShow', 'true');
                 }
+                console.log('[Pact] Synced clan tag:', pactTag, pactColor);
             } else {
-                // Leader removed the tag — clear it for members too
                 localStorage.removeItem('myClanTag');
                 localStorage.removeItem('myClanTagColor');
             }
         } else {
-            // No longer in a pact — clear clan tag
+            // Not in any pact — clear tag
             localStorage.removeItem('myClanTag');
             localStorage.removeItem('myClanTagColor');
         }
 
-        calculateStats(); // apply pact bonus
+        calculateStats();
         renderPactScreen();
         if (window.playerPact) setTimeout(listenPactBuff, 1000);
-    } catch(e) { window.playerPact = null; }
+    } catch(e) {
+        console.warn('[Pact] loadMyPact exception:', e.message);
+    }
 }
 
 // ── PACT TAB SWITCHER ──────────────────────────────────────────────────────

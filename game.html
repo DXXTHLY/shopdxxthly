@@ -21240,6 +21240,11 @@ function generateHourlyShopItems() {
     for (const key of Object.keys(gameState.shopPurchases)) {
         if (!key.startsWith(hourKey + ':')) delete gameState.shopPurchases[key];
     }
+    // Clear gifted tracker when the hour rolls over
+    if (!gameState.giftedThisHour) gameState.giftedThisHour = {};
+    for (const key of Object.keys(gameState.giftedThisHour)) {
+        if (!key.startsWith(hourKey + ':')) delete gameState.giftedThisHour[key];
+    }
 
     // Per-type purchase limits
     const LIMITS = { item: 1, artifact: 1, potion: 3, market_potion: 1, secret_minion: 1, light_potion: 2 };
@@ -21555,7 +21560,7 @@ function generateHourlyShopItems() {
                 <div style="background:${soldOut?'#11111133':canAfford?theme.color+'33':'#33333333'}; border:1px solid ${soldOut?'#222':canAfford?theme.color+'66':'#444'}; border-radius:6px; padding:5px 12px; font-size:0.8em; color:${soldOut?'#333':canAfford?theme.color:'#555'};">
                     ${soldOut ? '✓ Purchased' : canAfford ? '🛒 Buy' : '🔒 Need More'}
                 </div>
-                ${(type === 'item' || type === 'artifact' || type === 'potion' || type === 'market_potion' || type === 'light_potion') && !soldOut ? `<button onclick="event.stopPropagation();event.preventDefault();openGiftModal('${shopItem.id}','${type}','${hourKey}');return false;" title="Gift this item — uses your shop slot for this item" style="background:#001808;border:1px solid #44ff8833;border-radius:6px;padding:5px 9px;font-size:0.85em;cursor:pointer;color:#44cc88;flex-shrink:0;" onmouseover="this.style.background='#003318';this.style.borderColor='#44ff8866';" onmouseout="this.style.background='#001808';this.style.borderColor='#44ff8833';">🎁</button>` : ''}
+                ${(type === 'item' || type === 'artifact' || type === 'potion' || type === 'market_potion' || type === 'light_potion') && !soldOut && !(gameState.giftedThisHour && gameState.giftedThisHour[hourKey + ':' + id]) ? `<button onclick="event.stopPropagation();event.preventDefault();openGiftModal('${shopItem.id}','${type}','${hourKey}');return false;" title="Gift this item — uses your shop slot (once per item per hour)" style="background:#001808;border:1px solid #44ff8833;border-radius:6px;padding:5px 9px;font-size:0.85em;cursor:pointer;color:#44cc88;flex-shrink:0;" onmouseover="this.style.background='#003318';this.style.borderColor='#44ff8866';" onmouseout="this.style.background='#001808';this.style.borderColor='#44ff8833';">🎁</button>` : (gameState.giftedThisHour && gameState.giftedThisHour[hourKey + ':' + id] ? `<div title="Already gifted this item this hour" style="background:#001108;border:1px solid #44ff8822;border-radius:6px;padding:5px 9px;font-size:0.85em;color:#226633;flex-shrink:0;">✓ Gifted</div>` : '')}
                 </div>
             </div>
         </div>`;
@@ -21573,6 +21578,11 @@ let _giftPendingItemType = null; // 'item','artifact','potion'
 let _giftPendingHourKey  = null; // stored so submitGift can mark sold for gifter
 
 function openGiftModal(itemId, type, hourKey) {
+    // Block if already gifted this item this hour
+    if (hourKey && gameState.giftedThisHour && gameState.giftedThisHour[hourKey + ':' + itemId]) {
+        Toastify({ text: '🎁 You already gifted this item this hour.', duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#001808,#004422)'} }).showToast();
+        return;
+    }
     _giftPendingItemId   = itemId;
     _giftPendingHourKey  = hourKey || null;
     // Normalize type: market_potion and light_potion stored as 'potion' in pendingGifts
@@ -21661,6 +21671,9 @@ async function submitGift() {
             const LIMITS_MAP = { item: 1, artifact: 1, potion: 3, market_potion: 1, light_potion: 2, key: 1 };
             const _lim = LIMITS_MAP[_giftPendingItemType] || 1;
             gameState.shopPurchases[_pk] = Math.min(_lim, (gameState.shopPurchases[_pk] || 0) + 1);
+            // Track gifted items separately — one gift per item slot per hour
+            if (!gameState.giftedThisHour) gameState.giftedThisHour = {};
+            gameState.giftedThisHour[_pk] = true;
             saveGame();
             generateHourlyShopItems(); // re-render shop so gifter sees item as sold out
         }

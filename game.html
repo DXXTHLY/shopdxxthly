@@ -23128,12 +23128,7 @@ function initializeChat() {
                 }
             });
 
-            // Only sign in anonymously if not already authenticated
-            // If the user has an existing chatforslither session (e.g. from slither MOD),
-            // preserve it — their uid will be in Roles and chat writes will be allowed
-            if (!chatAuth.currentUser) {
-                chatAuth.signInAnonymously().catch(err => console.error("Chat anon sign-in error:", err));
-            }
+            chatAuth.signInAnonymously().catch(err => console.error("Chat anon sign-in error:", err));
 
             // Message listener — inside initializeFirebase so db is in scope
             let chatMessagesArray = [];
@@ -23979,12 +23974,11 @@ function initializeChat() {
                 }
                     const name = localStorage.getItem("slitherChatNickname") || gameState?.playerName || 'Soul Wanderer';
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
-                    const _sendUidEnter = uid || window._chatUid || window._scChatUid || 'anon';
                     // ── Ban + slur check before sending ──
                     (function() {
                         const _cbd = (typeof window._getChatDb === 'function') ? window._getChatDb() : db;
                         if (!_cbd) return;
-                        _cbd.ref('bannedUsers/' + _sendUidEnter).once('value').then(banSnap => {
+                        _cbd.ref('bannedUsers/' + uid).once('value').then(banSnap => {
                             if (banSnap.exists()) {
                                 const b = banSnap.val();
                                 if (b.expiresAt === -1 || b.expiresAt > Date.now()) {
@@ -24002,7 +23996,7 @@ function initializeChat() {
                                 const ci2 = document.getElementById('chat-input'); if (ci2) ci2.value = '';
                                 return;
                             }
-                            const msgObj = { uid: _sendUidEnter, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
+                            const msgObj = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
                             if (gameState.donorTitle) msgObj.isDonor = true;
                             // Attach clan tag if player has one and has it enabled
                             // Active badge system — attach the badge the player chose to display
@@ -24021,9 +24015,9 @@ function initializeChat() {
                             }
                             // Default (dev/vip/supporter show their role tag naturally unless overridden)
                             db.ref("slitherChat").push(msgObj).then(() => {
-                                console.log('[Chat] Message sent OK, uid:', _sendUidEnter, 'name:', name);
+                                console.log('[Chat] Message sent OK, uid:', uid, 'name:', name);
                             }).catch(err => {
-                                console.error('[Chat] Push FAILED:', err.code, err.message, 'uid:', _sendUidEnter, 'name:', name);
+                                console.error('[Chat] Push FAILED:', err.code, err.message, 'uid:', uid, 'name:', name);
                                 Toastify({ text: '⛔ Chat error: ' + err.message, duration:5000, gravity:'top', position:'center', style:{background:'#1a0000'} }).showToast();
                             });
                             const ci3 = document.getElementById('chat-input'); if (ci3) ci3.value = '';
@@ -24151,13 +24145,11 @@ function initializeChat() {
                     }
                     const name = localStorage.getItem("slitherChatNickname") || gameState?.playerName || 'Soul Wanderer';
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
-                    // Use the chat UID — uid from closure may be anonymous, prefer _chatUid/_scChatUid
-                    const _sendUid = uid || window._chatUid || window._scChatUid || 'anon';
                     // ── Ban + slur check before sending ──
                     (function() {
                         const _cbd2 = (typeof window._getChatDb === 'function') ? window._getChatDb() : db;
                         if (!_cbd2) return;
-                        _cbd2.ref('bannedUsers/' + _sendUid).once('value').then(banSnap => {
+                        _cbd2.ref('bannedUsers/' + uid).once('value').then(banSnap => {
                             if (banSnap.exists()) {
                                 const b = banSnap.val();
                                 if (b.expiresAt === -1 || b.expiresAt > Date.now()) {
@@ -24174,12 +24166,12 @@ function initializeChat() {
                                 input.value = ''; input.focus();
                                 return;
                             }
-                            const msgObj2 = { uid: _sendUid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
+                            const msgObj2 = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
                             if (gameState.donorTitle) msgObj2.isDonor = true;
                             db.ref("slitherChat").push(msgObj2).then(() => {
-                                console.log('[Chat] Message sent OK, uid:', _sendUid, 'name:', name);
+                                console.log('[Chat] Message sent OK, uid:', uid, 'name:', name);
                             }).catch(err => {
-                                console.error('[Chat] Push FAILED:', err.code, err.message, 'uid:', _sendUid, 'name:', name);
+                                console.error('[Chat] Push FAILED:', err.code, err.message, 'uid:', uid, 'name:', name);
                                 Toastify({ text: '⛔ Chat error: ' + err.message, duration:5000, gravity:'top', position:'center', style:{background:'#1a0000'} }).showToast();
                             });
                             input.value = '';

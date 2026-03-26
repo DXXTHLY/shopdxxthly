@@ -5111,7 +5111,9 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- ================================================================= -->
             <div id="stats-screen" class="screen">
                 <h2 style="letter-spacing:3px; color:#c8a800;">📜 ABYSSAL LEDGER 📜</h2>
-                <p style="color:var(--dim-color); max-width:500px; margin:0 auto 28px;">A record of your journey through the realms.</p>
+                <p style="color:var(--dim-color); max-width:500px; margin:0 auto 6px; font-size:0.85em;">A record of your journey through the realms.</p>
+                <!-- Live ticker strip -->
+                <div id="stats-live-strip" style="max-width:900px; margin:0 auto 20px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center;"></div>
                 <div id="stats-grid-container" style="max-width:900px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;">
                 </div>
             </div>
@@ -19858,22 +19860,47 @@ function renderStatsPage() {
         return `${m}m`;
     }
 
-    function statCard(title, color, icon, rows) {
-        const rowsHtml = rows.map(([label, value, sub]) => `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #1a1030;">
-                <span style="color:#666; font-size:0.8em;">${label}</span>
-                <div style="text-align:right;">
-                    <span style="color:${color}; font-weight:bold; font-size:0.9em;">${value}</span>
-                    ${sub ? `<div style="color:#444; font-size:0.68em;">${sub}</div>` : ''}
+    // ── Live strip at the top ──────────────────────────────────────────
+    const strip = document.getElementById('stats-live-strip');
+    if (strip) {
+        const gs2 = gameState;
+        const liveChips = [
+            { icon: '👻', label: 'SPS', value: formatNumber(gs2.stats?.sps || 0), color: '#ff6644' },
+            { icon: '👆', label: 'SPC', value: formatNumber(gs2.stats?.spc || 1), color: '#ff9944' },
+            { icon: '🌍', label: 'World', value: (worlds[gs2.currentWorld]?.name || lightWorlds[gs2.currentWorld]?.name || '–').split(' ').slice(-1)[0], color: '#c8a800' },
+            { icon: '♾️', label: 'Ascensions', value: gs2.ascensions || 0, color: '#aa44ff' },
+            { icon: '💎', label: 'Shards', value: formatNumber(gs2.abyssalShards || 0), color: '#44aaff' },
+            { icon: '⏱', label: 'Played', value: formatTime(gs2.playTime || 0), color: '#44cc88' },
+        ];
+        strip.innerHTML = liveChips.map(c =>
+            `<div style="background:linear-gradient(135deg,${c.color}18,transparent);border:1px solid ${c.color}33;border-radius:10px;padding:8px 16px;text-align:center;min-width:90px;">
+                <div style="font-size:1.2em;">${c.icon}</div>
+                <div style="color:${c.color};font-weight:bold;font-size:0.95em;">${c.value}</div>
+                <div style="color:#444;font-size:0.65em;text-transform:uppercase;letter-spacing:1px;margin-top:1px;">${c.label}</div>
+            </div>`
+        ).join('');
+    }
+
+    // ── Card builder ──────────────────────────────────────────────────
+    function statCard(title, color, icon, rows, wide) {
+        const rowsHtml = rows.map(([label, value, sub], i, arr) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;${i < arr.length-1 ? 'border-bottom:1px solid #1a1030;' : ''}">
+                <span style="color:#555;font-size:0.8em;">${label}</span>
+                <div style="text-align:right;max-width:60%;">
+                    <span style="color:${color};font-weight:bold;font-size:0.9em;">${value}</span>
+                    ${sub ? `<div style="color:#444;font-size:0.66em;margin-top:1px;">${sub}</div>` : ''}
                 </div>
             </div>`).join('');
+
+        // Subtle radial glow in card corner
         return `
-        <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${color}22; border-top:3px solid ${color}; border-radius:14px; padding:18px 20px;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                <span style="font-size:1.3em;">${icon}</span>
-                <h3 style="margin:0; color:${color}; font-size:0.85em; text-transform:uppercase; letter-spacing:2px;">${title}</h3>
+        <div style="background:linear-gradient(140deg,#0c0816,#151020);border:1px solid ${color}28;border-top:3px solid ${color};border-radius:14px;padding:18px 20px;position:relative;overflow:hidden;${wide ? 'grid-column:span 2;' : ''}">
+            <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:radial-gradient(circle,${color}12 0%,transparent 70%);pointer-events:none;"></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+                <div style="background:${color}18;border:1px solid ${color}33;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:1.1em;flex-shrink:0;">${icon}</div>
+                <h3 style="margin:0;color:${color};font-size:0.82em;text-transform:uppercase;letter-spacing:2.5px;">${title}</h3>
             </div>
-            ${rowsHtml.replace(/border-bottom[^;]+;/, '').split('border-bottom:1px solid #1a1030;').map((s,i,a) => i===a.length-1 ? s.replace('border-bottom:1px solid #1a1030;','') : s).join('border-bottom:1px solid #1a1030;')}
+            ${rowsHtml}
         </div>`;
     }
 
@@ -19885,7 +19912,6 @@ function renderStatsPage() {
     const topMinions = Object.entries(gs.minions)
         .filter(([id, d]) => d.level > 0 && minions[id])
         .sort(([idA, a], [idB, b]) => {
-            // leaderboardMinion (God/Satan) always shown first
             const lbA = minions[idA]?.leaderboardMinion ? 1 : 0;
             const lbB = minions[idB]?.leaderboardMinion ? 1 : 0;
             if (lbB !== lbA) return lbB - lbA;
@@ -19896,32 +19922,43 @@ function renderStatsPage() {
 
     const worldsUnlocked = gs.unlockedWorlds.length;
     const totalWorlds = Object.keys(worlds).length;
-    const worldPct = Math.round(worldsUnlocked / totalWorlds * 100) + '%';
+    const worldPct = Math.round(worldsUnlocked / totalWorlds * 100);
+
+    // Progress bar helper
+    const progBar = (pct, color) =>
+        `<div style="height:4px;background:#1a1030;border-radius:2px;margin-top:4px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:${color};border-radius:2px;transition:width 0.8s ease;"></div>
+        </div>`;
 
     const totalMinionLevels = Object.values(gs.minions).reduce((s, m) => s + m.level, 0);
+
+    // Gauntlet wins
+    const gauntletWins = gs.gauntletWins || gs.gntWins || 0;
 
     container.innerHTML = [
 
         statCard('Progress', '#c8a800', '🌐', [
             ['Time Played',         formatTime(gs.playTime || 0)],
-            ['Current World',       worlds[gs.currentWorld]?.name || '–'],
-            ['Worlds Unlocked',     `${worldsUnlocked} / ${totalWorlds}`, worldPct + ' complete'],
+            ['Current World',       worlds[gs.currentWorld]?.name || lightWorlds?.[gs.currentWorld]?.name || '–'],
+            ['Worlds Unlocked',     `${worldsUnlocked} / ${totalWorlds}`,
+                progBar(worldPct, '#c8a800') + `<span style="color:#555;font-size:0.68em;">${worldPct}% explored</span>`],
             ['Challenges Cleared',  `<span id="pg-chal-text">${Object.keys(gs.completedChallenges||{}).length} / ${typeof CHALLENGES !== 'undefined' ? CHALLENGES.length : 50}</span>`],
             ['Breaches Completed',  formatNumber(gs.breachesCompleted || 0)],
         ]),
 
         statCard('Soul & Currencies', '#ff6644', '👻', [
-            ['Total Souls Ever Earned', formatNumber(D(gs.lifetimeSouls).max(D(gs.souls).add(D(gs.soulsSpent||0))))],
-            ['Currently Held',          formatNumber(D(gs.souls))],
-            ['Souls Spent (All Time)',  formatNumber(D(gs.soulsSpent||0))],
-            ['Souls / Second',          formatNumber(gs.stats?.sps || 0)],
-            ['Souls / Click',           formatNumber(gs.stats?.spc || 1)],
-            ['Manual Harvests',         formatNumber(gs.manualHarvests || 0)],
-            ['Essence This Run',        formatNumber(gs.essenceGainedThisRun || 0)],
+            ['Total Souls Earned',  formatNumber(D(gs.lifetimeSouls).max(D(gs.souls).add(D(gs.soulsSpent||0))))],
+            ['Currently Held',      formatNumber(D(gs.souls))],
+            ['Souls Spent',         formatNumber(D(gs.soulsSpent||0))],
+            ['Souls / Second',      formatNumber(gs.stats?.sps || 0)],
+            ['Souls / Click',       formatNumber(gs.stats?.spc || 1)],
+            ['Manual Harvests',     formatNumber(gs.manualHarvests || 0)],
+            ['Essence This Run',    formatNumber(gs.essenceGainedThisRun || 0)],
         ]),
 
         statCard('Prestige', '#aa44ff', '♾️', [
-            ['Ascensions',          formatNumber(gs.ascensions || 0)],
+            ['Ascensions',          formatNumber(gs.ascensions || 0),
+                gs.ascensions > 0 ? progBar(Math.min(100, (gs.ascensions || 0) * 5), '#aa44ff') : ''],
             ['Total Shards Earned', formatNumber(gs.totalShardsEarned || 0)],
             ['Shards Held',         formatNumber(gs.abyssalShards || 0)],
             ['Total Collapses',     formatNumber(gs.totalCollapses || 0)],
@@ -19931,14 +19968,15 @@ function renderStatsPage() {
         statCard('Combat & PvP', '#ff4444', '⚔️', [
             ['PvP Wins',            gs.pvpWins || 0, 'Arena victories'],
             ['PvP Losses',          gs.pvpLosses || 0],
-            ['Win Rate',            winRate],
+            ['Win Rate',            `<span style="color:${(gs.pvpWins||0)>(gs.pvpLosses||0)?'#44cc88':'#ff6644'}">${winRate}</span>`],
+            ['Gauntlet Runs',       formatNumber(gauntletWins)],
             ['Proving Grounds',     `${gs.completedPuzzles?.length || 0} solved`],
         ]),
 
         statCard('Minions', '#44cc88', '👹', [
             ['Total Minion Levels', formatNumber(totalMinionLevels)],
             ['Active Expeditions',  Object.keys(gs.activeExpeditions || {}).length],
-            ...(topMinions.length > 0 ? topMinions : [['No minions yet', '–']]),
+            ...(topMinions.length > 0 ? topMinions : [['No minions deployed', '–']]),
         ]),
 
         statCard('Activities', '#4488ff', '⚗️', [
@@ -19946,9 +19984,19 @@ function renderStatsPage() {
             ['Potions Brewed',      formatNumber(gs.potionsBrewed || 0)],
             ['Rituals Performed',   formatNumber(gs.ritualsPerformed || 0)],
             ['Items in Inventory',  (gs.inventory?.length || 0) + ' items'],
+            ['Market Trades',       formatNumber(gs.barterTradesCompleted || 0)],
         ]),
 
     ].join('');
+
+    // Animate progress bars in after render
+    setTimeout(() => {
+        container.querySelectorAll('[style*="transition:width"]').forEach(el => {
+            const target = el.style.width;
+            el.style.width = '0%';
+            requestAnimationFrame(() => { el.style.width = target; });
+        });
+    }, 50);
 }
 
 // =================================================================
@@ -22708,9 +22756,21 @@ function initializeChat() {
                             const msgObj = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
                             if (gameState.donorTitle) msgObj.isDonor = true;
                             // Attach clan tag if player has one and has it enabled
+                            // Active badge system — attach the badge the player chose to display
+                            var _activeBadge = localStorage.getItem('activeChatBadge') || 'none';
                             var _ct = localStorage.getItem('myClanTag');
+                            var _ctColor = localStorage.getItem('myClanTagColor') || '#aa44ff';
                             var _ctShow = localStorage.getItem('myClanTagShow') !== 'false';
-                            if (_ct && _ctShow) { msgObj.clanTag = _ct; msgObj.clanTagColor = localStorage.getItem('myClanTagColor') || '#aa44ff'; }
+                            if (_activeBadge === 'clan' && _ct && _ctShow) {
+                                msgObj.clanTag = _ct; msgObj.clanTagColor = _ctColor;
+                            } else if (_activeBadge === 'supporter' && gameState.donorTitle) {
+                                msgObj.activeBadgeOverride = 'supporter';
+                            } else if (_activeBadge === 'vip') {
+                                msgObj.activeBadgeOverride = 'vip';
+                            } else if (_activeBadge === 'none') {
+                                msgObj.hideBadge = true;
+                            }
+                            // Default (dev/vip/supporter show their role tag naturally unless overridden)
                             db.ref("slitherChat").push(msgObj);
                             const ci3 = document.getElementById('chat-input'); if (ci3) ci3.value = '';
                             window._addPassiveRep && window._addPassiveRep(1);
@@ -22887,6 +22947,56 @@ function initializeChat() {
                         if (tag && tagBadge) { tagBadge.textContent = tag; tagBadge.style.color = tagColor; tagBadge.style.background = tagColor + '22'; tagBadge.style.border = '1px solid ' + tagColor + '55'; }
                         if (tagCheck) tagCheck.checked = localStorage.getItem('myClanTagShow') !== 'false';
                     }
+                })();
+                // Badge picker — build from earned badges
+                (function() {
+                    var picker = document.getElementById('settings-badge-picker');
+                    if (!picker) return;
+                    var activeBadge = localStorage.getItem('activeChatBadge') || 'none';
+                    // Determine which badges this user has earned
+                    var earned = [];
+                    earned.push({ id: 'none', label: 'None', html: '<span style="color:#444;font-size:0.78em;font-style:italic;">No badge</span>', color: '#333' });
+                    // Dev badge
+                    if (typeof isDev === 'function' && uid && isDev(uid)) {
+                        earned.push({ id: 'dev', label: 'DEV', html: '<span style="background:#E91E63;color:#fff;padding:2px 7px;border-radius:4px;font-size:0.78em;font-weight:700;">DEV</span>', color: '#E91E63' });
+                    }
+                    // VIP badge
+                    if (typeof isVip === 'function' && uid && isVip(uid, name)) {
+                        earned.push({ id: 'vip', label: 'VIP', html: '<span style="background:#9C27B0;color:#fff;padding:2px 7px;border-radius:4px;font-size:0.78em;font-weight:700;">VIP</span>', color: '#9C27B0' });
+                    }
+                    // Supporter badge
+                    if (gameState.donorTitle) {
+                        earned.push({ id: 'supporter', label: '🩸 SUPPORTER', html: '<span style="background:linear-gradient(135deg,#8B6914,#c8a800);color:#000;padding:2px 7px;border-radius:4px;font-size:0.78em;font-weight:700;">🩸 SUPPORTER</span>', color: '#c8a800' });
+                    }
+                    // Clan tag
+                    var ct = localStorage.getItem('myClanTag');
+                    var ctColor = localStorage.getItem('myClanTagColor') || '#aa44ff';
+                    if (ct) {
+                        earned.push({ id: 'clan', label: '[' + ct + ']', html: '<span style="background:' + ctColor + '22;color:' + ctColor + ';border:1px solid ' + ctColor + '55;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;">' + ct + '</span>', color: ctColor });
+                    }
+                    picker.innerHTML = '';
+                    earned.forEach(function(b) {
+                        var btn = document.createElement('button');
+                        var isActive = activeBadge === b.id;
+                        btn.innerHTML = b.html;
+                        btn.title = 'Show: ' + b.label;
+                        btn.style.cssText = 'background:' + (isActive ? b.color + '22' : '#06040e') + ';border:2px solid ' + (isActive ? b.color : '#2a1a3a') + ';border-radius:8px;padding:6px 12px;cursor:pointer;transition:all 0.15s;outline:none;';
+                        if (isActive) btn.style.boxShadow = '0 0 10px ' + b.color + '55';
+                        btn.addEventListener('click', function() {
+                            localStorage.setItem('activeChatBadge', b.id);
+                            // Refresh picker to update selection UI
+                            document.getElementById('chat-settings-btn') && document.getElementById('chat-settings-btn').click && null;
+                            picker.querySelectorAll('button').forEach(function(bb) {
+                                bb.style.border = '2px solid #2a1a3a';
+                                bb.style.background = '#06040e';
+                                bb.style.boxShadow = 'none';
+                            });
+                            btn.style.border = '2px solid ' + b.color;
+                            btn.style.background = b.color + '22';
+                            btn.style.boxShadow = '0 0 10px ' + b.color + '55';
+                        });
+                        picker.appendChild(btn);
+                    });
                 })();
                 const _savedMottoColor = localStorage.getItem("slitherChatMottoColor") || '#444444';
                 const _mottoColorEl = document.getElementById('settings-motto-color');
@@ -29484,6 +29594,11 @@ Your listing will remain until someone accepts it or it expires.`;
                             Show tag next to my name
                         </label>
                     </div>
+                </div>
+                <div class="settings-field" id="settings-badge-row">
+                    <label>Display Badge</label>
+                    <div style="color:var(--dim-color); font-size:0.76em; margin-bottom:8px;">Choose which badge shows next to your name in chat. Only badges you've earned appear here.</div>
+                    <div id="settings-badge-picker" style="display:flex; flex-wrap:wrap; gap:7px;"></div>
                 </div>
             </div>
             <!-- RIGHT COLUMN: Background picker -->
@@ -37123,24 +37238,40 @@ function launchPrologueIfNew() {
             icon: '💬',
             title: 'Join the Community!',
             lines: [
-                'Chat with players, get updates & enter giveaways.',
+                'Chat with other collectors, get early updates & enter giveaways.',
                 '<a href="https://dsc.gg/143X" target="_blank" style="color:#7289da;font-weight:bold;text-decoration:none;">🔗 dsc.gg/143X</a> — Join our Discord!'
-            ]
-        },
-        {
-            icon: '🌐',
-            title: "Check Out the Dev's Site!",
-            lines: [
-                'News, projects & more from the creator of this game.',
-                '<a href="https://dxxthly.com" target="_blank" style="color:#ff6688;font-weight:bold;text-decoration:none;">🔗 dxxthly.com</a> — Visit now!'
             ]
         },
         {
             icon: '⚙️',
             title: 'Customize Your Profile!',
             lines: [
-                'Set your avatar, name colour & motto in chat.',
-                'Press the <b style="color:#ffcc44;">⚙ gear icon</b> in the chat panel to get started!'
+                'Set your avatar, name colour, motto & display badge in chat.',
+                'Click the <b style="color:#ffcc44;">⚙ gear icon</b> inside the chat panel to get started!'
+            ]
+        },
+        {
+            icon: '🌐',
+            title: "Visit the Dev's Site",
+            lines: [
+                'Patch notes, dev projects & Soul Collector news live here.',
+                '<a href="https://dxxthly.com" target="_blank" style="color:#ff6688;font-weight:bold;text-decoration:none;">🔗 dxxthly.com</a> — Check it out!'
+            ]
+        },
+        {
+            icon: '⚔️',
+            title: 'Forge a Soul Pact!',
+            lines: [
+                'Team up with up to 3 collectors for bonus soul gains & a shared clan tag.',
+                'Head to the <b style="color:#aa44ff;">Pacts</b> tab to create or join an alliance!'
+            ]
+        },
+        {
+            icon: '🗺️',
+            title: 'Explore the World Map!',
+            lines: [
+                '21 dark worlds & 15 light realms — each with unique bonuses.',
+                'Open the <b style="color:#c8a800;">Worlds</b> tab and chart your path!'
             ]
         },
         {
@@ -37149,6 +37280,22 @@ function launchPrologueIfNew() {
             lines: [
                 'Updates, events & dev announcements posted regularly.',
                 '<a href="https://dsc.gg/143X" target="_blank" style="color:#7289da;font-weight:bold;text-decoration:none;">🔗 dsc.gg/143X</a> · <a href="https://dxxthly.com" target="_blank" style="color:#ff6688;font-weight:bold;text-decoration:none;">dxxthly.com</a>'
+            ]
+        },
+        {
+            icon: '💎',
+            title: 'Try the Gauntlet!',
+            lines: [
+                'Deploy minions, place bets & fight waves for massive soul rewards.',
+                'Access it through the <b style="color:#ff6644;">Worlds</b> map — select any unlocked realm!'
+            ]
+        },
+        {
+            icon: '🏆',
+            title: 'Check the Leaderboard!',
+            lines: [
+                'See where you rank among all Soul Collectors globally.',
+                'Hit the <b style="color:#c8a800;">Leaderboard</b> tab — your name could be #1!'
             ]
         }
     ];
@@ -37190,11 +37337,11 @@ function launchPrologueIfNew() {
         }).showToast();
     }
 
-    // Show first one after 3 minutes (give player time to settle in), then every hour
+    // Show first one after 90 seconds, then every 18 minutes
     setTimeout(function() {
         _showPromo();
-        setInterval(_showPromo, 60 * 60 * 1000);
-    }, 3 * 60 * 1000);
+        setInterval(_showPromo, 18 * 60 * 1000);
+    }, 90 * 1000);
 })();
 </script>
 <!-- ══ END PROMO ALERTS ══ -->

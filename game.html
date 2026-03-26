@@ -23521,8 +23521,36 @@ function initializeChat() {
                 nameHtml = `<span style="color:${userColor};font-weight:bold;">${displayName}</span>`;
                 roleTagHTML = ` <span style="background: #7289DA; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">DISCORD</span>`;
             } else if (isDev(msg.uid)) {
+                // Devs always keep rainbow name, but can override their badge display
                 nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="cursor:pointer;">${rainbowTextStyle(displayName)}</span>`;
-                roleTagHTML = ` <span style="background: #E91E63; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">DEV</span>`;
+                if (msg.activeBadgeOverride && msg.activeBadgeOverride !== 'none') {
+                    // Dev chose a custom badge — show that instead of DEV
+                    // (rank badges, supporter, vip — DEV identity is still shown via rainbow name)
+                    const _devOverrideBadges = {
+                        'rank_top3':   { label:'👑 CHAMPION',   color:'#c8a800' },
+                        'rank_top10':  { label:'⚔ TOP 10',      color:'#aa44ff' },
+                        'rank_dark':   { label:'☠ DARK LORD',   color:'#ff6666' },
+                        'rank_light':  { label:'✦ ASCENDANT',   color:'#c8b4ff' },
+                        'rank_aether': { label:'🌀 VOID WALKER', color:'#00e5ff' },
+                        'rank_ascend': { label:'↑ ASCENSION',   color:'#ff9944' },
+                        'rank_pvp':    { label:'⚔ WARLORD',     color:'#44cc88' },
+                        'supporter':   { label:'🩸 SUPPORTER',  color:'#c8a800', bg:'linear-gradient(135deg,#8B6914,#c8a800)', textColor:'#000' },
+                        'vip':         { label:'VIP',           color:'#9C27B0', bg:'#9C27B0', textColor:'#fff' },
+                    };
+                    const _ob = _devOverrideBadges[msg.activeBadgeOverride];
+                    if (_ob) {
+                        const _bg = _ob.bg || (_ob.color + '33');
+                        const _tc = _ob.textColor || _ob.color;
+                        const _border = _ob.bg ? 'none' : `1px solid ${_ob.color}55`;
+                        roleTagHTML = ` <span style="background:${_bg};color:${_tc};border:${_border};padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;vertical-align:middle;letter-spacing:0.5px;">${_ob.label}</span>`;
+                    } else {
+                        // Unknown override — fall back to DEV
+                        roleTagHTML = ` <span style="background: #E91E63; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">DEV</span>`;
+                    }
+                } else {
+                    // No override set — show DEV badge
+                    roleTagHTML = ` <span style="background: #E91E63; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">DEV</span>`;
+                }
             } else if (isVip(msg.uid, msg.name)) {
                 nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="cursor:pointer;">${vipGlowStyle(displayName, userColor)}</span>`;
                 roleTagHTML = ` <span style="background: #9C27B0; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">VIP</span>`;
@@ -23535,8 +23563,8 @@ function initializeChat() {
             } else {
                 nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="color:${userColor};font-weight:bold;cursor:pointer;">${displayName}</span>`;
             }
-            // Clan tag — shown after role tag for regular users (devs never get clan tags shown)
-            if (msg.clanTag && !isDev(msg.uid) && !isSystemMessage) {
+            // Clan tag — shown after role tag (devs can show clan tag too if they choose it)
+            if (msg.clanTag && !isSystemMessage) {
                 var _ctColor = (msg.clanTagColor && isValidHexColor(msg.clanTagColor)) ? msg.clanTagColor : '#aa44ff';
                 var _ctSafe = escapeHTML(String(msg.clanTag).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5));
                 if (_ctSafe) {

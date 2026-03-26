@@ -13238,7 +13238,7 @@ async function saveGame() {
         // When transcended, lifetimeSouls tracks light souls, so we must NOT overwrite
         // the dark soulsLog stored in Supabase. We omit it so Supabase keeps the old value.
         ...(!gameState.isTranscended ? {
-            soulsLog: safe(D(gameState.lifetimeSouls).gt(0) ? D(gameState.lifetimeSouls).log10().toNumber() : 0, 0)
+            soulsLog: safe(Math.min(1e12, D(gameState.lifetimeSouls).gt(0) ? D(gameState.lifetimeSouls).log10().toNumber() : 0), 0)
         } : {}),
         ascensions:        safe(gameState.ascensions),
         aether:            safe(D(gameState.aether).toNumber()),
@@ -13256,7 +13256,7 @@ async function saveGame() {
         // lightSoulsLog = light souls log — only write when transcended
         // Only write lightSoulsLog for real transcendence — never for dev test mode
         ...((gameState.isTranscended && !window._devTranscendTest) && D(gameState.lifetimeSouls).gt(0) ? {
-            lightSoulsLog: safe(D(gameState.lifetimeSouls).log10().toNumber(), 0)
+            lightSoulsLog: safe(Math.min(1e12, D(gameState.lifetimeSouls).log10().toNumber()), 0)
         } : {}),
     };
     try {
@@ -20528,10 +20528,16 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
             return true;
         });
 
-        // Always sync local player's live stats from gameState (Supabase may have stale/missing pvpWins)
-        // Skip dev accounts entirely
-        // Always sync local player's live stats from gameState (Supabase may have stale/missing pvpWins)
+        // Filter out obviously corrupted soulsLog values (> 1 trillion = impossible in real gameplay)
+        players = players.filter(p => {
+            if ((p.soulsLog || 0) > 1e12) return false;
+            if ((p.lightSoulsLog || 0) > 1e12) return false;
+            return true;
+        });
+
         const localPlayerIdx = players.findIndex(p => p.name === gameState.playerName);
+        // Skip injecting local live data if this is a dev session — dev tools can corrupt soulsLog
+        const _isDevPlayer = _isDevSession();
         // For light players: soulsLog = their dark souls total (from before transcendence, stored in Supabase)
         // lightSoulsLog = current light souls. For dark players: lightSoulsLog preserved from Supabase row.
         const _curSoulsLog = D(gameState.lifetimeSouls).gt(0) ? parseFloat(D(gameState.lifetimeSouls).log10().toNumber().toFixed(6)) : 0;
@@ -20551,11 +20557,13 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
             lightSoulsLog:     gameState.isTranscended ? _curSoulsLog
                                    : (players[localPlayerIdx]?.lightSoulsLog || 0), // preserve light history
         };
-        if (localPlayerIdx >= 0) {
-            // Merge — use local value if Supabase has 0 or null for pvpWins
-            players[localPlayerIdx] = { ...players[localPlayerIdx], ...localPlayerData };
-        } else {
-            players.push(localPlayerData);
+        if (!_isDevPlayer) {
+            if (localPlayerIdx >= 0) {
+                // Merge — use local value if Supabase has 0 or null for pvpWins
+                players[localPlayerIdx] = { ...players[localPlayerIdx], ...localPlayerData };
+            } else {
+                players.push(localPlayerData);
+            }
         }
 
         // Helper: combined power = log10(10^darkLog + 10^lightLog) — sum of all souls ever earned

@@ -3265,78 +3265,374 @@ text-decoration: underline; /* Adds an underline on hover */
 
                 </div>
             </div>
-            <div id="brewery-screen" class="screen">
-                <h2 style="letter-spacing:3px; color:#9944cc;">⚗️ ALCHEMICAL BREWERY ⚗️</h2>
-                <p style="color:var(--dim-color); max-width:480px; margin:0 auto 24px;">Concoct powerful potions from souls and rare materials — or fuse two together for something far greater.</p>
+            <div id="brewery-screen" class="screen" style="padding:0; overflow:hidden;">
+                <style>
+                /* ═══ BREWERY CINEMATIC STYLES ═══ */
+                #brewery-hero {
+                    position:relative; width:100%; min-height:220px;
+                    background: linear-gradient(180deg, #03010a 0%, #0d0420 40%, #1a0535 100%);
+                    overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center;
+                    padding: 32px 20px 20px;
+                }
+                #brewery-hero::before {
+                    content:''; position:absolute; inset:0;
+                    background: radial-gradient(ellipse 80% 60% at 50% 100%, #7722cc33 0%, transparent 70%);
+                    pointer-events:none;
+                }
+                #brewery-star-bg { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+                .brew-star { position:absolute; border-radius:50%; background:#fff; animation: brewStarTwinkle var(--dur,3s) ease-in-out infinite; opacity:0; }
+                @keyframes brewStarTwinkle { 0%,100%{opacity:0;transform:scale(0.5)} 50%{opacity:var(--op,0.6);transform:scale(1)} }
+                #brewery-title-wrap { position:relative; z-index:2; text-align:center; margin-bottom:6px; }
+                #brewery-title-wrap h2 {
+                    font-family: var(--font-title); font-size:2em; letter-spacing:6px;
+                    background: linear-gradient(135deg, #ffffff, #e8e0ff, #ffffff, #f0eaff);
+                    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+                    filter: drop-shadow(0 0 18px rgba(255,255,255,0.5));
+                    margin:0 0 4px; text-transform:uppercase;
+                    animation: brewTitleGlow 3s ease-in-out infinite alternate;
+                }
+                @keyframes brewTitleGlow {
+                    0% { filter: drop-shadow(0 0 10px rgba(255,255,255,0.3)); }
+                    100% { filter: drop-shadow(0 0 28px rgba(220,200,255,0.7)); }
+                }
+                #brewery-title-wrap p { color:#7744aa; font-size:0.82em; margin:0; letter-spacing:1px; }
+                #brew-fragment-badge {
+                    position:relative; z-index:2;
+                    display:inline-flex; align-items:center; gap:8px;
+                    background:linear-gradient(135deg,#22003388,#44004488);
+                    border:1px solid #aa44ff44; border-radius:20px;
+                    padding:7px 18px; margin-top:10px; font-size:0.8em; color:#cc88ff;
+                    letter-spacing:1px;
+                }
+                #brew-fragment-badge span { color:#ffee44; font-weight:bold; }
+
+                /* Cauldron canvas area */
+                #brewery-cauldron-wrap {
+                    position:relative; z-index:2; width:160px; height:160px; margin:10px auto -20px;
+                }
+                #brewery-cauldron-canvas { position:absolute; inset:0; }
+                #cauldron-body {
+                    position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+                    width:110px; height:80px; font-size:4.5em; line-height:1;
+                    display:flex; align-items:flex-end; justify-content:center;
+                    filter: drop-shadow(0 0 24px #aa44ff);
+                    animation: cauldronFloat 4s ease-in-out infinite;
+                }
+                @keyframes cauldronFloat { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(-6px)} }
+                .brew-bubble {
+                    position:absolute; border-radius:50%;
+                    background: radial-gradient(circle at 35% 35%, #ee88ff88, #7722ccaa);
+                    border:1px solid #cc66ff66;
+                    animation: bubbleRise var(--dur,2s) ease-in var(--delay,0s) infinite;
+                    opacity:0;
+                }
+                @keyframes bubbleRise {
+                    0% { opacity:0; transform:translateY(0) scale(0.5); }
+                    20% { opacity:0.8; }
+                    80% { opacity:0.3; }
+                    100% { opacity:0; transform:translateY(-80px) scale(1.3); }
+                }
+                .brew-smoke {
+                    position:absolute; border-radius:50%;
+                    background: radial-gradient(circle, #aa44ff22, transparent 70%);
+                    animation: smokeRise var(--dur,3s) ease-out var(--delay,0s) infinite;
+                    opacity:0; pointer-events:none;
+                }
+                @keyframes smokeRise {
+                    0% { opacity:0; transform:translateY(0) scale(0.3) translateX(var(--sx,0px)); }
+                    30% { opacity:0.5; }
+                    100% { opacity:0; transform:translateY(-120px) scale(2.5) translateX(var(--sx,0px)); }
+                }
+
+                /* Fusion Cauldron redesign */
+                #fusion-cauldron {
+                    max-width:820px; margin:0 auto 0;
+                    background:linear-gradient(160deg,#08041a,#130828,#0d0520);
+                    border:1px solid #7722cc44; border-top:3px solid #aa44ff;
+                    border-radius:0; padding:28px 28px 24px;
+                    position:relative; overflow:hidden;
+                }
+                #fusion-cauldron::before {
+                    content:''; position:absolute; inset:0;
+                    background:radial-gradient(ellipse 70% 50% at 50% 0%,#aa44ff12,transparent);
+                    pointer-events:none;
+                }
+                .fusion-slot {
+                    width:140px; min-height:110px;
+                    background:linear-gradient(160deg,#0d0a20,#180c30);
+                    border:2px dashed #3a1a6a; border-radius:14px;
+                    display:flex; flex-direction:column; align-items:center; justify-content:center;
+                    gap:7px; cursor:pointer; transition:all 0.25s; padding:12px; text-align:center;
+                    position:relative; overflow:hidden;
+                }
+                .fusion-slot:hover { border-color:#aa44ff88; background:linear-gradient(160deg,#16103a,#240f4a); box-shadow:0 0 20px #aa44ff22, inset 0 0 15px #aa44ff0a; }
+                .fusion-slot.has-potion { border-style:solid; border-color:#aa44ff66; box-shadow:0 0 16px #aa44ff22; animation:fusionSlotPulse 2s ease-in-out infinite; }
+                @keyframes fusionSlotPulse { 0%,100%{box-shadow:0 0 10px #aa44ff22} 50%{box-shadow:0 0 25px #aa44ff55} }
+                .fusion-operator {
+                    font-size:2.2em; font-weight:900; flex-shrink:0;
+                    background:linear-gradient(135deg,#aa44ff,#7722cc);
+                    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+                    filter:drop-shadow(0 0 8px #aa44ff66);
+                }
+                .fusion-arrow {
+                    font-size:1.8em; flex-shrink:0; color:#aa44ff;
+                    text-shadow:0 0 12px #aa44ff88;
+                    animation:arrowPulse 1.5s ease-in-out infinite;
+                }
+                @keyframes arrowPulse { 0%,100%{transform:translateX(0);opacity:0.6} 50%{transform:translateX(5px);opacity:1} }
+                #fusion-result-preview {
+                    flex:1; min-width:170px; min-height:110px;
+                    background:linear-gradient(160deg,#08041a,#130828);
+                    border:2px solid #3a0a5a; border-radius:14px;
+                    display:flex; flex-direction:column; align-items:center; justify-content:center;
+                    gap:7px; padding:14px; text-align:center;
+                    transition:all 0.4s;
+                }
+                #fusion-result-preview.has-result {
+                    border-color:#aa44ff88; box-shadow:0 0 30px #aa44ff33, inset 0 0 20px #aa44ff0a;
+                    animation:resultGlow 2s ease-in-out infinite;
+                }
+                @keyframes resultGlow { 0%,100%{box-shadow:0 0 20px #aa44ff22} 50%{box-shadow:0 0 40px #aa44ff55} }
+                #fusion-btn {
+                    width:100%; margin-top:20px; padding:16px;
+                    background:linear-gradient(135deg,#1a0a2a,#2a0a4a,#1a0a2a);
+                    border:1px solid #aa44ff44; border-bottom:3px solid #000; border-radius:12px;
+                    color:#444; font-family:var(--font-title); font-size:1em; letter-spacing:3px;
+                    cursor:not-allowed; text-transform:uppercase; transition:all 0.25s;
+                    position:relative; overflow:hidden;
+                }
+                #fusion-btn.ready {
+                    background:linear-gradient(135deg,#3a0a5a,#7722cc,#3a0a5a);
+                    border-color:#aa44ff88; color:#f0e8ff; cursor:pointer;
+                    box-shadow:0 0 30px #aa44ff44, 0 0 60px #aa44ff22;
+                    animation:fusionBtnReady 1.5s ease-in-out infinite alternate;
+                }
+                @keyframes fusionBtnReady {
+                    0% { box-shadow:0 0 20px #aa44ff44, inset 0 0 10px #aa44ff11; }
+                    100% { box-shadow:0 0 50px #aa44ff88, 0 0 80px #aa44ff33, inset 0 0 20px #aa44ff22; }
+                }
+                #fusion-btn.ready::before {
+                    content:''; position:absolute; top:-50%; left:-60%; width:40%; height:200%;
+                    background:linear-gradient(90deg,transparent,#ffffff22,transparent);
+                    transform:skewX(-20deg);
+                    animation:fusionSheen 2.5s ease-in-out infinite;
+                }
+                @keyframes fusionSheen { 0%{left:-60%} 100%{left:140%} }
+
+                /* Brewery body section */
+                #brewery-body { padding:24px 24px; max-width:820px; margin:0 auto; }
+                .brewery-section-header {
+                    display:flex; align-items:center; gap:12px; margin-bottom:16px; margin-top:28px;
+                }
+                .brewery-section-header .brew-header-line {
+                    flex:1; height:1px; background:linear-gradient(90deg,#c8a80044,transparent);
+                }
+                .brewery-section-header h3 {
+                    margin:0; font-size:0.9em; letter-spacing:3px; text-transform:uppercase;
+                    color:#c8a800; font-family:var(--font-title);
+                    text-shadow:0 0 12px #c8a80044;
+                }
+
+                /* Picker modal upgrade */
+                #fusion-picker-overlay > div {
+                    background:linear-gradient(160deg,#0e0a1a,#1a1030) !important;
+                    border:2px solid #aa44ff66 !important;
+                    box-shadow:0 0 60px #aa44ff33 !important;
+                }
+                </style>
+
+                <!-- ── HERO HEADER ── -->
+                <div id="brewery-hero">
+                    <div id="brewery-star-bg"></div>
+                    <!-- Floating cauldron -->
+                    <div id="brewery-cauldron-wrap">
+                        <canvas id="brewery-cauldron-canvas" width="160" height="160"></canvas>
+                        <div id="cauldron-body">🫧</div>
+                    </div>
+                    <div id="brewery-title-wrap">
+                        <h2>⚗ Alchemical Brewery ⚗</h2>
+                        <p>Concoct powerful potions — or fuse two together for something far greater.</p>
+                    </div>
+                    <div id="brew-fragment-badge">🔮 You have <span id="brew-frag-display">0</span> Corrupted Fragments — <em style="color:#9966cc; font-size:0.9em;">spend them wisely</em></div>
+                </div>
 
                 <!-- ═══ FUSION CAULDRON ═══ -->
-                <div id="fusion-cauldron" style="max-width:700px; margin:0 auto 28px; background:linear-gradient(135deg,#0a0614,#160a28); border:2px solid #7722cc66; border-top:3px solid #aa44ff; border-radius:16px; padding:22px 24px;">
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
-                        <span style="font-size:1.5em;">🔮</span>
-                        <h3 style="margin:0; color:#aa44ff; font-size:0.9em; text-transform:uppercase; letter-spacing:3px;">Fusion Cauldron</h3>
-                        <span style="margin-left:auto; background:#aa44ff22; border:1px solid #aa44ff44; border-radius:8px; padding:2px 10px; font-size:0.65em; color:#aa44ff; letter-spacing:1px;">EXPERIMENTAL</span>
+                <div id="fusion-cauldron">
+                    <div style="position:relative;z-index:1;">
+                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+                            <div style="width:36px;height:36px;background:linear-gradient(135deg,#3a0a6a,#7722cc);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3em;box-shadow:0 0 16px #aa44ff44;">🔮</div>
+                            <div>
+                                <h3 style="margin:0; color:#cc88ff; font-size:0.95em; text-transform:uppercase; letter-spacing:4px; font-family:var(--font-title);">Fusion Cauldron</h3>
+                                <div style="color:#5533aa; font-size:0.68em; letter-spacing:1px; margin-top:1px;">Combine · Transcend · Create</div>
+                            </div>
+                            <span style="margin-left:auto; background:linear-gradient(135deg,#3a0a6a22,#7722cc22); border:1px solid #aa44ff44; border-radius:8px; padding:3px 12px; font-size:0.65em; color:#aa44ff; letter-spacing:2px;">EXPERIMENTAL</span>
+                        </div>
+                        <p style="color:#5533aa; font-size:0.8em; margin:0 0 22px; line-height:1.6; border-left:2px solid #aa44ff33; padding-left:12px;">Combine two potions from your shelf into something far more powerful. Market potions fuse into legendary results. <strong style="color:#8855cc;">Fusing consumes both potions</strong> and costs Corrupted Fragments.</p>
+
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:center;">
+                            <!-- Slot A -->
+                            <div id="fusion-slot-a" class="fusion-slot" onclick="openFusionPicker('a')">
+                                <div style="font-size:2.2em; color:#3a1a6a; transition:all 0.2s;">⚗️</div>
+                                <div style="color:#3a1a6a; font-size:0.7em; letter-spacing:1px; text-transform:uppercase;">Click to select</div>
+                                <div style="position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:0.6em;color:#2a0a4a;letter-spacing:1px;">SLOT A</div>
+                            </div>
+
+                            <div class="fusion-operator">+</div>
+
+                            <!-- Slot B -->
+                            <div id="fusion-slot-b" class="fusion-slot" onclick="openFusionPicker('b')">
+                                <div style="font-size:2.2em; color:#3a1a6a; transition:all 0.2s;">⚗️</div>
+                                <div style="color:#3a1a6a; font-size:0.7em; letter-spacing:1px; text-transform:uppercase;">Click to select</div>
+                                <div style="position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:0.6em;color:#2a0a4a;letter-spacing:1px;">SLOT B</div>
+                            </div>
+
+                            <div class="fusion-arrow">⟹</div>
+
+                            <!-- Result preview -->
+                            <div id="fusion-result-preview">
+                                <div style="font-size:2.5em; color:#2a1a4a; filter:blur(1px);">✦</div>
+                                <div style="color:#2a1a4a; font-size:0.72em; letter-spacing:1px;">Select both potions<br>to reveal result</div>
+                            </div>
+                        </div>
+
+                        <div id="fusion-frag-cost" style="text-align:center; color:#5533aa; font-size:0.82em; margin-top:16px; margin-bottom:4px; letter-spacing:1px;">
+                            🔮 Costs <strong style="color:#aa44ff;">5</strong> Corrupted Fragments &nbsp;·&nbsp; You have <span id="fusion-frag-count" style="color:#ffee44; font-weight:bold;">0</span>
+                        </div>
+                        <button id="fusion-btn" onclick="executeFusion()" disabled>
+                            🔮 &nbsp;Fuse Potions
+                        </button>
                     </div>
-                    <p style="color:#666; font-size:0.78em; margin:0 0 18px; line-height:1.5;">Combine two potions from your shelf into something far more powerful. Market potions fuse into legendary results. Fusing consumes both potions.</p>
-
-                    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center;">
-                        <!-- Slot A -->
-                        <div id="fusion-slot-a" onclick="openFusionPicker('a')"
-                             style="width:130px; min-height:90px; background:#0d0a18; border:2px dashed #2a1a4a; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; transition:all 0.2s; padding:10px; text-align:center;"
-                             onmouseover="this.style.borderColor='#aa44ff66'" onmouseout="this.style.borderColor='#2a1a4a'">
-                            <div style="font-size:2em; color:#2a1a4a;">⚗️</div>
-                            <div style="color:#444; font-size:0.72em;">Click to select</div>
-                        </div>
-
-                        <!-- Plus sign -->
-                        <div style="font-size:2em; color:#aa44ff66; font-weight:bold; flex-shrink:0;">+</div>
-
-                        <!-- Slot B -->
-                        <div id="fusion-slot-b" onclick="openFusionPicker('b')"
-                             style="width:130px; min-height:90px; background:#0d0a18; border:2px dashed #2a1a4a; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; transition:all 0.2s; padding:10px; text-align:center;"
-                             onmouseover="this.style.borderColor='#aa44ff66'" onmouseout="this.style.borderColor='#2a1a4a'">
-                            <div style="font-size:2em; color:#2a1a4a;">⚗️</div>
-                            <div style="color:#444; font-size:0.72em;">Click to select</div>
-                        </div>
-
-                        <!-- Arrow -->
-                        <div style="font-size:1.5em; color:#aa44ff66; flex-shrink:0;">→</div>
-
-                        <!-- Result preview -->
-                        <div id="fusion-result-preview"
-                             style="flex:1; min-width:160px; min-height:90px; background:#0a0614; border:2px solid #1a0a30; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:12px; text-align:center;">
-                            <div style="font-size:1.6em; color:#2a1a4a;">?</div>
-                            <div style="color:#333; font-size:0.72em;">Select both potions to preview</div>
-                        </div>
-                    </div>
-
-                    <!-- Fuse button -->
-                    <div id="fusion-frag-cost" style="text-align:center; color:#888; font-size:0.78em; margin-bottom:6px;">🔮 Costs 5 Corrupted Fragments · You have <span id="fusion-frag-count">0</span></div>
-                    <button id="fusion-btn" onclick="executeFusion()" disabled
-                        style="width:100%; margin-top:16px; padding:12px; background:linear-gradient(135deg,#1a0a2a,#2a0a4a); border:1px solid #aa44ff44; border-bottom:3px solid #000; border-radius:10px; color:#444; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; cursor:not-allowed; text-transform:uppercase; transition:all 0.2s;">
-                        🔮 Fuse Potions
-                    </button>
                 </div>
 
                 <!-- Fusion picker modal -->
-                <div id="fusion-picker-overlay" style="display:none; position:fixed; inset:0; background:#00000099; z-index:2000; align-items:center; justify-content:center;">
-                    <div style="background:#0e0a1a; border:2px solid #aa44ff44; border-radius:16px; padding:24px; max-width:500px; width:90%; max-height:80vh; overflow-y:auto;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                            <h3 style="margin:0; color:#aa44ff; font-size:0.9em; text-transform:uppercase; letter-spacing:2px;">🔮 Select Potion for Slot</h3>
-                            <button onclick="closeFusionPicker()" style="background:none; border:none; color:#666; font-size:1.4em; cursor:pointer; padding:0 4px;">×</button>
+                <div id="fusion-picker-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(4px); z-index:2000; align-items:center; justify-content:center;">
+                    <div style="background:#0e0a1a; border:2px solid #aa44ff44; border-radius:20px; padding:28px; max-width:520px; width:92%; max-height:82vh; overflow-y:auto; box-shadow:0 0 80px #aa44ff33;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:14px; border-bottom:1px solid #2a1a4a;">
+                            <div>
+                                <h3 style="margin:0; color:#cc88ff; font-size:0.95em; text-transform:uppercase; letter-spacing:3px;">🔮 Select Potion</h3>
+                                <div style="color:#5533aa; font-size:0.7em; margin-top:2px;">Choose from your shelf</div>
+                            </div>
+                            <button onclick="closeFusionPicker()" style="background:linear-gradient(135deg,#1a0a2a,#2a0a4a); border:1px solid #3a1a6a; border-radius:8px; color:#aa44ff; font-size:1.2em; cursor:pointer; padding:4px 10px; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,#3a0a5a,#4a0a7a)'" onmouseout="this.style.background='linear-gradient(135deg,#1a0a2a,#2a0a4a)'">×</button>
                         </div>
-                        <div id="fusion-picker-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
+                        <div id="fusion-picker-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"></div>
                     </div>
                 </div>
 
-                <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:10px;">🧪 YOUR POTION SHELF</h3>
-                <!-- Potion filters -->
-                <div style="background:#06030f; border:1px solid #1a0a2a; border-radius:10px; padding:10px 14px; margin-bottom:16px;">
-                    <div id="potion-filter-bar" style="display:flex; flex-direction:column; gap:7px;"></div>
+                <!-- ── BREWERY BODY ── -->
+                <div id="brewery-body">
+                    <div class="brewery-section-header">
+                        <span style="font-size:1.3em;">🧪</span>
+                        <h3>Your Potion Shelf</h3>
+                        <div class="brew-header-line"></div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,#06030f,#0a0518); border:1px solid #2a1a4a; border-radius:12px; padding:12px 16px; margin-bottom:16px;">
+                        <div id="potion-filter-bar" style="display:flex; flex-direction:column; gap:7px;"></div>
+                    </div>
+                    <div id="potion-inventory" class="ritual-grid"></div>
+
+                    <div class="brewery-section-header" style="margin-top:36px;">
+                        <span style="font-size:1.3em;">📜</span>
+                        <h3>Available Recipes</h3>
+                        <div class="brew-header-line"></div>
+                        <span style="color:#5533aa; font-size:0.72em; white-space:nowrap;">fragment costs scale with power</span>
+                    </div>
+                    <div id="potion-recipe-grid" class="ritual-grid"></div>
                 </div>
-                <div id="potion-inventory" class="ritual-grid"></div>
-                <hr style="border-color:#3d2a4a; margin:24px 0;">
-                <h3 style="color:#c8a800; letter-spacing:2px; margin-bottom:12px;">📜 AVAILABLE RECIPES</h3>
-                <div id="potion-recipe-grid" class="ritual-grid"></div>
+
+                <script>
+                (function initBreweryVFX() {
+                    // Stars
+                    const sb = document.getElementById('brewery-star-bg');
+                    if (sb && !sb.dataset.init) {
+                        sb.dataset.init = '1';
+                        for (let i = 0; i < 55; i++) {
+                            const s = document.createElement('div');
+                            s.className = 'brew-star';
+                            const size = Math.random() * 2.5 + 0.5;
+                            s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${(Math.random()*4+2).toFixed(1)}s;--op:${(Math.random()*0.5+0.2).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;
+                            sb.appendChild(s);
+                        }
+                    }
+                    // Cauldron canvas bubbles
+                    const canvas = document.getElementById('brewery-cauldron-canvas');
+                    if (canvas && !canvas.dataset.init) {
+                        canvas.dataset.init = '1';
+                        const ctx = canvas.getContext('2d');
+                        const bubbles = [];
+                        for (let i = 0; i < 14; i++) {
+                            bubbles.push({
+                                x: 55 + Math.random() * 50,
+                                y: 110 + Math.random() * 20,
+                                r: Math.random() * 5 + 2,
+                                speed: Math.random() * 0.8 + 0.3,
+                                alpha: 0,
+                                maxAlpha: Math.random() * 0.7 + 0.3,
+                                hue: Math.floor(Math.random() * 60 + 270),
+                            });
+                        }
+                        const smoke = [];
+                        for (let i = 0; i < 8; i++) {
+                            smoke.push({ x: 60 + Math.random()*40, y: 70, r: Math.random()*18+8, speed: Math.random()*0.4+0.2, alpha:0, phase: Math.random()*Math.PI*2 });
+                        }
+                        function drawBrewery() {
+                            ctx.clearRect(0, 0, 160, 160);
+                            // Glow under cauldron
+                            const grd = ctx.createRadialGradient(80,130,5,80,130,60);
+                            grd.addColorStop(0,'rgba(119,34,204,0.35)');
+                            grd.addColorStop(1,'rgba(119,34,204,0)');
+                            ctx.fillStyle = grd; ctx.beginPath(); ctx.ellipse(80,130,55,20,0,0,Math.PI*2); ctx.fill();
+                            // Bubbles
+                            bubbles.forEach(b => {
+                                b.y -= b.speed;
+                                b.alpha = b.y > 80 ? Math.min(b.maxAlpha, b.alpha + 0.04) : b.alpha - 0.03;
+                                if (b.y < 30 || b.alpha < 0) {
+                                    b.y = 108 + Math.random()*20; b.x = 50 + Math.random()*60; b.alpha = 0; b.r = Math.random()*5+2;
+                                }
+                                ctx.save();
+                                ctx.globalAlpha = Math.max(0, b.alpha);
+                                const gr = ctx.createRadialGradient(b.x-b.r*0.3, b.y-b.r*0.3, b.r*0.1, b.x, b.y, b.r);
+                                gr.addColorStop(0, `hsla(${b.hue},80%,90%,0.9)`);
+                                gr.addColorStop(0.6, `hsla(${b.hue},70%,65%,0.6)`);
+                                gr.addColorStop(1, `hsla(${b.hue},60%,40%,0.1)`);
+                                ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
+                                ctx.restore();
+                            });
+                            // Smoke wisps
+                            smoke.forEach(s => {
+                                s.phase += 0.02; s.y -= s.speed; s.alpha -= 0.005; s.r += 0.3;
+                                if (s.y < -20 || s.alpha < 0) {
+                                    s.y = 62; s.x = 55+Math.random()*50; s.r = Math.random()*12+6; s.alpha = 0.25+Math.random()*0.2; s.phase = Math.random()*Math.PI*2;
+                                }
+                                const sx = s.x + Math.sin(s.phase) * 8;
+                                ctx.save(); ctx.globalAlpha = Math.max(0, s.alpha);
+                                const sg = ctx.createRadialGradient(sx, s.y, 0, sx, s.y, s.r);
+                                sg.addColorStop(0,'rgba(180,100,255,0.35)'); sg.addColorStop(1,'rgba(100,0,180,0)');
+                                ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, s.y, s.r, 0, Math.PI*2); ctx.fill();
+                                ctx.restore();
+                            });
+                            requestAnimationFrame(drawBrewery);
+                        }
+                        drawBrewery();
+                    }
+                    // Update fragment count badge
+                    function updateBrewFragBadge() {
+                        const el = document.getElementById('brew-frag-display');
+                        if (el && typeof gameState !== 'undefined') el.textContent = formatNumber(gameState.corruptedFragments || 0);
+                    }
+                    updateBrewFragBadge();
+                    // Also hook into fusion ready state for button class
+                    const origUpdateFusion = window.updateFusionPreview;
+                    if (origUpdateFusion && !window._fusionBtnPatched) {
+                        window._fusionBtnPatched = true;
+                        const _obs = new MutationObserver(() => {
+                            const btn = document.getElementById('fusion-btn');
+                            if (btn) btn.classList.toggle('ready', !btn.disabled);
+                        });
+                        const btn = document.getElementById('fusion-btn');
+                        if (btn) _obs.observe(btn, { attributes:true, attributeFilter:['disabled'] });
+                    }
+                })();
+                </script>
             </div>
             <div id="inventory-screen" class="screen">
                 <!-- Animated header -->
@@ -4397,210 +4693,346 @@ text-decoration: underline; /* Adds an underline on hover */
 
             <!-- ================================================================= -->
             <!-- BANK SCREEN -->
-            <div id="bank-screen" class="screen">
-                <h2 style="letter-spacing:3px;">🏦 ABYSSAL VAULT</h2>
-                <p style="color:var(--dim-color); max-width:580px; margin:0 auto 20px;">Secure your wealth across lifetimes. Your vault is a bridge between lives — use it wisely.</p>
+            <div id="bank-screen" class="screen" style="padding:0; overflow:hidden;">
+                <style>
+                /* ═══ ABYSSAL VAULT STYLES ═══ */
+                #vault-hero {
+                    position:relative; padding:36px 24px 28px;
+                    background:linear-gradient(180deg,#03010a 0%,#08041a 50%,#100828 100%);
+                    overflow:hidden; text-align:center;
+                }
+                #vault-hero::before {
+                    content:''; position:absolute; inset:0;
+                    background:radial-gradient(ellipse 90% 70% at 50% 110%, #00e5ff18 0%, transparent 60%);
+                    pointer-events:none;
+                }
+                #vault-hero-scanlines {
+                    position:absolute; inset:0; pointer-events:none;
+                    background:repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,229,255,0.015) 3px, rgba(0,229,255,0.015) 4px);
+                }
+                #vault-hero h2 {
+                    font-family:var(--font-title); font-size:1.9em; letter-spacing:8px;
+                    background:linear-gradient(135deg,#ffffff,#e8f8ff,#ffffff,#eef6ff);
+                    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+                    filter:drop-shadow(0 0 20px rgba(255,255,255,0.5)); margin:0 0 6px;
+                    animation:vaultTitlePulse 4s ease-in-out infinite alternate;
+                }
+                @keyframes vaultTitlePulse {
+                    0% { filter:drop-shadow(0 0 10px rgba(255,255,255,0.3)); }
+                    100% { filter:drop-shadow(0 0 30px rgba(180,230,255,0.7)); }
+                }
+                .vault-survival-tag {
+                    display:inline-flex; align-items:center; gap:6px;
+                    background:linear-gradient(135deg,#00440033,#006600); 
+                    border:1px solid #44ff6644; border-radius:20px;
+                    padding:5px 14px; font-size:0.72em; color:#88ff88; margin:3px 4px;
+                }
+                .vault-danger-tag {
+                    display:inline-flex; align-items:center; gap:6px;
+                    background:linear-gradient(135deg,#44000033,#220000);
+                    border:1px solid #ff444444; border-radius:20px;
+                    padding:5px 14px; font-size:0.72em; color:#ff6666; margin:3px 4px;
+                }
+                #vault-body { padding:24px; max-width:760px; margin:0 auto; }
 
-                <!-- Survival badges -->
-                <div style="display:flex; justify-content:center; gap:12px; margin-bottom:24px; flex-wrap:wrap;">
-                    <div style="background:#00440022; border:1px solid #00cc4466; border-radius:8px; padding:7px 16px; font-size:0.78em; color:#88ff88;">✅ Souls survive Ascension</div>
-                    <div style="background:#00440022; border:1px solid #00cc4466; border-radius:8px; padding:7px 16px; font-size:0.78em; color:#88ff88;">✅ Essence survive Ascension</div>
-                    <div style="background:#00440022; border:1px solid #00cc4466; border-radius:8px; padding:7px 16px; font-size:0.78em; color:#88ff88;">✅ Shards survive Ascension</div>
-                    <div style="background:#00440022; border:1px solid #00cc4466; border-radius:8px; padding:7px 16px; font-size:0.78em; color:#88ff88;">✅ Fragments survive Ascension</div>
-                    <div style="background:#44000022; border:1px solid #cc000066; border-radius:8px; padding:7px 16px; font-size:0.78em; color:#ff6666;">💥 All vaults lost on Collapse</div>
+                /* Vault cards */
+                .vault-card {
+                    position:relative; overflow:hidden; border-radius:16px;
+                    padding:20px; transition:transform 0.2s, box-shadow 0.2s;
+                }
+                .vault-card::before {
+                    content:''; position:absolute; inset:0;
+                    background:radial-gradient(ellipse 80% 60% at 50% -10%, var(--vc-glow) 0%, transparent 60%);
+                    pointer-events:none;
+                }
+                .vault-card:hover { transform:translateY(-2px); }
+                .vault-card-icon {
+                    width:44px; height:44px; border-radius:12px;
+                    display:flex; align-items:center; justify-content:center;
+                    font-size:1.4em; flex-shrink:0;
+                    background:linear-gradient(135deg, var(--vc-bg1), var(--vc-bg2));
+                    box-shadow:0 0 20px var(--vc-glow), inset 0 0 10px rgba(0,0,0,0.4);
+                }
+                .vault-amount {
+                    font-size:1.6em; font-weight:bold; font-family:var(--font-title);
+                    color:var(--vc-color); text-shadow:0 0 14px var(--vc-glow);
+                    line-height:1;
+                }
+                .vault-card-btn {
+                    width:100%; padding:10px 14px; border-radius:10px;
+                    font-family:var(--font-title); font-size:0.78em; letter-spacing:1.5px;
+                    cursor:pointer; transition:all 0.2s; text-transform:uppercase;
+                    border:1px solid var(--vc-border);
+                    background:linear-gradient(135deg, var(--vc-btnbg), transparent);
+                    color:var(--vc-color);
+                }
+                .vault-card-btn:hover { filter:brightness(1.2); box-shadow:0 0 18px var(--vc-glow); }
+                .vault-card-btn.withdraw-btn {
+                    background:transparent; color:var(--vc-dim);
+                    border-color:var(--vc-border-dim);
+                    font-size:0.72em;
+                }
+                .vault-card-btn.withdraw-btn:hover { color:var(--vc-color); filter:brightness(1); }
+
+                /* Exchange redesign */
+                #exchange-section {
+                    margin-top:28px; position:relative; overflow:hidden;
+                    background:linear-gradient(160deg,#030814,#06101e,#030814);
+                    border:1px solid #00e5ff22; border-top:3px solid #00e5ff;
+                    border-radius:16px; padding:28px 24px;
+                }
+                #exchange-section::before {
+                    content:''; position:absolute; inset:0;
+                    background:radial-gradient(ellipse 60% 40% at 50% 0%, #00e5ff0d, transparent 65%);
+                    pointer-events:none;
+                }
+                .exchange-balance-pill {
+                    display:inline-flex; align-items:center; gap:6px;
+                    background:linear-gradient(135deg,#ffffff06,transparent);
+                    border:1px solid #ffffff12; border-radius:20px;
+                    padding:6px 14px; font-size:0.78em; color:#aaa;
+                    transition:all 0.2s;
+                }
+                .exchange-balance-pill:hover { border-color:#00e5ff33; color:#ddd; }
+
+                /* Exchange offer cards — new design */
+                .exch-card {
+                    background:linear-gradient(160deg,#050d18,#0a1824);
+                    border:1px solid #1a3040; border-top:2px solid var(--ec-color,#00e5ff);
+                    border-radius:14px; padding:18px 16px;
+                    display:flex; flex-direction:column; gap:10px;
+                    position:relative; overflow:hidden;
+                    transition:all 0.2s;
+                }
+                .exch-card:hover { border-color:var(--ec-color,#00e5ff); transform:translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,0.4), 0 0 20px color-mix(in srgb, var(--ec-color,#00e5ff) 20%, transparent); }
+                .exch-card::before {
+                    content:''; position:absolute; inset:0;
+                    background:radial-gradient(ellipse 80% 50% at 50% -20%, color-mix(in srgb, var(--ec-color,#00e5ff) 8%, transparent), transparent 60%);
+                    pointer-events:none;
+                }
+                .exch-card-title {
+                    font-family:var(--font-title); font-size:0.82em; letter-spacing:2px;
+                    color:var(--ec-color,#00e5ff); text-transform:uppercase;
+                    text-shadow:0 0 10px color-mix(in srgb, var(--ec-color,#00e5ff) 50%, transparent);
+                }
+                .exch-tier-wrap {
+                    display:flex; align-items:center; gap:8px;
+                    background:rgba(0,0,0,0.4); border:1px solid #ffffff08; border-radius:10px;
+                    padding:8px 10px;
+                }
+                .exch-tier-wrap .arrow-btn {
+                    background:transparent; border:1px solid #1a3040; border-radius:6px;
+                    color:#00e5ff88; font-size:0.8em; cursor:pointer; padding:4px 8px;
+                    flex-shrink:0; transition:all 0.15s;
+                }
+                .exch-tier-wrap .arrow-btn:hover { border-color:#00e5ff44; color:#00e5ff; background:#00e5ff0a; }
+                .exch-convert-btn {
+                    padding:11px; background:linear-gradient(135deg,var(--ec-bg1,#002244),var(--ec-bg2,#004488));
+                    border:1px solid var(--ec-color,#00e5ff)44; border-bottom:3px solid rgba(0,0,0,0.5);
+                    border-radius:10px; color:var(--ec-color,#00e5ff); font-family:var(--font-title);
+                    font-size:0.82em; letter-spacing:2px; cursor:pointer; transition:all 0.2s;
+                    text-transform:uppercase; width:100%;
+                }
+                .exch-convert-btn:hover:not(:disabled) { filter:brightness(1.3); box-shadow:0 0 20px color-mix(in srgb, var(--ec-color,#00e5ff) 30%, transparent); }
+                .exch-convert-btn:disabled { opacity:0.35; cursor:not-allowed; }
+
+                /* Interest bar */
+                #vault-interest-bar {
+                    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+                    background:linear-gradient(135deg,#050d10,#080f18); border:1px solid #0a2030;
+                    border-left:3px solid #00e5ff44; border-radius:12px; padding:14px 18px;
+                    margin-top:20px; font-size:0.78em;
+                }
+                .interest-pill {
+                    display:inline-flex; align-items:center; gap:5px;
+                    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);
+                    border-radius:14px; padding:4px 12px;
+                }
+                </style>
+
+                <!-- HERO -->
+                <div id="vault-hero">
+                    <div id="vault-hero-scanlines"></div>
+                    <div style="position:relative; z-index:1;">
+                        <h2>🏦 ABYSSAL VAULT</h2>
+                        <p style="color:#336688; font-size:0.82em; max-width:480px; margin:0 auto 18px; letter-spacing:1px;">Secure your wealth across lifetimes. Your vault is a bridge between lives — use it wisely.</p>
+                        <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:4px;">
+                            <span class="vault-survival-tag">✅ Souls survive Ascension</span>
+                            <span class="vault-survival-tag">✅ Essence survive Ascension</span>
+                            <span class="vault-survival-tag">✅ Shards survive Ascension</span>
+                            <span class="vault-survival-tag">✅ Fragments survive Ascension</span>
+                            <span class="vault-danger-tag">💥 All vaults lost on Collapse</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Vault cards in responsive 2-col grid -->
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+                <div id="vault-body">
+                    <!-- Vault cards grid -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:6px;">
 
-                    <!-- Soul Vault -->
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1c1428); border:1px solid #3d2a4a; border-top:3px solid #c8a800; border-radius:12px; padding:18px; position:relative; overflow:hidden;">
-                        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top,#c8a80008,transparent 70%);pointer-events:none;"></div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                            <span style="font-size:1.4em;">👻</span>
-                            <div>
-                                <div style="color:#888; font-size:0.68em; text-transform:uppercase; letter-spacing:2px;">Soul Vault <span style="color:#c8a80088;">· 0.5%/hr</span></div>
-                                <div style="color:#c8a800; font-size:1.4em; font-weight:bold;" id="banked-souls-display">0</div>
-                                <div style="color:#555; font-size:0.7em;">souls secured</div>
+                        <!-- Soul Vault -->
+                        <div class="vault-card" style="background:linear-gradient(160deg,#0e0c00,#1a1600); border:1px solid #c8a80033; border-top:3px solid #c8a800; --vc-color:#c8a800; --vc-glow:#c8a80030; --vc-bg1:#2a2000; --vc-bg2:#1a1400; --vc-border:#c8a80044; --vc-border-dim:#c8a80022; --vc-btnbg:#c8a80018; --vc-dim:#886600;">
+                            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                                <div class="vault-card-icon" style="--vc-bg1:#3a2800; --vc-bg2:#1a1400;">👻</div>
+                                <div style="flex:1;">
+                                    <div style="color:#664400; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Soul Vault <span style="color:#c8a80044;">· 0.5%/hr</span></div>
+                                    <div class="vault-amount" id="banked-souls-display">0</div>
+                                    <div style="color:#443300; font-size:0.68em; margin-top:1px;">souls secured</div>
+                                </div>
                             </div>
+                            <button class="vault-card-btn" onclick="depositSouls()">⬆ Deposit Souls</button>
+                            <div style="color:#443300; font-size:0.68em; text-align:center; margin:-4px 0 2px;">Store 10× SPS · max 100k · costs 25 DE</div>
+                            <button class="vault-card-btn withdraw-btn" id="withdrawBtn" onclick="withdrawSouls()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawCost">10</span> DE · once per life</button>
                         </div>
-                        <button class="upgrade-btn" onclick="depositSouls()" style="width:100%; margin-bottom:7px; border-color:#c8a80066; background:linear-gradient(135deg,#c8a80015,transparent);">
-                            <span style="color:#c8a800; font-weight:bold;">⬆ Deposit Souls</span>
-                            <span style="display:block; font-size:0.7em; color:#666; margin-top:2px;">Store 10× SPS · max 100k · costs 25 DE</span>
-                        </button>
-                        <button class="upgrade-btn" id="withdrawBtn" onclick="withdrawSouls()" style="width:100%; border-color:#8855ff44; background:transparent;">
-                            <span style="color:#b088ff;">⬇ Withdraw</span>
-                            <span style="display:block; font-size:0.7em; color:#555; margin-top:2px;">Fee: <span id="withdrawCost">10</span> DE · once per life</span>
-                        </button>
+
+                        <!-- Essence Vault -->
+                        <div class="vault-card" style="background:linear-gradient(160deg,#0e0a00,#1a1200); border:1px solid #c8a80022; border-top:3px solid #e0b800; --vc-color:#e0b800; --vc-glow:#c8a80025; --vc-bg1:#2a2000; --vc-bg2:#1a1200; --vc-border:#c8a80033; --vc-border-dim:#c8a80018; --vc-btnbg:#c8a80015; --vc-dim:#886600;">
+                            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                                <div class="vault-card-icon" style="--vc-bg1:#2a1e00; --vc-bg2:#1a1200;">🌑</div>
+                                <div style="flex:1;">
+                                    <div style="color:#664400; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Essence Vault <span style="color:#c8a80044;">· 0.3%/hr</span></div>
+                                    <div class="vault-amount" id="banked-essence-display">0</div>
+                                    <div style="color:#443300; font-size:0.68em; margin-top:1px;">essence secured</div>
+                                </div>
+                            </div>
+                            <button class="vault-card-btn" onclick="depositEssence()">⬆ Deposit Essence</button>
+                            <div style="color:#443300; font-size:0.68em; text-align:center; margin:-4px 0 2px;">Vault 50% of essence · max 100k · costs 30 DE</div>
+                            <button class="vault-card-btn withdraw-btn" id="withdrawEssenceBtn" onclick="withdrawEssence()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawEssenceCost">20</span> DE · once per life</button>
+                        </div>
+
+                        <!-- Shards Vault -->
+                        <div class="vault-card" style="background:linear-gradient(160deg,#000818,#001020); border:1px solid #4488ff22; border-top:3px solid #4488ff; --vc-color:#4488ff; --vc-glow:#4488ff25; --vc-bg1:#001030; --vc-bg2:#000820; --vc-border:#4488ff44; --vc-border-dim:#4488ff18; --vc-btnbg:#4488ff15; --vc-dim:#224488;">
+                            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                                <div class="vault-card-icon" style="--vc-bg1:#001840; --vc-bg2:#000f28;">💎</div>
+                                <div style="flex:1;">
+                                    <div style="color:#224466; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Shard Vault <span style="color:#4488ff44;">· 0.2%/hr</span></div>
+                                    <div class="vault-amount" id="banked-shards-display">0</div>
+                                    <div style="color:#162844; font-size:0.68em; margin-top:1px;">shards secured</div>
+                                </div>
+                            </div>
+                            <button class="vault-card-btn" onclick="depositShards()">⬆ Deposit Shards</button>
+                            <div style="color:#162844; font-size:0.68em; text-align:center; margin:-4px 0 2px;">Vault 50% of shards · max 100k · costs 40 DE</div>
+                            <button class="vault-card-btn withdraw-btn" id="withdrawShardsBtn" onclick="withdrawShards()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawShardsCost">30</span> DE · once per life</button>
+                        </div>
+
+                        <!-- Fragment Vault -->
+                        <div class="vault-card" style="background:linear-gradient(160deg,#0e0a1a,#160e28); border:1px solid #aa44ff22; border-top:3px solid #aa44ff; --vc-color:#aa44ff; --vc-glow:#aa44ff25; --vc-bg1:#220840; --vc-bg2:#160828; --vc-border:#aa44ff44; --vc-border-dim:#aa44ff18; --vc-btnbg:#aa44ff15; --vc-dim:#663399;">
+                            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+                                <div class="vault-card-icon" style="--vc-bg1:#2a0a50; --vc-bg2:#180630;">🔮</div>
+                                <div style="flex:1;">
+                                    <div style="color:#442266; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Fragment Vault <span style="color:#66668888;">· no interest</span></div>
+                                    <div class="vault-amount" id="banked-fragments-display">0</div>
+                                    <div style="color:#2a1444; font-size:0.68em; margin-top:1px;">fragments secured</div>
+                                </div>
+                            </div>
+                            <button class="vault-card-btn" onclick="depositFragments()">⬆ Deposit Fragments</button>
+                            <div style="color:#2a1444; font-size:0.68em; text-align:center; margin:-4px 0 2px;">Vault all fragments · max 100k · costs 50 DE</div>
+                            <button class="vault-card-btn withdraw-btn" id="withdrawFragmentsBtn" onclick="withdrawFragments()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawFragsCost">25</span> DE · once per life</button>
+                        </div>
+
+                        <!-- Light Essence Vault -->
+                        <div id="le-vault-section" style="display:none; grid-column:1/-1; max-width:440px; margin:0 auto; width:100%; background:linear-gradient(160deg,#001a14,#002a1e); border:1px solid #44ffcc22; border-top:3px solid #44ffcc; border-radius:16px; padding:20px; position:relative; overflow:hidden; --vc-color:#44ffcc; --vc-glow:#44ffcc20; --vc-bg1:#004433; --vc-bg2:#002a1e; --vc-border:#44ffcc44; --vc-border-dim:#44ffcc18; --vc-btnbg:#44ffcc15; --vc-dim:#228866;">
+                            <div style="position:absolute;inset:0;background:radial-gradient(ellipse at top,#44ffcc0a,transparent 60%);pointer-events:none;"></div>
+                            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; position:relative;">
+                                <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4em;background:linear-gradient(135deg,#006644,#003a28);box-shadow:0 0 20px #44ffcc22;">✦</div>
+                                <div style="flex:1;">
+                                    <div style="color:#226644; font-size:0.65em; text-transform:uppercase; letter-spacing:2px; margin-bottom:2px;">Light Essence Vault <span style="color:#44ffcc44;">· Transcended</span></div>
+                                    <div style="font-size:1.6em; font-weight:bold; color:#44ffcc; text-shadow:0 0 14px #44ffcc44; font-family:var(--font-title);" id="le-vault-display">0</div>
+                                    <div style="color:#113322; font-size:0.68em; margin-top:1px;">LE secured</div>
+                                </div>
+                            </div>
+                            <button onclick="depositLightEssence()" style="width:100%; padding:10px; background:linear-gradient(135deg,#44ffcc18,transparent); border:1px solid #44ffcc44; border-radius:10px; color:#44ffcc; font-family:var(--font-title); font-size:0.78em; letter-spacing:1.5px; cursor:pointer; margin-bottom:8px; transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.2)'" onmouseout="this.style.filter=''">⬆ Deposit LE &nbsp;·&nbsp; <span style="font-size:0.85em; color:#227755;">Vault all but 3 LE fee · max 5,000 LE</span></button>
+                            <button id="le-withdraw-btn" onclick="withdrawLightEssence()" style="width:100%; padding:9px; background:transparent; border:1px solid #44ffcc18; border-radius:10px; color:#228855; font-family:var(--font-title); font-size:0.72em; letter-spacing:1px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.color='#44ffcc'" onmouseout="this.style.color='#228855'">⬇ Withdraw &nbsp;·&nbsp; Fee: 5 LE · once per life</button>
+                        </div>
                     </div>
 
-                    <!-- Dark Essence Vault -->
-                    <div style="background:linear-gradient(135deg,#0e0a00,#1a1400); border:1px solid #c8a80033; border-top:3px solid #c8a800; border-radius:12px; padding:18px; position:relative; overflow:hidden;">
-                        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top,#c8a80008,transparent 70%);pointer-events:none;"></div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                            <span style="font-size:1.4em;">🌑</span>
-                            <div>
-                                <div style="color:#888; font-size:0.68em; text-transform:uppercase; letter-spacing:2px;">Essence Vault <span style="color:#c8a80088;">· 0.3%/hr</span></div>
-                                <div style="color:#c8a800; font-size:1.4em; font-weight:bold;" id="banked-essence-display">0</div>
-                                <div style="color:#555; font-size:0.7em;">essence secured</div>
-                            </div>
-                        </div>
-                        <button class="upgrade-btn" onclick="depositEssence()" style="width:100%; margin-bottom:7px; border-color:#c8a80066; background:linear-gradient(135deg,#c8a80015,transparent);">
-                            <span style="color:#c8a800; font-weight:bold;">⬆ Deposit Essence</span>
-                            <span style="display:block; font-size:0.7em; color:#666; margin-top:2px;">Vault 50% of essence · max 100k · costs 30 DE</span>
-                        </button>
-                        <button class="upgrade-btn" id="withdrawEssenceBtn" onclick="withdrawEssence()" style="width:100%; border-color:#c8a80022; background:transparent;">
-                            <span style="color:#c8a800;">⬇ Withdraw</span>
-                            <span style="display:block; font-size:0.7em; color:#555; margin-top:2px;">Fee: 20 DE · once per life</span>
-                        </button>
+                    <!-- Interest bar -->
+                    <div id="vault-interest-bar">
+                        <span style="font-size:1.1em; flex-shrink:0;">📈</span>
+                        <span class="interest-pill"><span style="color:#c8a800;">Souls</span>&nbsp;<span style="color:#886600;">0.5%/hr</span></span>
+                        <span class="interest-pill"><span style="color:#e0b800;">Essence</span>&nbsp;<span style="color:#886600;">0.3%/hr</span></span>
+                        <span class="interest-pill"><span style="color:#4488ff;">Shards</span>&nbsp;<span style="color:#224488;">0.2%/hr</span></span>
+                        <span class="interest-pill"><span style="color:#444;">Fragments</span>&nbsp;<span style="color:#333;">no interest</span></span>
+                        <span id="le-interest-badge" style="display:none;" class="interest-pill"><span style="color:#44ffcc;">✦ LE Vault</span>&nbsp;<span style="color:#228866;">transcended</span></span>
+                        <span style="color:#1a2a33; font-size:0.88em; flex-basis:100%; margin-top:2px;">All compound passively every second. All lost on Collapse.</span>
                     </div>
 
-                    <!-- Abyssal Shards Vault -->
-                    <div style="background:linear-gradient(135deg,#00080e,#001018); border:1px solid #4488ff33; border-top:3px solid #4488ff; border-radius:12px; padding:18px; position:relative; overflow:hidden;">
-                        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top,#4488ff08,transparent 70%);pointer-events:none;"></div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                            <span style="font-size:1.4em;">💎</span>
-                            <div>
-                                <div style="color:#888; font-size:0.68em; text-transform:uppercase; letter-spacing:2px;">Shard Vault <span style="color:#4488ff88;">· 0.2%/hr</span></div>
-                                <div style="color:#4488ff; font-size:1.4em; font-weight:bold;" id="banked-shards-display">0</div>
-                                <div style="color:#555; font-size:0.7em;">shards secured</div>
+                    <!-- ═══ ABYSSAL EXCHANGE ═══ -->
+                    <div id="exchange-section">
+                        <div style="position:relative; z-index:1;">
+                            <div style="display:flex; align-items:center; gap:14px; margin-bottom:8px;">
+                                <div style="width:40px;height:40px;background:linear-gradient(135deg,#001a2a,#003366);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3em;box-shadow:0 0 20px #00e5ff33;flex-shrink:0;">🔀</div>
+                                <div>
+                                    <h3 style="margin:0; color:#00e5ff; letter-spacing:4px; font-size:0.95em; font-family:var(--font-title); text-shadow:0 0 14px #00e5ff44;" id="exchange-title">ABYSSAL EXCHANGE</h3>
+                                    <div style="color:#004455; font-size:0.68em; letter-spacing:1px; margin-top:1px;">Transmute · Convert · Forge — all conversions are permanent</div>
+                                </div>
                             </div>
-                        </div>
-                        <button class="upgrade-btn" onclick="depositShards()" style="width:100%; margin-bottom:7px; border-color:#4488ff66; background:linear-gradient(135deg,#4488ff15,transparent);">
-                            <span style="color:#4488ff; font-weight:bold;">⬆ Deposit Shards</span>
-                            <span style="display:block; font-size:0.7em; color:#666; margin-top:2px;">Vault 50% of shards · max 100k · costs 40 DE</span>
-                        </button>
-                        <button class="upgrade-btn" id="withdrawShardsBtn" onclick="withdrawShards()" style="width:100%; border-color:#4488ff22; background:transparent;">
-                            <span style="color:#4488ff;">⬇ Withdraw</span>
-                            <span style="display:block; font-size:0.7em; color:#555; margin-top:2px;">Fee: 30 DE · once per life</span>
-                        </button>
-                    </div>
 
-                    <!-- Fragment Vault -->
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #3d2a4a; border-top:3px solid #aa44ff; border-radius:12px; padding:18px; position:relative; overflow:hidden;">
-                        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top,#aa44ff08,transparent 70%);pointer-events:none;"></div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                            <span style="font-size:1.4em;">🔮</span>
-                            <div>
-                                <div style="color:#888; font-size:0.68em; text-transform:uppercase; letter-spacing:2px;">Fragment Vault <span style="color:#66668888;">· no interest</span></div>
-                                <div style="color:#aa44ff; font-size:1.4em; font-weight:bold;" id="banked-fragments-display">0</div>
-                                <div style="color:#555; font-size:0.7em;">fragments secured</div>
+                            <!-- Live balances -->
+                            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid #0a2030;">
+                                <div class="exchange-balance-pill">👻 <span id="exchange-souls-balance" class="cost-souls" style="color:#c8a800; font-weight:bold;">0</span></div>
+                                <div class="exchange-balance-pill">🌑 <span id="exchange-essence-balance" class="cost-essence" style="color:#c8a800; font-weight:bold;">0</span> <span id="exchange-essence-label" style="color:#666; font-size:0.85em;">DE</span></div>
+                                <div class="exchange-balance-pill">💎 <span id="exchange-shards-balance" class="cost-shards" style="color:#4488ff; font-weight:bold;">0</span> <span style="color:#444; font-size:0.85em;">Shards</span></div>
+                                <div class="exchange-balance-pill">⚡ <span id="exchange-aether-balance" style="color:#00e5ff; font-weight:bold;">0</span> <span style="color:#444; font-size:0.85em;">Aether</span></div>
+                                <div class="exchange-balance-pill">🔮 <span id="exchange-fragments-balance" style="color:#aa44ff; font-weight:bold;">0</span> <span style="color:#444; font-size:0.85em;">Frags</span></div>
                             </div>
-                        </div>
-                        <button class="upgrade-btn" onclick="depositFragments()" style="width:100%; margin-bottom:7px; border-color:#aa44ff66; background:linear-gradient(135deg,#aa44ff15,transparent);">
-                            <span style="color:#aa44ff; font-weight:bold;">⬆ Deposit Fragments</span>
-                            <span style="display:block; font-size:0.7em; color:#666; margin-top:2px;">Vault all fragments · max 100k · costs 50 DE</span>
-                        </button>
-                        <button class="upgrade-btn" id="withdrawFragmentsBtn" onclick="withdrawFragments()" style="width:100%; border-color:#aa44ff22; background:transparent;">
-                            <span style="color:#aa44ff;">⬇ Withdraw</span>
-                            <span style="display:block; font-size:0.7em; color:#555; margin-top:2px;">Fee: 25 DE · once per life</span>
-                        </button>
-                    </div>
 
-                    <!-- Light Essence Vault — only shown when transcended -->
-                    <div id="le-vault-section" style="display:none; background:linear-gradient(135deg,#001a14,#002a1e); border:1px solid #44ffcc33; border-top:3px solid #44ffcc; border-radius:12px; padding:18px; position:relative; overflow:hidden; grid-column: 1 / -1; max-width: 440px; margin: 0 auto; width: 100%;">
-                        <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at top,#44ffcc08,transparent 70%);pointer-events:none;"></div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                            <span style="font-size:1.4em;">✦</span>
-                            <div>
-                                <div style="color:#888; font-size:0.68em; text-transform:uppercase; letter-spacing:2px;">Light Essence Vault <span style="color:#44ffcc66;">· Transcended</span></div>
-                                <div style="color:#44ffcc; font-size:1.4em; font-weight:bold;" id="le-vault-display">0</div>
-                                <div style="color:#555; font-size:0.7em;">LE secured</div>
+                            <!-- Exchange cards -->
+                            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:14px; max-width:700px; margin:0 auto;">
+
+                                <!-- Shards → DE -->
+                                <div class="exch-card" style="--ec-color:#4488ff; --ec-bg1:#001030; --ec-bg2:#002060;">
+                                    <div class="exch-card-title">💎 → 🌑 Shatter Shards</div>
+                                    <div class="exch-tier-wrap">
+                                        <button class="arrow-btn" onclick="cycleConversion('shardsToDe', -1)">&#10094;</button>
+                                        <span id="shards-tier-text" style="flex:1; text-align:center; font-size:0.82em; color:#aaa;">Loading...</span>
+                                        <button class="arrow-btn" onclick="cycleConversion('shardsToDe', 1)">&#10095;</button>
+                                    </div>
+                                    <button id="convert-shards-btn" class="exch-convert-btn" style="--ec-color:#4488ff; --ec-bg1:#001030; --ec-bg2:#002060;">Convert</button>
+                                </div>
+
+                                <!-- Aether → DE -->
+                                <div class="exch-card" style="--ec-color:#00e5ff; --ec-bg1:#001a22; --ec-bg2:#003044;">
+                                    <div class="exch-card-title">⚡ → 🌑 Bleed Aether</div>
+                                    <div class="exch-tier-wrap">
+                                        <button class="arrow-btn" onclick="cycleConversion('aetherToDe', -1)">&#10094;</button>
+                                        <span id="aether-tier-text" style="flex:1; text-align:center; font-size:0.82em; color:#aaa;">Loading...</span>
+                                        <button class="arrow-btn" onclick="cycleConversion('aetherToDe', 1)">&#10095;</button>
+                                    </div>
+                                    <button id="convert-aether-btn" class="exch-convert-btn" style="--ec-color:#00e5ff; --ec-bg1:#001a22; --ec-bg2:#003044;">Convert</button>
+                                </div>
+
+                                <!-- DE → Souls -->
+                                <div class="exch-card" style="--ec-color:#c8a800; --ec-bg1:#1a1200; --ec-bg2:#2a2000;">
+                                    <div class="exch-card-title">🌑 → 👻 Conjure Souls</div>
+                                    <div class="exch-tier-wrap">
+                                        <button class="arrow-btn" onclick="cycleConversion('deToSouls', -1)">&#10094;</button>
+                                        <span id="de-tier-text" style="flex:1; text-align:center; font-size:0.82em; color:#aaa;">Loading...</span>
+                                        <button class="arrow-btn" onclick="cycleConversion('deToSouls', 1)">&#10095;</button>
+                                    </div>
+                                    <button id="convert-essence-btn" class="exch-convert-btn" style="--ec-color:#c8a800; --ec-bg1:#1a1200; --ec-bg2:#2a2000;">Convert</button>
+                                </div>
+
+                                <!-- DE → Shards -->
+                                <div class="exch-card" style="--ec-color:#88ccff; --ec-bg1:#001828; --ec-bg2:#002840;">
+                                    <div class="exch-card-title">🌑 → 💎 Crystallize Shards</div>
+                                    <div class="exch-tier-wrap">
+                                        <button class="arrow-btn" onclick="cycleConversion('deToShards', -1)">&#10094;</button>
+                                        <span id="de-shards-tier-text" style="flex:1; text-align:center; font-size:0.82em; color:#aaa;">Loading...</span>
+                                        <button class="arrow-btn" onclick="cycleConversion('deToShards', 1)">&#10095;</button>
+                                    </div>
+                                    <button id="convert-de-shards-btn" class="exch-convert-btn" style="--ec-color:#88ccff; --ec-bg1:#001828; --ec-bg2:#002840;">Convert</button>
+                                </div>
+
+                                <!-- Shards → Fragment -->
+                                <div class="exch-card" style="--ec-color:#44cc88; --ec-bg1:#001a10; --ec-bg2:#002a18; border-color:#44cc8833;">
+                                    <div class="exch-card-title" style="--ec-color:#44cc88;">💎 → 🔮 Forge Fragment</div>
+                                    <div style="color:#336644; font-size:0.68em; padding:4px 8px; background:#44cc8808; border:1px solid #44cc8818; border-radius:6px; text-align:center;">⚠ Cost triples each purchase · 1 per conversion</div>
+                                    <div id="shards-fragments-tier-text" style="font-size:0.82em; color:#aaa; text-align:center; padding:4px 0;">Loading...</div>
+                                    <button id="convert-shards-fragments-btn" class="exch-convert-btn" style="--ec-color:#44cc88; --ec-bg1:#001a10; --ec-bg2:#003020; border-color:#44cc8844;">Forge</button>
+                                </div>
+
                             </div>
-                        </div>
-                        <button class="upgrade-btn" onclick="depositLightEssence()" style="width:100%; margin-bottom:7px; border-color:#44ffcc44; background:linear-gradient(135deg,#44ffcc10,transparent);">
-                            <span style="color:#44ffcc; font-weight:bold;">⬆ Deposit LE</span>
-                            <span style="display:block; font-size:0.7em; color:#666; margin-top:2px;">Vault all but 3 LE fee · max 5,000 LE</span>
-                        </button>
-                        <button class="upgrade-btn" id="le-withdraw-btn" onclick="withdrawLightEssence()" style="width:100%; border-color:#44ffcc22; background:transparent;">
-                            <span style="color:#44ffcc;">⬇ Withdraw</span>
-                            <span style="display:block; font-size:0.7em; color:#555; margin-top:2px;">Fee: 5 LE · once per life</span>
-                        </button>
-                    </div>
-
-                </div>
-
-                <!-- Interest info -->
-                <div style="background:#0a0812; border:1px solid #2a1a3a; border-radius:10px; padding:11px 16px; margin-bottom:20px; display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:1.1em;">📈</span>
-                    <div style="flex:1; font-size:0.78em;">
-                        <span style="color:#c8a800;">Souls 0.5%/hr</span> &nbsp;·&nbsp;
-                        <span style="color:#c8a800;">Essence 0.3%/hr</span> &nbsp;·&nbsp;
-                        <span style="color:#4488ff;">Shards 0.2%/hr</span> &nbsp;·&nbsp;
-                        <span style="color:#555;">Fragments no interest</span>
-                        <span id="le-interest-badge" style="display:none; color:#44ffcc;"> &nbsp;·&nbsp; ✦ LE Vault (transcended)</span>
-                        <div style="color:#444; font-size:0.88em; margin-top:2px;">All compound passively every second. All lost on Collapse.</div>
-                    </div>
-                </div>
-
-                <!-- Exchange Section -->
-                <div style="background:linear-gradient(135deg,#0a0812,#110d1e); border:1px solid #3d2a4a; border-top:3px solid #00e5ff; border-radius:12px; padding:20px;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                        <span style="font-size:1.3em;">🔀</span>
-                        <h3 style="margin:0; color:#00e5ff; letter-spacing:2px;" id="exchange-title">ABYSSAL EXCHANGE</h3>
-                    </div>
-                    <p style="color:var(--dim-color); font-size:0.8em; margin:0 0 16px;">Transmute your cosmic assets. All conversions are permanent and irreversible.</p>
-
-                    <!-- Balances row -->
-                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px;">
-                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">👻 <span id="exchange-souls-balance" class="cost-souls">0</span></div>
-                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">🌑 <span id="exchange-essence-balance" class="cost-essence">0</span> <span id="exchange-essence-label">DE</span></div>
-                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">💎 <span id="exchange-shards-balance" class="cost-shards">0</span> Shards</div>
-                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">⚡ <span id="exchange-aether-balance" style="color:#00e5ff;">0</span> Aether</div>
-                        <div style="background:#ffffff08; border:1px solid #3d2a4a; border-radius:8px; padding:7px 12px; font-size:0.78em;">🔮 <span id="exchange-fragments-balance" style="color:#44cc88;">0</span> Fragments</div>
-                    </div>
-
-                    <div class="exchange-offers-grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
-                        <!-- Shards → DE -->
-                        <div class="upgrade-btn exchange-offer">
-                            <span class="btn-title">💎 → 🌑 Shatter Shards</span>
-                            <div class="exchange-tier-selector">
-                                <button class="arrow-btn" onclick="cycleConversion('shardsToDe', -1)">&#10094;</button>
-                                <span id="shards-tier-text">Loading...</span>
-                                <button class="arrow-btn" onclick="cycleConversion('shardsToDe', 1)">&#10095;</button>
-                            </div>
-                            <button id="convert-shards-btn" class="action-btn" style="width:100%; margin-top:10px; font-size:0.9rem;">Convert</button>
-                        </div>
-
-                        <!-- Aether → DE -->
-                        <div class="upgrade-btn exchange-offer">
-                            <span class="btn-title">⚡ → 🌑 Bleed Aether</span>
-                            <div class="exchange-tier-selector">
-                                <button class="arrow-btn" onclick="cycleConversion('aetherToDe', -1)">&#10094;</button>
-                                <span id="aether-tier-text">Loading...</span>
-                                <button class="arrow-btn" onclick="cycleConversion('aetherToDe', 1)">&#10095;</button>
-                            </div>
-                            <button id="convert-aether-btn" class="action-btn" style="width:100%; margin-top:10px; font-size:0.9rem;">Convert</button>
-                        </div>
-
-                        <!-- DE → Souls -->
-                        <div class="upgrade-btn exchange-offer">
-                            <span class="btn-title">🌑 → 👻 Conjure Souls</span>
-                            <div class="exchange-tier-selector">
-                                <button class="arrow-btn" onclick="cycleConversion('deToSouls', -1)">&#10094;</button>
-                                <span id="de-tier-text">Loading...</span>
-                                <button class="arrow-btn" onclick="cycleConversion('deToSouls', 1)">&#10095;</button>
-                            </div>
-                            <button id="convert-essence-btn" class="action-btn" style="width:100%; margin-top:10px; font-size:0.9rem;">Convert</button>
-                        </div>
-
-                        <!-- DE → Shards -->
-                        <div class="upgrade-btn exchange-offer">
-                            <span class="btn-title">🌑 → 💎 Crystallize Shards</span>
-                            <div class="exchange-tier-selector">
-                                <button class="arrow-btn" onclick="cycleConversion('deToShards', -1)">&#10094;</button>
-                                <span id="de-shards-tier-text">Loading...</span>
-                                <button class="arrow-btn" onclick="cycleConversion('deToShards', 1)">&#10095;</button>
-                            </div>
-                            <button id="convert-de-shards-btn" class="action-btn" style="width:100%; margin-top:10px; font-size:0.9rem;">Convert</button>
-                        </div>
-
-                        <!-- Shards → Fragments (very expensive, escalating) -->
-                        <div class="upgrade-btn exchange-offer" style="border-color:#44cc8833; background:linear-gradient(135deg,#44cc8808,transparent);">
-                            <span class="btn-title" style="color:#44cc88;">💎 → 🔮 Forge Fragment</span>
-                            <div style="color:#555; font-size:0.7em; margin:4px 0;">⚠ Cost triples each purchase · 1 per conversion</div>
-                            <div id="shards-fragments-tier-text" style="font-size:0.82em; margin:8px 0;">Loading...</div>
-                            <button id="convert-shards-fragments-btn" class="action-btn" style="width:100%; margin-top:4px; font-size:0.9rem; border-color:#44cc8866;">Forge</button>
                         </div>
                     </div>
                 </div>
@@ -15967,8 +16399,17 @@ function renderBrewery() {
         const meta = getPotionMeta(id);
         const canAffordSouls = D(gameState.souls).gte(D(p.cost));
         const canAffordShards = !p.shardsCost || D(gameState.abyssalShards).gte(p.shardsCost);
-        const BREW_FRAG_COSTS = { common:1, uncommon:2, rare:3, epic:4, legendary:5, fused:0, market:0, 'market-legendary':0 };
-        const fragCost = p.raidOnly ? 1 : (BREW_FRAG_COSTS[meta.rarity] || 1);
+        const BREW_FRAG_COSTS = { common:2, uncommon:5, rare:10, epic:20, legendary:40, fused:0, market:0, 'market-legendary':0 };
+        const _rbBase = p.raidOnly ? 1 : (BREW_FRAG_COSTS[meta.rarity] || 2);
+        const _rbSouls  = D(gameState.souls || 0).toNumber();
+        const _rbShards = D(gameState.abyssalShards || 0).toNumber();
+        const _rbDE     = D(gameState.darkEssence || 0).toNumber();
+        const _rbScale  = Math.max(
+            _rbSouls  > 1e6  ? Math.floor(Math.log10(_rbSouls  / 1e6)  / 2) : 0,
+            _rbShards > 50   ? Math.floor(Math.log10(_rbShards / 50)   / 1.5) : 0,
+            _rbDE     > 500  ? Math.floor(Math.log10(_rbDE     / 500)  / 2) : 0
+        );
+        const fragCost = p.raidOnly ? 1 : Math.ceil(_rbBase * (1 + _rbScale));
         const canAffordFrags = D(gameState.corruptedFragments || 0).gte(fragCost);
         const canAfford = canAffordSouls && canAffordShards && canAffordFrags;
 
@@ -16240,10 +16681,20 @@ function brewPotion(id) {
         return;
     }
 
-    // Per-potion fragment cost by rarity
+    // Per-potion fragment cost by rarity — scales with player power so late-game costs sting
     const meta = getPotionMeta(id);
-    const BREW_FRAG_COSTS = { common:1, uncommon:2, rare:3, epic:4, legendary:5, fused:0, market:0, 'market-legendary':0 };
-    const fragCost = p.raidOnly ? 1 : (BREW_FRAG_COSTS[meta.rarity] || 1);
+    const BREW_FRAG_COSTS = { common:2, uncommon:5, rare:10, epic:20, legendary:40, fused:0, market:0, 'market-legendary':0 };
+    const _baseFragCost = p.raidOnly ? 1 : (BREW_FRAG_COSTS[meta.rarity] || 2);
+    // Scaling: every 3 orders of magnitude in souls/shards/de above threshold bumps cost
+    const _sfSouls  = D(gameState.souls || 0).toNumber();
+    const _sfShards = D(gameState.abyssalShards || 0).toNumber();
+    const _sfDE     = D(gameState.darkEssence || 0).toNumber();
+    const _sfScale  = Math.max(
+        _sfSouls  > 1e6   ? Math.floor(Math.log10(_sfSouls  / 1e6)  / 2) : 0,
+        _sfShards > 50    ? Math.floor(Math.log10(_sfShards / 50)   / 1.5) : 0,
+        _sfDE     > 500   ? Math.floor(Math.log10(_sfDE     / 500)  / 2) : 0
+    );
+    const fragCost = p.raidOnly ? 1 : Math.ceil(_baseFragCost * (1 + _sfScale));
 
     let canAfford = D(gameState.souls).gte(D(p.cost))
     if (p.costType === 'souls_and_shards') {
@@ -20279,14 +20730,22 @@ function generateHourlyShopItems() {
             const _baseArt = ((seed + index * 13) % 20) + 1;
             finalPrice = _scaledDE(isTranscendedMarket ? Math.ceil(_baseArt * 0.5) : _baseArt);
         }
-        // Fragment cost — NOT scaled (fragments are a grind currency, keep cost fixed)
+        // Fragment cost — NOW scales with player power to make purchases feel meaningful
         if (!isLightPotion) {
-            if      (shopItem.type === 'item')          fragmentCost = ({common:0,uncommon:5,rare:15,epic:30,legendary:60,forged:100,heavenly:0,dark:60}[itemData?.rarity||'common']||0);
-            else if (shopItem.type === 'potion')        fragmentCost = 5;
-            else if (shopItem.type === 'market_potion') fragmentCost = 20;
-            else if (shopItem.type === 'artifact')      fragmentCost = 10;
-            else if (shopItem.type === 'secret_minion') fragmentCost = 500;
-            else if (shopItem.type === 'key')           fragmentCost = 25;
+            const _mfSouls  = D(gameState.souls || 0).toNumber();
+            const _mfShards = D(gameState.abyssalShards || 0).toNumber();
+            const _mfDE     = D(gameState.darkEssence || 0).toNumber();
+            const _mfScale  = 1 + Math.max(
+                _mfSouls  > 1e8  ? Math.floor(Math.log10(_mfSouls  / 1e8)  / 2) : 0,
+                _mfShards > 500  ? Math.floor(Math.log10(_mfShards / 500)  / 1.5) : 0,
+                _mfDE     > 5000 ? Math.floor(Math.log10(_mfDE     / 5000) / 2) : 0
+            );
+            if      (shopItem.type === 'item')          fragmentCost = Math.ceil(({common:0,uncommon:8,rare:25,epic:60,legendary:120,forged:200,heavenly:0,dark:120}[itemData?.rarity||'common']||0) * _mfScale);
+            else if (shopItem.type === 'potion')        fragmentCost = Math.ceil(10 * _mfScale);
+            else if (shopItem.type === 'market_potion') fragmentCost = Math.ceil(40 * _mfScale);
+            else if (shopItem.type === 'artifact')      fragmentCost = Math.ceil(20 * _mfScale);
+            else if (shopItem.type === 'secret_minion') fragmentCost = Math.ceil(800 * _mfScale);
+            else if (shopItem.type === 'key')           fragmentCost = Math.ceil(50 * _mfScale);
         }
         const _leAfford = lightSoulCost > 0 ? D(gameState.lightEssence || 0).gte(lightSoulCost) : true;
         const _deAfford = finalPrice > 0 ? D(gameState.darkEssence).gte(finalPrice) : true;
@@ -20789,7 +21248,10 @@ function depositEssence() {
 }
 
 function withdrawEssence() {
-    const withdrawCost = gameState.isTranscended ? 5 : 20; // LE costs less
+    // Scale fee: base 20 DE, grows with DE holdings — always affordable but stings late game
+    const _weDEbase = D(gameState.darkEssence || 0).toNumber();
+    const _weScale = _weDEbase > 100 ? Math.floor(Math.log10(_weDEbase / 100) * 15) : 0;
+    const withdrawCost = gameState.isTranscended ? 5 : Math.max(20, 20 + _weScale);
     if (gameState.hasWithdrawnEssence) {
         Toastify({ text: `Already withdrew essence this life.`, duration:2500, gravity:'top', position:'center' }).showToast(); return;
     }
@@ -20824,7 +21286,14 @@ function depositShards() {
 }
 
 function withdrawShards() {
-    const withdrawCost = 30;
+    // Scale fee: base 30 DE, grows with player's shard wealth
+    const _wsDEbase = D(gameState.darkEssence || 0).toNumber();
+    const _wsShBase = D(gameState.abyssalShards || 0).toNumber();
+    const _wsScale = Math.max(
+        _wsDEbase > 100 ? Math.floor(Math.log10(_wsDEbase / 100) * 18) : 0,
+        _wsShBase > 50  ? Math.floor(Math.log10(_wsShBase / 50) * 10) : 0
+    );
+    const withdrawCost = Math.max(30, 30 + _wsScale);
     if (gameState.hasWithdrawnShards) {
         Toastify({ text: `Already withdrew shards this life.`, duration:2500, gravity:'top', position:'center' }).showToast(); return;
     }
@@ -20883,7 +21352,14 @@ function depositFragments() {
 }
 
 function withdrawFragments() {
-    const withdrawCost = 25;
+    // Scale fee: base 25 DE, grows with player's DE and fragment wealth
+    const _wfDEval = D(gameState.darkEssence || 0).toNumber();
+    const _wfFragVal = parseFloat(gameState.bankedFragments || 0);
+    const _wfScale = Math.max(
+        _wfDEval > 100   ? Math.floor(Math.log10(_wfDEval  / 100) * 12) : 0,
+        _wfFragVal > 20  ? Math.floor(Math.log10(_wfFragVal / 20)  * 8)  : 0
+    );
+    const withdrawCost = Math.max(25, 25 + _wfScale);
     if (gameState.hasWithdrawnFragments) {
         Toastify({ text: `Already withdrew fragments this life.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
@@ -21123,6 +21599,20 @@ function renderBank() {
     const _essLabel = _isTx ? 'LE' : 'DE';
     const _essBalance = () => _isTx ? D(gameState.lightEssence || 0) : D(gameState.darkEssence);
 
+    // Compute all scaled withdraw costs (mirrors the logic in each withdraw function)
+    const _rbDE = D(gameState.darkEssence || 0).toNumber();
+    const _rbSh = D(gameState.abyssalShards || 0).toNumber();
+    const _rbFr = parseFloat(gameState.bankedFragments || 0);
+    const _computedEssWithdraw  = _isTx ? 5 : Math.max(20, 20 + (_rbDE > 100 ? Math.floor(Math.log10(_rbDE / 100) * 15) : 0));
+    const _computedShardsWithdraw = Math.max(30, 30 + Math.max(
+        _rbDE > 100 ? Math.floor(Math.log10(_rbDE / 100) * 18) : 0,
+        _rbSh > 50  ? Math.floor(Math.log10(_rbSh / 50) * 10) : 0
+    ));
+    const _computedFragsWithdraw  = Math.max(25, 25 + Math.max(
+        _rbDE > 100 ? Math.floor(Math.log10(_rbDE / 100) * 12) : 0,
+        _rbFr > 20  ? Math.floor(Math.log10(_rbFr / 20) * 8)   : 0
+    ));
+
     const bankedSoulsDisplay = document.getElementById('banked-souls-display');
     if (bankedSoulsDisplay) {
         bankedSoulsDisplay.textContent = formatNumber(gameState.bankedSouls || 0);
@@ -21136,22 +21626,28 @@ function renderBank() {
     const bankedFragDisplay = document.getElementById('banked-fragments-display');
     if (bankedFragDisplay) {
         bankedFragDisplay.textContent = formatNumber(gameState.bankedFragments || 0);
+        const wfc = document.getElementById('withdrawFragsCost');
+        if (wfc) wfc.textContent = formatNumber(_computedFragsWithdraw);
         const wfb = document.getElementById('withdrawFragmentsBtn');
-        if (wfb) wfb.disabled = gameState.hasWithdrawnFragments || _essBalance().lt(25) || (gameState.bankedFragments || 0) <= 0;
+        if (wfb) wfb.disabled = gameState.hasWithdrawnFragments || _essBalance().lt(_computedFragsWithdraw) || (gameState.bankedFragments || 0) <= 0;
     }
 
     const bankedEssenceDisplay = document.getElementById('banked-essence-display');
     if (bankedEssenceDisplay) {
         bankedEssenceDisplay.textContent = formatNumber(gameState.bankedEssence || 0);
+        const wec = document.getElementById('withdrawEssenceCost');
+        if (wec) wec.textContent = formatNumber(_computedEssWithdraw);
         const web = document.getElementById('withdrawEssenceBtn');
-        if (web) web.disabled = gameState.hasWithdrawnEssence || _essBalance().lt(5) || (gameState.bankedEssence || 0) <= 0;
+        if (web) web.disabled = gameState.hasWithdrawnEssence || _essBalance().lt(_computedEssWithdraw) || (gameState.bankedEssence || 0) <= 0;
     }
 
     const bankedShardsDisplay = document.getElementById('banked-shards-display');
     if (bankedShardsDisplay) {
         bankedShardsDisplay.textContent = formatNumber(D(gameState.bankedShards || 0));
+        const wsc = document.getElementById('withdrawShardsCost');
+        if (wsc) wsc.textContent = formatNumber(_computedShardsWithdraw);
         const wsb = document.getElementById('withdrawShardsBtn');
-        if (wsb) wsb.disabled = gameState.hasWithdrawnShards || _essBalance().lt(30) || D(gameState.bankedShards || 0).lte(0);
+        if (wsb) wsb.disabled = gameState.hasWithdrawnShards || _essBalance().lt(_computedShardsWithdraw) || D(gameState.bankedShards || 0).lte(0);
     }
 
     // Update all DE labels to LE if transcended

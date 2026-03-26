@@ -5940,9 +5940,10 @@ text-decoration: underline; /* Adds an underline on hover */
                             </button>
                             <!-- Audit log -->
                             <button onclick="devShowAuditLog()"
-                                style="background:linear-gradient(135deg,#0a0a18,#050510); border:1px solid #4444ff44; border-radius:8px; color:#8888ff; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit; margin-bottom:6px; width:100%; text-align:left; letter-spacing:1px;">
+                                style="background:linear-gradient(135deg,#0a0a18,#050510); border:1px solid #4444ff44; border-radius:8px; color:#8888ff; padding:8px 16px; cursor:pointer; font-size:0.78em; font-family:inherit; margin-bottom:4px; width:100%; text-align:left; letter-spacing:1px;">
                                 📋 DEV AUDIT LOG — See all dev actions (last 100)
                             </button>
+                            <div style="color:#331133;font-size:0.6em;padding:0 4px 8px;line-height:1.5;">⚠ Requires Firebase rule on soul-collector-game DB → <code style="color:#442244;">"devAuditLog": {".read":"auth!=null&&root.child('devUsers').child(auth.uid).exists()",".write":"auth!=null&&root.child('devUsers').child(auth.uid).exists()"}</code></div>
                             <div id="dev-audit-log-panel" style="display:none;background:#06060f;border:1px solid #2a1a4a;border-radius:8px;padding:10px 14px;margin-bottom:10px;max-height:280px;overflow-y:auto;font-family:monospace;"></div>
                         </div>
                         <!-- Keyholders list -->
@@ -6182,49 +6183,6 @@ text-decoration: underline; /* Adds an underline on hover */
             </div>
 
             <!-- CACHE SPIN MODAL -->
-            <div id="cache-spin-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(8px);">
-                <div style="text-align:center;width:min(560px,94vw);">
-                    <!-- Title -->
-                    <div style="font-family:var(--font-title);font-size:1em;letter-spacing:4px;color:#888;text-transform:uppercase;margin-bottom:6px;">Abyssal Cache</div>
-                    <div id="cache-spin-subtitle" style="font-family:var(--font-title);font-size:0.75em;letter-spacing:2px;color:#444;margin-bottom:22px;">Opening...</div>
-
-                    <!-- Reel window -->
-                    <div style="position:relative;background:linear-gradient(135deg,#08050f,#100818);border:2px solid #2a1a4a;border-radius:16px;padding:0;overflow:hidden;box-shadow:0 0 60px rgba(120,0,200,0.3);">
-                        <!-- Scanline overlay -->
-                        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.08) 3px,rgba(0,0,0,0.08) 4px);pointer-events:none;z-index:3;"></div>
-                        <!-- Left/right fade -->
-                        <div style="position:absolute;inset:0;background:linear-gradient(90deg,#08050f 0%,transparent 25%,transparent 75%,#08050f 100%);pointer-events:none;z-index:4;"></div>
-                        <!-- Center indicator line -->
-                        <div style="position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-50%);background:linear-gradient(180deg,transparent,#aa44ff88,#aa44ff,#aa44ff88,transparent);z-index:5;pointer-events:none;box-shadow:0 0 12px #aa44ff;"></div>
-                        <!-- Top/bottom fade inside reel -->
-                        <div style="position:absolute;inset:0;background:linear-gradient(180deg,#08050f 0%,transparent 30%,transparent 70%,#08050f 100%);pointer-events:none;z-index:4;"></div>
-
-                        <!-- The scrolling reel -->
-                        <div id="cache-reel-track" style="display:flex;gap:0;will-change:transform;padding:0 20px;"></div>
-                    </div>
-
-                    <!-- Result reveal (shown after spin) -->
-                    <div id="cache-result-reveal" style="display:none;margin-top:24px;animation:cacheRevealIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;">
-                        <div id="cache-result-icon" style="font-size:3.5em;margin-bottom:8px;filter:drop-shadow(0 0 20px var(--result-color,#c8a800));animation:cacheIconPop 0.6s cubic-bezier(0.34,1.56,0.64,1) both;"></div>
-                        <div id="cache-result-name" style="font-family:var(--font-title);font-size:1.3em;letter-spacing:2px;color:var(--result-color,#c8a800);text-shadow:0 0 20px var(--result-color,#c8a800);margin-bottom:4px;"></div>
-                        <div id="cache-result-rarity" style="font-size:0.75em;letter-spacing:3px;text-transform:uppercase;color:#555;margin-bottom:8px;"></div>
-                        <div id="cache-result-desc" style="color:#7a6a8a;font-size:0.82em;max-width:340px;margin:0 auto 20px;line-height:1.5;"></div>
-                        <button onclick="closeCacheSpinModal()" style="background:linear-gradient(135deg,#2a0a4a,#4a0a7a);border:1px solid #aa44ff66;border-bottom:3px solid #000;border-radius:10px;padding:13px 44px;color:#cc88ff;font-family:var(--font-title);font-size:0.85em;letter-spacing:3px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">✦ Claim</button>
-                    </div>
-                </div>
-            </div>
-            <style>
-            @keyframes cacheRevealIn { from{opacity:0;transform:scale(0.7) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
-            @keyframes cacheIconPop  { from{transform:scale(0.3) rotate(-15deg);opacity:0} to{transform:scale(1) rotate(0deg);opacity:1} }
-            .cache-reel-item {
-                flex-shrink:0; width:110px; height:120px;
-                display:flex; flex-direction:column; align-items:center; justify-content:center;
-                gap:6px; padding:8px;
-            }
-            .cache-reel-item .ri-icon { font-size:2em; line-height:1; }
-            .cache-reel-item .ri-name { font-size:0.6em; font-family:var(--font-title); letter-spacing:0.5px; text-align:center; line-height:1.3; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-            .cache-reel-item .ri-rarity { font-size:0.52em; letter-spacing:2px; text-transform:uppercase; }
-            </style>
 
             <!-- Manage Item Modal -->
             <div id="manage-item-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); justify-content:center; align-items:center; z-index:300; backdrop-filter:blur(5px);">
@@ -24014,13 +23972,14 @@ function initializeChat() {
                     e.target.value = '';
                     return;
                 }
-                    const name = localStorage.getItem("slitherChatNickname"); 
+                    const name = localStorage.getItem("slitherChatNickname") || gameState?.playerName || 'Soul Wanderer';
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
+                    const _sendUidEnter = uid || window._chatUid || window._scChatUid || 'anon';
                     // ── Ban + slur check before sending ──
                     (function() {
                         const _cbd = (typeof window._getChatDb === 'function') ? window._getChatDb() : db;
                         if (!_cbd) return;
-                        _cbd.ref('bannedUsers/' + uid).once('value').then(banSnap => {
+                        _cbd.ref('bannedUsers/' + _sendUidEnter).once('value').then(banSnap => {
                             if (banSnap.exists()) {
                                 const b = banSnap.val();
                                 if (b.expiresAt === -1 || b.expiresAt > Date.now()) {
@@ -24038,7 +23997,7 @@ function initializeChat() {
                                 const ci2 = document.getElementById('chat-input'); if (ci2) ci2.value = '';
                                 return;
                             }
-                            const msgObj = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
+                            const msgObj = { uid: _sendUidEnter, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
                             if (gameState.donorTitle) msgObj.isDonor = true;
                             // Attach clan tag if player has one and has it enabled
                             // Active badge system — attach the badge the player chose to display
@@ -36846,23 +36805,18 @@ function renderChallengesPanel() {
         console.warn('%c⛔ Unauthorized', 'color:#ff4444;font-weight:bold;');
         return false;
     }
-    // ── Dev audit log — writes every action to chatDb devAuditLog/ ──────
+    // ── Dev audit log — writes to game save DB under devAuditLog/ ──────────
+    // The game save DB (soul-collector-game) already has devUsers rules in place
+    // Just need to add devAuditLog rules: ".write": "auth != null && root.child('devUsers').child(auth.uid).exists()"
     async function _devAuditLog(action, details = {}) {
         try {
-            // Use chatDb — devs already have write access there
-            const db = window._chatDb
-                || (window.firebase?.apps?.find(a => a.name === 'chatApp')?.database())
-                || window._scFirebase?.db;
-            const devUid  = window._chatUid || window._scChatUid || window._scFirebase?.auth?.currentUser?.uid || 'unknown';
+            // Use game save DB — add devAuditLog read/write rules in Firebase console:
+            // "devAuditLog": { ".read": "auth != null && root.child('devUsers').child(auth.uid).exists()", ".write": "auth != null && root.child('devUsers').child(auth.uid).exists()" }
+            const db = window._scFirebase?.db;
+            const devUid  = window._scFirebase?.auth?.currentUser?.uid || window._chatUid || window._scChatUid || 'unknown';
             const devName = gameState?.playerName || 'unknown';
             if (!db) return;
-            const entry = {
-                action,
-                devName,
-                devUid,
-                timestamp: Date.now(),
-                ...details
-            };
+            const entry = { action, devName, devUid, timestamp: Date.now(), ...details };
             await db.ref('devAuditLog').push(entry);
         } catch(e) { console.warn('[devAuditLog] write failed:', e.message); }
     }
@@ -36871,9 +36825,7 @@ function renderChallengesPanel() {
     // ── View audit log ─────────────────────────────────────────────────────
     window.devShowAuditLog = async function() {
         if (!_assertDev()) return;
-        const db = window._chatDb
-            || (window.firebase?.apps?.find(a => a.name === 'chatApp')?.database())
-            || window._scFirebase?.db;
+        const db = window._scFirebase?.db;
         if (!db) { devLog('Firebase not ready.'); return; }
         devLog('Loading audit log...');
         try {
@@ -38695,5 +38647,52 @@ function launchPrologueIfNew() {
 })();
 </script>
 <!-- ══ END PROMO ALERTS ══ -->
+
+
+<!-- Cache spin modal (moved to body root for correct fixed positioning) -->
+<div id="cache-spin-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(8px);">
+                <div style="text-align:center;width:min(560px,94vw);">
+                    <!-- Title -->
+                    <div style="font-family:var(--font-title);font-size:1em;letter-spacing:4px;color:#888;text-transform:uppercase;margin-bottom:6px;">Abyssal Cache</div>
+                    <div id="cache-spin-subtitle" style="font-family:var(--font-title);font-size:0.75em;letter-spacing:2px;color:#444;margin-bottom:22px;">Opening...</div>
+
+                    <!-- Reel window -->
+                    <div style="position:relative;background:linear-gradient(135deg,#08050f,#100818);border:2px solid #2a1a4a;border-radius:16px;padding:0;overflow:hidden;box-shadow:0 0 60px rgba(120,0,200,0.3);">
+                        <!-- Scanline overlay -->
+                        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.08) 3px,rgba(0,0,0,0.08) 4px);pointer-events:none;z-index:3;"></div>
+                        <!-- Left/right fade -->
+                        <div style="position:absolute;inset:0;background:linear-gradient(90deg,#08050f 0%,transparent 25%,transparent 75%,#08050f 100%);pointer-events:none;z-index:4;"></div>
+                        <!-- Center indicator line -->
+                        <div style="position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-50%);background:linear-gradient(180deg,transparent,#aa44ff88,#aa44ff,#aa44ff88,transparent);z-index:5;pointer-events:none;box-shadow:0 0 12px #aa44ff;"></div>
+                        <!-- Top/bottom fade inside reel -->
+                        <div style="position:absolute;inset:0;background:linear-gradient(180deg,#08050f 0%,transparent 30%,transparent 70%,#08050f 100%);pointer-events:none;z-index:4;"></div>
+
+                        <!-- The scrolling reel -->
+                        <div id="cache-reel-track" style="display:flex;gap:0;will-change:transform;padding:0 20px;"></div>
+                    </div>
+
+                    <!-- Result reveal (shown after spin) -->
+                    <div id="cache-result-reveal" style="display:none;margin-top:24px;animation:cacheRevealIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;">
+                        <div id="cache-result-icon" style="font-size:3.5em;margin-bottom:8px;filter:drop-shadow(0 0 20px var(--result-color,#c8a800));animation:cacheIconPop 0.6s cubic-bezier(0.34,1.56,0.64,1) both;"></div>
+                        <div id="cache-result-name" style="font-family:var(--font-title);font-size:1.3em;letter-spacing:2px;color:var(--result-color,#c8a800);text-shadow:0 0 20px var(--result-color,#c8a800);margin-bottom:4px;"></div>
+                        <div id="cache-result-rarity" style="font-size:0.75em;letter-spacing:3px;text-transform:uppercase;color:#555;margin-bottom:8px;"></div>
+                        <div id="cache-result-desc" style="color:#7a6a8a;font-size:0.82em;max-width:340px;margin:0 auto 20px;line-height:1.5;"></div>
+                        <button onclick="closeCacheSpinModal()" style="background:linear-gradient(135deg,#2a0a4a,#4a0a7a);border:1px solid #aa44ff66;border-bottom:3px solid #000;border-radius:10px;padding:13px 44px;color:#cc88ff;font-family:var(--font-title);font-size:0.85em;letter-spacing:3px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">✦ Claim</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+            @keyframes cacheRevealIn { from{opacity:0;transform:scale(0.7) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+            @keyframes cacheIconPop  { from{transform:scale(0.3) rotate(-15deg);opacity:0} to{transform:scale(1) rotate(0deg);opacity:1} }
+            .cache-reel-item {
+                flex-shrink:0; width:110px; height:120px;
+                display:flex; flex-direction:column; align-items:center; justify-content:center;
+                gap:6px; padding:8px;
+            }
+            .cache-reel-item .ri-icon { font-size:2em; line-height:1; }
+            .cache-reel-item .ri-name { font-size:0.6em; font-family:var(--font-title); letter-spacing:0.5px; text-align:center; line-height:1.3; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+            .cache-reel-item .ri-rarity { font-size:0.52em; letter-spacing:2px; text-transform:uppercase; }
+            </style>
+
 </body>
 </html>

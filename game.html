@@ -28965,33 +28965,45 @@ async function loadMyPact() {
             .select('*')
             .contains('members', [gameState.playerName])
             .limit(1)
-            .maybeSingle(); // maybeSingle() returns null instead of error when no rows found
+            .maybeSingle();
 
         if (error) {
             console.warn('[Pact] loadMyPact error:', error.message);
-            // Don't clear playerPact on network error — keep existing state
             return;
         }
 
         window.playerPact = data || null;
+        console.log('[Pact] loadMyPact data:', JSON.stringify(data));
 
-        // Sync the pact's clan tag to this member's localStorage
         if (window.playerPact) {
-            const pactTag   = window.playerPact.clan_tag || null;
-            const pactColor = window.playerPact.clan_tag_color || '#aa44ff';
-            if (pactTag) {
-                localStorage.setItem('myClanTag', pactTag);
-                localStorage.setItem('myClanTagColor', pactColor);
-                if (localStorage.getItem('myClanTagShow') === null) {
-                    localStorage.setItem('myClanTagShow', 'true');
+            // Read clan tag from Firebase (pact_buffs/clantag_{pactName})
+            // Supabase pacts table doesn't have clan_tag column — we store it in Firebase
+            var pactName = window.playerPact.pact_name;
+            var chatDb = window._chatDb || (window.firebase && window.firebase.apps.find(function(a){return a.name==='chatApp';}) && window.firebase.apps.find(function(a){return a.name==='chatApp';}).database());
+            if (chatDb && pactName) {
+                try {
+                    var snap = await chatDb.ref('pact_buffs/clantag_' + pactName).once('value');
+                    var tagData = snap.val();
+                    if (tagData && tagData.tag) {
+                        window.playerPact.clan_tag = tagData.tag;
+                        window.playerPact.clan_tag_color = tagData.color || '#aa44ff';
+                        localStorage.setItem('myClanTag', tagData.tag);
+                        localStorage.setItem('myClanTagColor', tagData.color || '#aa44ff');
+                        if (localStorage.getItem('myClanTagShow') === null) {
+                            localStorage.setItem('myClanTagShow', 'true');
+                        }
+                        console.log('[Pact] Loaded clan tag from Firebase:', tagData.tag);
+                    } else {
+                        window.playerPact.clan_tag = null;
+                        window.playerPact.clan_tag_color = null;
+                        localStorage.removeItem('myClanTag');
+                        localStorage.removeItem('myClanTagColor');
+                    }
+                } catch(fbErr) {
+                    console.warn('[Pact] Firebase tag read error:', fbErr);
                 }
-                console.log('[Pact] Synced clan tag:', pactTag, pactColor);
-            } else {
-                localStorage.removeItem('myClanTag');
-                localStorage.removeItem('myClanTagColor');
             }
         } else {
-            // Not in any pact — clear tag
             localStorage.removeItem('myClanTag');
             localStorage.removeItem('myClanTagColor');
         }
@@ -29058,12 +29070,17 @@ async function savePactTag() {
     var color = col ? col.value : '#aa44ff';
     if (!_TAG_VALID.test(tag)) { Toastify({text:'Tag must be 2–5 letters/numbers only.',duration:3500,gravity:'top',position:'center',style:{background:'#330000'}}).showToast(); return; }
     if (_FORBIDDEN_TAGS.test(tag.toLowerCase())) { Toastify({text:'⛔ That tag contains a forbidden word.',duration:4000,gravity:'top',position:'center',style:{background:'#330000'}}).showToast(); return; }
-    if (!supabaseClient || !window.playerPact) return;
+    if (!window.playerPact) return;
+    var pactName = window.playerPact.pact_name;
     try {
-        await supabaseClient.from('pacts').update({ clan_tag: tag, clan_tag_color: color }).eq('id', window.playerPact.id);
+        // Store clan tag in Firebase chatDb (pact_buffs/clantag_{pactName})
+        // This is real-time so all members get it instantly
+        var chatDb = window._chatDb || (window.firebase && window.firebase.apps.find(function(a){return a.name==='chatApp';}) && window.firebase.apps.find(function(a){return a.name==='chatApp';}).database());
+        if (chatDb) {
+            await chatDb.ref('pact_buffs/clantag_' + pactName).set({ tag: tag, color: color, setAt: Date.now() });
+        }
         window.playerPact.clan_tag = tag;
         window.playerPact.clan_tag_color = color;
-        // Save to localStorage for own messages
         localStorage.setItem('myClanTag', tag);
         localStorage.setItem('myClanTagColor', color);
         localStorage.setItem('myClanTagShow', 'true');
@@ -29074,9 +29091,11 @@ async function savePactTag() {
 }
 
 async function removePactTag() {
-    if (!_pactIsLeader() || !supabaseClient || !window.playerPact) return;
+    if (!_pactIsLeader() || !window.playerPact) return;
     if (!confirm('Remove the clan tag for everyone in the pact?')) return;
-    await supabaseClient.from('pacts').update({ clan_tag: null, clan_tag_color: null }).eq('id', window.playerPact.id);
+    var pactName = window.playerPact.pact_name;
+    var chatDb = window._chatDb || (window.firebase && window.firebase.apps.find(function(a){return a.name==='chatApp';}) && window.firebase.apps.find(function(a){return a.name==='chatApp';}).database());
+    if (chatDb) await chatDb.ref('pact_buffs/clantag_' + pactName).remove();
     window.playerPact.clan_tag = null;
     window.playerPact.clan_tag_color = null;
     localStorage.removeItem('myClanTag');

@@ -12739,8 +12739,15 @@ const _DEV_UIDS = new Set([
 ]);
 function _isDevSession() {
     try {
-        const uid = window._scFirebase?.auth?.currentUser?.uid;
-        return uid && _DEV_UIDS.has(uid);
+        // Check 1: game save Firebase UID
+        const saveUid = window._scFirebase?.auth?.currentUser?.uid;
+        if (saveUid && _DEV_UIDS.has(saveUid)) return true;
+        // Check 2: chat Firebase UID (TOqInacHmaRiKuTakIIbuJKAzQH3 etc)
+        const chatUid = window._chatUid || window._scChatUid;
+        if (chatUid && _DEV_UIDS.has(chatUid)) return true;
+        // Check 3: dev panel was already unlocked via !isDev in chat
+        if (window._devPanelUnlocked === true) return true;
+        return false;
     } catch(e) { return false; }
 }
 function _isConsoleCall() {
@@ -24172,13 +24179,15 @@ function initializeChat() {
                         input.focus();
                         return;
                     }
-                    const name = localStorage.getItem("slitherChatNickname");
+                    const name = localStorage.getItem("slitherChatNickname") || gameState?.playerName || 'Soul Wanderer';
                     const color = localStorage.getItem("slitherChatNameColor") || "#FFD700";
+                    // Use the chat UID — uid from closure may be anonymous, prefer _chatUid/_scChatUid
+                    const _sendUid = uid || window._chatUid || window._scChatUid || 'anon';
                     // ── Ban + slur check before sending ──
                     (function() {
                         const _cbd2 = (typeof window._getChatDb === 'function') ? window._getChatDb() : db;
                         if (!_cbd2) return;
-                        _cbd2.ref('bannedUsers/' + uid).once('value').then(banSnap => {
+                        _cbd2.ref('bannedUsers/' + _sendUid).once('value').then(banSnap => {
                             if (banSnap.exists()) {
                                 const b = banSnap.val();
                                 if (b.expiresAt === -1 || b.expiresAt > Date.now()) {
@@ -24195,7 +24204,7 @@ function initializeChat() {
                                 input.value = ''; input.focus();
                                 return;
                             }
-                            const msgObj2 = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
+                            const msgObj2 = { uid: _sendUid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
                             if (gameState.donorTitle) msgObj2.isDonor = true;
                             db.ref("slitherChat").push(msgObj2);
                             input.value = '';
@@ -36836,17 +36845,20 @@ function renderChallengesPanel() {
         console.warn('%c⛔ Unauthorized', 'color:#ff4444;font-weight:bold;');
         return false;
     }
-    // ── Dev audit log — writes every action to Firebase devAuditLog/ ──────
+    // ── Dev audit log — writes every action to chatDb devAuditLog/ ──────
     async function _devAuditLog(action, details = {}) {
         try {
-            const db  = window._scFirebase?.db;
-            const uid = window._scFirebase?.auth?.currentUser?.uid;
-            const devName = gameState?.playerName || uid || 'unknown';
+            // Use chatDb — devs already have write access there
+            const db = window._chatDb
+                || (window.firebase?.apps?.find(a => a.name === 'chatApp')?.database())
+                || window._scFirebase?.db;
+            const devUid  = window._chatUid || window._scChatUid || window._scFirebase?.auth?.currentUser?.uid || 'unknown';
+            const devName = gameState?.playerName || 'unknown';
             if (!db) return;
             const entry = {
                 action,
                 devName,
-                devUid: uid || 'unknown',
+                devUid,
                 timestamp: Date.now(),
                 ...details
             };
@@ -36858,7 +36870,9 @@ function renderChallengesPanel() {
     // ── View audit log ─────────────────────────────────────────────────────
     window.devShowAuditLog = async function() {
         if (!_assertDev()) return;
-        const db = window._scFirebase?.db;
+        const db = window._chatDb
+            || (window.firebase?.apps?.find(a => a.name === 'chatApp')?.database())
+            || window._scFirebase?.db;
         if (!db) { devLog('Firebase not ready.'); return; }
         devLog('Loading audit log...');
         try {

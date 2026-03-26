@@ -3368,9 +3368,9 @@ text-decoration: underline; /* Adds an underline on hover */
                     padding:2px 8px; letter-spacing:1px;
                 }
                 .altar-card-desc {
-                    color:#887799; font-size:0.82em; margin:10px 0 14px;
+                    color:#887799; font-size:0.82em; margin:10px 0 12px;
                     line-height:1.5; border-left:2px solid var(--card-accent,#c41818);
-                    padding-left:10px; opacity:0.8; flex:1;
+                    padding-left:10px; opacity:0.8;
                 }
                 .altar-card-persistent {
                     color:var(--card-accent,#44aaff); font-size:0.72em;
@@ -3442,7 +3442,11 @@ text-decoration: underline; /* Adds an underline on hover */
                                 </div>
                                 <div class="altar-card-level">Lv.<span id="clickLevel">1</span></div>
                             </div>
-                            <p class="altar-card-desc">Increases souls gained per click.</p>
+                            <p class="altar-card-desc">Increases souls gained per click. Each level multiplies your click power, letting you harvest souls faster during active play.</p>
+                            <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(232,196,106,0.06);border:1px solid rgba(232,196,106,0.12);border-radius:8px;padding:7px 12px;margin-bottom:12px;">
+                                <span style="color:#554a22;font-size:0.7em;letter-spacing:1px;">SOULS/CLICK</span>
+                                <span style="color:#e8c46a;font-size:0.88em;font-weight:bold;" id="altar-spc-preview">—</span>
+                            </div>
                             <button class="altar-upgrade-btn" id="clickUpgradeBtn" onclick="buyUpgrade('click')">
                                 <span class="btn-label">⬆ Upgrade</span>
                                 <span class="btn-cost">Cost: <span id="clickCost" class="cost-souls">10</span> souls</span>
@@ -3458,7 +3462,11 @@ text-decoration: underline; /* Adds an underline on hover */
                                     <div class="altar-card-sub">Convert souls → Dark Essence</div>
                                 </div>
                             </div>
-                            <p class="altar-card-desc" style="border-left-color:#aa44ff;">Burn souls to gain 1 Dark Essence.</p>
+                            <p class="altar-card-desc" style="border-left-color:#aa44ff;">Burn a portion of your souls to gain 1 Dark Essence. Essential for unlocking upgrades, artifacts, and world progression.</p>
+                            <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(170,68,255,0.06);border:1px solid rgba(170,68,255,0.12);border-radius:8px;padding:7px 12px;margin-bottom:12px;">
+                                <span style="color:#442266;font-size:0.7em;letter-spacing:1px;">DARK ESSENCE</span>
+                                <span style="color:#aa44ff;font-size:0.88em;font-weight:bold;" id="altar-de-preview">—</span>
+                            </div>
                             <button class="altar-upgrade-btn" id="sacrificeBtn" onclick="buyUpgrade('sacrifice')">
                                 <span class="btn-label">🔥 Sacrifice</span>
                                 <span class="btn-cost">Cost: <span id="sacrificeCost" class="cost-souls">1000</span> souls</span>
@@ -3475,7 +3483,11 @@ text-decoration: underline; /* Adds an underline on hover */
                                 </div>
                                 <div class="altar-card-level" style="color:#44aaff;">Lv.<span id="resonanceLevel">0</span></div>
                             </div>
-                            <p class="altar-card-desc" style="border-left-color:#44aaff;">+5% Abyssal Shards on Ascend per level.</p>
+                            <p class="altar-card-desc" style="border-left-color:#44aaff;">+5% Abyssal Shards on Ascend per level. Shards power up your next life — this is the most valuable long-term investment.</p>
+                            <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(68,170,255,0.06);border:1px solid rgba(68,170,255,0.12);border-radius:8px;padding:7px 12px;margin-bottom:8px;">
+                                <span style="color:#1a3a55;font-size:0.7em;letter-spacing:1px;">SHARD BONUS</span>
+                                <span style="color:#44aaff;font-size:0.88em;font-weight:bold;" id="altar-resonance-preview">+0%</span>
+                            </div>
                             <p class="altar-card-persistent">★ Persists through resets</p>
                             <button class="altar-upgrade-btn" id="resonanceUpgradeBtn" onclick="buyUpgrade('resonance')">
                                 <span class="btn-label" style="color:#44aaff;">⬆ Upgrade</span>
@@ -15235,7 +15247,20 @@ function showScreen(screenId) {
     }
     playSound('click');
 }
-function renderAltar() { document.getElementById('clickLevel').innerText = gameState.upgrades.click.level; document.getElementById('clickCost').innerText = formatNumber(gameState.upgrades.click.cost); document.getElementById('sacrificeCost').innerText = formatNumber(gameState.upgrades.sacrifice.cost); document.getElementById('resonanceLevel').innerText = gameState.upgrades.resonance.level; document.getElementById('resonanceCost').innerText = formatNumber(gameState.upgrades.resonance.cost); }
+function renderAltar() {
+    document.getElementById('clickLevel').innerText    = gameState.upgrades.click.level;
+    document.getElementById('clickCost').innerText     = formatNumber(gameState.upgrades.click.cost);
+    document.getElementById('sacrificeCost').innerText = formatNumber(gameState.upgrades.sacrifice.cost);
+    document.getElementById('resonanceLevel').innerText = gameState.upgrades.resonance.level;
+    document.getElementById('resonanceCost').innerText  = formatNumber(gameState.upgrades.resonance.cost);
+    // Live stat previews
+    const _spcEl = document.getElementById('altar-spc-preview');
+    const _deEl  = document.getElementById('altar-de-preview');
+    const _resEl = document.getElementById('altar-resonance-preview');
+    if (_spcEl) _spcEl.textContent = formatNumber(gameState.soulsPerClick || 1);
+    if (_deEl)  _deEl.textContent  = formatNumber(gameState.darkEssence   || 0) + ' DE';
+    if (_resEl) _resEl.textContent = '+' + ((gameState.upgrades.resonance.level || 0) * 5) + '%';
+}
 
 
 function renderMinions() {
@@ -20510,6 +20535,25 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
             { bg:'linear-gradient(135deg,#120a06,#1e1008)', border:'#cc7722', anim:'lbPulse3', label:'THIRD PLACE', textGlow:'0 0 8px #cc772244'  },
         ];
 
+        // Track player's best leaderboard rank for badge unlocks
+        const _myLbIdx = players.findIndex(p => p.name === gameState.playerName);
+        if (_myLbIdx !== -1 && _myLbIdx < 10) {
+            const _myRank = _myLbIdx + 1;
+            if (!gameState.leaderboardBadges) gameState.leaderboardBadges = {};
+            // Keep the best rank ever achieved per category
+            const _prevBest = gameState.leaderboardBadges[type] || 999;
+            if (_myRank < _prevBest) {
+                gameState.leaderboardBadges[type] = _myRank;
+                saveGame();
+            }
+            // Global best rank across all tabs
+            const _prevGlobal = gameState.leaderboardBadges['global'] || 999;
+            if (_myRank < _prevGlobal) {
+                gameState.leaderboardBadges['global'] = _myRank;
+                saveGame();
+            }
+        }
+
         players.slice(0, 10).forEach((player, index) => {
             const isMe = player.name === gameState.playerName;
             const rank = index + 1;
@@ -23499,6 +23543,24 @@ function initializeChat() {
                     roleTagHTML += ` <span style="background:${_ctColor}22;color:${_ctColor};border:1px solid ${_ctColor}55;padding:1px 6px;border-radius:4px;font-size:0.75em;font-weight:700;vertical-align:middle;">${_ctSafe}</span>`;
                 }
             }
+            // Leaderboard rank badges — shown for non-dev, non-system players who earned them
+            if (msg.activeBadgeOverride && !isDev(msg.uid) && !isSystemMessage) {
+                const _rankBadges = {
+                    'rank_top3':   { label:'👑 CHAMPION',   color:'#c8a800' },
+                    'rank_top10':  { label:'⚔ TOP 10',      color:'#aa44ff' },
+                    'rank_dark':   { label:'☠ DARK LORD',   color:'#ff6666' },
+                    'rank_light':  { label:'✦ ASCENDANT',   color:'#c8b4ff' },
+                    'rank_aether': { label:'🌀 VOID WALKER', color:'#00e5ff' },
+                    'rank_ascend': { label:'↑ ASCENSION',   color:'#ff9944' },
+                    'rank_pvp':    { label:'⚔ WARLORD',     color:'#44cc88' },
+                    'supporter':   null, // handled above
+                    'vip':         null,
+                };
+                const _rb = _rankBadges[msg.activeBadgeOverride];
+                if (_rb) {
+                    roleTagHTML += ` <span style="background:${_rb.color}22;color:${_rb.color};border:1px solid ${_rb.color}55;padding:1px 7px;border-radius:4px;font-size:0.72em;font-weight:700;vertical-align:middle;letter-spacing:0.5px;">${_rb.label}</span>`;
+                }
+            }
 
             // --- 3. HANDLE MESSAGE CONTENT (IMAGES, HTML, ETC.) ---
             let finalMessage = '';
@@ -24026,16 +24088,20 @@ function initializeChat() {
                             }
                             const msgObj = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
                             if (gameState.donorTitle) msgObj.isDonor = true;
-                            // Badge system — only attach fields that the Firebase rules allow
+                            // Badge system — attach allowed fields only
                             var _activeBadge = localStorage.getItem('activeChatBadge') || 'none';
                             var _ct = localStorage.getItem('myClanTag');
                             var _ctColor = localStorage.getItem('myClanTagColor') || '#aa44ff';
                             var _ctShow = localStorage.getItem('myClanTagShow') !== 'false';
                             if (_activeBadge === 'clan' && _ct && _ctShow) {
                                 msgObj.clanTag = _ct; msgObj.clanTagColor = _ctColor;
+                            } else if (_activeBadge && _activeBadge.startsWith('rank_')) {
+                                msgObj.activeBadgeOverride = _activeBadge;
+                            } else if (_activeBadge === 'supporter' && gameState.donorTitle) {
+                                msgObj.activeBadgeOverride = 'supporter';
+                            } else if (_activeBadge === 'vip') {
+                                msgObj.activeBadgeOverride = 'vip';
                             }
-                            // hideBadge and activeBadgeOverride are NOT in Firebase rules — omit them
-                            // The rendering side handles display from isDev/isDonor/role checks
                             db.ref("slitherChat").push(msgObj).then(() => {
                                 console.log('[Chat] Message sent OK, uid:', uid, 'name:', name);
                             }).catch(err => {
@@ -24190,13 +24256,19 @@ function initializeChat() {
                             }
                             const msgObj2 = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
                             if (gameState.donorTitle) msgObj2.isDonor = true;
-                            // Clan tag — only attach if player has one and has it enabled
+                            // Badge system — attach allowed fields only
                             var _activeBadge2 = localStorage.getItem('activeChatBadge') || 'none';
                             var _ct2 = localStorage.getItem('myClanTag');
                             var _ctColor2 = localStorage.getItem('myClanTagColor') || '#aa44ff';
                             var _ctShow2 = localStorage.getItem('myClanTagShow') !== 'false';
                             if (_activeBadge2 === 'clan' && _ct2 && _ctShow2) {
                                 msgObj2.clanTag = _ct2; msgObj2.clanTagColor = _ctColor2;
+                            } else if (_activeBadge2 && _activeBadge2.startsWith('rank_')) {
+                                msgObj2.activeBadgeOverride = _activeBadge2;
+                            } else if (_activeBadge2 === 'supporter' && gameState.donorTitle) {
+                                msgObj2.activeBadgeOverride = 'supporter';
+                            } else if (_activeBadge2 === 'vip') {
+                                msgObj2.activeBadgeOverride = 'vip';
                             }
                             db.ref("slitherChat").push(msgObj2).then(() => {
                                 console.log('[Chat] Message sent OK, uid:', uid, 'name:', name);
@@ -24251,6 +24323,41 @@ function initializeChat() {
                     if (gameState.donorTitle) {
                         earned.push({ id: 'supporter', label: '🩸 SUPPORTER', html: '<span style="background:linear-gradient(135deg,#8B6914,#c8a800);color:#000;padding:2px 7px;border-radius:4px;font-size:0.78em;font-weight:700;">🩸 SUPPORTER</span>', color: '#c8a800' });
                     }
+                    // Leaderboard rank badges — earned by appearing in top 10
+                    var _lb = gameState.leaderboardBadges || {};
+                    var _globalBest = _lb['global'] || 999;
+                    var _hasDark     = (_lb['darkOnly'] || 999) <= 10;
+                    var _hasLight    = (_lb['lightOnly'] || 999) <= 10;
+                    var _hasAsc      = (_lb['ascensions'] || 999) <= 10;
+                    var _hasAether   = (_lb['aether'] || 999) <= 10;
+                    var _hasPvp      = (_lb['pvpWins'] || 999) <= 10;
+                    var _hasTop3     = _globalBest <= 3;
+                    var _hasTop10    = _globalBest <= 10;
+                    if (_hasTop3) {
+                        var _rankColors = ['','#c8a800','#aaaacc','#cc7722'];
+                        var _rankEmoji  = ['','👑','🥈','🥉'];
+                        var _rankLabel  = _globalBest === 1 ? 'CHAMPION' : _globalBest === 2 ? 'RUNNER UP' : 'TOP 3';
+                        var _rc = _rankColors[_globalBest] || '#c8a800';
+                        earned.push({ id: 'rank_top3', label: _rankEmoji[_globalBest] + ' ' + _rankLabel, html: '<span style="background:linear-gradient(135deg,' + _rc + '33,' + _rc + '11);color:' + _rc + ';border:1px solid ' + _rc + '55;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">' + _rankEmoji[_globalBest] + ' ' + _rankLabel + '</span>', color: _rc });
+                    } else if (_hasTop10) {
+                        earned.push({ id: 'rank_top10', label: '⚔ TOP 10', html: '<span style="background:linear-gradient(135deg,#aa44ff33,#aa44ff11);color:#aa44ff;border:1px solid #aa44ff55;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">⚔ TOP 10</span>', color: '#aa44ff' });
+                    }
+                    if (_hasDark && _lb['darkOnly'] <= 3) {
+                        earned.push({ id: 'rank_dark', label: '☠ DARK LORD', html: '<span style="background:linear-gradient(135deg,#cc222233,#cc222211);color:#ff6666;border:1px solid #cc222255;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">☠ DARK LORD</span>', color: '#ff6666' });
+                    }
+                    if (_hasLight && _lb['lightOnly'] <= 3) {
+                        earned.push({ id: 'rank_light', label: '✦ ASCENDANT', html: '<span style="background:linear-gradient(135deg,#9966ff33,#9966ff11);color:#c8b4ff;border:1px solid #9966ff55;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">✦ ASCENDANT</span>', color: '#c8b4ff' });
+                    }
+                    if (_hasAether && _lb['aether'] <= 3) {
+                        earned.push({ id: 'rank_aether', label: '🌀 VOID WALKER', html: '<span style="background:linear-gradient(135deg,#00e5ff33,#00e5ff11);color:#00e5ff;border:1px solid #00e5ff55;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">🌀 VOID WALKER</span>', color: '#00e5ff' });
+                    }
+                    if (_hasAsc && _lb['ascensions'] <= 3) {
+                        earned.push({ id: 'rank_ascend', label: '↑ ASCENSION', html: '<span style="background:linear-gradient(135deg,#ff880033,#ff880011);color:#ff9944;border:1px solid #ff880055;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">↑ ASCENSION</span>', color: '#ff9944' });
+                    }
+                    if (_hasPvp && _lb['pvpWins'] <= 3) {
+                        earned.push({ id: 'rank_pvp', label: '⚔ WARLORD', html: '<span style="background:linear-gradient(135deg,#44cc8833,#44cc8811);color:#44cc88;border:1px solid #44cc8855;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">⚔ WARLORD</span>', color: '#44cc88' });
+                    }
+
                     // Clan tag
                     var ct = localStorage.getItem('myClanTag');
                     var ctColor = localStorage.getItem('myClanTagColor') || '#aa44ff';
@@ -28851,7 +28958,7 @@ function pactShowTab(tab) {
 
 // ── CLAN TAG HELPERS ────────────────────────────────────────────────────────
 // Forbidden tag words — reserved staff titles and slurs
-const _FORBIDDEN_TAGS = /^(dev|mod|owner|admin|staff|vip|god|sys|bot|sup|helper|support|n[i1!]gg[ae3r]|fagg?[o0]t|ch[i1]nk|k[i1]ke|tr[a@]nn|r[e3]t[a@]rd)/i;
+const _FORBIDDEN_TAGS = /^(dev|mod|owner|admin|staff|vip|god|sys|bot|sup|helper|support|champ|champion|rank1|top1|no1|num1|first|runner|legend|abyss|n[i1!]gg[ae3r]|fagg?[o0]t|ch[i1]nk|k[i1]ke|tr[a@]nn|r[e3]t[a@]rd)/i;
 const _TAG_VALID = /^[a-zA-Z0-9]{2,5}$/;
 
 function pactTagPreviewUpdate() {

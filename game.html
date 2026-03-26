@@ -814,6 +814,22 @@
         .chat-msg.msg-dev { background: rgba(196,24,24,0.08); border-left-color: #c41818; box-shadow: inset 0 0 20px rgba(196,24,24,0.04); }
         .chat-msg.msg-system { background: rgba(180,120,0,0.08); border-left-color: #c8a800; text-align: center; font-style: italic; }
         .chat-msg-time { color: #2e1f40; font-size: 0.75em; font-family: var(--font-body); margin-right: 5px; }
+
+        @keyframes supporterRainbow {
+            0%   { background: linear-gradient(135deg,#ff4444,#ff8844); color:#fff; }
+            14%  { background: linear-gradient(135deg,#ff8844,#ffcc00); color:#000; }
+            28%  { background: linear-gradient(135deg,#ffcc00,#44ff88); color:#000; }
+            42%  { background: linear-gradient(135deg,#44ff88,#44aaff); color:#000; }
+            56%  { background: linear-gradient(135deg,#44aaff,#aa44ff); color:#fff; }
+            70%  { background: linear-gradient(135deg,#aa44ff,#ff44cc); color:#fff; }
+            85%  { background: linear-gradient(135deg,#ff44cc,#ff4444); color:#fff; }
+            100% { background: linear-gradient(135deg,#ff4444,#ff8844); color:#fff; }
+        }
+        .supporter-badge {
+            animation: supporterRainbow 2s linear infinite;
+            padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align: middle;
+            display: inline-block;
+        }
         .chat-msg-text { color: #c8c0d8; }
         .chat-username { font-weight: bold; cursor: pointer; transition: opacity 0.15s; }
         .chat-username:hover { opacity: 0.8; text-decoration: underline dotted; }
@@ -5763,153 +5779,210 @@ text-decoration: underline; /* Adds an underline on hover */
                     </div>
                 </div>
                 <script>(function(){const b=document.getElementById('settings-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='settings-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
-                <div style="padding:24px;">
-            <!-- Abyssal Scroll toggle at top of settings -->
-            <div style="background:#0d0a1a; border:1px solid #3a1a5a; border-radius:10px; padding:14px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between;">
-                <div>
-                    <div style="color:#c8b4ff; font-weight:bold; font-size:0.95em;">📜 Abyssal Scroll</div>
-                    <div style="color:#666; font-size:0.78em; margin-top:3px;">A floating notepad — jot down notes, builds, goals. Saves locally on your device.</div>
-                </div>
-                <button onclick="toggleAbyssalScroll()" style="background:linear-gradient(135deg,#1a0a2a,#2a1040); border:1px solid #6a3a8a; border-radius:8px; color:#c8b4ff; padding:7px 14px; cursor:pointer; font-size:0.82em;">Open Scroll</button>
-            </div>
-                
-                <p style="color:var(--dim-color); max-width:500px; margin:0 auto 28px;">Customize your experience in the abyss.</p>
+                <div style="padding:20px 20px 32px;">
+                <div style="max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:14px;">
 
-                <div style="max-width:700px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+                    <!-- ═══ QUICK ACTIONS ROW ═══ -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <!-- Abyssal Scroll -->
+                        <button onclick="toggleAbyssalScroll()" style="background:linear-gradient(135deg,#0d0820,#1a1035);border:1px solid #6a3a8a55;border-radius:12px;padding:14px 16px;cursor:pointer;font-family:inherit;text-align:left;transition:all 0.2s;display:flex;align-items:center;gap:12px;" onmouseover="this.style.borderColor='#aa44ff88';this.style.background='linear-gradient(135deg,#12102a,#221440)'" onmouseout="this.style.borderColor='#6a3a8a55';this.style.background='linear-gradient(135deg,#0d0820,#1a1035)'">
+                            <span style="font-size:1.6em;flex-shrink:0;">📜</span>
+                            <div>
+                                <div style="color:#c8b4ff;font-weight:bold;font-size:0.85em;">Abyssal Scroll</div>
+                                <div style="color:#443366;font-size:0.7em;margin-top:2px;">Notes &amp; goals</div>
+                            </div>
+                        </button>
+                        <!-- Codex -->
+                        <button onclick="openCodex()" style="background:linear-gradient(135deg,#0e0c00,#1a1400);border:1px solid #c8a80033;border-radius:12px;padding:14px 16px;cursor:pointer;font-family:inherit;text-align:left;transition:all 0.2s;display:flex;align-items:center;gap:12px;" onmouseover="this.style.borderColor='#c8a800aa';this.style.background='linear-gradient(135deg,#1a1600,#221c00)'" onmouseout="this.style.borderColor='#c8a80033';this.style.background='linear-gradient(135deg,#0e0c00,#1a1400)'">
+                            <span style="font-size:1.6em;flex-shrink:0;">📖</span>
+                            <div>
+                                <div style="color:#c8a800;font-weight:bold;font-size:0.85em;">Codex of the Abyss</div>
+                                <div id="codex-btn-sub" style="color:#554400;font-size:0.7em;margin-top:2px;">Lore &amp; secrets</div>
+                            </div>
+                        </button>
+                    </div>
 
-                    <!-- Audio -->
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #aa44ff33; border-top:3px solid #aa44ff; border-radius:14px; padding:20px 24px;">
-                        <h3 style="margin:0 0 16px; color:#aa44ff; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">🔊 Audio</h3>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                            <button id="musicToggleBtn" onclick="toggleMusic()" style="background:#0d0a18; border:1px solid #aa44ff44; border-radius:10px; padding:14px; cursor:pointer; font-family:inherit; text-align:left; transition:all 0.2s;" onmouseover="this.style.borderColor='#aa44ff88'" onmouseout="this.style.borderColor='#aa44ff44'">
-                                <div style="font-size:1.4em; margin-bottom:4px;">🎵</div>
-                                <div style="color:#ddd; font-weight:bold; font-size:0.85em;">Music</div>
-                                <div id="musicStatus" style="color:#aa44ff; font-size:0.75em; margin-top:2px;">Status: ON</div>
+                    <!-- ═══ AUDIO ═══ -->
+                    <div style="background:linear-gradient(135deg,#080812,#10081e);border:1px solid #aa44ff22;border-radius:14px;overflow:hidden;">
+                        <div style="padding:12px 18px;border-bottom:1px solid #aa44ff11;display:flex;align-items:center;gap:8px;">
+                            <span style="width:8px;height:8px;background:#aa44ff;border-radius:50%;box-shadow:0 0 8px #aa44ff;flex-shrink:0;"></span>
+                            <span style="color:#aa44ff;font-family:var(--font-title);font-size:0.72em;letter-spacing:3px;">AUDIO</span>
+                        </div>
+                        <div style="padding:14px 18px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <button id="musicToggleBtn" onclick="toggleMusic()" style="background:#07060f;border:1px solid #aa44ff33;border-radius:10px;padding:14px 12px;cursor:pointer;font-family:inherit;text-align:left;transition:all 0.2s;display:flex;align-items:center;gap:10px;" onmouseover="this.style.borderColor='#aa44ff77'" onmouseout="this.style.borderColor='#aa44ff33'">
+                                <span style="font-size:1.4em;">🎵</span>
+                                <div>
+                                    <div style="color:#ccc;font-size:0.82em;font-weight:bold;">Music</div>
+                                    <div id="musicStatus" style="color:#aa44ff;font-size:0.7em;margin-top:1px;">ON</div>
+                                </div>
                             </button>
-                            <button id="sfxToggleBtn" onclick="toggleSfx()" style="background:#0d0a18; border:1px solid #aa44ff44; border-radius:10px; padding:14px; cursor:pointer; font-family:inherit; text-align:left; transition:all 0.2s;" onmouseover="this.style.borderColor='#aa44ff88'" onmouseout="this.style.borderColor='#aa44ff44'">
-                                <div style="font-size:1.4em; margin-bottom:4px;">🔔</div>
-                                <div style="color:#ddd; font-weight:bold; font-size:0.85em;">Sound FX</div>
-                                <div id="sfxStatus" style="color:#aa44ff; font-size:0.75em; margin-top:2px;">Status: ON</div>
+                            <button id="sfxToggleBtn" onclick="toggleSfx()" style="background:#07060f;border:1px solid #aa44ff33;border-radius:10px;padding:14px 12px;cursor:pointer;font-family:inherit;text-align:left;transition:all 0.2s;display:flex;align-items:center;gap:10px;" onmouseover="this.style.borderColor='#aa44ff77'" onmouseout="this.style.borderColor='#aa44ff33'">
+                                <span style="font-size:1.4em;">🔔</span>
+                                <div>
+                                    <div style="color:#ccc;font-size:0.82em;font-weight:bold;">Sound FX</div>
+                                    <div id="sfxStatus" style="color:#aa44ff;font-size:0.7em;margin-top:1px;">ON</div>
+                                </div>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Font Theme -->
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #4488ff33; border-top:3px solid #4488ff; border-radius:14px; padding:20px 24px;">
-                        <h3 style="margin:0 0 6px; color:#4488ff; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">🎨 Font Theme</h3>
-                        <p style="color:#555; font-size:0.78em; margin:0 0 14px;">Changes the title and heading style throughout the game.</p>
-                        <select id="font-select" onchange="changeFont(this.value)" style="width:100%; background:#0d0a18; border:1px solid #4488ff44; color:#ddd; padding:10px 14px; border-radius:8px; font-family:inherit; font-size:0.88em; cursor:pointer;">
-                            <option value="'Cinzel Decorative', serif|'Sorts Mill Goudy', serif">⚰ Default Demonic</option>
-                            <option value="'Uncial Antiqua', cursive|'MedievalSharp', cursive">🏰 Classic Gothic</option>
-                            <option value="'Metamorphous', serif|'IM Fell English SC', serif">📜 Ancient Runes</option>
-                            <option value="'Cinzel Decorative', serif|'EB Garamond', serif">✨ High Fantasy</option>
-                            <option value="'Metamorphous', serif|'Homemade Apple', cursive">🔮 Cursed Grimoire</option>
-                            <option value="'Press Start 2P', cursive|'Silkscreen', sans-serif">👾 Retro Pixel</option>
-                            <option value="'Roboto', sans-serif|'Roboto', sans-serif">💡 Simple & Clean</option>
-                        </select>
+                    <!-- ═══ FONT THEME ═══ -->
+                    <div style="background:linear-gradient(135deg,#080815,#0e0e20);border:1px solid #4488ff22;border-radius:14px;overflow:hidden;">
+                        <div style="padding:12px 18px;border-bottom:1px solid #4488ff11;display:flex;align-items:center;gap:8px;">
+                            <span style="width:8px;height:8px;background:#4488ff;border-radius:50%;box-shadow:0 0 8px #4488ff;flex-shrink:0;"></span>
+                            <span style="color:#4488ff;font-family:var(--font-title);font-size:0.72em;letter-spacing:3px;">FONT THEME</span>
+                        </div>
+                        <div style="padding:14px 18px;">
+                            <p style="color:#334;font-size:0.75em;margin:0 0 10px;">Changes title and heading style throughout the game.</p>
+                            <select id="font-select" onchange="changeFont(this.value)" style="width:100%;background:#07060f;border:1px solid #4488ff33;color:#bbd;padding:11px 14px;border-radius:9px;font-family:inherit;font-size:0.86em;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22><path d=%22M0 0l5 6 5-6z%22 fill=%22%234488ff%22/></svg>');background-repeat:no-repeat;background-position:right 12px center;">
+                                <option value="'Cinzel Decorative', serif|'Sorts Mill Goudy', serif">⚰ Default Demonic</option>
+                                <option value="'Uncial Antiqua', cursive|'MedievalSharp', cursive">🏰 Classic Gothic</option>
+                                <option value="'Metamorphous', serif|'IM Fell English SC', serif">📜 Ancient Runes</option>
+                                <option value="'Cinzel Decorative', serif|'EB Garamond', serif">✨ High Fantasy</option>
+                                <option value="'Metamorphous', serif|'Homemade Apple', cursive">🔮 Cursed Grimoire</option>
+                                <option value="'Press Start 2P', cursive|'Silkscreen', sans-serif">👾 Retro Pixel</option>
+                                <option value="'Roboto', sans-serif|'Roboto', sans-serif">💡 Simple &amp; Clean</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <!-- Account -->
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#0a1a2a); border:1px solid #4488ff33; border-top:3px solid #4488ff88; border-radius:14px; padding:20px 24px;">
-                        <h3 style="margin:0 0 6px; color:#60aaff; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">🔗 Account</h3>
-                        <p style="color:#555; font-size:0.78em; margin:0 0 14px;">Sync your save across devices with a free account.</p>
-                        <button id="account-btn" onclick="openAccountModal()" style="width:100%; background:linear-gradient(135deg,#0a1a2a,#0d1428); border:1px solid #4488ff55; border-radius:10px; padding:12px 18px; cursor:pointer; font-family:inherit; text-align:left; display:flex; align-items:center; gap:12px; transition:all 0.2s;" onmouseover="this.style.borderColor='#4488ffaa'" onmouseout="this.style.borderColor='#4488ff55'">
-                            <span style="font-size:1.6em;">👤</span>
-                            <div>
-                                <div id="account-btn-title" style="color:#60aaff; font-weight:bold; font-size:0.88em;">Save to Account</div>
-                                <div id="account-btn-sub" style="color:#555; font-size:0.75em; margin-top:2px;">Create an account to sync across devices</div>
-                            </div>
-                        </button>
+                    <!-- ═══ ACCOUNT ═══ -->
+                    <div style="background:linear-gradient(135deg,#06101a,#0a1620);border:1px solid #4488ff22;border-radius:14px;overflow:hidden;">
+                        <div style="padding:12px 18px;border-bottom:1px solid #4488ff11;display:flex;align-items:center;gap:8px;">
+                            <span style="width:8px;height:8px;background:#60aaff;border-radius:50%;box-shadow:0 0 8px #60aaff;flex-shrink:0;"></span>
+                            <span style="color:#60aaff;font-family:var(--font-title);font-size:0.72em;letter-spacing:3px;">ACCOUNT</span>
+                        </div>
+                        <div style="padding:14px 18px;">
+                            <p style="color:#334;font-size:0.75em;margin:0 0 10px;">Sync your save across devices with a free account.</p>
+                            <button id="account-btn" onclick="openAccountModal()" style="width:100%;background:#07060f;border:1px solid #4488ff33;border-radius:10px;padding:13px 16px;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:14px;transition:all 0.2s;" onmouseover="this.style.borderColor='#4488ff88'" onmouseout="this.style.borderColor='#4488ff33'">
+                                <span style="font-size:1.5em;">👤</span>
+                                <div>
+                                    <div id="account-btn-title" style="color:#60aaff;font-weight:bold;font-size:0.86em;">Save to Account</div>
+                                    <div id="account-btn-sub" style="color:#334;font-size:0.72em;margin-top:2px;">Create an account to sync across devices</div>
+                                </div>
+                                <span style="margin-left:auto;color:#4488ff44;font-size:0.9em;">›</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Keys of the Abyss — hidden until you hold one -->
                     <div id="key-settings-panel" style="display:none;"></div>
 
-                    <!-- Codex -->
-                    <div style="background:linear-gradient(135deg,#0a0a18,#0e0a1a); border:1px solid #c8a80033; border-top:3px solid #c8a800; border-radius:14px; padding:20px 24px;">
-                        <h3 style="margin:0 0 6px; color:#c8a800; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">📖 Codex of the Abyss</h3>
-                        <p style="color:#555; font-size:0.78em; margin:0 0 14px;">Lore, mechanics, and secrets — revealed as you grow stronger. New chapters unlock with your progress.</p>
-                        <button onclick="openCodex()" style="width:100%; background:linear-gradient(135deg,#1a1200,#0e0a00); border:1px solid #c8a80044; border-radius:10px; padding:12px 18px; cursor:pointer; font-family:inherit; text-align:left; display:flex; align-items:center; gap:12px; transition:all 0.2s;" onmouseover="this.style.borderColor='#c8a800aa'" onmouseout="this.style.borderColor='#c8a80044'">
-                            <span style="font-size:1.6em;">📖</span>
-                            <div>
-                                <div style="color:#c8a800; font-weight:bold; font-size:0.88em;">Open the Codex</div>
-                                <div id="codex-btn-sub" style="color:#555; font-size:0.75em; margin-top:2px;">Your knowledge grows with you</div>
+                    <!-- ═══ CHALLENGES ═══ -->
+                    <div style="background:linear-gradient(135deg,#0c0900,#1a1300);border:1px solid #c8a80022;border-radius:14px;overflow:hidden;">
+                        <div style="padding:12px 18px;border-bottom:1px solid #c8a80011;display:flex;align-items:center;justify-content:space-between;">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="width:8px;height:8px;background:#c8a800;border-radius:50%;box-shadow:0 0 8px #c8a800;flex-shrink:0;"></span>
+                                <span style="color:#c8a800;font-family:var(--font-title);font-size:0.72em;letter-spacing:3px;">CHALLENGES</span>
                             </div>
-                        </button>
+                            <span id="chal-count-badge" style="background:#1a1000;border:1px solid #c8a80033;border-radius:20px;padding:2px 10px;font-size:0.7em;color:#c8a800;">0 / 50</span>
+                        </div>
+                        <div style="padding:14px 18px;">
+                            <p style="color:#554400;font-size:0.75em;margin:0 0 10px;">Complete challenges to earn permanent stat bonuses.</p>
+                            <button onclick="var cp=document.getElementById('challenges-panel');cp.style.display=cp.style.display==='none'?'block':'none';renderChallengesPanel();updateChalBadge();"
+                                style="width:100%;background:#07060f;border:1px solid #c8a80033;border-radius:10px;padding:13px 16px;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:14px;transition:all 0.2s;" onmouseover="this.style.borderColor='#c8a800aa'" onmouseout="this.style.borderColor='#c8a80033'">
+                                <span style="font-size:1.5em;">🏆</span>
+                                <div>
+                                    <div style="color:#c8a800;font-weight:bold;font-size:0.86em;">View All Challenges</div>
+                                    <div style="color:#554400;font-size:0.72em;margin-top:2px;">Earn permanent bonuses by completing goals</div>
+                                </div>
+                                <span style="margin-left:auto;color:#c8a80044;font-size:0.9em;">›</span>
+                            </button>
+                            <div id="challenges-panel" style="display:none;margin-top:12px;max-height:500px;overflow-y:auto;padding-right:4px;">
+                                <div id="challenges-panel-content"></div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Support the Game / Donation -->
-                    <div style="background:linear-gradient(135deg,#0e0a00,#1a1200); border:1px solid #c8a80055; border-top:3px solid #c8a800; border-radius:14px; padding:20px 24px;">
-                        <h3 style="margin:0 0 6px; color:#c8a800; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">💛 Support Soul Collector</h3>
-                        <p style="color:#777; font-size:0.82em; margin:0 0 16px; line-height:1.6;">Every donation directly funds game development — new features, updates, balance improvements, and keeping the servers running. Thank you for keeping the Abyss alive.</p>
-                        <div style="background:#0a0800; border:1px solid #c8a80033; border-radius:10px; padding:14px 16px; margin-bottom:16px;">
-                            <div style="color:#c8a800; font-size:0.8em; font-weight:bold; margin-bottom:6px;">🎁 Donate $4.99 or more and receive:</div>
-                            <div style="color:#aaa; font-size:0.82em; line-height:1.8;">
-                                🔮 <strong style="color:#aa44ff;">10,000 Corrupted Fragments</strong><br>
-                                👿 <strong style="color:#ff44cc;">2 random Secret Minions</strong> — exclusive, can't be bought anywhere<br>
-                                🩸 <strong style="color:#ff6644;">Soul Supporter</strong> title displayed in chat
-                            </div>
-                            <div style="color:#555; font-size:0.72em; margin-top:10px; line-height:1.6; background:#0a0800; border:1px solid #c8a80022; border-radius:8px; padding:10px 14px;">
-                            <div style="color:#c8a800; font-size:0.8em; font-weight:bold; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">📋 How to claim your reward</div>
-                            <div style="color:#666; line-height:1.8;">
-                                1️⃣ Click <strong style="color:#ddd;">DONATE VIA PAYPAL</strong> and send $4.99+<br>
-                                2️⃣ In the <strong style="color:#ddd;">PayPal note/message field</strong> type your <strong style="color:#ff6644;">exact in-game name</strong> — this is how the system knows who donated. It is case-sensitive.<br>
-                                3️⃣ Come back here and click <strong style="color:#ddd;">CLAIM REWARD</strong><br>
-                                4️⃣ The system automatically checks and grants your 2 secret minions + fragments
-                            </div>
-                            <div style="color:#444; font-size:0.85em; margin-top:8px; font-style:italic;">⚠ Wrong name = reward gets stuck. Double-check before sending.</div>
+                    <!-- ═══ SUPPORT / DONATION ═══ -->
+                    <div style="background:linear-gradient(160deg,#0e0a00,#1a1200,#0a0800);border:1px solid #c8a80033;border-radius:14px;overflow:hidden;position:relative;">
+                        <div style="position:absolute;top:-30px;left:50%;transform:translateX(-50%);width:180px;height:60px;background:radial-gradient(ellipse,#c8a80018 0%,transparent 70%);pointer-events:none;"></div>
+                        <div style="padding:12px 18px;border-bottom:1px solid #c8a80011;display:flex;align-items:center;gap:8px;position:relative;">
+                            <span style="width:8px;height:8px;background:#c8a800;border-radius:50%;box-shadow:0 0 8px #c8a800;flex-shrink:0;"></span>
+                            <span style="color:#c8a800;font-family:var(--font-title);font-size:0.72em;letter-spacing:3px;">SUPPORT SOUL COLLECTOR</span>
                         </div>
+                        <div style="padding:14px 18px 6px;">
+                            <p style="color:#554400;font-size:0.75em;margin:0 0 12px;line-height:1.6;">Every donation funds new features and keeps the Abyss running. Thank you.</p>
+                            <!-- Reward tier header -->
+                            <div style="background:#0a0700;border:1px solid #c8a80022;border-radius:10px;overflow:hidden;margin-bottom:12px;">
+                                <div style="padding:8px 14px;background:linear-gradient(90deg,#c8a80010,transparent);border-bottom:1px solid #c8a80015;">
+                                    <span style="color:#887700;font-size:0.68em;letter-spacing:2px;text-transform:uppercase;">🎁 Donate $4.99+ and receive</span>
+                                </div>
+                                <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px;">
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <span style="font-size:1.2em;flex-shrink:0;">🔮</span>
+                                        <div style="flex:1;"><span style="color:#aa44ff;font-weight:bold;font-size:0.84em;">500,000 Corrupted Fragments</span><span style="color:#333;font-size:0.7em;"> — survives Ascension if banked</span></div>
+                                        <span style="background:#aa44ff15;color:#aa44ff;font-size:0.62em;padding:2px 7px;border-radius:20px;border:1px solid #aa44ff33;flex-shrink:0;">×500K</span>
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <span style="font-size:1.2em;flex-shrink:0;">👿</span>
+                                        <div style="flex:1;"><span style="color:#ff44cc;font-weight:bold;font-size:0.84em;">2 Random Secret Minions</span><span style="color:#333;font-size:0.7em;"> — exclusive, can't be bought</span></div>
+                                        <span style="background:#ff44cc15;color:#ff44cc;font-size:0.62em;padding:2px 7px;border-radius:20px;border:1px solid #ff44cc33;flex-shrink:0;">EXCLUSIVE</span>
+                                    </div>
+                                    <!-- Supporter badge row with live preview -->
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <span style="font-size:1.2em;flex-shrink:0;">🩸</span>
+                                        <div style="flex:1;"><span style="color:#c8a800;font-weight:bold;font-size:0.84em;">Soul Supporter Chat Badge</span><span style="color:#333;font-size:0.7em;"> — rainbow flash, permanent</span></div>
+                                        <span style="background:#c8a80015;color:#c8a800;font-size:0.62em;padding:2px 7px;border-radius:20px;border:1px solid #c8a80033;flex-shrink:0;">FOREVER</span>
+                                    </div>
+                                    <!-- Chat preview -->
+                                    <div style="background:#05030a;border:1px solid #1a0a28;border-radius:8px;padding:8px 12px;margin-top:2px;">
+                                        <div style="color:#221133;font-size:0.62em;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;">Chat Preview</div>
+                                        <div style="font-size:0.8em;line-height:1.85;">
+                                            <span style="color:#2a2244;font-size:0.85em;">[02:34]</span>
+                                            <b><span id="donation-preview-name" style="color:#FFD700;font-weight:bold;">YourName</span> <span class="supporter-badge">🩸 SUPPORTER</span>:</b>
+                                            <span style="color:#666;"> Thanks for keeping the Abyss alive! 🩸</span>
+                                        </div>
+                                        <div style="font-size:0.8em;line-height:1.85;margin-top:2px;">
+                                            <span style="color:#2a2244;font-size:0.85em;">[02:35]</span>
+                                            <b><span style="color:#888;">OtherPlayer</span>:</b>
+                                            <span style="color:#555;"> omg you have the supporter badge!</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- How to claim - collapsed style -->
+                            <div style="background:#06040a;border:1px solid #1a1020;border-radius:9px;padding:10px 14px;margin-bottom:12px;">
+                                <div style="color:#332244;font-size:0.68em;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">📋 How to Claim</div>
+                                <div style="display:flex;flex-direction:column;gap:5px;">
+                                    <div style="display:flex;gap:8px;align-items:baseline;"><span style="color:#443355;font-size:0.68em;font-weight:bold;flex-shrink:0;width:14px;">1.</span><span style="color:#554466;font-size:0.74em;">Click <strong style="color:#c8a800;">DONATE</strong> and send $4.99+</span></div>
+                                    <div style="display:flex;gap:8px;align-items:baseline;"><span style="color:#443355;font-size:0.68em;font-weight:bold;flex-shrink:0;width:14px;">2.</span><span style="color:#554466;font-size:0.74em;">Put your <strong style="color:#ff8855;">exact in-game name</strong> in the PayPal note — case sensitive!</span></div>
+                                    <div style="display:flex;gap:8px;align-items:baseline;"><span style="color:#443355;font-size:0.68em;font-weight:bold;flex-shrink:0;width:14px;">3.</span><span style="color:#554466;font-size:0.74em;">Return here and click <strong style="color:#aa44ff;">CLAIM REWARD</strong></span></div>
+                                </div>
+                            </div>
                         </div>
-                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                            <a href="https://www.paypal.biz/dxxthlydev" target="_blank" style="flex:1; min-width:160px; background:linear-gradient(135deg,#c8a80022,#c8a80011); border:2px solid #c8a80066; border-radius:10px; padding:12px 18px; color:#c8a800; font-family:var(--font-title); font-size:0.82em; letter-spacing:1px; cursor:pointer; text-align:center; text-decoration:none; display:block; transition:all 0.2s;" onmouseover="this.style.borderColor='#c8a800cc'" onmouseout="this.style.borderColor='#c8a80066'">
+                        <div style="padding:0 18px 18px;display:flex;gap:10px;flex-wrap:wrap;">
+                            <a href="https://www.paypal.biz/dxxthlydev" target="_blank"
+                               style="flex:1;min-width:140px;background:linear-gradient(135deg,#c8a80022,#c8a80008);border:1px solid #c8a80055;border-radius:10px;padding:12px 16px;color:#c8a800;font-family:var(--font-title);font-size:0.78em;letter-spacing:1px;cursor:pointer;text-align:center;text-decoration:none;display:block;transition:all 0.2s;"
+                               onmouseover="this.style.borderColor='#c8a800aa';this.style.background='linear-gradient(135deg,#c8a80033,#c8a80012)'"
+                               onmouseout="this.style.borderColor='#c8a80055';this.style.background='linear-gradient(135deg,#c8a80022,#c8a80008)'">
                                 💛 DONATE VIA PAYPAL
                             </a>
-                            <button onclick="openDonationClaim()" style="flex:1; min-width:160px; background:linear-gradient(135deg,#aa44ff22,transparent); border:1px solid #aa44ff44; border-radius:10px; padding:12px 18px; color:#aa44ff; font-family:var(--font-title); font-size:0.82em; letter-spacing:1px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='#aa44ff88'" onmouseout="this.style.borderColor='#aa44ff44'">
+                            <button onclick="openDonationClaim()"
+                                style="flex:1;min-width:140px;background:linear-gradient(135deg,#aa44ff22,#aa44ff08);border:1px solid #aa44ff44;border-radius:10px;padding:12px 16px;color:#aa44ff;font-family:var(--font-title);font-size:0.78em;letter-spacing:1px;cursor:pointer;transition:all 0.2s;"
+                                onmouseover="this.style.borderColor='#aa44ff99';this.style.background='linear-gradient(135deg,#aa44ff33,#aa44ff12)'"
+                                onmouseout="this.style.borderColor='#aa44ff44';this.style.background='linear-gradient(135deg,#aa44ff22,#aa44ff08)'">
                                 🎁 CLAIM REWARD
                             </button>
                         </div>
                     </div>
 
-                    <!-- 🏆 Challenges / Achievements -->
-                    <div style="background:linear-gradient(135deg,#0e0a00,#1a1200); border:1px solid #c8a80044; border-top:3px solid #c8a800; border-radius:14px; padding:20px 24px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                            <h3 style="margin:0; color:#c8a800; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">🏆 Challenges</h3>
-                            <span id="chal-count-badge" style="background:#1a1000;border:1px solid #c8a80044;border-radius:20px;padding:3px 12px;font-size:0.75em;color:#c8a800;">0 / 50</span>
+                    <!-- ═══ DANGER ZONE ═══ -->
+                    <div style="background:linear-gradient(135deg,#0d0508,#1a0808);border:1px solid #cc333318;border-radius:14px;overflow:hidden;">
+                        <div style="padding:12px 18px;border-bottom:1px solid #cc333311;display:flex;align-items:center;gap:8px;">
+                            <span style="width:8px;height:8px;background:#cc3333;border-radius:50%;box-shadow:0 0 8px #cc3333;flex-shrink:0;"></span>
+                            <span style="color:#cc3333;font-family:var(--font-title);font-size:0.72em;letter-spacing:3px;">DANGER ZONE</span>
                         </div>
-                        <p style="color:#555; font-size:0.78em; margin:0 0 14px;">Complete challenges to earn permanent stat bonuses. Progress saves automatically.</p>
-                        <button onclick="document.getElementById('challenges-panel').style.display=document.getElementById('challenges-panel').style.display==='none'?'block':'none'; renderChallengesPanel(); updateChalBadge();"
-                            style="width:100%; background:linear-gradient(135deg,#1a1000,#0e0a00); border:1px solid #c8a80055; border-radius:10px; padding:12px 18px; cursor:pointer; font-family:inherit; text-align:left; display:flex; align-items:center; gap:12px; transition:all 0.2s;" onmouseover="this.style.borderColor='#c8a800aa'" onmouseout="this.style.borderColor='#c8a80055'">
-                            <span style="font-size:1.6em;">🏆</span>
-                            <div>
-                                <div style="color:#c8a800; font-weight:bold; font-size:0.88em;">View All Challenges</div>
-                                <div style="color:#555; font-size:0.75em; margin-top:2px;">Earn permanent bonuses by completing goals</div>
-                            </div>
-                        </button>
-                        <div id="challenges-panel" style="display:none; margin-top:14px; max-height:500px; overflow-y:auto; padding-right:4px;">
-                            <div id="challenges-panel-content"></div>
+                        <div style="padding:14px 18px;">
+                            <p style="color:#442222;font-size:0.75em;margin:0 0 10px;">These actions are permanent and cannot be undone.</p>
+                            <button onclick="hardReset()" style="width:100%;background:#07020202;border:1px solid #cc333333;border-radius:10px;padding:12px 16px;color:#cc3333;cursor:pointer;font-family:inherit;font-size:0.82em;font-weight:bold;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;" onmouseover="this.style.borderColor='#cc333377';this.style.background='#cc333310'" onmouseout="this.style.borderColor='#cc333333';this.style.background='#07020202'">
+                                💀 Hard Reset — Erase all progress
+                            </button>
                         </div>
-                    </div>
-
-                    <!-- Danger Zone -->
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a0a0a); border:1px solid #cc333322; border-top:3px solid #cc3333; border-radius:14px; padding:20px 24px;">
-                        <h3 style="margin:0 0 6px; color:#cc3333; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">⚠ Danger Zone</h3>
-                        <p style="color:#555; font-size:0.78em; margin:0 0 14px;">These actions cannot be undone.</p>
-                        <button onclick="hardReset()" style="width:100%; background:linear-gradient(135deg,#1a0505,#0d0202); border:1px solid #cc333344; border-radius:10px; padding:12px 18px; color:#cc3333; cursor:pointer; font-family:inherit; font-size:0.85em; font-weight:bold; transition:all 0.2s;" onmouseover="this.style.borderColor='#cc333388'" onmouseout="this.style.borderColor='#cc333344'">
-                            💀 Hard Reset — Erase all progress
-                        </button>
-                    </div>
-
-                    <!-- Support -->
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a100a); border:1px solid #ff884422; border-top:3px solid #ff8844; border-radius:14px; padding:20px 24px; text-align:center;">
-                        <h3 style="margin:0 0 6px; color:#ff8844; font-size:0.9em; letter-spacing:2px; text-transform:uppercase;">❤️ Support Development</h3>
-                        <p style="color:#555; font-size:0.78em; margin:0 0 14px;">Help fund servers, tools, and new features.</p>
-                        <a href="https://www.paypal.com/donate/?business=SC3RFTW5QDZJ4&no_recurring=0&item_name=Support+Soul+Collector%E2%80%99s+development%21+Help+fund+servers%2C+tools%2C+and+resources+to+bring+the+game+to+life.&currency_code=USD" target="_blank" style="display:inline-block; background:linear-gradient(135deg,#ff884422,transparent); border:1px solid #ff884466; border-radius:10px; padding:12px 32px; color:#ff8844; font-family:inherit; font-size:0.9em; font-weight:bold; text-decoration:none; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,#ff884433,transparent)'" onmouseout="this.style.background='linear-gradient(135deg,#ff884422,transparent)'">
-                            ❤️ Donate via PayPal
-                        </a>
                     </div>
 
                 </div>
-
+                </div>
                 <!-- ══ DEV ADMIN PANEL — only rendered for devs ══ -->
                 <div id="dev-admin-panel" style="display:none; max-width:720px; margin:20px auto 0;">
                     <div style="background:#0c0010; border:1px solid #ff004455; border-top:3px solid #ff0044; border-radius:16px; overflow:hidden;">
@@ -15165,8 +15238,15 @@ function showScreen(screenId) {
     // Handle screen-specific loading
     if (screenId === 'settings') {
         updateAccountBtn();
-        // Show dev panel if this user is a dev
         if (typeof window._devPanelInit === 'function') window._devPanelInit();
+        // Update donation preview with player's actual name
+        const _dpEl = document.getElementById('donation-preview-name');
+        if (_dpEl) {
+            const _dpName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'YourName';
+            const _dpColor = localStorage.getItem('slitherChatNameColor') || '#FFD700';
+            _dpEl.textContent = _dpName;
+            _dpEl.style.color = _dpColor;
+        }
     }
     {
         fetchLeaderboard();
@@ -23540,15 +23620,19 @@ function initializeChat() {
                         'rank_aether': { label:'🌀 VOID WALKER', color:'#00e5ff' },
                         'rank_ascend': { label:'↑ ASCENSION',   color:'#ff9944' },
                         'rank_pvp':    { label:'⚔ WARLORD',     color:'#44cc88' },
-                        'supporter':   { label:'🩸 SUPPORTER',  color:'#c8a800', bg:'linear-gradient(135deg,#8B6914,#c8a800)', textColor:'#000' },
+                        'supporter':   { label:'🩸 SUPPORTER',  color:'#c8a800', useRainbow: true },
                         'vip':         { label:'VIP',           color:'#9C27B0', bg:'#9C27B0', textColor:'#fff' },
                     };
                     const _ob = _devOverrideBadges[msg.activeBadgeOverride];
                     if (_ob) {
-                        const _bg = _ob.bg || (_ob.color + '33');
-                        const _tc = _ob.textColor || _ob.color;
-                        const _border = _ob.bg ? 'none' : `1px solid ${_ob.color}55`;
-                        roleTagHTML = ` <span style="background:${_bg};color:${_tc};border:${_border};padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;vertical-align:middle;letter-spacing:0.5px;">${_ob.label}</span>`;
+                        if (_ob.useRainbow) {
+                            roleTagHTML = ` <span class="supporter-badge">${_ob.label}</span>`;
+                        } else {
+                            const _bg = _ob.bg || (_ob.color + '33');
+                            const _tc = _ob.textColor || _ob.color;
+                            const _border = _ob.bg ? 'none' : `1px solid ${_ob.color}55`;
+                            roleTagHTML = ` <span style="background:${_bg};color:${_tc};border:${_border};padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;vertical-align:middle;letter-spacing:0.5px;">${_ob.label}</span>`;
+                        }
                     } else {
                         // Unknown override — fall back to DEV
                         roleTagHTML = ` <span style="background: #E91E63; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">DEV</span>`;
@@ -23562,7 +23646,7 @@ function initializeChat() {
                 roleTagHTML = ` <span style="background: #9C27B0; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">VIP</span>`;
             } else if (msg.isDonor) {
                 nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="color:${userColor};font-weight:bold;cursor:pointer;">${displayName}</span>`;
-                roleTagHTML = ` <span style="background: linear-gradient(135deg,#8B6914,#c8a800); color: #000; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">🩸 SUPPORTER</span>`;
+                roleTagHTML = ` <span class="supporter-badge">🩸 SUPPORTER</span>`;
             } else if (isSystemMessage) {
                 nameHtml = `<span style="color:${userColor};font-weight:bold;">System</span>`;
                 roleTagHTML = ` <span style="background: #e74c3c; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">SYSTEM</span>`;
@@ -24355,7 +24439,7 @@ function initializeChat() {
                     }
                     // Supporter badge
                     if (gameState.donorTitle) {
-                        earned.push({ id: 'supporter', label: '🩸 SUPPORTER', html: '<span style="background:linear-gradient(135deg,#8B6914,#c8a800);color:#000;padding:2px 7px;border-radius:4px;font-size:0.78em;font-weight:700;">🩸 SUPPORTER</span>', color: '#c8a800' });
+                        earned.push({ id: 'supporter', label: '🩸 SUPPORTER', html: '<span class="supporter-badge">🩸 SUPPORTER</span>', color: '#c8a800' });
                     }
                     // Leaderboard rank badges — earned by appearing in top 10
                     var _lb = gameState.leaderboardBadges || {};
@@ -24408,8 +24492,6 @@ function initializeChat() {
                         if (isActive) btn.style.boxShadow = '0 0 10px ' + b.color + '55';
                         btn.addEventListener('click', function() {
                             localStorage.setItem('activeChatBadge', b.id);
-                            // Refresh picker to update selection UI
-                            document.getElementById('chat-settings-btn') && document.getElementById('chat-settings-btn').click && null;
                             picker.querySelectorAll('button').forEach(function(bb) {
                                 bb.style.border = '2px solid #2a1a3a';
                                 bb.style.background = '#06040e';
@@ -24418,9 +24500,23 @@ function initializeChat() {
                             btn.style.border = '2px solid ' + b.color;
                             btn.style.background = b.color + '22';
                             btn.style.boxShadow = '0 0 10px ' + b.color + '55';
+                            // Update preview
+                            _updateChatPreview(b);
                         });
                         picker.appendChild(btn);
                     });
+                    // Chat preview — show what name looks like with active badge
+                    var _previewEl = document.getElementById('settings-chat-preview');
+                    var _activeBadgeObj = earned.find(function(b){ return b.id === activeBadge; }) || earned[0];
+                    function _updateChatPreview(badgeObj) {
+                        if (!_previewEl) return;
+                        var _pName = document.getElementById('settings-nickname')?.value || gameState.playerName || 'You';
+                        var _pColor = document.getElementById('settings-name-color')?.value || localStorage.getItem('slitherChatNameColor') || '#FFD700';
+                        var _nameHtml = '<span style="color:' + _pColor + ';font-weight:bold;">' + _pName + '</span>';
+                        var _badgeHtml = badgeObj && badgeObj.id !== 'none' ? ' ' + badgeObj.html : '';
+                        _previewEl.innerHTML = '<span style="color:#333;font-size:0.68em;font-family:monospace;">[12:34]</span> <b>' + _nameHtml + _badgeHtml + ':</b> <span style="color:#aaa;">Hello, Abyss! 👋</span>';
+                    }
+                    _updateChatPreview(_activeBadgeObj);
                 })();
                 const _savedMottoColor = localStorage.getItem("slitherChatMottoColor") || '#444444';
                 const _mottoColorEl = document.getElementById('settings-motto-color');
@@ -31073,6 +31169,10 @@ Your listing will remain until someone accepts it or it expires.`;
                     <label>Display Badge</label>
                     <div style="color:var(--dim-color); font-size:0.76em; margin-bottom:8px;">Choose which badge shows next to your name in chat. Only badges you've earned appear here.</div>
                     <div id="settings-badge-picker" style="display:flex; flex-wrap:wrap; gap:7px;"></div>
+                    <div style="margin-top:11px;">
+                        <div style="color:#333;font-size:0.68em;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;">CHAT PREVIEW</div>
+                        <div id="settings-chat-preview" style="background:#06040e;border:1px solid #1a0a2a;border-radius:8px;padding:8px 12px;font-size:0.82em;font-family:inherit;min-height:32px;color:#888;line-height:1.6;"></div>
+                    </div>
                 </div>
             </div>
             <!-- RIGHT COLUMN: Background picker -->
@@ -36458,8 +36558,8 @@ async function confirmDonationClaim() {
         }
 
         // ── Grant rewards ──────────────────────────────────────
-        const frags = reward.fragments || 10000;
-        // Donation reward — uncapped, donors deserve their full 10,000 fragments
+        const frags = reward.fragments || 500000;
+        // Donation reward — uncapped, donors deserve their full 500,000 fragments
         _addFragmentsDonor(frags); // donor reward — intentionally uncapped
 
         // Secret Minions — 2 completely random picks from ALL secret minions, repeats possible

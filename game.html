@@ -20626,24 +20626,55 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
             { bg:'linear-gradient(135deg,#120a06,#1e1008)', border:'#cc7722', anim:'lbPulse3', label:'THIRD PLACE', textGlow:'0 0 8px #cc772244'  },
         ];
 
-        // Track player's best leaderboard rank for badge unlocks
+        // ── Rank badge system ────────────────────────────────────────────────
+        // Only the CURRENT #1 on each tab earns that title badge.
+        // Everyone else gets a positional badge (e.g. "4th").
+        // If you held #1 and get passed, you get an "Ex-Champion" style badge.
+        if (!gameState.leaderboardBadges) gameState.leaderboardBadges = {};
+        if (!gameState.leaderboardBadgesEx) gameState.leaderboardBadgesEx = {};
+
+        const _TAB_KEY = {
+            lifetimeSouls: 'total',
+            darkOnly:       'dark',
+            lightOnly:      'light',
+            ascensions:     'ascensions',
+            aether:         'aether',
+            pvpWins:        'pvp',
+        };
+        const _tabKey = _TAB_KEY[type] || type;
         const _myLbIdx = players.findIndex(p => p.name === gameState.playerName);
-        if (_myLbIdx !== -1 && _myLbIdx < 10) {
-            const _myRank = _myLbIdx + 1;
-            if (!gameState.leaderboardBadges) gameState.leaderboardBadges = {};
-            // Keep the best rank ever achieved per category
-            const _prevBest = gameState.leaderboardBadges[type] || 999;
-            if (_myRank < _prevBest) {
-                gameState.leaderboardBadges[type] = _myRank;
-                saveGame();
+        const _myRank = _myLbIdx >= 0 ? _myLbIdx + 1 : 999;
+
+        const _wasFirst = gameState.leaderboardBadges[_tabKey] === 1;
+        const _isFirst  = _myRank === 1;
+
+        if (_isFirst) {
+            // Currently #1 — grant the title
+            gameState.leaderboardBadges[_tabKey] = 1;
+            // Clear ex-champion if they reclaimed #1
+            delete gameState.leaderboardBadgesEx[_tabKey];
+        } else {
+            // Not #1 — remove the title
+            if (gameState.leaderboardBadges[_tabKey] === 1) {
+                delete gameState.leaderboardBadges[_tabKey];
+                // If they previously held #1, mark as ex-champion
+                if (_wasFirst) {
+                    gameState.leaderboardBadgesEx[_tabKey] = true;
+                }
+                // If they had a rank badge from this tab equipped, reset it
+                const _activeBadge = localStorage.getItem('activeChatBadge') || 'none';
+                if (_activeBadge === 'rank_' + _tabKey || _activeBadge === 'rank_top_' + _tabKey) {
+                    localStorage.setItem('activeChatBadge', 'none');
+                }
             }
-            // Global best rank across all tabs
-            const _prevGlobal = gameState.leaderboardBadges['global'] || 999;
-            if (_myRank < _prevGlobal) {
-                gameState.leaderboardBadges['global'] = _myRank;
-                saveGame();
+            // Store current rank (for positional badge display, e.g. "4th")
+            if (_myRank <= 100) {
+                gameState.leaderboardBadges[_tabKey + '_pos'] = _myRank;
+            } else {
+                delete gameState.leaderboardBadges[_tabKey + '_pos'];
             }
         }
+        saveGame();
 
         players.slice(0, 10).forEach((player, index) => {
             const isMe = player.name === gameState.playerName;
@@ -23622,15 +23653,20 @@ function initializeChat() {
                     // Dev chose a custom badge — show that instead of DEV
                     // (rank badges, supporter, vip — DEV identity is still shown via rainbow name)
                     const _devOverrideBadges = {
-                        'rank_top3':   { label:'👑 CHAMPION',   color:'#c8a800' },
-                        'rank_top10':  { label:'⚔ TOP 10',      color:'#aa44ff' },
-                        'rank_dark':   { label:'☠ DARK LORD',   color:'#ff6666' },
-                        'rank_light':  { label:'✦ ASCENDANT',   color:'#c8b4ff' },
-                        'rank_aether': { label:'🌀 VOID WALKER', color:'#00e5ff' },
-                        'rank_ascend': { label:'↑ ASCENSION',   color:'#ff9944' },
-                        'rank_pvp':    { label:'⚔ WARLORD',     color:'#44cc88' },
-                        'supporter':   { label:'🩸 SUPPORTER',  color:'#c8a800', useRainbow: true },
-                        'vip':         { label:'VIP',           color:'#9C27B0', bg:'#9C27B0', textColor:'#fff' },
+                        'rank_total':      { label:'👑 CHAMPION',       color:'#c8a800' },
+                        'rank_dark':       { label:'☠ DARK LORD',       color:'#ff6666' },
+                        'rank_light':      { label:'✦ ASCENDANT',       color:'#c8b4ff' },
+                        'rank_aether':     { label:'🌀 VOID WALKER',    color:'#00e5ff' },
+                        'rank_ascend':     { label:'↑ ASCENSION',       color:'#ff9944' },
+                        'rank_pvp':        { label:'⚔ WARLORD',         color:'#44cc88' },
+                        'rank_ex_total':   { label:'👑 EX-CHAMPION',    color:'#886600' },
+                        'rank_ex_dark':    { label:'☠ EX-DARK LORD',    color:'#884444' },
+                        'rank_ex_light':   { label:'✦ EX-ASCENDANT',   color:'#886688' },
+                        'rank_ex_aether':  { label:'🌀 EX-VOID WALKER', color:'#336655' },
+                        'rank_ex_ascend':  { label:'↑ EX-ASCENSION',   color:'#886633' },
+                        'rank_ex_pvp':     { label:'⚔ EX-WARLORD',     color:'#336644' },
+                        'supporter':       { label:'🩸 SUPPORTER',      color:'#c8a800', useRainbow: true },
+                        'vip':             { label:'VIP',               color:'#9C27B0', bg:'#9C27B0', textColor:'#fff' },
                     };
                     const _ob = _devOverrideBadges[msg.activeBadgeOverride];
                     if (_ob) {
@@ -23673,15 +23709,20 @@ function initializeChat() {
             // Leaderboard rank badges — shown for non-dev, non-system players who earned them
             if (msg.activeBadgeOverride && !isDev(msg.uid) && !isSystemMessage) {
                 const _rankBadges = {
-                    'rank_top3':   { label:'👑 CHAMPION',   color:'#c8a800' },
-                    'rank_top10':  { label:'⚔ TOP 10',      color:'#aa44ff' },
-                    'rank_dark':   { label:'☠ DARK LORD',   color:'#ff6666' },
-                    'rank_light':  { label:'✦ ASCENDANT',   color:'#c8b4ff' },
-                    'rank_aether': { label:'🌀 VOID WALKER', color:'#00e5ff' },
-                    'rank_ascend': { label:'↑ ASCENSION',   color:'#ff9944' },
-                    'rank_pvp':    { label:'⚔ WARLORD',     color:'#44cc88' },
-                    'supporter':   null, // handled above
-                    'vip':         null,
+                    'rank_total':      { label:'👑 CHAMPION',       color:'#c8a800' },
+                    'rank_dark':       { label:'☠ DARK LORD',       color:'#ff6666' },
+                    'rank_light':      { label:'✦ ASCENDANT',       color:'#c8b4ff' },
+                    'rank_aether':     { label:'🌀 VOID WALKER',    color:'#00e5ff' },
+                    'rank_ascend':     { label:'↑ ASCENSION',       color:'#ff9944' },
+                    'rank_pvp':        { label:'⚔ WARLORD',         color:'#44cc88' },
+                    'rank_ex_total':   { label:'👑 EX-CHAMPION',    color:'#886600' },
+                    'rank_ex_dark':    { label:'☠ EX-DARK LORD',    color:'#884444' },
+                    'rank_ex_light':   { label:'✦ EX-ASCENDANT',   color:'#886688' },
+                    'rank_ex_aether':  { label:'🌀 EX-VOID WALKER', color:'#336655' },
+                    'rank_ex_ascend':  { label:'↑ EX-ASCENSION',   color:'#886633' },
+                    'rank_ex_pvp':     { label:'⚔ EX-WARLORD',     color:'#336644' },
+                    'supporter':       null,
+                    'vip':             null,
                 };
                 const _rb = _rankBadges[msg.activeBadgeOverride];
                 if (_rb) {
@@ -24450,39 +24491,45 @@ function initializeChat() {
                     if (gameState.donorTitle) {
                         earned.push({ id: 'supporter', label: '🩸 SUPPORTER', html: '<span class="supporter-badge">🩸 SUPPORTER</span>', color: '#c8a800' });
                     }
-                    // Leaderboard rank badges — earned by appearing in top 10
-                    var _lb = gameState.leaderboardBadges || {};
-                    var _globalBest = _lb['global'] || 999;
-                    var _hasDark     = (_lb['darkOnly'] || 999) <= 10;
-                    var _hasLight    = (_lb['lightOnly'] || 999) <= 10;
-                    var _hasAsc      = (_lb['ascensions'] || 999) <= 10;
-                    var _hasAether   = (_lb['aether'] || 999) <= 10;
-                    var _hasPvp      = (_lb['pvpWins'] || 999) <= 10;
-                    var _hasTop3     = _globalBest <= 3;
-                    var _hasTop10    = _globalBest <= 10;
-                    if (_hasTop3) {
-                        var _rankColors = ['','#c8a800','#aaaacc','#cc7722'];
-                        var _rankEmoji  = ['','👑','🥈','🥉'];
-                        var _rankLabel  = _globalBest === 1 ? 'CHAMPION' : _globalBest === 2 ? 'RUNNER UP' : 'TOP 3';
-                        var _rc = _rankColors[_globalBest] || '#c8a800';
-                        earned.push({ id: 'rank_top3', label: _rankEmoji[_globalBest] + ' ' + _rankLabel, html: '<span style="background:linear-gradient(135deg,' + _rc + '33,' + _rc + '11);color:' + _rc + ';border:1px solid ' + _rc + '55;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">' + _rankEmoji[_globalBest] + ' ' + _rankLabel + '</span>', color: _rc });
-                    } else if (_hasTop10) {
-                        earned.push({ id: 'rank_top10', label: '⚔ TOP 10', html: '<span style="background:linear-gradient(135deg,#aa44ff33,#aa44ff11);color:#aa44ff;border:1px solid #aa44ff55;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">⚔ TOP 10</span>', color: '#aa44ff' });
+                    // Leaderboard rank badges — EXCLUSIVE to current #1 holders only
+                    var _lb  = gameState.leaderboardBadges || {};
+                    var _lbEx = gameState.leaderboardBadgesEx || {};
+
+                    // Total Power #1
+                    if (_lb['total'] === 1) {
+                        earned.push({ id: 'rank_total', label: '👑 CHAMPION', html: '<span style="background:linear-gradient(135deg,#c8a80033,#c8a80011);color:#c8a800;border:1px solid #c8a80055;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">👑 CHAMPION</span>', color: '#c8a800' });
+                    } else if (_lbEx['total']) {
+                        earned.push({ id: 'rank_ex_total', label: '👑 EX-CHAMPION', html: '<span style="background:linear-gradient(135deg,#44332200,#33220011);color:#886600;border:1px solid #88660033;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">👑 EX-CHAMPION</span>', color: '#886600' });
                     }
-                    if (_hasDark && _lb['darkOnly'] <= 3) {
+                    // Dark Souls #1
+                    if (_lb['dark'] === 1) {
                         earned.push({ id: 'rank_dark', label: '☠ DARK LORD', html: '<span style="background:linear-gradient(135deg,#cc222233,#cc222211);color:#ff6666;border:1px solid #cc222255;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">☠ DARK LORD</span>', color: '#ff6666' });
+                    } else if (_lbEx['dark']) {
+                        earned.push({ id: 'rank_ex_dark', label: '☠ EX-DARK LORD', html: '<span style="background:linear-gradient(135deg,#44111100,#22000011);color:#884444;border:1px solid #88444433;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">☠ EX-DARK LORD</span>', color: '#884444' });
                     }
-                    if (_hasLight && _lb['lightOnly'] <= 3) {
+                    // Light Souls #1
+                    if (_lb['light'] === 1) {
                         earned.push({ id: 'rank_light', label: '✦ ASCENDANT', html: '<span style="background:linear-gradient(135deg,#9966ff33,#9966ff11);color:#c8b4ff;border:1px solid #9966ff55;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">✦ ASCENDANT</span>', color: '#c8b4ff' });
+                    } else if (_lbEx['light']) {
+                        earned.push({ id: 'rank_ex_light', label: '✦ EX-ASCENDANT', html: '<span style="background:linear-gradient(135deg,#44335500,#22113311);color:#886688;border:1px solid #88668833;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">✦ EX-ASCENDANT</span>', color: '#886688' });
                     }
-                    if (_hasAether && _lb['aether'] <= 3) {
-                        earned.push({ id: 'rank_aether', label: '🌀 VOID WALKER', html: '<span style="background:linear-gradient(135deg,#00e5ff33,#00e5ff11);color:#00e5ff;border:1px solid #00e5ff55;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">🌀 VOID WALKER</span>', color: '#00e5ff' });
-                    }
-                    if (_hasAsc && _lb['ascensions'] <= 3) {
+                    // Ascensions #1
+                    if (_lb['ascensions'] === 1) {
                         earned.push({ id: 'rank_ascend', label: '↑ ASCENSION', html: '<span style="background:linear-gradient(135deg,#ff880033,#ff880011);color:#ff9944;border:1px solid #ff880055;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">↑ ASCENSION</span>', color: '#ff9944' });
+                    } else if (_lbEx['ascensions']) {
+                        earned.push({ id: 'rank_ex_ascend', label: '↑ EX-ASCENSION', html: '<span style="background:linear-gradient(135deg,#44220000,#22110011);color:#886633;border:1px solid #88663333;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">↑ EX-ASCENSION</span>', color: '#886633' });
                     }
-                    if (_hasPvp && _lb['pvpWins'] <= 3) {
+                    // Aether #1
+                    if (_lb['aether'] === 1) {
+                        earned.push({ id: 'rank_aether', label: '🌀 VOID WALKER', html: '<span style="background:linear-gradient(135deg,#00e5ff33,#00e5ff11);color:#00e5ff;border:1px solid #00e5ff55;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">🌀 VOID WALKER</span>', color: '#00e5ff' });
+                    } else if (_lbEx['aether']) {
+                        earned.push({ id: 'rank_ex_aether', label: '🌀 EX-VOID WALKER', html: '<span style="background:linear-gradient(135deg,#00334400,#00112211);color:#336655;border:1px solid #33665533;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">🌀 EX-VOID WALKER</span>', color: '#336655' });
+                    }
+                    // PvP #1
+                    if (_lb['pvp'] === 1) {
                         earned.push({ id: 'rank_pvp', label: '⚔ WARLORD', html: '<span style="background:linear-gradient(135deg,#44cc8833,#44cc8811);color:#44cc88;border:1px solid #44cc8855;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">⚔ WARLORD</span>', color: '#44cc88' });
+                    } else if (_lbEx['pvp']) {
+                        earned.push({ id: 'rank_ex_pvp', label: '⚔ EX-WARLORD', html: '<span style="background:linear-gradient(135deg,#11441100,#00221111);color:#336644;border:1px solid #33664433;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">⚔ EX-WARLORD</span>', color: '#336644' });
                     }
 
                     // Clan tag

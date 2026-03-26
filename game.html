@@ -23998,22 +23998,16 @@ function initializeChat() {
                             }
                             const msgObj = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
                             if (gameState.donorTitle) msgObj.isDonor = true;
-                            // Attach clan tag if player has one and has it enabled
-                            // Active badge system — attach the badge the player chose to display
+                            // Badge system — only attach fields that the Firebase rules allow
                             var _activeBadge = localStorage.getItem('activeChatBadge') || 'none';
                             var _ct = localStorage.getItem('myClanTag');
                             var _ctColor = localStorage.getItem('myClanTagColor') || '#aa44ff';
                             var _ctShow = localStorage.getItem('myClanTagShow') !== 'false';
                             if (_activeBadge === 'clan' && _ct && _ctShow) {
                                 msgObj.clanTag = _ct; msgObj.clanTagColor = _ctColor;
-                            } else if (_activeBadge === 'supporter' && gameState.donorTitle) {
-                                msgObj.activeBadgeOverride = 'supporter';
-                            } else if (_activeBadge === 'vip') {
-                                msgObj.activeBadgeOverride = 'vip';
-                            } else if (_activeBadge === 'none') {
-                                msgObj.hideBadge = true;
                             }
-                            // Default (dev/vip/supporter show their role tag naturally unless overridden)
+                            // hideBadge and activeBadgeOverride are NOT in Firebase rules — omit them
+                            // The rendering side handles display from isDev/isDonor/role checks
                             db.ref("slitherChat").push(msgObj).then(() => {
                                 console.log('[Chat] Message sent OK, uid:', uid, 'name:', name);
                             }).catch(err => {
@@ -24168,6 +24162,14 @@ function initializeChat() {
                             }
                             const msgObj2 = { uid, name, text, time: firebase.database.ServerValue.TIMESTAMP, chatNameColor: color };
                             if (gameState.donorTitle) msgObj2.isDonor = true;
+                            // Clan tag — only attach if player has one and has it enabled
+                            var _activeBadge2 = localStorage.getItem('activeChatBadge') || 'none';
+                            var _ct2 = localStorage.getItem('myClanTag');
+                            var _ctColor2 = localStorage.getItem('myClanTagColor') || '#aa44ff';
+                            var _ctShow2 = localStorage.getItem('myClanTagShow') !== 'false';
+                            if (_activeBadge2 === 'clan' && _ct2 && _ctShow2) {
+                                msgObj2.clanTag = _ct2; msgObj2.clanTagColor = _ctColor2;
+                            }
                             db.ref("slitherChat").push(msgObj2).then(() => {
                                 console.log('[Chat] Message sent OK, uid:', uid, 'name:', name);
                             }).catch(err => {

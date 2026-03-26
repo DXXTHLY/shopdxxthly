@@ -28965,6 +28965,30 @@ async function loadMyPact() {
             .limit(1)
             .single();
         window.playerPact = data || null;
+
+        // Sync the pact's clan tag to this member's localStorage
+        // so it shows in their chat profile and outgoing messages
+        if (window.playerPact) {
+            const pactTag   = window.playerPact.clan_tag || null;
+            const pactColor = window.playerPact.clan_tag_color || '#aa44ff';
+            if (pactTag) {
+                localStorage.setItem('myClanTag', pactTag);
+                localStorage.setItem('myClanTagColor', pactColor);
+                // Don't override myClanTagShow — let member choose to show/hide
+                if (localStorage.getItem('myClanTagShow') === null) {
+                    localStorage.setItem('myClanTagShow', 'true');
+                }
+            } else {
+                // Leader removed the tag — clear it for members too
+                localStorage.removeItem('myClanTag');
+                localStorage.removeItem('myClanTagColor');
+            }
+        } else {
+            // No longer in a pact — clear clan tag
+            localStorage.removeItem('myClanTag');
+            localStorage.removeItem('myClanTagColor');
+        }
+
         calculateStats(); // apply pact bonus
         renderPactScreen();
         if (window.playerPact) setTimeout(listenPactBuff, 1000);

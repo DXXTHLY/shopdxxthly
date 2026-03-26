@@ -28,25 +28,7 @@
         @keyframes soulThump { 0% { transform: scale(1); } 50% { transform: scale(0.97); } 100% { transform: scale(1); } }
 
         /* === ALTAR SCREEN ENHANCEMENTS === */
-        #altar-stats-bar {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            margin: 10px auto 0;
-            flex-wrap: wrap;
-        }
-        .altar-stat-badge {
-            padding: 6px 18px;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid #2a1a3a;
-            border-bottom: 2px solid #3a0808;
-            border-radius: 3px;
-            font-family: var(--font-title);
-            font-size: 0.9rem;
-            color: var(--dim-color);
-            letter-spacing: 1px;
-        }
-        .altar-stat-badge span { color: var(--secondary-color); font-weight: bold; margin-left: 4px; }
+        /* altar stat badges now defined in altar-screen style block */
         #rift-container {
             position: relative;
             margin: 20px auto;
@@ -3200,72 +3182,352 @@ text-decoration: underline; /* Adds an underline on hover */
             </div>
         </nav>
         <main>
-            <div id="altar-screen" class="screen active">
-                <h1 id="world-title">👻 Nether Plains 👻</h1>
-                <div id="altar-stats-bar">
-                    <div class="altar-stat-badge">Souls/sec<span id="sps-display-altar">0</span></div>
-                    <div class="altar-stat-badge">Souls/click<span id="spc-display-altar">1</span></div>
-                </div>
-                <div id="rift-container">
-                    <canvas id="rift-canvas" width="400" height="200"></canvas>
-                    <button id="main-action-btn" class="action-btn" onclick="mainActionClick()">Harvest Soul</button>
-                </div>
+            <div id="altar-screen" class="screen active" style="padding:0;overflow:hidden;">
+                <style>
+                /* ═══ ALTAR CINEMATIC STYLES ═══ */
+                #altar-wrapper {
+                    position:relative; min-height:100%;
+                    background:radial-gradient(ellipse 100% 60% at 50% 0%, #1a0020 0%, #05020e 55%, #030108 100%);
+                }
+                /* Ambient particle field behind everything */
+                #altar-ambient { position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:0; }
+                .amb-particle {
+                    position:absolute; border-radius:50%;
+                    background:radial-gradient(circle, #c41818cc, transparent 70%);
+                    animation:ambFloat var(--dur,6s) ease-in-out var(--delay,0s) infinite;
+                    opacity:0;
+                }
+                @keyframes ambFloat {
+                    0%   { opacity:0; transform:translateY(0) scale(0.5); }
+                    30%  { opacity:var(--op,0.4); }
+                    70%  { opacity:var(--op,0.4); }
+                    100% { opacity:0; transform:translateY(-120px) scale(1.2); }
+                }
 
-                <!-- Altar upgrade cards -->
-                <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin-top:24px; max-width:900px; margin-left:auto; margin-right:auto;">
+                /* World title — dramatic */
+                #altar-world-header {
+                    position:relative; z-index:2;
+                    text-align:center; padding:28px 20px 10px;
+                }
+                #world-title {
+                    font-family:var(--font-title);
+                    font-size:2.2em; letter-spacing:8px;
+                    text-transform:uppercase; margin:0 0 4px;
+                    background:linear-gradient(135deg,#ff8888,#c41818,#ff4444,#c41818);
+                    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+                    background-clip:text; color:#c41818;
+                    filter:drop-shadow(0 0 24px rgba(196,24,24,0.7));
+                    animation:worldTitlePulse 3s ease-in-out infinite alternate;
+                }
+                @keyframes worldTitlePulse {
+                    0%  { filter:drop-shadow(0 0 14px rgba(196,24,24,0.5)); }
+                    100%{ filter:drop-shadow(0 0 36px rgba(255,60,60,0.85)); }
+                }
 
-                    <!-- Empower Harvest -->
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #e8c46a44; border-top:3px solid #e8c46a; border-radius:12px; padding:18px;">
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                            <span style="font-size:1.8em;">👆</span>
-                            <div>
-                                <div style="color:#e8c46a; font-weight:bold;">Empower Harvest</div>
-                                <div style="color:#666; font-size:0.75em;">Manual click power</div>
-                            </div>
-                            <div style="margin-left:auto; color:#e8c46a; font-size:0.85em;">Lv.<span id="clickLevel">1</span></div>
-                        </div>
-                        <p style="color:#aaa; font-size:0.82em; margin:0 0 12px;">Increases souls gained per click.</p>
-                        <button class="upgrade-btn" id="clickUpgradeBtn" onclick="buyUpgrade('click')" style="width:100%; border-color:#e8c46a66; background:linear-gradient(135deg,#e8c46a15,transparent);">
-                            <span style="color:#e8c46a;">⬆ Upgrade</span>
-                            <span class="cost" style="display:block; font-size:0.8em; margin-top:2px;">Cost: <span id="clickCost" class="cost-souls">10</span> souls</span>
-                        </button>
+                /* Stat pills */
+                #altar-stats-bar {
+                    display:flex; justify-content:center; gap:10px;
+                    flex-wrap:wrap; margin:8px auto 0; padding:0 20px;
+                    position:relative; z-index:2;
+                }
+                .altar-stat-badge {
+                    display:inline-flex; align-items:center; gap:8px;
+                    padding:7px 20px;
+                    background:linear-gradient(135deg,rgba(0,0,0,0.6),rgba(20,5,10,0.8));
+                    border:1px solid #3a0a0a;
+                    border-bottom:2px solid #c41818;
+                    border-radius:8px;
+                    font-family:var(--font-title);
+                    font-size:0.85rem; color:#6e4a4a;
+                    letter-spacing:1.5px;
+                    transition:all 0.3s;
+                }
+                .altar-stat-badge:hover { border-bottom-color:#ff4444; background:linear-gradient(135deg,rgba(20,0,0,0.7),rgba(40,5,5,0.9)); }
+                .altar-stat-badge .stat-label { color:#5a2222; font-size:0.8em; }
+                .altar-stat-badge span { color:#f0c0c0; font-weight:bold; font-size:1.1em; text-shadow:0 0 8px rgba(220,80,80,0.6); }
+
+                /* Rift / button area */
+                #altar-rift-section {
+                    position:relative; z-index:2;
+                    display:flex; flex-direction:column;
+                    align-items:center; padding:10px 20px 8px;
+                }
+                #rift-container {
+                    position:relative; margin:0 auto;
+                    width:340px; height:140px;
+                    display:flex; justify-content:center; align-items:center;
+                }
+                #rift-canvas {
+                    position:absolute; top:50%; left:50%;
+                    transform:translate(-50%,-50%); z-index:1;
+                    pointer-events:none; opacity:0.8;
+                }
+                /* Rune ornaments around the button */
+                #rift-container::before, #rift-container::after {
+                    content:'✦'; position:absolute; font-size:1.1rem;
+                    color:var(--primary-color); opacity:0.5;
+                    animation:runeRotate 4s linear infinite;
+                }
+                #rift-container::before { top:8px; left:18px; }
+                #rift-container::after  { bottom:8px; right:18px; animation-direction:reverse; }
+
+                /* THE BUTTON — make it huge and impactful */
+                #main-action-btn.action-btn {
+                    position:relative; z-index:2;
+                    padding:28px 60px; font-size:1.5rem;
+                    font-family:var(--font-title);
+                    background:linear-gradient(160deg,#6a0a0a 0%,#c41818 40%,#e02020 60%,#8a0f0f 100%);
+                    color:#ffe8e8; border:1px solid #4a0808;
+                    border-bottom:4px solid #000; border-right:3px solid #000;
+                    box-shadow:
+                        inset 0 1px 0 rgba(255,120,120,0.2),
+                        inset 0 0 30px rgba(0,0,0,0.6),
+                        0 0 40px rgba(196,24,24,0.5),
+                        0 0 80px rgba(196,24,24,0.2),
+                        0 6px 20px rgba(0,0,0,0.9);
+                    cursor:pointer; transition:all 0.15s ease-out;
+                    text-transform:uppercase; letter-spacing:5px;
+                    display:block; margin:0 auto;
+                    border-radius:4px;
+                    animation:btnAura 2.5s ease-in-out infinite alternate;
+                }
+                @keyframes btnAura {
+                    0%  { box-shadow:inset 0 0 30px rgba(0,0,0,0.6),0 0 30px rgba(196,24,24,0.4),0 0 60px rgba(196,24,24,0.15),0 6px 20px rgba(0,0,0,0.9); }
+                    100%{ box-shadow:inset 0 0 30px rgba(0,0,0,0.6),0 0 55px rgba(220,30,30,0.65),0 0 100px rgba(196,24,24,0.25),0 6px 20px rgba(0,0,0,0.9); }
+                }
+                #main-action-btn.action-btn:hover {
+                    background:linear-gradient(160deg,#880e0e 0%,#d82020 40%,#f03030 60%,#a01212 100%);
+                    box-shadow:inset 0 0 20px rgba(0,0,0,0.4),0 0 70px rgba(255,40,40,0.8),0 0 120px rgba(196,24,24,0.4),0 6px 20px rgba(0,0,0,0.9);
+                    color:#fff; transform:translateY(-1px);
+                }
+                #main-action-btn.action-btn:active {
+                    transform:translate(2px,3px); border-bottom-width:1px; border-right-width:1px;
+                    box-shadow:inset 0 0 30px rgba(0,0,0,0.8),0 0 20px rgba(196,24,24,0.3);
+                }
+
+                /* Active buffs ticker */
+                #altar-buffs {
+                    display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+                    min-height:24px; padding:4px 20px;
+                    position:relative; z-index:2;
+                }
+                .altar-buff-pill {
+                    display:inline-flex; align-items:center; gap:5px;
+                    background:linear-gradient(135deg,rgba(0,0,0,0.7),rgba(10,5,20,0.8));
+                    border:1px solid #3a1a4a; border-radius:20px;
+                    padding:3px 12px; font-size:0.7em;
+                    color:#cc88ff; letter-spacing:0.5px;
+                    animation:buffPillIn 0.3s ease-out;
+                }
+                @keyframes buffPillIn { from{opacity:0;transform:scale(0.8)} to{opacity:1;transform:scale(1)} }
+                .altar-buff-pill .buff-timer { color:#ff9944; font-size:0.85em; }
+
+                /* Upgrade cards section */
+                #altar-upgrades {
+                    position:relative; z-index:2;
+                    display:grid;
+                    grid-template-columns:repeat(3, 1fr);
+                    gap:16px; padding:16px 24px 28px;
+                    max-width:920px; margin:0 auto;
+                }
+                .altar-card {
+                    background:linear-gradient(160deg,#0d0814,#18101e,#0e0a1a);
+                    border:1px solid rgba(255,255,255,0.05);
+                    border-radius:16px; padding:20px;
+                    position:relative; overflow:hidden;
+                    transition:transform 0.2s, box-shadow 0.2s;
+                    display:flex; flex-direction:column;
+                }
+                .altar-card::before {
+                    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+                    background:var(--card-accent,#c41818);
+                    border-radius:16px 16px 0 0;
+                    box-shadow:0 0 20px var(--card-accent,#c41818);
+                }
+                .altar-card:hover {
+                    transform:translateY(-3px);
+                    box-shadow:0 8px 32px rgba(0,0,0,0.6), 0 0 20px var(--card-glow,rgba(196,24,24,0.15));
+                    border-color:rgba(255,255,255,0.1);
+                }
+                .altar-card-icon {
+                    width:48px; height:48px; border-radius:14px; flex-shrink:0;
+                    display:flex; align-items:center; justify-content:center;
+                    font-size:1.5em;
+                    background:linear-gradient(135deg,var(--card-bg1,#2a0808),var(--card-bg2,#1a0404));
+                    box-shadow:0 0 20px var(--card-glow,rgba(196,24,24,0.2));
+                }
+                .altar-card-title {
+                    font-weight:bold; font-size:1em; color:var(--card-accent,#e8c46a);
+                    font-family:var(--font-title); letter-spacing:0.5px;
+                }
+                .altar-card-sub { color:#4a3a5a; font-size:0.72em; margin-top:2px; }
+                .altar-card-level {
+                    margin-left:auto; font-size:0.82em; font-family:var(--font-title);
+                    color:var(--card-accent,#e8c46a); opacity:0.7;
+                    background:rgba(255,255,255,0.05); border-radius:6px;
+                    padding:2px 8px; letter-spacing:1px;
+                }
+                .altar-card-desc {
+                    color:#887799; font-size:0.82em; margin:10px 0 14px;
+                    line-height:1.5; border-left:2px solid var(--card-accent,#c41818);
+                    padding-left:10px; opacity:0.8; flex:1;
+                }
+                .altar-card-persistent {
+                    color:var(--card-accent,#44aaff); font-size:0.72em;
+                    margin:-8px 0 12px; font-style:italic; padding-left:12px; opacity:0.6;
+                }
+                .altar-upgrade-btn {
+                    width:100%; padding:13px 16px; border-radius:10px;
+                    font-family:var(--font-title); font-size:0.82em; letter-spacing:2px;
+                    cursor:pointer; transition:all 0.2s; text-transform:uppercase;
+                    border:1px solid var(--card-border,rgba(232,196,106,0.4));
+                    border-bottom:3px solid rgba(0,0,0,0.5);
+                    background:linear-gradient(135deg,var(--card-btnbg,rgba(232,196,106,0.12)),transparent);
+                    color:var(--card-accent,#e8c46a);
+                    display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:8px;
+                    margin-top:auto;
+                }
+                .altar-upgrade-btn:hover:not(:disabled) {
+                    filter:brightness(1.3);
+                    box-shadow:0 0 22px var(--card-glow,rgba(232,196,106,0.25));
+                    transform:translateY(-1px);
+                }
+                .altar-upgrade-btn:disabled { opacity:0.35; cursor:not-allowed; }
+                .altar-upgrade-btn .btn-label { font-size:0.88em; white-space:nowrap; font-weight:bold; }
+                .altar-upgrade-btn .btn-cost  { font-size:0.72em; color:#8877aa; letter-spacing:0.5px; text-align:right; white-space:nowrap; }
+                </style>
+
+                <div id="altar-wrapper">
+                    <!-- Ambient particle field -->
+                    <div id="altar-ambient"></div>
+
+                    <!-- World title -->
+                    <div id="altar-world-header">
+                        <h1 id="world-title">👻 Nether Plains 👻</h1>
                     </div>
 
-                    <!-- Sacrifice Souls -->
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #9944cc44; border-top:3px solid #9944cc; border-radius:12px; padding:18px;">
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                            <span style="font-size:1.8em;">🌑</span>
-                            <div>
-                                <div style="color:#9944cc; font-weight:bold;">Sacrifice Souls</div>
-                                <div style="color:#666; font-size:0.75em;">Convert souls → Dark Essence</div>
-                            </div>
+                    <!-- Stats bar -->
+                    <div id="altar-stats-bar">
+                        <div class="altar-stat-badge">
+                            <span class="stat-label">Souls/sec</span>
+                            <span id="sps-display-altar">0</span>
                         </div>
-                        <p style="color:#aaa; font-size:0.82em; margin:0 0 12px;">Burn souls to gain 1 Dark Essence.</p>
-                        <button class="upgrade-btn" id="sacrificeBtn" onclick="buyUpgrade('sacrifice')" style="width:100%; border-color:#9944cc66; background:linear-gradient(135deg,#9944cc15,transparent);">
-                            <span style="color:#9944cc;">🔥 Sacrifice</span>
-                            <span class="cost" style="display:block; font-size:0.8em; margin-top:2px;">Cost: <span id="sacrificeCost" class="cost-souls">1000</span> souls</span>
-                        </button>
+                        <div class="altar-stat-badge">
+                            <span class="stat-label">Souls/click</span>
+                            <span id="spc-display-altar">1</span>
+                        </div>
                     </div>
 
-                    <!-- Soul Resonance -->
-                    <div style="background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid #44aaff44; border-top:3px solid #44aaff; border-radius:12px; padding:18px;" data-tooltip="This is a permanent upgrade that persists through Ascension.">
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                            <span style="font-size:1.8em;">💠</span>
-                            <div>
-                                <div style="color:#44aaff; font-weight:bold;">Soul Resonance</div>
-                                <div style="color:#666; font-size:0.75em;">Permanent — survives Ascension</div>
-                            </div>
-                            <div style="margin-left:auto; color:#44aaff; font-size:0.85em;">Lv.<span id="resonanceLevel">0</span></div>
+                    <!-- Active buff pills -->
+                    <div id="altar-buffs"></div>
+
+                    <!-- Harvest button -->
+                    <div id="altar-rift-section">
+                        <div id="rift-container">
+                            <canvas id="rift-canvas" width="400" height="200"></canvas>
+                            <button id="main-action-btn" class="action-btn" onclick="mainActionClick()">Harvest Soul</button>
                         </div>
-                        <p style="color:#aaa; font-size:0.82em; margin:0 0 4px;">+5% Abyssal Shards on Ascend per level.</p>
-                        <p style="color:#44aaff88; font-size:0.75em; margin:0 0 12px; font-style:italic;">★ Persists through resets</p>
-                        <button class="upgrade-btn" id="resonanceUpgradeBtn" onclick="buyUpgrade('resonance')" style="width:100%; border-color:#44aaff66; background:linear-gradient(135deg,#44aaff15,transparent);">
-                            <span style="color:#44aaff;">⬆ Upgrade</span>
-                            <span class="cost" style="display:block; font-size:0.8em; margin-top:2px;">Cost: <span id="resonanceCost" class="cost-essence">5</span> Dark Essence</span>
-                        </button>
                     </div>
 
+                    <!-- Upgrade cards -->
+                    <div id="altar-upgrades">
+
+                        <!-- Empower Harvest -->
+                        <div class="altar-card" style="--card-accent:#e8c46a;--card-glow:rgba(232,196,106,0.18);--card-bg1:#2a1e00;--card-bg2:#1a1200;--card-border:rgba(232,196,106,0.35);--card-btnbg:rgba(232,196,106,0.1);">
+                            <div style="display:flex;align-items:center;gap:12px;margin-bottom:0;">
+                                <div class="altar-card-icon">👆</div>
+                                <div style="flex:1;">
+                                    <div class="altar-card-title">Empower Harvest</div>
+                                    <div class="altar-card-sub">Manual click power</div>
+                                </div>
+                                <div class="altar-card-level">Lv.<span id="clickLevel">1</span></div>
+                            </div>
+                            <p class="altar-card-desc">Increases souls gained per click.</p>
+                            <button class="altar-upgrade-btn" id="clickUpgradeBtn" onclick="buyUpgrade('click')">
+                                <span class="btn-label">⬆ Upgrade</span>
+                                <span class="btn-cost">Cost: <span id="clickCost" class="cost-souls">10</span> souls</span>
+                            </button>
+                        </div>
+
+                        <!-- Sacrifice Souls -->
+                        <div class="altar-card" style="--card-accent:#aa44ff;--card-glow:rgba(170,68,255,0.18);--card-bg1:#1a0830;--card-bg2:#0e0520;--card-border:rgba(170,68,255,0.35);--card-btnbg:rgba(170,68,255,0.1);">
+                            <div style="display:flex;align-items:center;gap:12px;margin-bottom:0;">
+                                <div class="altar-card-icon">🌑</div>
+                                <div style="flex:1;">
+                                    <div class="altar-card-title" style="--card-accent:#aa44ff;">Sacrifice Souls</div>
+                                    <div class="altar-card-sub">Convert souls → Dark Essence</div>
+                                </div>
+                            </div>
+                            <p class="altar-card-desc" style="border-left-color:#aa44ff;">Burn souls to gain 1 Dark Essence.</p>
+                            <button class="altar-upgrade-btn" id="sacrificeBtn" onclick="buyUpgrade('sacrifice')">
+                                <span class="btn-label">🔥 Sacrifice</span>
+                                <span class="btn-cost">Cost: <span id="sacrificeCost" class="cost-souls">1000</span> souls</span>
+                            </button>
+                        </div>
+
+                        <!-- Soul Resonance -->
+                        <div class="altar-card" style="--card-accent:#44aaff;--card-glow:rgba(68,170,255,0.18);--card-bg1:#00102a;--card-bg2:#000c1e;--card-border:rgba(68,170,255,0.35);--card-btnbg:rgba(68,170,255,0.1);" data-tooltip="This is a permanent upgrade that persists through Ascension.">
+                            <div style="display:flex;align-items:center;gap:12px;margin-bottom:0;">
+                                <div class="altar-card-icon">💠</div>
+                                <div style="flex:1;">
+                                    <div class="altar-card-title" style="--card-accent:#44aaff;">Soul Resonance</div>
+                                    <div class="altar-card-sub">Permanent — survives Ascension</div>
+                                </div>
+                                <div class="altar-card-level" style="color:#44aaff;">Lv.<span id="resonanceLevel">0</span></div>
+                            </div>
+                            <p class="altar-card-desc" style="border-left-color:#44aaff;">+5% Abyssal Shards on Ascend per level.</p>
+                            <p class="altar-card-persistent">★ Persists through resets</p>
+                            <button class="altar-upgrade-btn" id="resonanceUpgradeBtn" onclick="buyUpgrade('resonance')">
+                                <span class="btn-label" style="color:#44aaff;">⬆ Upgrade</span>
+                                <span class="btn-cost">Cost: <span id="resonanceCost" class="cost-essence">5</span> Dark Essence</span>
+                            </button>
+                        </div>
+
+                    </div>
                 </div>
+
+                <script>
+                (function initAltarVFX() {
+                    // Ambient particle field
+                    const amb = document.getElementById('altar-ambient');
+                    if (amb && !amb.dataset.init) {
+                        amb.dataset.init = '1';
+                        for (let i = 0; i < 22; i++) {
+                            const p = document.createElement('div');
+                            p.className = 'amb-particle';
+                            const size = Math.random() * 6 + 3;
+                            const hue = Math.random() > 0.7 ? '270,68,255' : '196,24,24';
+                            p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;bottom:${Math.random()*40}%;background:radial-gradient(circle,rgba(${hue},0.7),transparent 70%);--dur:${(Math.random()*5+4).toFixed(1)}s;--delay:${(Math.random()*6).toFixed(1)}s;--op:${(Math.random()*0.35+0.1).toFixed(2)};`;
+                            amb.appendChild(p);
+                        }
+                    }
+
+                    // Live buff ticker — update every second
+                    function updateAltarBuffs() {
+                        const bar = document.getElementById('altar-buffs');
+                        if (!bar || typeof gameState === 'undefined') return;
+                        const now = Date.now();
+                        const pills = [];
+                        if (gameState.activePotions) {
+                            for (const [id, endTime] of Object.entries(gameState.activePotions)) {
+                                if (endTime > now) {
+                                    const p = (typeof potions !== 'undefined') ? potions[id] : null;
+                                    const name = p ? p.name : id;
+                                    const secs = Math.ceil((endTime - now) / 1000);
+                                    const m = Math.floor(secs / 60), s = (secs % 60).toString().padStart(2,'0');
+                                    const timeStr = m > 0 ? `${m}:${s}` : `${s}s`;
+                                    pills.push(`<div class="altar-buff-pill">✦ ${name} <span class="buff-timer">${timeStr}</span></div>`);
+                                }
+                            }
+                        }
+                        bar.innerHTML = pills.join('');
+                    }
+                    updateAltarBuffs();
+                    if (!window._altarBuffInterval) {
+                        window._altarBuffInterval = setInterval(updateAltarBuffs, 1000);
+                    }
+                })();
+                </script>
             </div>
             <div id="brewery-screen" class="screen" style="padding:0; overflow:hidden;">
                 <style>
@@ -5900,13 +6162,58 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- Prestige Confirm Modal -->
 <!-- prestige-confirm-overlay moved to body level -->
 
-            <div id="item-modal-overlay" style="display: none;">
+            <div id="item-modal-overlay" style="display:none;">
                 <div id="item-modal-content">
                     <h2 id="item-modal-title">Cache Opened!</h2>
                     <div id="item-modal-reward"></div>
                     <button class="upgrade-btn" onclick="closeItemModal()">Claim</button>
                 </div>
             </div>
+
+            <!-- CACHE SPIN MODAL -->
+            <div id="cache-spin-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(8px);">
+                <div style="text-align:center;width:min(560px,94vw);">
+                    <!-- Title -->
+                    <div style="font-family:var(--font-title);font-size:1em;letter-spacing:4px;color:#888;text-transform:uppercase;margin-bottom:6px;">Abyssal Cache</div>
+                    <div id="cache-spin-subtitle" style="font-family:var(--font-title);font-size:0.75em;letter-spacing:2px;color:#444;margin-bottom:22px;">Opening...</div>
+
+                    <!-- Reel window -->
+                    <div style="position:relative;background:linear-gradient(135deg,#08050f,#100818);border:2px solid #2a1a4a;border-radius:16px;padding:0;overflow:hidden;box-shadow:0 0 60px rgba(120,0,200,0.3);">
+                        <!-- Scanline overlay -->
+                        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.08) 3px,rgba(0,0,0,0.08) 4px);pointer-events:none;z-index:3;"></div>
+                        <!-- Left/right fade -->
+                        <div style="position:absolute;inset:0;background:linear-gradient(90deg,#08050f 0%,transparent 25%,transparent 75%,#08050f 100%);pointer-events:none;z-index:4;"></div>
+                        <!-- Center indicator line -->
+                        <div style="position:absolute;top:0;bottom:0;left:50%;width:2px;transform:translateX(-50%);background:linear-gradient(180deg,transparent,#aa44ff88,#aa44ff,#aa44ff88,transparent);z-index:5;pointer-events:none;box-shadow:0 0 12px #aa44ff;"></div>
+                        <!-- Top/bottom fade inside reel -->
+                        <div style="position:absolute;inset:0;background:linear-gradient(180deg,#08050f 0%,transparent 30%,transparent 70%,#08050f 100%);pointer-events:none;z-index:4;"></div>
+
+                        <!-- The scrolling reel -->
+                        <div id="cache-reel-track" style="display:flex;gap:0;will-change:transform;padding:0 20px;"></div>
+                    </div>
+
+                    <!-- Result reveal (shown after spin) -->
+                    <div id="cache-result-reveal" style="display:none;margin-top:24px;animation:cacheRevealIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;">
+                        <div id="cache-result-icon" style="font-size:3.5em;margin-bottom:8px;filter:drop-shadow(0 0 20px var(--result-color,#c8a800));animation:cacheIconPop 0.6s cubic-bezier(0.34,1.56,0.64,1) both;"></div>
+                        <div id="cache-result-name" style="font-family:var(--font-title);font-size:1.3em;letter-spacing:2px;color:var(--result-color,#c8a800);text-shadow:0 0 20px var(--result-color,#c8a800);margin-bottom:4px;"></div>
+                        <div id="cache-result-rarity" style="font-size:0.75em;letter-spacing:3px;text-transform:uppercase;color:#555;margin-bottom:8px;"></div>
+                        <div id="cache-result-desc" style="color:#7a6a8a;font-size:0.82em;max-width:340px;margin:0 auto 20px;line-height:1.5;"></div>
+                        <button onclick="closeCacheSpinModal()" style="background:linear-gradient(135deg,#2a0a4a,#4a0a7a);border:1px solid #aa44ff66;border-bottom:3px solid #000;border-radius:10px;padding:13px 44px;color:#cc88ff;font-family:var(--font-title);font-size:0.85em;letter-spacing:3px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">✦ Claim</button>
+                    </div>
+                </div>
+            </div>
+            <style>
+            @keyframes cacheRevealIn { from{opacity:0;transform:scale(0.7) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+            @keyframes cacheIconPop  { from{transform:scale(0.3) rotate(-15deg);opacity:0} to{transform:scale(1) rotate(0deg);opacity:1} }
+            .cache-reel-item {
+                flex-shrink:0; width:110px; height:120px;
+                display:flex; flex-direction:column; align-items:center; justify-content:center;
+                gap:6px; padding:8px;
+            }
+            .cache-reel-item .ri-icon { font-size:2em; line-height:1; }
+            .cache-reel-item .ri-name { font-size:0.6em; font-family:var(--font-title); letter-spacing:0.5px; text-align:center; line-height:1.3; max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+            .cache-reel-item .ri-rarity { font-size:0.52em; letter-spacing:2px; text-transform:uppercase; }
+            </style>
 
             <!-- Manage Item Modal -->
             <div id="manage-item-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); justify-content:center; align-items:center; z-index:300; backdrop-filter:blur(5px);">
@@ -17629,24 +17936,133 @@ function openAbyssalCache() {
     const rewardItem = items[randomItemId];
     gameState.inventory.push(randomItemId);
 
-    const modal = document.getElementById('item-modal-overlay');
-    const rewardDiv = document.getElementById('item-modal-reward');
-
-    // This now uses the rarity to apply the correct color and text
-    rewardDiv.innerHTML = `
-        <div class="item-name ${rewardItem.rarity}">${rewardItem.name}</div>
-        <div class="item-rarity ${rewardItem.rarity}">${rewardItem.rarity.charAt(0).toUpperCase() + rewardItem.rarity.slice(1)}</div>
-        <div class="item-desc">${rewardItem.desc}</div>
-    `;
-
-    modal.style.display = 'flex';
     gameState.nextCacheTime = Date.now() + 4 * 3600000;
-    
     playSound('ascend');
     updateCacheTimer();
+
+    // Show the spin animation instead of boring modal
+    showCacheSpinModal(rewardItem, randomItemId);
 }
 
 function closeItemModal() { document.getElementById('item-modal-overlay').style.display = 'none'; renderInventory(); }
+
+function closeCacheSpinModal() {
+    document.getElementById('cache-spin-overlay').style.display = 'none';
+    calculateStats(); renderAll(); saveGame();
+}
+
+function showCacheSpinModal(rewardItem, rewardId) {
+    if (!rewardItem) { calculateStats(); renderAll(); saveGame(); return; }
+
+    const rarityColors = { common:'#cccccc', uncommon:'#1eff00', rare:'#4488ff', epic:'#9370db', legendary:'#e8a800', forged:'#ff6622', heavenly:'#fffaaa', dark:'#cc44ff' };
+    const rarityColor  = rarityColors[rewardItem.rarity] || '#cccccc';
+
+    // Icon by item type since items don't have an icon field
+    const typeIcons = { weapon:'⚔️', idol:'🗿', sigil:'🔮', helm:'🪖', tome:'📖', ring:'💍', amulet:'📿', relic:'🏺', default:'📦' };
+    function getItemIcon(item) {
+        if (!item) return '📦';
+        if (item.icon) return item.icon;
+        return typeIcons[item.type] || typeIcons.default;
+    }
+
+    // Build reel — 28 decoys + winner inserted near the end
+    const allKeys    = Object.keys(items);
+    const decoyCount = 28;
+    const reelItems  = [];
+
+    for (let i = 0; i < decoyCount; i++) {
+        const r = Math.random();
+        let pool;
+        if      (r < 0.60) pool = allKeys.filter(k => items[k].rarity === 'common');
+        else if (r < 0.85) pool = allKeys.filter(k => items[k].rarity === 'uncommon');
+        else if (r < 0.95) pool = allKeys.filter(k => items[k].rarity === 'epic');
+        else                pool = allKeys.filter(k => items[k].rarity === 'legendary');
+        if (!pool || !pool.length) pool = allKeys;
+        const id = pool[Math.floor(Math.random() * pool.length)];
+        reelItems.push({ id, item: items[id] });
+    }
+
+    const winnerPos = decoyCount - 3;
+    reelItems.splice(winnerPos, 0, { id: rewardId, item: rewardItem, isWinner: true });
+
+    // Build reel HTML
+    const track = document.getElementById('cache-reel-track');
+    if (!track) { calculateStats(); renderAll(); saveGame(); return; }
+    track.innerHTML = '';
+    reelItems.forEach(({ item: it, isWinner }) => {
+        const c    = rarityColors[it?.rarity] || '#aaa';
+        const icon = getItemIcon(it);
+        const div  = document.createElement('div');
+        div.className = 'cache-reel-item';
+        div.style.cssText = `opacity:${isWinner ? '1' : '0.45'};`;
+        div.innerHTML = `<div class="ri-icon" style="filter:drop-shadow(0 0 6px ${c}88);">${icon}</div><div class="ri-name" style="color:${c};">${it?.name || '???'}</div><div class="ri-rarity" style="color:${c}66;">${it?.rarity || ''}</div>`;
+        track.appendChild(div);
+    });
+
+    // Show overlay
+    const overlay   = document.getElementById('cache-spin-overlay');
+    const subtitle  = document.getElementById('cache-spin-subtitle');
+    const resultDiv = document.getElementById('cache-result-reveal');
+    if (!overlay) { calculateStats(); renderAll(); saveGame(); return; }
+
+    resultDiv.style.display = 'none';
+    subtitle.textContent    = 'Opening...';
+    track.style.transform   = 'translateX(0)';
+    track.style.transition  = 'none';
+    overlay.style.display   = 'flex';
+
+    // Scroll to center the winner item
+    const itemW       = 110;
+    const containerW  = overlay.offsetWidth || window.innerWidth;
+    const targetOffset = -(winnerPos * itemW) + (containerW / 2) - (itemW / 2) - 40;
+
+    setTimeout(() => {
+        track.style.transition = `transform 3.2s cubic-bezier(0.12, 0.8, 0.3, 1)`;
+        track.style.transform  = `translateX(${targetOffset}px)`;
+        subtitle.textContent   = 'Fate is being decided...';
+    }, 80);
+
+    // After spin lands — reveal result
+    setTimeout(() => {
+        subtitle.textContent = '✦ You received ✦';
+        playSound('ascend');
+
+        const winnerEl = track.children[winnerPos];
+        if (winnerEl) { winnerEl.style.opacity = '1'; winnerEl.style.transform = 'scale(1.1)'; winnerEl.style.transition = 'all 0.3s'; }
+
+        const icon = getItemIcon(rewardItem);
+        document.getElementById('cache-result-icon').textContent          = icon;
+        document.getElementById('cache-result-name').textContent          = rewardItem.name;
+        document.getElementById('cache-result-name').style.color          = rarityColor;
+        document.getElementById('cache-result-name').style.textShadow     = `0 0 20px ${rarityColor}`;
+        document.getElementById('cache-result-rarity').textContent        = rewardItem.rarity?.toUpperCase() || '';
+        document.getElementById('cache-result-rarity').style.color        = rarityColor + '99';
+        document.getElementById('cache-result-desc').textContent          = rewardItem.desc || '';
+        resultDiv.style.display = 'block';
+
+        // Particle burst for rare+
+        if (['epic','legendary','forged'].includes(rewardItem.rarity)) {
+            for (let i = 0; i < 20; i++) {
+                const p = document.createElement('div');
+                const angle = (i / 20) * 360 + Math.random() * 18;
+                const dist  = 80 + Math.random() * 130;
+                p.style.cssText = `position:fixed;width:6px;height:6px;border-radius:50%;background:${rarityColor};top:50%;left:50%;z-index:600;pointer-events:none;animation:cacheParticle 0.9s ease-out forwards;--dx:${Math.cos(angle*Math.PI/180)*dist}px;--dy:${Math.sin(angle*Math.PI/180)*dist}px;animation-delay:${Math.random()*0.2}s;`;
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 1400);
+            }
+        }
+    }, 3400);
+}
+
+// Cache particle keyframe
+(function() {
+    if (!document.getElementById('cache-particle-style')) {
+        const s = document.createElement('style');
+        s.id = 'cache-particle-style';
+        s.textContent = `@keyframes cacheParticle{from{opacity:1;transform:translate(0,0) scale(1)}to{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0)}}`;
+        document.head.appendChild(s);
+    }
+})();
 
 // Silent version — grants reward and returns it without opening any modal. Used by cache_key.
 function openAbyssalCacheSilent() {

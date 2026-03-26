@@ -20541,12 +20541,14 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
         // For light players: soulsLog = their dark souls total (from before transcendence, stored in Supabase)
         // lightSoulsLog = current light souls. For dark players: lightSoulsLog preserved from Supabase row.
         const _curSoulsLog = D(gameState.lifetimeSouls).gt(0) ? parseFloat(D(gameState.lifetimeSouls).log10().toNumber().toFixed(6)) : 0;
+        // Cap at 1e12 — anything higher is from dev tools and would corrupt the leaderboard
+        const _safeSoulsLog = Math.min(_curSoulsLog, 1e12);
         const localPlayerData = {
             name:              gameState.playerName,
             lifetimeSouls:     D(gameState.lifetimeSouls).toNumber(),
             soulsLog:          gameState.isTranscended
                                    ? (players[localPlayerIdx]?.soulsLog || 0)  // keep dark souls log from Supabase
-                                   : _curSoulsLog,
+                                   : _safeSoulsLog,
             ascensions:        gameState.ascensions,
             aether:            D(gameState.aether).toFixed(),
             totalAetherEarned: gameState.totalAetherEarned,
@@ -20554,7 +20556,7 @@ async function fetchLeaderboard(type = 'lifetimeSouls') {
             pvpLosses:         gameState.pvpLosses,
             totalCollapses:    gameState.totalCollapses,
             isTranscended:     gameState.isTranscended || false,
-            lightSoulsLog:     gameState.isTranscended ? _curSoulsLog
+            lightSoulsLog:     gameState.isTranscended ? _safeSoulsLog
                                    : (players[localPlayerIdx]?.lightSoulsLog || 0), // preserve light history
         };
         if (!_isDevPlayer) {

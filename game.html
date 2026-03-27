@@ -2498,102 +2498,121 @@
     grid-template-rows: repeat(8, 1fr);
     gap: 3px;
     height: 560px;
-    background: #050310;
-    border: 2px solid #1a0a2a;
-    border-radius: 10px;
-    padding: 4px;
+    background: linear-gradient(180deg, #0a0308 0%, #060210 50%, #040218 100%);
+    border: 1px solid #2a1030;
+    border-radius: 14px;
+    padding: 6px;
     position: relative;
+    box-shadow: inset 0 0 40px #00000088, 0 0 20px #00000044;
 }
-/* Dividing line between sides */
+/* Battlefield divider */
 #arena-combat-grid::after {
     content: '';
     position: absolute;
-    left: 4px; right: 4px;
+    left: 6px; right: 6px;
     top: calc(50% - 1px);
     height: 2px;
-    background: linear-gradient(90deg, transparent, #ff444444, transparent);
+    background: linear-gradient(90deg, transparent, #ff444433, #ff6644aa, #ff444433, transparent);
     pointer-events: none;
+    z-index: 2;
+}
+/* Row atmosphere */
+#arena-combat-grid::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    top: 0; height: 50%;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, #cc111108, transparent);
+    pointer-events: none;
+    border-radius: 14px 14px 0 0;
+    z-index: 0;
 }
 .arena-tile {
-    border: 1px solid #0d0a18;
+    border: 1px solid #0e0a1a;
     position: relative;
-    transition: all 0.15s;
-    border-radius: 4px;
+    transition: all 0.12s;
+    border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 1;
 }
 .arena-tile.player-side {
-    background: rgba(0, 20, 40, 0.4);
-    cursor: pointer;
-}
-.arena-tile.player-side:hover {
-    background: rgba(0, 40, 80, 0.5);
-    border-color: #4488ff33;
+    background: rgba(4, 8, 20, 0.6);
 }
 .arena-tile.enemy-side {
-    background: rgba(30, 5, 5, 0.3);
+    background: rgba(14, 3, 6, 0.5);
 }
 .arena-tile.defense-placement-zone {
-    background: rgba(0, 60, 0, 0.35);
-    border: 1px solid #44cc8844;
+    background: rgba(0, 40, 10, 0.5);
+    border: 1px solid #44cc8833;
     cursor: pointer;
 }
 .arena-tile.defense-placement-zone:hover {
-    background: rgba(0, 80, 20, 0.5);
-    border-color: #44cc88;
-    box-shadow: inset 0 0 8px #44cc8822;
+    background: rgba(0, 60, 16, 0.7);
+    border-color: #44cc8877;
+    box-shadow: inset 0 0 12px #44cc8818, 0 0 6px #44cc8822;
 }
 .arena-tile.attack-placement-zone {
-    background: rgba(40, 0, 0, 0.35);
-    border: 1px solid #ff444444;
+    background: rgba(30, 3, 3, 0.5);
+    border: 1px solid #ff444433;
     cursor: pointer;
 }
 .arena-tile.attack-placement-zone:hover {
-    background: rgba(60, 0, 0, 0.5);
-    border-color: #ff4444;
+    background: rgba(50, 5, 5, 0.7);
+    border-color: #ff444477;
+    box-shadow: inset 0 0 12px #ff444418, 0 0 6px #ff444422;
 }
 .arena-minion-token {
     width: 100%; height: 100%;
     display: flex; flex-direction: column;
     justify-content: center; align-items: center;
-    font-size: 1.9rem;
+    font-size: 1.75rem;
     position: absolute; top: 0; left: 0;
     transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
     pointer-events: none;
 }
 .arena-minion-token.player-unit {
-    filter: drop-shadow(0 0 8px #44cc8888);
+    filter: drop-shadow(0 0 10px #44cc8877);
 }
 .arena-minion-token.enemy-unit {
-    filter: drop-shadow(0 0 8px #ff444488);
+    filter: drop-shadow(0 0 10px #ff444477);
 }
 .arena-health-bar {
     position: absolute; bottom: 2px; left: 8%;
-    width: 84%; height: 5px;
-    background: #111; border-radius: 3px; overflow: hidden;
+    width: 84%; height: 4px;
+    background: #0a0814; border-radius: 3px; overflow: hidden;
+    box-shadow: 0 0 2px #00000088;
 }
 .arena-health-fill {
     height: 100%;
-    background: linear-gradient(90deg, #44cc88, #88ff88);
+    background: linear-gradient(90deg, #22aa66, #44ee88);
     border-radius: 3px;
-    transition: width 0.3s;
+    transition: width 0.4s;
+    box-shadow: 0 0 4px #44cc8866;
 }
 .enemy-unit .arena-health-fill {
-    background: linear-gradient(90deg, #cc3333, #ff6644);
+    background: linear-gradient(90deg, #aa2222, #ff5544);
+    box-shadow: 0 0 4px #cc333366;
 }
 #arena-controls {
     display: flex;
     justify-content: center;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 14px;
     flex-wrap: wrap;
 }
-.arena-tile.hit-flash { animation: hit-flash 0.3s ease-out; }
+.arena-tile.hit-flash { animation: hit-flash 0.35s ease-out; }
 @keyframes hit-flash {
-    0% { background: rgba(255,100,0,0.6); }
-    100% { background: transparent; }
+    0% { background: rgba(255,80,0,0.55); box-shadow: 0 0 12px #ff440088; }
+    100% { background: transparent; box-shadow: none; }
 }
+@keyframes arenaUnitSpawn {
+    0% { transform: scale(0) rotate(-15deg); opacity:0; }
+    60% { transform: scale(1.15) rotate(3deg); opacity:1; }
+    100% { transform: scale(1) rotate(0deg); opacity:1; }
+}
+.arena-unit-spawn { animation: arenaUnitSpawn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
 /* Style for the hosting credit */
 #hosting-credit {
@@ -4261,81 +4280,120 @@ text-decoration: underline; /* Adds an underline on hover */
                 
 
                 <!-- Soul Raids entry banner -->
-                <div style="max-width:700px; margin:0 auto 20px; background:linear-gradient(135deg,#1a0805,#0e0a1a); border:1px solid #ff664433; border-left:4px solid #ff6644; border-radius:12px; padding:16px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-                    <div style="font-size:2em;">⚔</div>
-                    <div style="flex:1; min-width:180px;">
-                        <div style="color:#ff6644; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px; margin-bottom:4px;">SOUL RAIDS — PVE</div>
-                        <div style="color:#555; font-size:0.78em; line-height:1.5;">Assemble a party of 3 minions and descend into the Abyssal Dungeon. Explore a 7×7 grid across 3 floors — enemies lurk hidden in the fog. Turn-based combat with momentum, roles, and abilities. Earn Raid Echo items and Corrupted Fragments.</div>
+                <div style="max-width:700px;margin:0 auto 20px;position:relative;overflow:hidden;border-radius:16px;border:1px solid #ff664422;">
+                    <!-- Animated background -->
+                    <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1a0300,#0d0008,#0a0500);z-index:0;"></div>
+                    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 100% at 20% 50%,#ff664412,transparent);z-index:0;pointer-events:none;"></div>
+                    <div style="position:relative;z-index:1;padding:20px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                        <div style="font-size:2.8em;filter:drop-shadow(0 0 12px #ff664488);flex-shrink:0;">⚔</div>
+                        <div style="flex:1;min-width:180px;">
+                            <div style="color:#ff8855;font-family:var(--font-title);font-size:1em;letter-spacing:3px;margin-bottom:4px;text-shadow:0 0 20px #ff664466;">SOUL RAIDS</div>
+                            <div style="color:#ff330033;font-size:0.62em;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">PVE DUNGEON CRAWLER</div>
+                            <div style="color:#554433;font-size:0.76em;line-height:1.6;">Assemble 3 minions · Descend 3 floors · Fight through fog · Earn Fragments &amp; Echo items</div>
+                        </div>
+                        <button onclick="openSoulRaidsPanel()" style="background:linear-gradient(135deg,#cc2200,#660000);border:2px solid #ff664455;border-radius:12px;padding:12px 28px;color:#ff9977;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;cursor:pointer;white-space:nowrap;box-shadow:0 0 20px #ff220022;transition:all 0.2s;" onmouseover="this.style.boxShadow='0 0 30px #ff440044';this.style.borderColor='#ff6644aa'" onmouseout="this.style.boxShadow='0 0 20px #ff220022';this.style.borderColor='#ff664455'">⚔ ENTER RAIDS</button>
                     </div>
-                    <button onclick="openSoulRaidsPanel()" style="background:linear-gradient(135deg,#cc3311,#440000); border:2px solid #ff664466; border-radius:10px; padding:10px 22px; color:#ff9988; font-family:var(--font-title); font-size:0.82em; letter-spacing:2px; cursor:pointer; white-space:nowrap;">⚔ ENTER RAIDS</button>
                 </div>
 
                 <!-- Soul Raids sub-panel (hidden by default) -->
-                <div id="soul-raids-panel" style="display:none; max-width:900px; margin:0 auto 20px;">
-                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-                        <button onclick="closeSoulRaidsPanel()" style="background:transparent; border:1px solid #2a1a3a; border-radius:8px; padding:8px 16px; color:#666; font-family:var(--font-title); font-size:0.78em; letter-spacing:1px; cursor:pointer;">← BACK</button>
-                        <div style="color:#ff6644; font-family:var(--font-title); font-size:1em; letter-spacing:3px;">⚔ SOUL RAIDS</div>
-                    </div>
-                    <div id="raid-status-bar" style="background:#0a0812; border:1px solid #ff664433; border-radius:10px; padding:12px 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
-                        <div id="raid-status-text" style="color:#ff6644; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px;">SELECT YOUR PARTY</div>
-                        <div id="raid-cooldown-display" style="color:#555; font-size:0.8em;"></div>
-                    </div>
-                    <div id="raid-main" style="display:flex; gap:16px; flex-wrap:wrap;">
-                        <div style="flex:0 0 210px;">
-                            <div id="raid-party-panel" style="background:#0a0812; border:1px solid #2a1a3a; border-radius:10px; padding:14px; margin-bottom:12px;">
-                                <div style="color:#888; font-size:0.7em; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;">Your Party (pick 3)</div>
-                                <div id="raid-party-slots" style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px;"></div>
-                                <div style="color:#888; font-size:0.7em; text-transform:uppercase; letter-spacing:2px; margin-bottom:6px; border-top:1px solid #1a1030; padding-top:10px;">Available Minions</div>
-                                <div id="raid-minion-roster" style="display:flex; flex-direction:column; gap:5px; max-height:300px; overflow-y:auto;"></div>
-                            </div>
-                            <div style="background:#0a0812; border:1px solid #2a1a3a; border-radius:10px; padding:14px;">
-                                <div style="color:#888; font-size:0.7em; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">Difficulty</div>
-                                <div id="raid-tier-selector" style="display:flex; flex-direction:column; gap:6px;"></div>
+                <style>
+                #soul-raids-panel { --raid-red:#ff6644; --raid-dark:#0a0308; }
+                #raid-party-panel { scrollbar-width:thin; scrollbar-color:#ff664422 transparent; }
+                #raid-minion-roster::-webkit-scrollbar { width:4px; }
+                #raid-minion-roster::-webkit-scrollbar-thumb { background:#ff664433; border-radius:4px; }
+                #raid-log { scrollbar-width:thin; scrollbar-color:#ff664422 transparent; }
+                #raid-log::-webkit-scrollbar { width:3px; }
+                #raid-log::-webkit-scrollbar-thumb { background:#ff664422; border-radius:3px; }
+                .raid-tile { transition: background 0.1s, border-color 0.1s, transform 0.05s; }
+                .raid-tile:active { transform: scale(0.93); }
+                @keyframes raidPulse { 0%,100%{box-shadow:0 0 8px #ff664433} 50%{box-shadow:0 0 18px #ff664466} }
+                .raid-tile-player { animation: raidPulse 1.5s ease-in-out infinite; }
+                @keyframes combatShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px)} 40%{transform:translateX(4px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
+                .raid-combat-shake { animation: combatShake 0.3s ease; }
+                </style>
+                <div id="soul-raids-panel" style="display:none; max-width:960px; margin:0 auto 20px;">
+                    <!-- Header bar -->
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+                        <div style="display:flex;align-items:center;gap:14px;">
+                            <button onclick="closeSoulRaidsPanel()" style="background:#0a0308;border:1px solid #ff664422;border-radius:8px;padding:7px 14px;color:#554433;font-family:var(--font-title);font-size:0.72em;letter-spacing:1px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.color='#ff9966';this.style.borderColor='#ff664466'" onmouseout="this.style.color='#554433';this.style.borderColor='#ff664422'">← BACK</button>
+                            <div>
+                                <div style="color:#ff8855;font-family:var(--font-title);font-size:0.95em;letter-spacing:3px;text-shadow:0 0 12px #ff664433;">⚔ SOUL RAIDS</div>
                             </div>
                         </div>
-                        <div style="flex:1; min-width:300px;">
-                            <div id="raid-dungeon-area">
-                                 <div id="raid-pregame" style="text-align:center; padding:20px 0;">
-                                     <!-- Collapsible How It Works -->
-                                     <div style="max-width:420px; margin:0 auto 16px; background:#0a0812; border:1px solid #ff664422; border-radius:10px; overflow:hidden;">
-                                         <div onclick="const d=this.nextElementSibling; d.style.display=d.style.display==='none'?'block':'none'; this.querySelector('.arr').textContent=d.style.display==='none'?'▶':'▼';"
-                                             style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; cursor:pointer; user-select:none;">
-                                             <span style="color:#ff6644; font-size:0.75em; text-transform:uppercase; letter-spacing:2px;">How It Works / Roles / Tiles</span>
-                                             <span class="arr" style="color:#ff664455; font-size:0.7em;">▶</span>
-                                         </div>
-                                         <div style="display:none; padding:0 16px 14px;">
-                                             <div style="color:#888; font-size:0.82em; line-height:1.7; margin-bottom:10px;">
-                                                 🗺 Explore a <strong style="color:#ddd;">7×7 dungeon grid</strong> — click adjacent tiles to move<br>
-                                                 ⚡ Each move costs <strong style="color:#ddd;">1 energy</strong> (start with 20)<br>
-                                                 👤 Enemies <strong style="color:#ddd;">hidden in fog</strong> — you won't see them until you step on them<br>
-                                                 ⚔ <strong style="color:#ddd;">Turn-based</strong> combat with momentum and roles<br>
-                                                 👥 Your <strong style="color:#ddd;">3 minions fight in order</strong> — next steps up when one falls<br>
-                                                 🚪 Defeat floor boss and find the exit to descend
-                                             </div>
-                                             <div style="color:#888; font-size:0.82em; line-height:1.8; border-top:1px solid #ff664411; padding-top:10px; margin-bottom:10px;">
-                                                 ⚔ <strong style="color:#ffaa44;">Striker</strong> · 🪨 <strong style="color:#88aaff;">Tank</strong> · 🌀 <strong style="color:#44cc88;">Duelist</strong><br>
-                                                 🛡 <strong style="color:#ddd;">Defend</strong> builds momentum + 40% stagger
-                                             </div>
-                                             <div style="color:#888; font-size:0.82em; line-height:1.7; border-top:1px solid #ff664411; padding-top:10px;">
-                                                 💰 Treasure &nbsp;💧 Fountain &nbsp;📦 Chest &nbsp;👑 Boss &nbsp;🚪 Exit
-                                             </div>
-                                         </div>
-                                     </div>
-                                     <button id="raid-enter-btn" onclick="startSoulRaid()" disabled style="background:linear-gradient(135deg,#cc3311,#440000); border:2px solid #ff664466; border-radius:10px; padding:14px 40px; color:#ff9988; font-family:var(--font-title); font-size:0.95em; letter-spacing:2px; cursor:pointer; opacity:0.5; margin-top:8px;">⚔ ENTER THE DUNGEON</button>
+                        <div id="raid-status-bar" style="display:flex;align-items:center;gap:16px;background:#0a0308;border:1px solid #ff664422;border-radius:10px;padding:8px 16px;">
+                            <div id="raid-status-text" style="color:#ff7755;font-family:var(--font-title);font-size:0.78em;letter-spacing:2px;">SELECT YOUR PARTY</div>
+                            <div id="raid-cooldown-display" style="color:#443322;font-size:0.75em;"></div>
+                        </div>
+                    </div>
+
+                    <div id="raid-main" style="display:grid;grid-template-columns:200px 1fr;gap:14px;">
+                        <!-- LEFT: Party + Difficulty -->
+                        <div style="display:flex;flex-direction:column;gap:10px;">
+                            <!-- Party slots -->
+                            <div id="raid-party-panel" style="background:#080206;border:1px solid #ff664418;border-top:2px solid #ff664433;border-radius:12px;padding:12px;">
+                                <div style="color:#ff664466;font-size:0.62em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">⚔ Party — Pick 3</div>
+                                <div id="raid-party-slots" style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;min-height:60px;"></div>
+                                <div style="height:1px;background:linear-gradient(90deg,transparent,#ff664422,transparent);margin-bottom:8px;"></div>
+                                <div style="color:#332211;font-size:0.6em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Available</div>
+                                <div id="raid-minion-roster" style="display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto;"></div>
+                            </div>
+                            <!-- Difficulty -->
+                            <div style="background:#080206;border:1px solid #ff664418;border-radius:12px;padding:12px;">
+                                <div style="color:#ff664466;font-size:0.62em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">☠ Difficulty</div>
+                                <div id="raid-tier-selector" style="display:flex;flex-direction:column;gap:5px;"></div>
+                            </div>
+                            <!-- How it works -->
+                            <div style="background:#080206;border:1px solid #ff664415;border-radius:12px;overflow:hidden;">
+                                <div onclick="const d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none';this.querySelector('.arr').textContent=d.style.display==='none'?'▶':'▼';" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;cursor:pointer;user-select:none;">
+                                    <span style="color:#332211;font-size:0.62em;text-transform:uppercase;letter-spacing:2px;">📖 How to Play</span>
+                                    <span class="arr" style="color:#332211;font-size:0.65em;">▶</span>
                                 </div>
-                                <div id="raid-active" style="display:none;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
-                                        <div id="raid-room-label" style="color:#ff6644; font-family:var(--font-title); font-size:0.9em; letter-spacing:2px;">Floor 1 / 3</div>
-                                        <div style="display:flex; gap:6px; align-items:center;">
-                                            <div id="raid-energy-display" style="color:#44ccff; font-size:0.82em;">⚡ 20 energy</div>
-                                            <button onclick="fleeRaid()" style="background:transparent; border:1px solid #44444466; border-radius:8px; padding:6px 14px; color:#555; font-family:var(--font-title); font-size:0.75em; cursor:pointer;">🏃 Flee</button>
-                                        </div>
+                                <div style="display:none;padding:0 12px 12px;">
+                                    <div style="display:flex;flex-direction:column;gap:5px;">
+                                        <div style="color:#443322;font-size:0.7em;line-height:1.6;">🗺 Click adjacent tiles to explore</div>
+                                        <div style="color:#443322;font-size:0.7em;">⚡ Each move costs 1 energy</div>
+                                        <div style="color:#443322;font-size:0.7em;">👤 Enemies hidden in fog</div>
+                                        <div style="color:#443322;font-size:0.7em;">⚔ Turn-based combat</div>
+                                        <div style="color:#443322;font-size:0.7em;">🚪 Beat boss → find exit</div>
+                                        <div style="height:1px;background:#ff664411;margin:4px 0;"></div>
+                                        <div style="color:#554422;font-size:0.68em;">⚔ <span style="color:#ffaa44;">Striker</span> · 🪨 <span style="color:#88aaff;">Tank</span> · 🌀 <span style="color:#44cc88;">Duelist</span></div>
+                                        <div style="color:#554422;font-size:0.68em;">💰 Treasure · 💧 Fountain · 📦 Chest</div>
                                     </div>
-                                    <div id="raid-room-display" style="background:#06040e; border:2px solid #2a1a3a; border-radius:10px; padding:10px; margin-bottom:12px; min-height:220px; text-align:center; overflow-x:auto;"></div>
-                                    <div id="raid-actions" style="display:none;"></div>
-                                    <div id="raid-party-hpbars" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;"></div>
-                                    <div id="raid-log" style="background:#06040e; border:1px solid #1a1030; border-radius:6px; padding:8px 10px; height:120px; overflow-y:auto; font-size:0.75em; color:#666;"></div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT: Dungeon area -->
+                        <div id="raid-dungeon-area">
+                            <!-- Pre-game state -->
+                            <div id="raid-pregame" style="display:flex;align-items:center;justify-content:center;min-height:400px;background:#060204;border:1px solid #ff664415;border-radius:14px;position:relative;overflow:hidden;">
+                                <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 50% 50%,#ff220008,transparent);pointer-events:none;"></div>
+                                <div style="text-align:center;position:relative;z-index:1;padding:24px;">
+                                    <div style="font-size:3em;margin-bottom:12px;filter:drop-shadow(0 0 20px #ff664466);">⚔</div>
+                                    <div style="color:#ff8855;font-family:var(--font-title);font-size:1em;letter-spacing:4px;margin-bottom:6px;">THE ABYSS AWAITS</div>
+                                    <div style="color:#332211;font-size:0.75em;margin-bottom:24px;">Select your party of 3 to begin</div>
+                                    <button id="raid-enter-btn" onclick="startSoulRaid()" disabled style="background:linear-gradient(135deg,#cc2200,#550000);border:2px solid #ff664455;border-radius:12px;padding:14px 48px;color:#ff9977;font-family:var(--font-title);font-size:0.9em;letter-spacing:3px;cursor:pointer;opacity:0.4;transition:all 0.2s;box-shadow:0 0 20px #ff220022;" onmouseover="if(!this.disabled){this.style.boxShadow='0 0 30px #ff440055';this.style.borderColor='#ff8866'}" onmouseout="this.style.boxShadow='0 0 20px #ff220022';this.style.borderColor='#ff664455'">⚔ DESCEND INTO THE DUNGEON</button>
+                                </div>
+                            </div>
+
+                            <!-- Active raid state -->
+                            <div id="raid-active" style="display:none;">
+                                <!-- HUD bar -->
+                                <div style="display:flex;align-items:center;justify-content:space-between;background:#060204;border:1px solid #ff664422;border-radius:10px;padding:10px 16px;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                                    <div style="display:flex;align-items:center;gap:16px;">
+                                        <div id="raid-room-label" style="color:#ff8855;font-family:var(--font-title);font-size:0.85em;letter-spacing:2px;">Floor 1 / 3</div>
+                                        <div style="width:1px;height:20px;background:#ff664422;"></div>
+                                        <div id="raid-energy-display" style="color:#44aacc;font-size:0.8em;font-family:monospace;">⚡ 20 energy</div>
+                                    </div>
+                                    <button onclick="fleeRaid()" style="background:transparent;border:1px solid #44444433;border-radius:8px;padding:5px 14px;color:#443322;font-family:var(--font-title);font-size:0.68em;letter-spacing:1px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.color='#cc8866';this.style.borderColor='#cc664433'" onmouseout="this.style.color='#443322';this.style.borderColor='#44444433'">🏃 Flee</button>
+                                </div>
+                                <!-- Party HP bars (compact horizontal) -->
+                                <div id="raid-party-hpbars" style="display:flex;gap:8px;margin-bottom:10px;"></div>
+                                <!-- Dungeon grid -->
+                                <div id="raid-room-display" style="background:#040103;border:1px solid #ff664420;border-radius:12px;padding:12px;margin-bottom:10px;text-align:center;overflow-x:auto;min-height:200px;"></div>
+                                <div id="raid-actions" style="display:none;"></div>
+                                <!-- Combat log -->
+                                <div id="raid-log" style="background:#040103;border:1px solid #ff664415;border-radius:8px;padding:10px 12px;height:130px;overflow-y:auto;font-size:0.74em;color:#443322;font-family:monospace;line-height:1.7;"></div>
                             </div>
                         </div>
                     </div>
@@ -4431,20 +4489,18 @@ text-decoration: underline; /* Adds an underline on hover */
                         </div>
 
                         <!-- Points budget bar -->
-                        <div id="arena-budget-bar" style="background:#0a0812; border:1px solid #33333344; border-radius:10px; padding:12px 16px; margin-bottom:14px; display:flex; align-items:center; gap:12px;">
-                            <span style="color:#888; font-size:0.8em; white-space:nowrap;">⚡ Points</span>
-                            <div style="flex:1; background:#1a1030; border-radius:6px; height:8px; overflow:hidden;">
-                                <div id="arena-budget-fill" style="height:100%; width:0%; background:linear-gradient(90deg,#44cc88,#c8a800); border-radius:6px; transition:width 0.3s;"></div>
+                        <div id="arena-budget-bar" style="background:linear-gradient(135deg,#060210,#080318);border:1px solid #2a1a3a;border-radius:12px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;box-shadow:inset 0 0 16px #00000044;">
+                            <span style="color:#443355;font-size:0.78em;white-space:nowrap;font-family:var(--font-title);letter-spacing:1px;">⚡ POINTS</span>
+                            <div style="flex:1;background:#0a0618;border-radius:5px;height:7px;overflow:hidden;border:1px solid #1a1030;">
+                                <div id="arena-budget-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#44cc88,#c8a800);border-radius:5px;transition:width 0.3s;box-shadow:0 0 6px #44cc8844;"></div>
                             </div>
-                            <span id="arena-budget-text" style="color:#c8a800; font-size:0.85em; font-weight:bold; white-space:nowrap; font-family:monospace;">0 / 50</span>
+                            <span id="arena-budget-text" style="color:#c8a800;font-size:0.88em;font-weight:bold;white-space:nowrap;font-family:monospace;text-shadow:0 0 8px #c8a80066;">0 / 50</span>
                         </div>
-
                         <div id="arena-grid-container"><div id="arena-combat-grid"></div></div>
-
                         <div id="arena-controls">
-                            <button id="arena-save-defense-btn" onclick="arenaSaveDefense()" style="background:linear-gradient(135deg,#003300,#001a00); border:1px solid #44cc8866; border-radius:8px; padding:10px 24px; color:#44cc88; cursor:pointer; font-family:inherit; font-weight:bold; transition:all 0.2s;">💾 Save Defense</button>
-                            <button id="arena-begin-attack-btn" onclick="arenaStartAttack()" style="display:none; background:linear-gradient(135deg,#330000,#1a0000); border:1px solid #ff444466; border-radius:8px; padding:10px 24px; color:#ff4444; cursor:pointer; font-family:inherit; font-weight:bold; transition:all 0.2s;">⚔ Launch Attack</button>
-                            <button id="arena-reset-board-btn" onclick="arenaResetBoard()" style="display:none; background:#1a1030; border:1px solid #33333366; border-radius:8px; padding:10px 24px; color:#666; cursor:pointer; font-family:inherit; transition:all 0.2s;">↩ Reset</button>
+                            <button id="arena-save-defense-btn" onclick="arenaSaveDefense()" style="background:linear-gradient(135deg,#003a00,#001800);border:1px solid #44cc8855;border-radius:10px;padding:11px 28px;color:#44cc88;cursor:pointer;font-family:var(--font-title);font-size:0.82em;letter-spacing:1px;transition:all 0.2s;box-shadow:0 0 12px #44cc8811;" onmouseover="this.style.borderColor='#44cc88aa';this.style.boxShadow='0 0 20px #44cc8822'" onmouseout="this.style.borderColor='#44cc8855';this.style.boxShadow='0 0 12px #44cc8811'">💾 Save Defense</button>
+                            <button id="arena-begin-attack-btn" onclick="arenaStartAttack()" style="display:none;background:linear-gradient(135deg,#330000,#1a0000);border:1px solid #ff444455;border-radius:10px;padding:11px 28px;color:#ff6644;cursor:pointer;font-family:var(--font-title);font-size:0.82em;letter-spacing:1px;transition:all 0.2s;box-shadow:0 0 12px #ff444411;" onmouseover="this.style.borderColor='#ff4444aa';this.style.boxShadow='0 0 20px #ff444422'" onmouseout="this.style.borderColor='#ff444455';this.style.boxShadow='0 0 12px #ff444411'">⚔ Launch Attack</button>
+                            <button id="arena-reset-board-btn" onclick="arenaResetBoard()" style="display:none;background:#06040e;border:1px solid #2a1a3a;border-radius:10px;padding:11px 28px;color:#443355;cursor:pointer;font-family:var(--font-title);font-size:0.82em;letter-spacing:1px;transition:all 0.2s;" onmouseover="this.style.color='#888';this.style.borderColor='#443355'" onmouseout="this.style.color='#443355';this.style.borderColor='#2a1a3a'">↩ Reset</button>
                         </div>
                     </div>
                 </div>
@@ -26575,7 +26631,9 @@ function renderRaidDungeon() {
     const tileColors = { empty:'#06040e', enemy:'#1a0505', treasure:'#1a1400', fountain:'#00101a', chest:'#0a0018', boss:'#1a0008', exit:'#001a0a' };
     const tileIcons  = { treasure:'💰', fountain:'💧', chest:'📦', boss:'❓', exit:'🚪' };
 
-    let html = `<div style="display:inline-grid;grid-template-columns:repeat(${G},${CELL}px);grid-template-rows:repeat(${G},${CELL}px);gap:2px;background:#0a0812;padding:8px;border-radius:8px;user-select:none;">`;
+    const tileGlow = { enemy:'#cc111108', treasure:'#c8a80010', fountain:'#00aacc08', chest:'#aa44ff08', boss:'#ff000015', exit:'#44cc8810' };
+
+    let html = `<div style="display:inline-grid;grid-template-columns:repeat(${G},${CELL}px);grid-template-rows:repeat(${G},${CELL}px);gap:3px;background:#02010a;padding:10px;border-radius:10px;user-select:none;box-shadow:inset 0 0 30px #00000088;">`;
 
     for (let y=0; y<G; y++) {
         for (let x=0; x<G; x++) {
@@ -26584,45 +26642,58 @@ function renderRaidDungeon() {
             const explored = raidState.explored.has(key);
             const adjacent = isAdjacent(x,y) && !isPlayer;
             const tile = raidState.grid[y][x];
-
-            // Find enemy on this tile
             const enemy = raidState.enemies.find(e=>e.x===x && e.y===y && e.hp>0);
 
-            let bg = '#03020a';
+            let bg = '#030108';
             let icon = '';
-            let border = '1px solid #0d0920';
+            let border = '1px solid #0a0618';
             let cursor = 'default';
+            let extraStyle = '';
+            let cls = 'raid-tile';
 
             if (isPlayer) {
-                bg = 'rgba(255,102,68,0.15)';
+                bg = 'rgba(255,110,60,0.18)';
                 border = '2px solid #ff6644';
-                icon = `<span style="font-size:${CELL*.4}px;">👤</span>`;
+                icon = `<span style="font-size:${CELL*.42}px;filter:drop-shadow(0 0 6px #ff664488);">🧙</span>`;
+                cls += ' raid-tile-player';
             } else if (!explored && !adjacent) {
-                // Fog — show nothing, not even enemies
-                bg = '#03020a';
-                icon = '';
+                // Deep fog
+                bg = '#030108';
+                icon = `<div style="width:${CELL*.3}px;height:${CELL*.3}px;border-radius:50%;background:#0a0618;opacity:0.4;"></div>`;
             } else if (explored || adjacent) {
-                bg = tileColors[tile.type] || '#06040e';
+                bg = tileColors[tile.type] || '#07040f';
+                const glow = tileGlow[tile.type] || '';
+                if (glow) extraStyle += `box-shadow:inset 0 0 ${CELL*.4}px ${glow};`;
                 if (adjacent && !explored) {
-                    bg = 'rgba(255,102,68,0.05)';
-                    border = '1px solid rgba(255,102,68,0.2)';
+                    bg = 'rgba(255,102,68,0.06)';
+                    border = '1px solid rgba(255,102,68,0.22)';
+                    extraStyle += 'box-shadow:none;';
                 }
-                // Only reveal enemy icon if the tile is explored (player has been there or walked past)
-                // Adjacent but unexplored tiles show the tile type hint but NOT the enemy — prevents scouting without risk
                 if (enemy && explored) {
                     const hpPct = Math.max(0, enemy.hp/enemy.maxHp*100);
-                    icon = `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span style="font-size:${CELL*.32}px;">${battleMinions[enemy.minionId]?.icon||'👹'}</span><div style="width:${CELL*.6}px;height:3px;background:#1a1030;border-radius:2px;overflow:hidden;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:2px;"></div></div></div>`;
+                    const hpCol = hpPct > 60 ? '#cc3333' : hpPct > 30 ? '#cc7700' : '#ff2222';
+                    const eIcon = battleMinions[enemy.minionId]?.icon || '👹';
+                    icon = `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+                        <span style="font-size:${CELL*.34}px;filter:drop-shadow(0 0 4px ${hpCol}66);">${enemy.isBoss?'👑':''}${eIcon}</span>
+                        <div style="width:${CELL*.65}px;height:3px;background:#0d0818;border-radius:2px;overflow:hidden;margin-top:1px;">
+                            <div style="height:100%;width:${hpPct}%;background:${hpCol};border-radius:2px;transition:width 0.3s;"></div>
+                        </div>
+                    </div>`;
+                    if (!enemy.isBoss) { bg = '#1a0308'; border = '1px solid #cc222233'; }
+                    else { bg = '#1a0010'; border = '1px solid #ff000055'; extraStyle += 'box-shadow:inset 0 0 20px #ff000018,0 0 8px #ff000022;'; }
                 } else if (enemy && adjacent && !explored) {
-                    // Enemy is hidden — tile looks empty, combat triggers on step
                     icon = '';
                 } else if (!enemy && tile.type !== RTILE.EMPTY && tile.type !== RTILE.ENEMY) {
                     const ico = tileIcons[tile.type];
-                    if (ico) icon = `<span style="font-size:${CELL*.4}px;">${ico}</span>`;
+                    if (ico) {
+                        const icoSize = tile.type === 'exit' ? CELL*.45 : CELL*.4;
+                        icon = `<span style="font-size:${icoSize}px;filter:drop-shadow(0 0 5px currentColor);">${ico}</span>`;
+                    }
                 }
-                if (adjacent && !raidState.inCombat) cursor = 'pointer';
+                if (adjacent && !raidState.inCombat) { cursor = 'pointer'; extraStyle += 'filter:brightness(1.15);'; }
             }
 
-            html += `<div onclick="moveRaidPlayer(${x},${y})" style="width:${CELL}px;height:${CELL}px;background:${bg};border:${border};border-radius:4px;display:flex;align-items:center;justify-content:center;cursor:${cursor};transition:background .15s;box-sizing:border-box;">${icon}</div>`;
+            html += `<div onclick="moveRaidPlayer(${x},${y})" class="${cls}" style="width:${CELL}px;height:${CELL}px;background:${bg};border:${border};border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:${cursor};box-sizing:border-box;${extraStyle}">${icon}</div>`;
         }
     }
     html += '</div>';
@@ -26674,40 +26745,53 @@ function renderRaidDungeon() {
         const swapCol = canSwap ? '#44cc88' : '#333';
         const swapCur = canSwap ? 'pointer' : 'default';
 
+        const isBoss = e.isBoss;
+        const enemyAccent = isBoss ? '#ff0000' : '#cc3333';
+        const enemyBg = isBoss ? '#120006' : '#0c0208';
+
         html += `
-        <div style="margin-top:12px;background:#0a0812;border:1px solid #ff444433;border-top:2px solid #ff4444;border-radius:10px;padding:14px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
-                <div style="color:#ff4444;font-family:var(--font-title);font-size:.8em;letter-spacing:2px;">⚔ ${e.name||battleMinions[e.minionId]?.name||'Enemy'}${e.isBoss?' 👑':''}</div>
-                <div style="display:flex;gap:6px;">${partyQueue}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-                <span style="font-size:2em;">${battleMinions[e.minionId]?.icon||'👹'}</span>
-                <div style="flex:1;">
-                    <div style="background:#1a1030;border-radius:4px;height:8px;overflow:hidden;"><div style="height:100%;width:${hpPct}%;background:#cc3333;border-radius:4px;transition:width .3s;"></div></div>
-                    <div style="color:#cc3333;font-size:.7em;margin-top:2px;">${e.hp} / ${e.maxHp} HP${e._burning?` 🔥×${e._burning}`:''}${e._weakened?` 💢weakened`:''}${e.isBoss?' 👑 BOSS':''}</div>
+        <div style="margin-top:10px;background:${enemyBg};border:1px solid ${enemyAccent}33;border-top:2px solid ${enemyAccent}55;border-radius:12px;padding:13px;box-shadow:0 0 20px ${enemyAccent}0d;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;flex-wrap:wrap;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:1.9em;filter:drop-shadow(0 0 8px ${enemyAccent}66);">${battleMinions[e.minionId]?.icon||'👹'}</span>
+                    <div>
+                        <div style="color:${isBoss?'#ffcc00':'#ff8866'};font-family:var(--font-title);font-size:.8em;letter-spacing:2px;">${isBoss?'👑 ':''} ${e.name||battleMinions[e.minionId]?.name||'Enemy'}</div>
+                        <div style="color:${enemyAccent}88;font-size:.6em;margin-top:1px;">${e.hp}/${e.maxHp} HP${e._burning?` · 🔥 ×${e._burning}`:''}${e._weakened?' · 💢 WEAKENED':''}</div>
+                    </div>
                 </div>
-                ${frontliner ? `<div style="background:#ffffff08;border:1px solid #ffffff11;border-radius:8px;padding:5px 10px;text-align:center;min-width:80px;"><div style="color:#ffaa44;font-size:.65em;font-weight:bold;">${roleLabel}</div></div>` : ''}
+                <div style="display:flex;gap:5px;">${partyQueue}</div>
             </div>
-            <div style="margin-bottom:10px;background:#0d0a18;border-radius:6px;padding:6px 10px;">
-                <div style="display:flex;justify-content:space-between;font-size:.62em;margin-bottom:3px;">
-                    <span style="color:#666;">ENEMY PRESSURE</span>
+            <div style="background:#080415;border-radius:4px;height:6px;overflow:hidden;margin-bottom:9px;">
+                <div style="height:100%;width:${hpPct}%;background:linear-gradient(90deg,${enemyAccent},${isBoss?'#ff6600':'#ff5544'});border-radius:4px;transition:width .4s;${isBoss?'box-shadow:0 0 6px #ff000055;':''}"></div>
+            </div>
+            <div style="background:#060312;border:1px solid #ff664411;border-radius:8px;padding:7px 10px;margin-bottom:9px;">
+                <div style="display:flex;justify-content:space-between;font-size:.58em;margin-bottom:3px;">
+                    <span style="color:#441111;">⚠ ENEMY PRESSURE</span>
                     <span style="color:${momColor};font-weight:bold;">${momLabel}</span>
-                    <span style="color:#666;">YOUR MOMENTUM</span>
+                    <span style="color:#114422;">YOUR MOMENTUM ✨</span>
                 </div>
-                <div style="background:#1a1030;border-radius:3px;height:6px;overflow:hidden;position:relative;">
-                    <div style="position:absolute;height:100%;width:${momBarLeft}%;background:linear-gradient(90deg,#cc3333,${momColor});border-radius:3px;transition:width .4s;"></div>
-                    <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:#333;"></div>
+                <div style="background:#08030f;border-radius:3px;height:5px;overflow:hidden;position:relative;">
+                    <div style="position:absolute;height:100%;width:${momBarLeft}%;background:linear-gradient(90deg,#cc3333,${momColor});border-radius:3px;transition:width .5s;"></div>
+                    <div style="position:absolute;left:50%;top:-1px;bottom:-1px;width:2px;background:#1a1030;"></div>
                 </div>
-                <div style="color:#555;font-size:.6em;margin-top:3px;">DEFEND builds momentum · attack at high momentum = +30% dmg · enemy hits +50% harder at low momentum</div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                <button onclick="raidCombatAction(&quot;attack&quot;)" style="background:linear-gradient(135deg,#cc111122,transparent);border:1px solid #ff444466;border-radius:8px;padding:10px 6px;color:#ff8866;font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:pointer;">⚔ ATTACK<div style="font-size:.62em;color:#884422;margin-top:2px;">${mom>=5?'+30% dmg':mom<=1?'−30% dmg (low mom)':'standard dmg'}</div></button>
-                <button onclick="raidCombatAction(&quot;defend&quot;)" style="background:linear-gradient(135deg,#4488ff11,transparent);border:1px solid #4488ff44;border-radius:8px;padding:10px 6px;color:#88aaff;font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:pointer;">🛡 DEFEND<div style="font-size:.62em;color:#4466aa;margin-top:2px;">40% stagger · +2 momentum · −65% dmg</div></button>
-                <button onclick="raidCombatAction(&quot;ability&quot;)" style="background:linear-gradient(135deg,${abCd>0?'#22220a':'#ffaa4422'},transparent);border:1px solid ${abilityBdr};border-radius:8px;padding:10px 6px;color:${abilityCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${abilityCur};">${abilityLabel}<div style="font-size:.58em;color:${abCd>0?'#333':'#886622'};margin-top:2px;">${abilityName}</div></button>
-                <button onclick="raidCombatAction(&quot;swap&quot;)" style="background:linear-gradient(135deg,${canSwap?'#44cc8811':'transparent'},transparent);border:1px solid ${swapBdr};border-radius:8px;padding:10px 6px;color:${swapCol};font-family:var(--font-title);font-size:.72em;letter-spacing:1px;cursor:${swapCur};">🔄 SWAP<div style="font-size:.62em;color:${canSwap?'#226644':'#222'};margin-top:2px;">${canSwap?'change frontliner (enemy free hit)':'no reserves'}</div></button>
+            ${frontliner ? `<div style="display:inline-flex;align-items:center;gap:5px;background:#ffffff05;border:1px solid #ffffff08;border-radius:6px;padding:3px 9px;margin-bottom:9px;font-size:.62em;color:#ffaa44;">${roleLabel}</div>` : ''}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <button onclick="raidCombatAction(&quot;attack&quot;)" style="background:linear-gradient(135deg,#cc110822,transparent);border:1px solid #ff444455;border-radius:8px;padding:10px 5px;color:#ff9977;font-family:var(--font-title);font-size:.7em;letter-spacing:1px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.background='linear-gradient(135deg,#cc110833,transparent)'" onmouseout="this.style.background='linear-gradient(135deg,#cc110822,transparent)'">
+                    ⚔ ATTACK<div style="font-size:.6em;color:#773311;margin-top:2px;">${mom>=5?'🔥 +30% dmg':mom<=1?'⚠ −30% dmg':'normal dmg'}</div>
+                </button>
+                <button onclick="raidCombatAction(&quot;defend&quot;)" style="background:linear-gradient(135deg,#112299,transparent);background:linear-gradient(135deg,#11229922,transparent);border:1px solid #4488ff44;border-radius:8px;padding:10px 5px;color:#88aaff;font-family:var(--font-title);font-size:.7em;letter-spacing:1px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.background='linear-gradient(135deg,#11229933,transparent)'" onmouseout="this.style.background='linear-gradient(135deg,#11229922,transparent)'">
+                    🛡 DEFEND<div style="font-size:.6em;color:#336688;margin-top:2px;">+2 mom · 40% stagger</div>
+                </button>
+                <button onclick="raidCombatAction(&quot;ability&quot;)" style="background:linear-gradient(135deg,${abCd>0?'#1a1a0a18':'#aa880022'},transparent);border:1px solid ${abilityBdr};border-radius:8px;padding:10px 5px;color:${abilityCol};font-family:var(--font-title);font-size:.7em;letter-spacing:1px;cursor:${abilityCur};transition:all 0.15s;">
+                    ${abilityLabel}<div style="font-size:.55em;color:${abCd>0?'#2a2818':'#886622'};margin-top:2px;">${abilityName.length>28?abilityName.slice(0,28)+'…':abilityName}</div>
+                </button>
+                <button onclick="raidCombatAction(&quot;swap&quot;)" style="background:linear-gradient(135deg,${canSwap?'#22884411':'transparent'},transparent);border:1px solid ${swapBdr};border-radius:8px;padding:10px 5px;color:${swapCol};font-family:var(--font-title);font-size:.7em;letter-spacing:1px;cursor:${swapCur};transition:all 0.15s;">
+                    🔄 SWAP<div style="font-size:.6em;color:${canSwap?'#336644':'#1a1a1a'};margin-top:2px;">${canSwap?'next up (enemy hits)':'no reserves'}</div>
+                </button>
             </div>
-            ${hasPotion ? `${(gameState.potions['vial_of_the_scout']||0) > 0 ? '<button onclick="raidCombatAction(\'scout\')" style="background:linear-gradient(135deg,#4488aa11,transparent);border:1px solid #4488aa44;border-radius:8px;padding:8px 5px;color:#88ccff;font-family:var(--font-title);font-size:.65em;letter-spacing:1px;cursor:pointer;"><div>🔍 SCOUT</div><div style="font-size:.62em;color:#4466aa;margin-top:2px;">Reveal surroundings</div></button>' : ''}
-                <button onclick="raidCombatAction(&quot;potion&quot;)" style="width:100%;margin-top:8px;background:linear-gradient(135deg,#44cc8811,transparent);border:1px solid #44cc8844;border-radius:8px;padding:8px;color:#88ffaa;font-family:var(--font-title);font-size:.7em;cursor:pointer;">${potionLabel}</button>` : ''}
+            ${hasPotion ? `<div style="display:flex;gap:5px;margin-top:6px;">${(gameState.potions['vial_of_the_scout']||0)>0?`<button onclick="raidCombatAction('scout')" style="background:linear-gradient(135deg,#11338822,transparent);border:1px solid #4488aa44;border-radius:8px;padding:9px 7px;color:#88ccff;font-family:var(--font-title);font-size:.65em;cursor:pointer;flex-shrink:0;">🔍 SCOUT</button>`:''}
+                <button onclick="raidCombatAction(&quot;potion&quot;)" style="flex:1;background:linear-gradient(135deg,#22884411,transparent);border:1px solid #44cc8833;border-radius:8px;padding:9px;color:#66cc88;font-family:var(--font-title);font-size:.7em;cursor:pointer;">🧪 ${potionLabel}</button></div>` : ''}
         </div>`;
     }
     roomEl.innerHTML = html;
@@ -27535,13 +27619,15 @@ function updateRaidHUD() {
 
     const hpEl = document.getElementById('raid-party-hpbars');
     if (!hpEl) return;
-    hpEl.innerHTML = raidState.party.map(p=>{
+    hpEl.innerHTML = raidState.party.map((p,idx)=>{
         const pct = Math.max(0,p.hp/p.maxHp*100);
-        const col = pct>60?'#44cc88':pct>30?'#ffaa00':'#cc3333';
-        return `<div style="flex:1;background:#0a0812;border:1px solid #2a1a3a;border-radius:8px;padding:8px;min-width:80px;text-align:center;">
-            <div style="font-size:1.2em;">${battleMinions[p.minionId]?.icon||'👿'}</div>
-            <div style="background:#1a1030;border-radius:3px;height:5px;margin:4px 0;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};border-radius:3px;"></div></div>
-            <div style="color:${col};font-size:.62em;">${p.hp<=0?'💀':p.hp+'/'+p.maxHp}</div>
+        const col = p.hp<=0?'#333':pct>60?'#44cc88':pct>30?'#ffaa00':'#cc3333';
+        const isActive = idx === raidState.party.findIndex(x=>x.hp>0);
+        const bm = battleMinions[p.minionId];
+        return `<div style="flex:1;background:${isActive?'rgba(255,102,68,0.08)':'#05020a'};border:1px solid ${isActive?'#ff664433':'#1a0a20'};border-radius:9px;padding:8px;min-width:70px;text-align:center;transition:all 0.3s;">
+            <div style="font-size:1.15em;${p.hp<=0?'opacity:0.25;filter:grayscale(1)':'filter:drop-shadow(0 0 4px '+col+'44)'}">${bm?.icon||'👿'}</div>
+            <div style="background:#080314;border-radius:3px;height:4px;margin:4px 0;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width 0.4s;box-shadow:0 0 4px ${col}66;"></div></div>
+            <div style="color:${col};font-size:.58em;font-family:monospace;">${p.hp<=0?'💀':p.hp+'/'+p.maxHp}</div>
         </div>`;
     }).join('');
 }
@@ -27589,15 +27675,22 @@ function endRaid(survived) {
 
     const rarC = {epic:'#aa44ff',legendary:'#ffcc00'};
     const roomEl = document.getElementById('raid-room-display');
-    if (roomEl) roomEl.innerHTML = `<div style="text-align:center;padding:24px;">
-        <div style="font-size:2.5em;margin-bottom:10px;">${survived?'🏆':'💀'}</div>
-        <div style="color:${survived?'#ffcc00':'#ff4444'};font-family:var(--font-title);font-size:1em;letter-spacing:3px;margin-bottom:12px;">${survived?'DUNGEON CLEARED':'PARTY WIPED'}</div>
-        <div style="background:#0a0812;border-radius:8px;padding:12px 16px;margin-bottom:16px;text-align:left;display:inline-block;min-width:200px;">
-            <div style="color:#666;font-size:.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Loot</div>
-            <div style="color:#aa44ff;font-size:.85em;">🔮 +${frags} Corrupted Fragments</div>
-            ${raidState.loot.echoes.map(e=>`<div style="color:${rarC[e.rarity]||'#aaa'};font-size:.82em;margin-top:4px;">📿 ${e.name}</div>`).join('')}
+    const endBg = survived ? '#050d05' : '#0a0303';
+    const endAccent = survived ? '#ffcc00' : '#ff4444';
+    if (roomEl) roomEl.innerHTML = `<div style="text-align:center;padding:32px 24px;background:${endBg};border-radius:12px;border:1px solid ${endAccent}33;position:relative;overflow:hidden;">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 60% at 50% 50%,${endAccent}08,transparent);pointer-events:none;"></div>
+        <div style="position:relative;z-index:1;">
+            <div style="font-size:3em;margin-bottom:10px;filter:drop-shadow(0 0 16px ${endAccent}88);">${survived?'🏆':'💀'}</div>
+            <div style="color:${endAccent};font-family:var(--font-title);font-size:1.1em;letter-spacing:4px;margin-bottom:4px;">${survived?'DUNGEON CLEARED':'PARTY WIPED'}</div>
+            <div style="color:${endAccent}55;font-size:.65em;letter-spacing:2px;margin-bottom:20px;">${survived?'Floor '+raidState.floor+' complete':'Better luck next time'}</div>
+            <div style="background:#ffffff05;border:1px solid ${endAccent}22;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:inline-block;min-width:220px;text-align:left;">
+                <div style="color:#332211;font-size:.62em;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">Spoils of War</div>
+                <div style="color:#aa44ff;font-size:.88em;display:flex;align-items:center;gap:8px;"><span>🔮</span><span>+${frags} Corrupted Fragments</span></div>
+                ${raidState.loot.echoes.map(e=>`<div style="color:${rarC[e.rarity]||'#aaa'};font-size:.82em;margin-top:6px;display:flex;align-items:center;gap:8px;"><span>📿</span><span>${e.name}</span></div>`).join('')}
+                ${raidState.loot.echoes.length===0&&!survived?'<div style="color:#332211;font-size:.72em;margin-top:6px;font-style:italic;">No echo drops this run</div>':''}
+            </div>
+            <div><button onclick="resetRaidScreen()" style="background:linear-gradient(135deg,#cc2200,#550000);border:2px solid #ff664455;border-radius:12px;padding:12px 32px;color:#ff9977;font-family:var(--font-title);font-size:.85em;letter-spacing:2px;cursor:pointer;box-shadow:0 0 16px #ff220022;transition:all 0.2s;" onmouseover="this.style.boxShadow='0 0 24px #ff440044'" onmouseout="this.style.boxShadow='0 0 16px #ff220022'">↩ RETURN TO CAMP</button></div>
         </div>
-        <div><button onclick="resetRaidScreen()" style="background:linear-gradient(135deg,#cc3311,#440000);border:2px solid #ff664466;border-radius:10px;padding:12px 28px;color:#ff9988;font-family:var(--font-title);font-size:.85em;letter-spacing:2px;cursor:pointer;">↩ RETURN</button></div>
     </div>`;
 
     document.getElementById('raid-actions').style.display='none';
@@ -31459,7 +31552,7 @@ function arenaRenderGrid() {
     grid.innerHTML = '';
     const allUnits = [...(arenaState.playerUnits || []), ...(arenaState.enemyUnits || [])];
     const isDefenseSetup = arenaState.mode === 'defense_setup';
-    const isAttackSetup = arenaState.mode === 'attack_setup';
+    const isAttackSetup  = arenaState.mode === 'attack_setup';
 
     for (let y = 0; y < 8; y++) {
         for (let x = 0; x < 5; x++) {
@@ -31469,33 +31562,48 @@ function arenaRenderGrid() {
 
             if (y < 4) {
                 tile.classList.add('enemy-side');
-                if (isDefenseSetup && y < 2) tile.classList.add('defense-placement-zone');
-                // Zone label on leftmost tile
+                if (isDefenseSetup && y < 2) {
+                    tile.classList.add('defense-placement-zone');
+                }
+                // Zone label — top-left corner of enemy zone
                 if (x === 0 && y === 0) {
-                    tile.style.position = 'relative';
                     const lbl = document.createElement('div');
-                    lbl.style.cssText = 'position:absolute;top:2px;left:2px;font-size:0.45em;color:#ff666655;text-transform:uppercase;letter-spacing:1px;pointer-events:none;white-space:nowrap;';
+                    lbl.style.cssText = 'position:absolute;top:3px;left:3px;font-size:0.42em;color:#ff444444;text-transform:uppercase;letter-spacing:1px;pointer-events:none;white-space:nowrap;font-family:var(--font-title);';
                     lbl.textContent = isDefenseSetup ? '⬆ PLACE HERE' : '👹 ENEMY';
                     tile.appendChild(lbl);
                 }
+                // Subtle row depth gradient — deeper rows are darker
+                const depthAlpha = (3 - y) * 0.03;
+                tile.style.background = `rgba(${isDefenseSetup && y < 2 ? '0,40,10' : '14,3,6'},${0.5 + depthAlpha})`;
             } else {
                 tile.classList.add('player-side');
                 if (isAttackSetup && y >= 6) tile.classList.add('attack-placement-zone');
                 if (x === 0 && y === 4) {
                     const lbl = document.createElement('div');
-                    lbl.style.cssText = 'position:absolute;top:2px;left:2px;font-size:0.45em;color:#44cc8855;text-transform:uppercase;letter-spacing:1px;pointer-events:none;white-space:nowrap;';
+                    lbl.style.cssText = 'position:absolute;top:3px;left:3px;font-size:0.42em;color:#4488ff44;text-transform:uppercase;letter-spacing:1px;pointer-events:none;white-space:nowrap;font-family:var(--font-title);';
                     lbl.textContent = isAttackSetup ? '⬇ PLACE HERE' : '🛡 YOUR SIDE';
                     tile.appendChild(lbl);
                 }
+                const depthAlpha = (y - 4) * 0.03;
+                tile.style.background = `rgba(${isAttackSetup && y >= 6 ? '30,3,3' : '4,8,20'},${0.6 + depthAlpha})`;
             }
 
             const unitOnTile = allUnits.find(u => u.x === x && u.y === y);
             if (unitOnTile) {
                 const token = document.createElement('div');
-                token.className = `arena-minion-token ${unitOnTile.isPlayer ? 'player-unit' : 'enemy-unit'}`;
+                const isPlayer = unitOnTile.isPlayer;
+                token.className = `arena-minion-token ${isPlayer ? 'player-unit' : 'enemy-unit'} arena-unit-spawn`;
                 token.id = unitOnTile.id || `unit_${x}_${y}`;
                 const hpPct = Math.max(0, (unitOnTile.currentHp / unitOnTile.hp) * 100);
-                token.innerHTML = `${unitOnTile.icon}<div class="arena-health-bar"><div class="arena-health-fill" style="width:${hpPct}%"></div></div>`;
+                const hpColor = hpPct > 60 ? (isPlayer ? '#44ee88' : '#ff5544') : hpPct > 30 ? '#ffaa00' : '#ff2222';
+                // Add a subtle glow to occupied tile
+                tile.style.boxShadow = isPlayer
+                    ? 'inset 0 0 12px #44cc8818'
+                    : 'inset 0 0 12px #ff444418';
+                tile.style.borderColor = isPlayer ? '#44cc8833' : '#ff444433';
+                token.innerHTML = `
+                    <span style="line-height:1;filter:drop-shadow(0 2px 4px #00000066);">${unitOnTile.icon}</span>
+                    <div class="arena-health-bar"><div class="arena-health-fill" style="width:${hpPct}%;background:linear-gradient(90deg,${isPlayer?'#22aa66,#44ee88':'#aa2222,#ff5544'});box-shadow:0 0 4px ${hpColor}66;"></div></div>`;
                 tile.appendChild(token);
             }
             grid.appendChild(tile);

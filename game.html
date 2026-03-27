@@ -5065,6 +5065,33 @@ text-decoration: underline; /* Adds an underline on hover */
 
                     <!-- TAB: Settings (leader only) -->
                     <div id="ptab-content-settings" style="display:none;">
+
+                        <!-- Pact Identity (emblem + color, leader only) -->
+                        <div style="background:#0a0812; border:1px solid #aa44ff33; border-radius:10px; padding:16px; margin-bottom:14px;">
+                            <div style="color:#aa44ff; font-weight:bold; font-size:0.85em; letter-spacing:2px; margin-bottom:12px;">⚜ PACT IDENTITY</div>
+                            <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                                <div id="pact-settings-badge" style="font-size:2.5em; width:56px; height:56px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#1a1030,#0e0820); border:2px solid #aa44ff44; border-radius:12px; flex-shrink:0;"></div>
+                                <div style="flex:1; min-width:160px;">
+                                    <div id="pact-settings-name" style="color:#e0d0ff; font-weight:bold; font-size:1.05em; margin-bottom:4px;"></div>
+                                    <div id="pw-leader-badge" style="display:none; color:#c8a800; font-size:0.72em; margin-bottom:10px;">👑 Pact Leader</div>
+                                    <div id="pact-identity-leader-controls" style="display:none;">
+                                        <div style="color:#3d2d55; font-size:0.7em; margin-bottom:8px;">Set the emblem and color that represent your alliance.</div>
+                                        <div style="display:flex; gap:14px; flex-wrap:wrap;">
+                                            <div>
+                                                <div style="color:#554477; font-size:0.65em; letter-spacing:1px; text-transform:uppercase; margin-bottom:5px;">Emblem</div>
+                                                <div class="pw-emblem-grid" style="display:flex; flex-wrap:wrap; gap:5px; max-width:260px;"></div>
+                                            </div>
+                                            <div>
+                                                <div style="color:#554477; font-size:0.65em; letter-spacing:1px; text-transform:uppercase; margin-bottom:5px;">Color</div>
+                                                <div class="pw-color-grid" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="pact-identity-member-note" style="display:none; color:#3d2d55; font-size:0.72em; font-style:italic;">Only the pact leader can change the emblem and color.</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Clan Tag section -->
                         <div style="background:#0a0812; border:1px solid #aa44ff33; border-radius:10px; padding:16px; margin-bottom:14px;">
                             <div style="color:#aa44ff; font-weight:bold; font-size:0.85em; letter-spacing:2px; margin-bottom:4px;">🏷️ CLAN TAG</div>
@@ -5185,27 +5212,6 @@ text-decoration: underline; /* Adds an underline on hover */
                         <div style="text-align:center;">
                             <div id="pw-my-bonus" style="color:#44cc88; font-weight:bold; font-size:1.3em;">+0%</div>
                             <div style="color:#555; font-size:0.7em;">WAR BONUS</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pact emblem setup (only if in pact) -->
-                <div id="pw-emblem-panel" style="display:none; background:#0e0a1a; border:1px solid #aa44ff44; border-radius:12px; padding:16px 20px; max-width:900px; margin:0 auto 20px;">
-                    <div style="color:#aa44ff; font-weight:bold; font-size:0.88em; letter-spacing:2px; margin-bottom:12px;">⚜ PACT IDENTITY</div>
-                    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-                        <div id="pw-pact-badge" style="font-size:3em; width:64px; height:64px; display:flex; align-items:center; justify-content:center; background:#1a1030; border:2px solid #aa44ff44; border-radius:12px;"></div>
-                        <div style="flex:1; min-width:200px;">
-                            <div id="pw-pact-name-display" style="color:#ddd; font-weight:bold; font-size:1.1em;"></div>
-                            <div id="pw-pact-members-count" style="color:#555; font-size:0.75em; margin-top:2px;"></div>
-                            <div id="pw-leader-badge" style="display:none; color:#c8a800; font-size:0.72em; margin-top:4px;">👑 You are the Pact Leader</div>
-                        </div>
-                        <div id="pw-emblem-picker" style="display:none;">
-                            <div style="color:#666; font-size:0.72em; margin-bottom:6px;">Choose Emblem:</div>
-                            <div class="pw-emblem-grid" style="display:flex; flex-wrap:wrap; gap:6px; max-width:300px;"></div>
-                        </div>
-                        <div id="pw-color-picker" style="display:none;">
-                            <div style="color:#666; font-size:0.72em; margin-bottom:6px;">Pact Color:</div>
-                            <div class="pw-color-grid" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
                         </div>
                     </div>
                 </div>
@@ -29415,7 +29421,40 @@ function _pactRenderSettingsTab() {
     var tag = _pactGetTag();
     var tagColor = _pactGetTagColor();
 
-    // Leader panel
+    // ── Pact Identity section ──────────────────────────────────────
+    var settingsBadge = document.getElementById('pact-settings-badge');
+    var settingsName  = document.getElementById('pact-settings-name');
+    var leaderBadge   = document.getElementById('pw-leader-badge');
+    var leaderControls = document.getElementById('pact-identity-leader-controls');
+    var memberNote    = document.getElementById('pact-identity-member-note');
+    var myPact = window.playerPact;
+    var emblem = myPact.emblem || '⚔';
+    var color  = myPact.color  || '#aa44ff';
+
+    if (settingsBadge) { settingsBadge.textContent = emblem; settingsBadge.style.border = '2px solid ' + color + '66'; }
+    if (settingsName)  { settingsName.textContent = myPact.pact_name || ''; settingsName.style.color = color; }
+    if (leaderBadge)   leaderBadge.style.display = isLeader ? 'block' : 'none';
+    if (leaderControls) leaderControls.style.display = isLeader ? 'block' : 'none';
+    if (memberNote)     memberNote.style.display = isLeader ? 'none' : 'block';
+
+    if (isLeader) {
+        // Emblem picker
+        var epGrid = document.querySelector('#pact-identity-leader-controls .pw-emblem-grid');
+        if (epGrid) {
+            epGrid.innerHTML = PW_EMBLEMS.map(function(e) {
+                return '<button onclick="pwSetEmblem(\'' + e + '\')" style="font-size:1.4em;width:36px;height:36px;background:' + (e===emblem?color+'33':'#1a1030') + ';border:2px solid ' + (e===emblem?color:'#2a1a3a') + ';border-radius:8px;cursor:pointer;">' + e + '</button>';
+            }).join('');
+        }
+        // Color picker
+        var cpGrid = document.querySelector('#pact-identity-leader-controls .pw-color-grid');
+        if (cpGrid) {
+            cpGrid.innerHTML = PW_COLORS.map(function(c) {
+                return '<button onclick="pwSetColor(\'' + c + '\')" style="width:26px;height:26px;background:' + c + ';border:3px solid ' + (c===color?'#fff':'transparent') + ';border-radius:50%;cursor:pointer;" title="' + c + '"></button>';
+            }).join('');
+        }
+    }
+
+    // ── Clan Tag / kick panels ─────────────────────────────────────
     var lp = document.getElementById('pact-tag-leader-panel');
     var mp = document.getElementById('pact-tag-member-panel');
     var kp = document.getElementById('pact-kick-panel');
@@ -35577,74 +35616,33 @@ async function pwCheckActiveRallies() {
     } catch(e) {}
 }
 
-// ── Emblem panel ─────────────────────────────────────────────────
+// ── Emblem panel (now lives in pacts screen Settings tab) ────────
 function pwRenderEmblemPanel() {
-    const panel   = document.getElementById('pw-emblem-panel');
-    const badge   = document.getElementById('pw-pact-badge');
-    const nameEl  = document.getElementById('pw-pact-name-display');
-    const countEl = document.getElementById('pw-pact-members-count');
-    const leader  = document.getElementById('pw-leader-badge');
-    const epick   = document.getElementById('pw-emblem-picker');
-    const cpick   = document.getElementById('pw-color-picker');
-    if (!panel) return;
-
-    const myPact = window.playerPact;
-    if (!myPact) { panel.style.display = 'none'; return; }
-    panel.style.display = 'block';
-
-    const emblem    = myPact.emblem || '⚔';
-    const color     = myPact.color  || '#ff6644';
-    const isLeader  = (myPact.members||[])[0] === gameState.playerName;
-
-    badge.textContent  = emblem;
-    badge.style.border = `2px solid ${color}66`;
-    nameEl.textContent = myPact.pact_name;
-    nameEl.style.color = color;
-    countEl.textContent = `${(myPact.members||[]).length} members`;
-    leader.style.display = isLeader ? 'block' : 'none';
-
-    if (isLeader) {
-        epick.style.display = 'block';
-        cpick.style.display = 'block';
-
-        // Emblem picker
-        const epGrid = epick.querySelector('.pw-emblem-grid');
-        if (epGrid) {
-            epGrid.innerHTML = PW_EMBLEMS.map(e =>
-                `<button onclick="pwSetEmblem('${e}')" style="font-size:1.5em; width:38px; height:38px; background:${e===emblem?color+'33':'#1a1030'}; border:2px solid ${e===emblem?color:'#2a1a3a'}; border-radius:8px; cursor:pointer;" title="${e}">${e}</button>`
-            ).join('');
-        }
-
-        // Color picker
-        const cpGrid = cpick.querySelector('.pw-color-grid');
-        if (cpGrid) {
-            cpGrid.innerHTML = PW_COLORS.map(c =>
-                `<button onclick="pwSetColor('${c}')" style="width:28px; height:28px; background:${c}; border:3px solid ${c===color?'#fff':'transparent'}; border-radius:50%; cursor:pointer;" title="${c}"></button>`
-            ).join('');
-        }
-    } else {
-        epick.style.display = 'none';
-        cpick.style.display = 'none';
-    }
+    // Legacy: pact identity moved to pacts screen settings tab
+    // Just refresh the settings tab if it's visible
+    if (window.playerPact) { _pactRenderSettingsTab(); }
 }
 
 async function pwSetEmblem(emblem) {
-    const pact = window.playerPact;
+    var pact = window.playerPact;
     if (!pact || !supabaseClient) return;
     if ((pact.members||[])[0] !== gameState.playerName) return;
-    await supabaseClient.from('pacts').update({ emblem }).eq('pact_name', pact.pact_name);
+    await supabaseClient.from('pacts').update({ emblem: emblem }).eq('pact_name', pact.pact_name);
     pact.emblem = emblem;
-    pwRenderEmblemPanel();
+    _pactRenderSettingsTab();
+    // Also refresh identity badge in banner
+    var badge = document.getElementById('pact-identity-badge');
+    if (badge) badge.textContent = emblem;
     pwRenderMap();
 }
 
 async function pwSetColor(color) {
-    const pact = window.playerPact;
+    var pact = window.playerPact;
     if (!pact || !supabaseClient) return;
     if ((pact.members||[])[0] !== gameState.playerName) return;
-    await supabaseClient.from('pacts').update({ color }).eq('pact_name', pact.pact_name);
+    await supabaseClient.from('pacts').update({ color: color }).eq('pact_name', pact.pact_name);
     pact.color = color;
-    pwRenderEmblemPanel();
+    _pactRenderSettingsTab();
     pwRenderMap();
 }
 

@@ -23620,14 +23620,14 @@ function initializeChat() {
                     };
                 }
 
-                userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP, stats: buildPublicStats() });
+                userRef.set({ ...localData, uid: uid, lastActive: firebase.database.ServerValue.TIMESTAMP, stats: buildPublicStats(), activeBadge: localStorage.getItem('activeChatBadge') || 'none' });
                 // Refresh stats + heartbeat every 3 min
-                setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP, stats: buildPublicStats() }), 30 * 1000);
+                setInterval(() => userRef.update({ lastActive: firebase.database.ServerValue.TIMESTAMP, stats: buildPublicStats(), activeBadge: localStorage.getItem('activeChatBadge') || 'none' }), 30 * 1000);
 
                 listenForOnlineUsers(db);
                 setupEventListeners(db, uid);
                 window._chatDb = db; window._chatUid = uid;
-                var REP_TIERS=[{min:0,title:'Newcomer',color:'#555555',icon:'👤'},{min:10,title:'Soul Lurker',color:'#888888',icon:'👻'},{min:50,title:'Void Whisperer',color:'#44cc88',icon:'🌿'},{min:150,title:'Shade Walker',color:'#4488ff',icon:'💧'},{min:400,title:'Rift Crawler',color:'#aa44ff',icon:'🔮'},{min:900,title:'Abyss Warden',color:'#c8a800',icon:'⚡'},{min:2000,title:'Demon Lord',color:'#ff6644',icon:'👹'},{min:5000,title:'Soul Sovereign',color:'#ff44aa',icon:'💀'}];
+                var REP_TIERS=[{min:0,title:'Newcomer',color:'#555555',icon:'👤'},{min:10,title:'Soul Lurker',color:'#888888',icon:'👻'},{min:50,title:'Void Whisperer',color:'#44cc88',icon:'🌿'},{min:150,title:'Shade Walker',color:'#4488ff',icon:'💧'},{min:400,title:'Rift Crawler',color:'#aa44ff',icon:'🔮'},{min:900,title:'Abyss Warden',color:'#c8a800',icon:'⚡'},{min:2000,title:'Demon Lord',color:'#ff6644',icon:'👹'},{min:5000,title:'Soul Sovereign',color:'#ff44aa',icon:'💀'},{min:8000,title:'Abyssal Archon',color:'#cc44ff',icon:'🌌'},{min:12000,title:'Void Eternal',color:'#ff88ff',icon:'♾️'},{min:18000,title:'Harbinger',color:'#ff4400',icon:'🔥'},{min:26000,title:'Death Incarnate',color:'#ff0044',icon:'💔'},{min:40000,title:'Cosmic Horror',color:'#4400ff',icon:'🌀'},{min:60000,title:'The Abyss Itself',color:'#ffffff',icon:'⬛'},{min:100000,title:'Transcendent',color:'#ffe066',icon:'✦'}];
                 window._getRepTier=function(r){var t=REP_TIERS[0];for(var i=0;i<REP_TIERS.length;i++){if(r>=REP_TIERS[i].min)t=REP_TIERS[i];}return t;};
                 window._getNextRepTier=function(r){for(var i=0;i<REP_TIERS.length;i++){if(REP_TIERS[i].min>r)return REP_TIERS[i];}return null;};
                 window._buildRepBar=function(rv,isSelf,tuid,tname){var t=window._getRepTier(rv),n=window._getNextRepTier(rv);var pct=n?Math.min(100,Math.round(((rv-t.min)/(n.min-t.min))*100)):100;var today=new Date().toISOString().slice(0,10);var gave=!!localStorage.getItem('repGiven_'+today+'_'+tuid);var btn=isSelf?'':'<button id="give-rep-btn" data-uid="'+escapeHTML(tuid)+'" data-name="'+escapeHTML(tname)+'" style="font-size:0.72em;padding:4px 12px;border-radius:6px;font-family:inherit;white-space:nowrap;'+(gave?'background:#0a0a0a;border:1px solid #1a1a1a;color:#333;cursor:not-allowed;">⭐ Gave today':'background:linear-gradient(135deg,#3a3a00,#c8a80022);border:1px solid #c8a80066;color:#c8a800;cursor:pointer;">⭐ Give +5 Rep')+'</button>';return'<div style="padding:12px 20px 10px;border-bottom:1px solid #1a1030;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div style="display:flex;align-items:center;gap:6px;"><span style="font-size:1.1em;">'+t.icon+'</span><span style="color:'+t.color+';font-family:var(--font-title);font-size:0.78em;letter-spacing:1px;">'+t.title+'</span><span id="rep-count" style="color:#444;font-size:0.68em;">• '+rv+' rep</span></div>'+btn+'</div><div style="background:#0a0a0a;border-radius:4px;height:6px;overflow:hidden;border:1px solid #1a1030;"><div id="rep-bar-fill" style="height:100%;width:'+pct+'%;background:linear-gradient(to right,'+t.color+'88,'+t.color+');border-radius:4px;transition:width 0.6s;"></div></div>'+(n?'<div style="color:#333;font-size:0.6em;text-align:right;margin-top:3px;">'+rv+'/'+n.min+' → '+n.icon+' '+n.title+'</div>':'<div style="color:#c8a800;font-size:0.6em;text-align:right;margin-top:3px;">✦ Max Rank</div>')+'</div>';};
@@ -24031,8 +24031,9 @@ function initializeChat() {
                     'supporter':     { label:'🩸 Supporter',       color:'#c8a800' },
                     'vip':           { label:'VIP',                color:'#9C27B0' },
                 };
-                const activeBadge = st.activeBadge || 'none';
-                const badgeInfo = _allBadgeMap[activeBadge];
+                // Badge: check top-level presence field (freshest), then stats, then chat override
+                const activeBadge = userData.activeBadge || st.activeBadge || userData.activeBadgeOverride || 'none';
+                const badgeInfo = (activeBadge && activeBadge !== 'none') ? _allBadgeMap[activeBadge] : null;
                 const badgeHTML = badgeInfo
                     ? `<span style="display:inline-flex;align-items:center;gap:4px;background:${badgeInfo.color}18;border:1px solid ${badgeInfo.color}44;border-radius:6px;padding:3px 10px;color:${badgeInfo.color};font-size:0.72em;font-weight:bold;letter-spacing:1px;">${badgeInfo.label}</span>`
                     : '';

@@ -24031,12 +24031,45 @@ function initializeChat() {
                     'supporter':     { label:'🩸 Supporter',       color:'#c8a800' },
                     'vip':           { label:'VIP',                color:'#9C27B0' },
                 };
-                // Badge: check top-level presence field (freshest), then stats, then chat override
+                // ── Badge: resolve from ALL sources ───────────────────
+                const _FULL_BADGE_MAP = {
+                    'rank_total':      { label:'👑 CHAMPION',       color:'#c8a800' },
+                    'rank_dark':       { label:'☠ DARK LORD',       color:'#ff6666' },
+                    'rank_light':      { label:'✦ ASCENDANT',       color:'#c8b4ff' },
+                    'rank_aether':     { label:'🌀 VOID WALKER',    color:'#00e5ff' },
+                    'rank_ascend':     { label:'↑ ASCENSION',       color:'#ff9944' },
+                    'rank_pvp':        { label:'⚔ WARLORD',         color:'#44cc88' },
+                    'rank_ex_total':   { label:'👑 EX-CHAMPION',    color:'#886600' },
+                    'rank_ex_dark':    { label:'☠ EX-DARK LORD',    color:'#884444' },
+                    'rank_ex_light':   { label:'✦ EX-ASCENDANT',   color:'#886688' },
+                    'rank_ex_aether':  { label:'🌀 EX-VOID WALKER', color:'#336655' },
+                    'rank_ex_ascend':  { label:'↑ EX-ASCENSION',   color:'#886633' },
+                    'rank_ex_pvp':     { label:'⚔ EX-WARLORD',     color:'#336644' },
+                    'rank_pact_top':   { label:'⚔ PACT OVERLORD',  color:'#cc88ff' },
+                    'rank_ex_pact_top':{ label:'⚔ EX-PACT OVERLORD',color:'#775599'},
+                    'supporter':       { label:'🩸 SUPPORTER',      color:'#ff44aa' },
+                    'vip':             { label:'VIP',               color:'#cc44ff' },
+                };
+                // Priority: top-level presence → stats → chat override
                 const activeBadge = userData.activeBadge || st.activeBadge || userData.activeBadgeOverride || 'none';
-                const badgeInfo = (activeBadge && activeBadge !== 'none') ? _allBadgeMap[activeBadge] : null;
-                const badgeHTML = badgeInfo
-                    ? `<span style="display:inline-flex;align-items:center;gap:4px;background:${badgeInfo.color}18;border:1px solid ${badgeInfo.color}44;border-radius:6px;padding:3px 10px;color:${badgeInfo.color};font-size:0.72em;font-weight:bold;letter-spacing:1px;">${badgeInfo.label}</span>`
-                    : '';
+                // Determine badge: check isDev first (always shows DEV badge if no override)
+                let badgeInfo = null;
+                const _isProfileDev = typeof isDev === 'function' && isDev(uid);
+                if (activeBadge && activeBadge !== 'none' && _FULL_BADGE_MAP[activeBadge]) {
+                    badgeInfo = _FULL_BADGE_MAP[activeBadge];
+                } else if (_isProfileDev) {
+                    badgeInfo = { label: 'DEV', color: '#fff', bg: '#E91E63', textColor: '#fff' };
+                } else if (typeof isVip === 'function' && isVip(uid, userData.name)) {
+                    badgeInfo = { label: 'VIP', color: '#fff', bg: '#9C27B0', textColor: '#fff' };
+                } else if (userData.isDonor) {
+                    badgeInfo = { label: '🩸 SUPPORTER', color: '#ff44aa' };
+                }
+                const badgeHTML = badgeInfo ? (() => {
+                    const bg  = badgeInfo.bg || (badgeInfo.color + '22');
+                    const tc  = badgeInfo.textColor || badgeInfo.color;
+                    const brd = badgeInfo.bg ? 'none' : '1px solid ' + badgeInfo.color + '55';
+                    return `<span style="display:inline-flex;align-items:center;gap:4px;background:${bg};border:${brd};border-radius:6px;padding:3px 10px;color:${tc};font-size:0.72em;font-weight:bold;letter-spacing:1px;">${badgeInfo.label}</span>`;
+                })() : '';
 
                 // ── Rep tier for inline display ───────────────────────────
                 const repTier = typeof window._getRepTier === 'function' ? window._getRepTier(liveRep) : { title:'', color:'#888', icon:'👤' };

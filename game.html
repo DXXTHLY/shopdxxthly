@@ -3201,7 +3201,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div class="nav-group-label label-social">Social</div>
                 <div class="nav-group-buttons">
                     <button onclick="showScreen('leaderboard')">Leaderboard</button>
-                    <button onclick="showScreen('pacts')">⚔️ Pacts</button>
+                    <button onclick="showScreen('pacts')">⚔ Pacts</button>
                     <button onclick="toggleChat()">Chat</button>
                     <button onclick="showScreen('bank')">Bank</button>
                     <button onclick="showScreen('stats')">Stats</button>
@@ -4271,7 +4271,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div id="pvp-hero">
                     <div id="pvp-stars"></div>
                     <div style="position:relative;z-index:1;">
-                        <h2>⚔️ ABYSSAL ARENA ⚔️</h2>
+                        <h2>⚔ ABYSSAL ARENA ⚔</h2>
                         <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Challenge other Soul Collectors in tactical combat.</p>
                     </div>
                 </div>
@@ -4524,7 +4524,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div id="crashgame-hero">
                     <div id="crashgame-stars"></div>
                     <div style="position:relative;z-index:1;">
-                        <h2>⚔️ THE ABYSSAL GAUNTLET ⚔️</h2>
+                        <h2>⚔ THE ABYSSAL GAUNTLET ⚔</h2>
                         <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Survive endless waves. How far can you push your soul?</p>
                     </div>
                 </div>
@@ -4871,6 +4871,7 @@ text-decoration: underline; /* Adds an underline on hover */
                     <button onclick="fetchLeaderboard('ascensions')" style="background:linear-gradient(135deg,#140a00,#201200);border:1px solid #ff880044;border-bottom:2px solid #ff8800;border-radius:10px;padding:8px 16px;color:#ff9944;font-family:var(--font-title);font-size:0.72em;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">↑ ASCENSIONS</button>
                     <button onclick="fetchLeaderboard('aether')" style="background:linear-gradient(135deg,#001416,#001e22);border:1px solid #00e5ff33;border-bottom:2px solid #00e5ff;border-radius:10px;padding:8px 16px;color:#00e5ff;font-family:var(--font-title);font-size:0.72em;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">🌀 AETHER</button>
                     <button onclick="fetchLeaderboard('pvpWins')" style="background:linear-gradient(135deg,#041408,#081e0e);border:1px solid #44cc8844;border-bottom:2px solid #44cc88;border-radius:10px;padding:8px 16px;color:#44cc88;font-family:var(--font-title);font-size:0.72em;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">⚔ PVP WINS</button>
+                    <button onclick="showPactLeaderboardTab()" style="background:linear-gradient(135deg,#0a0620,#120830);border:1px solid #aa44ff44;border-bottom:2px solid #aa44ff;border-radius:10px;padding:8px 16px;color:#aa44ff;font-family:var(--font-title);font-size:0.72em;letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.3)'" onmouseout="this.style.filter=''">⚔ PACTS</button>
                 </div>
                 <!-- Title bar -->
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #1a0d26;">
@@ -4890,6 +4891,18 @@ text-decoration: underline; /* Adds an underline on hover */
                         <div id="lb-popup-body" style="padding:20px 22px;"></div>
                     </div>
                 </div>
+                <!-- Pact guild stats popup -->
+                <div id="lb-pact-popup" style="display:none;position:fixed;inset:0;background:#000000cc;z-index:5000;align-items:center;justify-content:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none';">
+                    <div style="background:linear-gradient(160deg,#08041a,#100820);border:1px solid #aa44ff44;border-top:3px solid #aa44ff;border-radius:20px;width:min(500px,92vw);overflow:hidden;box-shadow:0 0 60px #aa44ff18;">
+                        <div style="padding:18px 22px;border-bottom:1px solid #aa44ff18;display:flex;align-items:center;justify-content:space-between;">
+                            <div id="lb-pact-popup-title" style="color:#aa44ff;font-family:var(--font-title);font-size:0.85em;letter-spacing:3px;">GUILD STATS</div>
+                            <button onclick="document.getElementById('lb-pact-popup').style.display='none'" style="background:#1a0a2a;border:1px solid #3a2a4a;border-radius:8px;color:#aa44ff;padding:4px 11px;cursor:pointer;">✕</button>
+                        </div>
+                        <div id="lb-pact-popup-body" style="padding:20px 22px;"></div>
+                    </div>
+                </div>
+                <!-- Pact leaderboard list (shown when PACTS tab active) -->
+                <div id="pact-leaderboard-list" style="display:none;"></div>
                 </div>
             </div>
 
@@ -4907,7 +4920,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div id="pacts-hero">
                     <div id="pacts-stars"></div>
                     <div style="position:relative;z-index:1;">
-                        <h2>⚔️ SOUL PACTS ⚔️</h2>
+                        <h2>⚔ SOUL PACTS ⚔</h2>
                         <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Forge a blood alliance. Every active member empowers your harvest.</p>
                     </div>
                 </div>
@@ -4958,7 +4971,7 @@ text-decoration: underline; /* Adds an underline on hover */
 
                     <!-- Pact name + tabs -->
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
-                        <span style="font-size:1.6em;">⚔️</span>
+                        <span style="font-size:1.6em;">⚔</span>
                         <div style="flex:1;">
                             <div style="color:var(--dim-color); font-size:0.7em; text-transform:uppercase; letter-spacing:2px;">Your Alliance</div>
                             <div style="color:#c8a800; font-size:1.3em; font-weight:bold;" id="pact-name-display"></div>
@@ -5066,7 +5079,7 @@ text-decoration: underline; /* Adds an underline on hover */
                             <h3 style="margin:0 0 5px; color:#b088ff;">Forge a New Pact</h3>
                             <p style="color:var(--dim-color); font-size:0.8em; margin:0 0 12px;">Become the founding leader. You control the clan tag, color, and members.</p>
                             <input id="pact-create-name" type="text" maxlength="24" placeholder="Pact name..." style="width:100%; box-sizing:border-box; background:#0a0812; border:1px solid #4d3a6a; color:#fff; padding:8px 11px; border-radius:6px; font-family:inherit; margin-bottom:8px; font-size:0.88em;">
-                            <button class="upgrade-btn" onclick="createPact()" style="width:100%; border-color:#8855ff;">⚔️ Forge Pact</button>
+                            <button class="upgrade-btn" onclick="createPact()" style="width:100%; border-color:#8855ff;">⚔ Forge Pact</button>
                         </div>
                         <div style="flex:1; min-width:240px; background:linear-gradient(135deg,#110d1e,#1a1228); border:1px solid #3d2a4a; border-top:2px solid #c8a800; border-radius:10px; padding:18px;">
                             <div style="font-size:1.3em; margin-bottom:5px;">🤝</div>
@@ -5080,17 +5093,7 @@ text-decoration: underline; /* Adds an underline on hover */
 
                 <div id="pact-status-msg" style="color:#ff9944; margin-bottom:14px; min-height:18px; text-align:center; font-size:0.88em;"></div>
 
-                <!-- Pacts Leaderboard -->
-                <div style="background:linear-gradient(135deg,#0e0a1a,#110d1e); border:1px solid #3d2a4a; border-radius:12px; padding:18px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; flex-wrap:wrap; gap:10px;">
-                        <div>
-                            <h3 style="margin:0; color:#c8a800; letter-spacing:2px; font-size:1em;">⚔️ PACT LEADERBOARD</h3>
-                            <p style="color:var(--dim-color); font-size:0.76em; margin:3px 0 0;">Ranked by total lifetime souls of all members</p>
-                        </div>
-                        <button class="upgrade-btn" onclick="fetchPactLeaderboard()" style="padding:5px 12px; font-size:0.76em;">🔄 Refresh</button>
-                    </div>
-                    <div id="pact-leaderboard-list" style="margin-top:14px;"></div>
-                </div>
+
             </div>
 
             <!-- PACT WARS SCREEN -->
@@ -6397,7 +6400,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 <div id="provinggrounds-hero">
                     <div id="provinggrounds-stars"></div>
                     <div style="position:relative;z-index:1;">
-                        <h2>⚔️ INFERNAL PROVING GROUNDS ⚔️</h2>
+                        <h2>⚔ INFERNAL PROVING GROUNDS ⚔</h2>
                         <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Place your minions to defeat enemy formations. Earn permanent bonuses.</p>
                     </div>
                 </div>
@@ -15348,7 +15351,6 @@ function showScreen(screenId) {
     if (screenId === 'pacts')
     {
         renderPactScreen();
-        fetchPactLeaderboard();
         // Re-fetch pact data so clan_tag is always fresh when screen opens
         loadMyPact();
     }
@@ -16306,7 +16308,7 @@ function renderInventory() {
 
     const RC  = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
     const RG  = { common:'#aaaaaa15', uncommon:'#44cc4418', rare:'#4488ff18', epic:'#aa44ff18', legendary:'#ffaa0018', forged:'#ff444418' };
-    const TI  = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
+    const TI  = { weapon:'⚔', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
     const RORDER = ['legendary','forged','epic','rare','uncommon','common'];
 
     // ── Stat bar ────────────────────────────────────────────────────
@@ -16674,7 +16676,7 @@ const potionMeta = {
     phial_of_brilliance:           { icon:'✨', color:'#ffffcc', rarity:'uncommon' },
     tincture_of_expediency:        { icon:'⚡', color:'#ffdd00', rarity:'uncommon' },
     brew_of_luck:                  { icon:'🍀', color:'#44ff88', rarity:'rare' },
-    draught_of_the_raider:         { icon:'⚔️', color:'#ff2244', rarity:'rare' },
+    draught_of_the_raider:         { icon:'⚔', color:'#ff2244', rarity:'rare' },
     // Raid health potions
     minor_healing_flask:           { icon:'🧪', color:'#44ff88', rarity:'common' },
     healing_draught:               { icon:'❤️', color:'#ff4466', rarity:'uncommon' },
@@ -16787,7 +16789,7 @@ const potionMeta = {
     fusion_essence_bomb:           { icon:'💣', color:'#aa00ff', rarity:'fused', glow:'#aa00ff66' },
     fusion_time_warp:              { icon:'🌀', color:'#00ccff', rarity:'fused', glow:'#00ccff66' },
     fusion_aether_surge:           { icon:'⚡', color:'#00e5ff', rarity:'fused', glow:'#00e5ff66' },
-    fusion_pvp_destroyer:          { icon:'⚔️', color:'#ff2244', rarity:'fused', glow:'#ff224466' },
+    fusion_pvp_destroyer:          { icon:'⚔', color:'#ff2244', rarity:'fused', glow:'#ff224466' },
     fusion_shard_explosion:        { icon:'💎', color:'#88ccff', rarity:'fused', glow:'#88ccff66' },
     fusion_passive_god:            { icon:'👹', color:'#ff6600', rarity:'fused', glow:'#ff660066' },
     fusion_cache_rush:             { icon:'📦', color:'#ffaa44', rarity:'fused', glow:'#ffaa4466' },
@@ -17758,7 +17760,7 @@ function usePotion(id) {
                 }
             }
             if (effect2.type === 'raid_true_damage') {
-                if (raidState) { raidState._trueDamageBonus = { mult: effect2.value, turns: effect2.turns }; raidLog(`⚔️ +${Math.round((effect2.value-1)*100)}% dmg for ${effect2.turns} turns!`, '#ff6644'); }
+                if (raidState) { raidState._trueDamageBonus = { mult: effect2.value, turns: effect2.turns }; raidLog(`⚔ +${Math.round((effect2.value-1)*100)}% dmg for ${effect2.turns} turns!`, '#ff6644'); }
             }
             if (effect2.type === 'raid_set_momentum') {
                 if (raidState) raidState._momentum = Math.min(6, effect2.value);
@@ -17851,7 +17853,7 @@ function usePotion(id) {
         if (effect.type === 'pvp_defense_boost') {
             if (!gameState.activePotions) gameState.activePotions = {};
             gameState.activePotions[id + '_pvp'] = Date.now() + 86400000; // 24hr
-            Toastify({ text: `⚔️ Warlord's Blood — arena defense boosted for 24hr!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0000,#cc2200)'} }).showToast();
+            Toastify({ text: `⚔ Warlord's Blood — arena defense boosted for 24hr!`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0000,#cc2200)'} }).showToast();
         }
         if (effect.type === 'expedition_complete_all_flat') {
             let completed = 0;
@@ -18122,7 +18124,7 @@ function showCacheSpinModal(rewardItem, rewardId) {
     const rarityColor  = rarityColors[rewardItem.rarity] || '#cccccc';
 
     // Icon by item type since items don't have an icon field
-    const typeIcons = { weapon:'⚔️', idol:'🗿', sigil:'🔮', helm:'🪖', tome:'📖', ring:'💍', amulet:'📿', relic:'🏺', default:'📦' };
+    const typeIcons = { weapon:'⚔', idol:'🗿', sigil:'🔮', helm:'🪖', tome:'📖', ring:'💍', amulet:'📿', relic:'🏺', default:'📦' };
     function getItemIcon(item) {
         if (!item) return '📦';
         if (item.icon) return item.icon;
@@ -18308,7 +18310,7 @@ function openItemModal(itemId) {
     const item = items[itemId];
     if (!item) return;
     const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
-    const typeIcon = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
+    const typeIcon = { weapon:'⚔', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
     const rc = rarityColor[item.rarity] || '#aaa';
 
     document.getElementById('manage-item-icon').textContent = typeIcon[item.type] || '🔮';
@@ -20551,6 +20553,7 @@ function formatSoulsLeaderboard(soulsVal, soulsLogVal) {
 }
 
 async function fetchLeaderboard(type = 'lifetimeSouls') {
+    _showPlayerLeaderboardList();
     const list  = document.getElementById('leaderboard-list');
     const title = document.getElementById('leaderboard-title');
     if (!list || !title || !supabaseClient || SUPABASE_URL.includes("YOUR_SUPABASE")) {
@@ -21400,7 +21403,7 @@ function renderStatsPage() {
             ['Aether Earned',       formatNumber(gs.totalAetherEarned || 0)],
         ]),
 
-        statCard('Combat & PvP', '#ff4444', '⚔️', [
+        statCard('Combat & PvP', '#ff4444', '⚔', [
             ['PvP Wins',            gs.pvpWins || 0, 'Arena victories'],
             ['PvP Losses',          gs.pvpLosses || 0],
             ['Win Rate',            `<span style="color:${(gs.pvpWins||0)>(gs.pvpLosses||0)?'#44cc88':'#ff6644'}">${winRate}</span>`],
@@ -21581,7 +21584,7 @@ function generateHourlyShopItems() {
     grid.innerHTML = '';
 
     const typeTheme  = {
-        item:          { icon:'⚔️',  color:'#4488ff', label:'Item'          },
+        item:          { icon:'⚔',  color:'#4488ff', label:'Item'          },
         artifact:      { icon:'💠',  color:'#aa44ff', label:'Artifact'      },
         potion:        { icon:'⚗️',  color:'#44cc88', label:'Potion'        },
         market_potion: { icon:'🔥',  color:'#ff6644', label:'Rare Potion'   },
@@ -22897,7 +22900,7 @@ function renderSellableInventory() {
     const grid = document.getElementById('market-sell-grid');
     if (!grid) return;
     const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
-    const typeIcon    = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
+    const typeIcon    = { weapon:'⚔', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
     const equippedIds = new Set(Object.values(gameState.equipped || {}).filter(Boolean));
     if (gameState.inventory.length === 0) {
         grid.innerHTML = `<div style="color:#444; text-align:center; padding:30px; grid-column:1/-1; font-size:0.85em;">Your inventory is empty. Open Abyssal Caches to get items to sell.</div>`;
@@ -22957,7 +22960,7 @@ function promptSellItem(itemId) {
     _sellItemId = itemId;
     _sellCurrency = gameState.isTranscended ? 'le' : 'de';
     const rarityColor = { common:'#aaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff4444', heavenly:'#fff4aa', dark:'#cc44ff' };
-    const typeIcon    = { weapon:'⚔️', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
+    const typeIcon    = { weapon:'⚔', idol:'🗿', sigil:'✦', helm:'🪖', tome:'📖' };
     document.getElementById('sell-modal-icon').textContent = typeIcon[item.type] || '🔮';
     document.getElementById('sell-modal-name').textContent = item.name;
     document.getElementById('sell-modal-name').style.color = rarityColor[item.rarity] || '#44cc88';
@@ -23598,7 +23601,7 @@ function initializeChat() {
         function _getChatUid(){return window._chatUid||window._scChatUid||null;}
         var _tradeCache={};
         window._proposeItemTrade=function(it,inn,ii,ia,tp){if(!_getChatDb()||!_getChatUid()){alert('Chat not ready.');return;}var mn=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';if(mn===tp){alert('Cannot trade with yourself.');return;}var pp=document.querySelector('.profile-popup');if(pp)pp.remove();window._showTradeOfferPicker(it,inn,ii,ia,tp);};
-        window._showTradeOfferPicker=function(wantType,wantName,wantIcon,wantAmt,targetName){var ex=document.getElementById('trade-offer-overlay');if(ex)ex.remove();var RC={common:'#888',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00'};var TI={weapon:'⚔️',idol:'🗿',sigil:'✶',helm:'🧖',tome:'📖'};var TC=['#555','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];var oc=[];function aC(lb,ic,tc,bt,mx,isc,bh){var idx=oc.length;oc.push({label:lb,icon:ic,barterType:bt,maxAmt:mx,isCurrency:!!isc});return'<div class="toc-card" data-idx="'+idx+'" style="border-radius:8px;padding:7px 5px;text-align:center;cursor:pointer;transition:all 0.15s;border:1px solid #2a1a3a;background:linear-gradient(135deg,#0e0a1a,#1a1020);border-top:2px solid '+tc+';">'+bh+'</div>';}function sec(t,cs){if(!cs)return'';return'<div style="margin-bottom:12px;"><div style="color:#555;font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">'+t+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:6px;">'+cs+'</div></div>';}
+        window._showTradeOfferPicker=function(wantType,wantName,wantIcon,wantAmt,targetName){var ex=document.getElementById('trade-offer-overlay');if(ex)ex.remove();var RC={common:'#888',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00'};var TI={weapon:'⚔',idol:'🗿',sigil:'✶',helm:'🧖',tome:'📖'};var TC=['#555','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];var oc=[];function aC(lb,ic,tc,bt,mx,isc,bh){var idx=oc.length;oc.push({label:lb,icon:ic,barterType:bt,maxAmt:mx,isCurrency:!!isc});return'<div class="toc-card" data-idx="'+idx+'" style="border-radius:8px;padding:7px 5px;text-align:center;cursor:pointer;transition:all 0.15s;border:1px solid #2a1a3a;background:linear-gradient(135deg,#0e0a1a,#1a1020);border-top:2px solid '+tc+';">'+bh+'</div>';}function sec(t,cs){if(!cs)return'';return'<div style="margin-bottom:12px;"><div style="color:#555;font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">'+t+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:6px;">'+cs+'</div></div>';}
         var cc='',souls=typeof D!=='undefined'?D(gameState.souls||0):null,ess=typeof D!=='undefined'?D(gameState.darkEssence||0):null,sh=typeof D!=='undefined'?D(gameState.abyssalShards||0):null;
         if(souls&&souls.gt(0))cc+=aC(formatNumber(souls)+' Souls','💀','#c41818','souls',souls.toNumber(),true,'<div style="font-size:1.4em;">💀</div><div style="color:#f0d8d8;font-size:0.58em;font-weight:bold;">'+formatNumber(souls)+'</div><div style="color:#555;font-size:0.5em;">Souls</div>');
         if(ess&&ess.gt(0))cc+=aC(formatNumber(ess)+' Essence','🌑','#6622aa','darkEssence',ess.toNumber(),true,'<div style="font-size:1.4em;">🌑</div><div style="color:#cc88ff;font-size:0.58em;font-weight:bold;">'+formatNumber(ess)+'</div><div style="color:#555;font-size:0.5em;">Essence</div>');
@@ -23721,6 +23724,8 @@ function initializeChat() {
                         'rank_ex_aether':  { label:'🌀 EX-VOID WALKER', color:'#336655' },
                         'rank_ex_ascend':  { label:'↑ EX-ASCENSION',   color:'#886633' },
                         'rank_ex_pvp':     { label:'⚔ EX-WARLORD',     color:'#336644' },
+                        'rank_pact_top':   { label:'⚔ PACT OVERLORD',   color:'#cc88ff' },
+                        'rank_ex_pact_top':{ label:'⚔ EX-PACT OVERLORD', color:'#775599' },
                         'supporter':       { label:'🩸 SUPPORTER',      color:'#c8a800', useRainbow: true },
                         'vip':             { label:'VIP',               color:'#9C27B0', bg:'#9C27B0', textColor:'#fff' },
                     };
@@ -24033,7 +24038,7 @@ function initializeChat() {
                 const RARITY_COLORS2 = { common:'#888', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00' };
 
                 function renderProfileTab(tab){profTabs.forEach(function(b){var a=b.dataset.tab===tab;b.style.background=a?'#ff664422':'#0d0a18';b.style.color=a?'#ff8866':'#555';b.style.borderColor=a?'#ff664455':'#1a1030';});if(!invPanel)return;
-                    var TI={weapon:'⚔️',idol:'🗿',sigil:'✶',helm:'🧖',tome:'📖'};var cs='background:linear-gradient(135deg,#0e0a1a,#1a1020);border-radius:8px;padding:8px 6px;text-align:center;position:relative;cursor:pointer;transition:transform 0.1s;';var tb='<div style="font-size:0.5em;color:#44cc8888;margin-top:4px;">💬 Propose Trade</div>';
+                    var TI={weapon:'⚔',idol:'🗿',sigil:'✶',helm:'🧖',tome:'📖'};var cs='background:linear-gradient(135deg,#0e0a1a,#1a1020);border-radius:8px;padding:8px 6px;text-align:center;position:relative;cursor:pointer;transition:transform 0.1s;';var tb='<div style="font-size:0.5em;color:#44cc8888;margin-top:4px;">💬 Propose Trade</div>';
                     invPanel._tradeItems=[];function mk(p,bc,tc,inner){var idx=invPanel._tradeItems.length;invPanel._tradeItems.push(p);return'<div class="ptc" data-idx="'+idx+'" style="'+cs+'border:1px solid '+bc+'33;border-top:2px solid '+tc+'">'+inner+tb+'</div>';}
                     if(tab==='minions'){if(!st.minions||!st.minions.length){invPanel.innerHTML='<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No minion data.</div>';return;}var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';st.minions.forEach(function(m){var tc2=TIER_COLORS2[Math.min(5,Math.floor((m.level||0)/25))];var stars=m.promoTier>0?'<span style="color:#c8a800;font-size:0.55em;">'+('★'.repeat(m.promoTier))+'</span>':'';var barter=m.barterLevels>0?'<span style="position:absolute;top:3px;right:3px;font-size:0.5em;background:#aa44ff;border-radius:3px;padding:1px 3px;color:#fff;">🔀</span>':'';var mi=m.icon||'👿';var inner=barter+'<div style="font-size:1.5em;">'+mi+'</div><div style="color:#ddd;font-size:0.62em;font-weight:bold;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(m.name)+'</div><div style="color:'+tc2+';font-size:0.58em;">Lv'+m.level+stars+'</div>'+(m.hp!=null?'<div style="font-size:0.52em;color:#888;"><span style="color:#cc4444;">❤'+m.hp+'</span> <span style="color:#ff9944;">⚔'+m.atk+'</span></div>':'');h+=mk(['minion:'+m.id,m.name,mi,m.level,targetName],tc2,tc2,inner);});invPanel.innerHTML=h+'</div>';
                     }else if(tab==='items'){if(!st.inventory||!st.inventory.length){invPanel.innerHTML='<div style="color:#555;font-size:0.78em;text-align:center;padding:16px;font-style:italic;">No items.</div>';return;}var h='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:7px;">';st.inventory.forEach(function(it){var rc=RARITY_COLORS2[it.rarity]||'#888';var ico=TI[it.type]||'🔮';var inner='<div style="font-size:1.5em;">'+ico+'</div><div style="color:'+rc+';font-size:0.62em;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escapeHTML(it.name)+'</div><div style="color:#555;font-size:0.52em;">'+escapeHTML(it.rarity||'')+'</div>';h+=mk(['item:'+it.id,it.name,ico,1,targetName],rc,rc,inner);});invPanel.innerHTML=h+'</div>';
@@ -24587,6 +24592,12 @@ function initializeChat() {
                     } else if (_lbEx['pvp']) {
                         earned.push({ id: 'rank_ex_pvp', label: '⚔ EX-WARLORD', html: '<span style="background:linear-gradient(135deg,#11441100,#00221111);color:#336644;border:1px solid #33664433;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">⚔ EX-WARLORD</span>', color: '#336644' });
                     }
+                    // Pact #1 — granted to all members of the top-ranked pact
+                    if (_lb['pact_top'] === 1) {
+                        earned.push({ id: 'rank_pact_top', label: '⚔ PACT OVERLORD', html: '<span style="background:linear-gradient(135deg,#aa44ff33,#aa44ff11);color:#cc88ff;border:1px solid #aa44ff55;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">⚔ PACT OVERLORD</span>', color: '#cc88ff' });
+                    } else if (_lbEx['pact_top']) {
+                        earned.push({ id: 'rank_ex_pact_top', label: '⚔ EX-PACT OVERLORD', html: '<span style="background:linear-gradient(135deg,#44225500,#22114411);color:#775599;border:1px solid #77559933;padding:2px 8px;border-radius:4px;font-size:0.78em;font-weight:700;letter-spacing:1px;">⚔ EX-PACT OVERLORD</span>', color: '#775599' });
+                    }
 
                     // Clan tag
                     var ct = localStorage.getItem('myClanTag');
@@ -24854,7 +24865,7 @@ function _postBreachToRaidPool(expeditionId) {
     if (overlayOpen) return;
     // Don't post if breach was already removed from the expedition
     if (!gameState.activeExpeditions[expeditionId]) return;
-    const expIcons = { scout_plains:'🌋', scour_wastes:'🌑', raid_crypts:'⚰️', explore_depths:'🔥', delve_void:'🌀', breach_celestial:'✨', scavenge_ruins:'⚔️', loot_battlefield:'🪖' };
+    const expIcons = { scout_plains:'🌋', scour_wastes:'🌑', raid_crypts:'⚰️', explore_depths:'🔥', delve_void:'🌀', breach_celestial:'✨', scavenge_ruins:'⚔', loot_battlefield:'🪖' };
     const key = name.replace(/[.#$[\]]/g, '_') + '__' + expeditionId;
     const payload = {
         playerName:    name,
@@ -25134,7 +25145,7 @@ function renderExpeditions() {
         explore_depths:    { color:'#ff4444', icon:'🔥' },
         delve_void:        { color:'#aa44ff', icon:'🌀' },
         breach_celestial:  { color:'#ffcc00', icon:'✨' },
-        scavenge_ruins:    { color:'#cc8844', icon:'⚔️' },
+        scavenge_ruins:    { color:'#cc8844', icon:'⚔' },
         loot_battlefield:  { color:'#886644', icon:'🪖' },
     };
 
@@ -25496,7 +25507,7 @@ function showExpeditionModal(id) {
     const expIcons = {
         scout_plains:'🌋', scour_wastes:'🌑', raid_crypts:'⚰️',
         explore_depths:'🔥', delve_void:'🌀', breach_celestial:'✨',
-        scavenge_ruins:'⚔️', loot_battlefield:'🪖'
+        scavenge_ruins:'⚔', loot_battlefield:'🪖'
     };
     const c = expColors[id] || '#c8a800';
 
@@ -25629,7 +25640,7 @@ function renderForgeRecipes() {
     if (!container) return;
 
     const rarityColor = { common:'#aaaaaa', uncommon:'#44cc44', rare:'#4488ff', epic:'#aa44ff', legendary:'#ffaa00', forged:'#ff6644', heavenly:'#fff4aa' };
-    const typeLabel   = { weapon:'⚔️ Weapon', idol:'🗿 Idol', sigil:'🔏 Sigil', helm:'🪖 Helm', tome:'📖 Tome', mixed:'✦ Cross-Type' };
+    const typeLabel   = { weapon:'⚔ Weapon', idol:'🗿 Idol', sigil:'🔏 Sigil', helm:'🪖 Helm', tome:'📖 Tome', mixed:'✦ Cross-Type' };
 
     // Group by type/chain
     const groups = {};
@@ -26065,7 +26076,7 @@ const breachObjectives = [
 ];
 const breachEvents = {
     treasure:    { icon: '💰' },
-    hostile:     { icon: '⚔️' },
+    hostile:     { icon: '⚔' },
     trap:        { icon: '🕸️' },
     fountain:    { icon: '💧' },
     lore:        { icon: '📜' },
@@ -26864,7 +26875,7 @@ window.moveRaidPlayer = function(x, y) {
     } else if (tile.type === RTILE.EXIT) {
         // Cannot exit while in combat
         if (raidState.inCombat) {
-            raidLog('⚔️ <b>Finish the current fight before descending!</b>', '#ff6644');
+            raidLog('⚔ <b>Finish the current fight before descending!</b>', '#ff6644');
             renderRaidDungeon();
             return;
         }
@@ -29202,7 +29213,7 @@ async function tryAbsorbGhost(msgKey) {
 }
 
 // =================================================================
-// ⚔️ SOUL PACTS
+// ⚔ SOUL PACTS
 // =================================================================
 window.playerPact = null; // { id, name, members[] }
 
@@ -29483,12 +29494,12 @@ function renderPactScreen() {
 
         document.getElementById('pact-name-display').textContent = window.playerPact.pact_name || window.playerPact.name || '';
 
-        (function(){var _pip=document.getElementById('pact-identity-panel'),_idn=document.getElementById('pact-identity-name'),_idm=document.getElementById('pact-identity-members'),_idb=document.getElementById('pact-identity-badge');if(!_pip||!_idn)return;var _pN=window.playerPact.pact_name||window.playerPact.name||'';var _pM=(window.playerPact.members||[]).length+' member'+((window.playerPact.members||[]).length!==1?'s':'');_idn.textContent=_pN;_idm.textContent=_pM;_idb.textContent=window.playerPact.emblem||'⚔️';_pip.style.display='block';})();
+        (function(){var _pip=document.getElementById('pact-identity-panel'),_idn=document.getElementById('pact-identity-name'),_idm=document.getElementById('pact-identity-members'),_idb=document.getElementById('pact-identity-badge');if(!_pip||!_idn)return;var _pN=window.playerPact.pact_name||window.playerPact.name||'';var _pM=(window.playerPact.members||[]).length+' member'+((window.playerPact.members||[]).length!==1?'s':'');_idn.textContent=_pN;_idm.textContent=_pM;_idb.textContent=window.playerPact.emblem||'⚔';_pip.style.display='block';})();
 
         const members      = window.playerPact.members || [];
         const isLeader     = members[0] === gameState.playerName;
         const memberColors = ['#ffd700','#00e5ff','#ff9944','#88ff88'];
-        const memberIcons  = ['👑','⚔️','⚔️','⚔️'];
+        const memberIcons  = ['👑','⚔','⚔','⚔'];
 
         // Build member cards with stats pulled from players table
         const listEl = document.getElementById('pact-members-list');
@@ -29570,7 +29581,7 @@ async function createPact() {
 
         if(statusEl) statusEl.textContent = '';
         await loadMyPact();
-        Toastify({ text: `⚔️ Pact "${pactName}" forged! Share the name with allies.`, duration: 5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#4a3000,#c8a800)'} }).showToast();
+        Toastify({ text: `⚔ Pact "${pactName}" forged! Share the name with allies.`, duration: 5000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#4a3000,#c8a800)'} }).showToast();
     } catch(e) {
         if(statusEl) statusEl.textContent = 'Error: ' + (e.message || 'Could not create pact.');
     }
@@ -30060,6 +30071,75 @@ async function kickPactMember(memberName) {
     } catch(e) { alert('Error removing member: ' + e.message); }
 }
 
+function showPactLeaderboardTab() {
+    // Hide player leaderboard, show pact leaderboard
+    const playerList = document.getElementById('leaderboard-list');
+    const pactList   = document.getElementById('pact-leaderboard-list');
+    const title      = document.getElementById('leaderboard-title');
+    if (playerList) playerList.style.display = 'none';
+    if (pactList)   pactList.style.display   = 'block';
+    if (title)      title.textContent         = 'Ranking by Pact Power';
+    fetchPactLeaderboard();
+}
+
+function _showPlayerLeaderboardList() {
+    const playerList = document.getElementById('leaderboard-list');
+    const pactList   = document.getElementById('pact-leaderboard-list');
+    if (playerList) playerList.style.display = 'block';
+    if (pactList)   pactList.style.display   = 'none';
+}
+
+function showPactGuildPopup(pact) {
+    var popup = document.getElementById('lb-pact-popup');
+    var titleEl = document.getElementById('lb-pact-popup-title');
+    var body  = document.getElementById('lb-pact-popup-body');
+    if (!popup || !body) return;
+    var pactColor = pact.color || '#aa44ff';
+    var war = pact.war || { current:0, highScore:0 };
+    var members = pact.members || [];
+    var soulsDisplay = formatNumber(pact.totalSouls instanceof Decimal ? pact.totalSouls : D(pact.totalSouls||0));
+    var nodeBorder = war.current > 0 ? pactColor + '44' : '#1a1030';
+    var nodeColor  = war.current > 0 ? pactColor : '#444';
+    titleEl.innerHTML = '<span style="font-size:1.3em;margin-right:8px;">' + (pact.emblem||'\u2694\uFE0F') + '</span>' + pact.pact_name;
+    titleEl.style.color = pactColor;
+    var html = '';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">';
+    html += '<div style="background:#0a0618;border:1px solid #aa44ff22;border-radius:10px;padding:12px;text-align:center;">';
+    html += '<div style="color:#aa44ff;font-size:1.4em;font-weight:bold;">' + (pact.totalAsc||0) + '</div>';
+    html += '<div style="color:#443366;font-size:0.68em;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Total Ascensions</div></div>';
+    html += '<div style="background:#0a0618;border:1px solid #aa44ff22;border-radius:10px;padding:12px;text-align:center;">';
+    html += '<div style="color:#c8b4ff;font-size:1.4em;font-weight:bold;">' + soulsDisplay + '</div>';
+    html += '<div style="color:#443366;font-size:0.68em;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Lifetime Souls</div></div>';
+    html += '<div style="background:#0a0618;border:1px solid ' + nodeBorder + ';border-radius:10px;padding:12px;text-align:center;">';
+    html += '<div style="color:' + nodeColor + ';font-size:1.4em;font-weight:bold;">' + war.current + '</div>';
+    html += '<div style="color:#443366;font-size:0.68em;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Nodes Held</div></div>';
+    html += '<div style="background:#0a0618;border:1px solid #aa44ff22;border-radius:10px;padding:12px;text-align:center;">';
+    html += '<div style="color:#aa44ff;font-size:1.4em;font-weight:bold;">' + members.length + ' / 4</div>';
+    html += '<div style="color:#443366;font-size:0.68em;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Members</div></div>';
+    html += '</div>';
+    if (war.highScore > 0) {
+        html += '<div style="background:#0a0618;border:1px solid #aa44ff22;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">';
+        html += '<span style="color:#554477;font-size:0.72em;text-transform:uppercase;letter-spacing:1px;">Best Siege Score</span>';
+        html += '<span style="color:#aa44ff;font-weight:bold;">' + formatNumber(war.highScore) + '</span></div>';
+    }
+    if (war.lastRank) {
+        var rankColor = war.lastRank===1 ? '#c8a800' : war.lastRank===2 ? '#aaaacc' : '#cd7f32';
+        var rankLabel = war.lastRank===1 ? '\uD83C\uDFC6 Champions' : war.lastRank===2 ? '\uD83E\uDD48 2nd Place' : '#' + war.lastRank + ' \u2014 ' + war.lastNodes + ' nodes';
+        html += '<div style="background:#0a0618;border:1px solid #aa44ff22;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">';
+        html += '<span style="color:#554477;font-size:0.72em;text-transform:uppercase;letter-spacing:1px;">Last Cycle Rank</span>';
+        html += '<span style="color:' + rankColor + ';">' + rankLabel + '</span></div>';
+    }
+    html += '<div style="background:#0a0618;border:1px solid #aa44ff22;border-radius:10px;padding:12px 14px;">';
+    html += '<div style="color:#554477;font-size:0.68em;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Members</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+    members.forEach(function(m) {
+        html += '<span style="background:#160828;border:1px solid #3a1a5a;border-radius:6px;padding:3px 10px;color:#c8b4ff;font-size:0.78em;">' + m + '</span>';
+    });
+    html += '</div></div>';
+    body.innerHTML = html;
+    popup.style.display = 'flex';
+}
+
 async function fetchPactLeaderboard() {
     const list = document.getElementById('pact-leaderboard-list');
     if (!list || !supabaseClient) return;
@@ -30123,48 +30203,75 @@ async function fetchPactLeaderboard() {
         });
         enriched.sort((a, b) => D(b.totalSouls).gt(D(a.totalSouls)) ? 1 : D(a.totalSouls).gt(D(b.totalSouls)) ? -1 : b.totalAsc - a.totalAsc);
 
+        // ── Pact #1 badge ─────────────────────────────────────────────────
+        // If player is a member of the top pact, grant rank_pact_top badge.
+        // If player is NOT in the top pact (or top pact changed), revoke it.
+        if (enriched.length > 0) {
+            const _topPact = enriched[0];
+            const _topMembers = _topPact.members || [];
+            const _inTopPact = _topMembers.includes(gameState.playerName);
+            if (!gameState.leaderboardBadges) gameState.leaderboardBadges = {};
+            if (!gameState.leaderboardBadgesEx) gameState.leaderboardBadgesEx = {};
+            if (_inTopPact) {
+                if (gameState.leaderboardBadges['pact_top'] !== 1) {
+                    gameState.leaderboardBadges['pact_top'] = 1;
+                    delete gameState.leaderboardBadgesEx['pact_top'];
+                    saveGame();
+                }
+            } else {
+                if (gameState.leaderboardBadges['pact_top'] === 1) {
+                    delete gameState.leaderboardBadges['pact_top'];
+                    gameState.leaderboardBadgesEx['pact_top'] = true;
+                    // Revoke if equipped
+                    const _ab = localStorage.getItem('activeChatBadge') || 'none';
+                    if (_ab === 'rank_pact_top') localStorage.setItem('activeChatBadge', 'none');
+                    saveGame();
+                }
+            }
+        }
+
         const rankColors  = ['#ffd700','#c0c0c0','#cd7f32'];
         const rankBorders = ['#ffd70066','#c0c0c066','#cd7f3266'];
 
-        list.innerHTML = enriched.map((pact, i) => {
-            const medal   = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '<span style="color:#666;">#' + (i+1) + '</span>';
-            const isMe    = (pact.members || []).includes(gameState.playerName);
-            const color   = isMe ? 'var(--primary-color)' : (rankColors[i] || '#aaa');
-            const border  = isMe ? 'var(--primary-color)' : (rankBorders[i] || '#3d2a4a');
-            const bg      = isMe ? '#1e0a2a' : 'transparent';
-            const war      = pact.war;
-            const pactColor = pact.color || '#ff6644';
-            const pactEmb  = pact.emblem || '⚔';
+        // Store enriched data for popup access
+        window._pactLbData = enriched;
 
-            // War badge
+        list.innerHTML = enriched.map((pact, i) => {
+            const medal     = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '<span style="color:#666;">#' + (i+1) + '</span>';
+            const isMe      = (pact.members || []).includes(gameState.playerName);
+            const color     = isMe ? '#c8b4ff' : (rankColors[i] || '#aaa');
+            const border    = isMe ? '#aa44ff88' : (rankBorders[i] || '#2a1a3a');
+            const bg        = isMe ? '#150a25' : '#0a0615';
+            const war       = pact.war;
+            const pactColor = pact.color || '#aa44ff';
+            const pactEmb   = pact.emblem || '⚔';
+
             const warBadge = war.current > 0
-                ? '<span style="background:' + pactColor + '22; border:1px solid ' + pactColor + '44; border-radius:10px; padding:1px 7px; font-size:0.68em; color:' + pactColor + ';">⚔ ' + war.current + ' nodes</span>'
+                ? '<span style="background:' + pactColor + '22;border:1px solid ' + pactColor + '44;border-radius:8px;padding:1px 7px;font-size:0.65em;color:' + pactColor + ';">⚔ ' + war.current + ' nodes</span>'
                 : '';
             const lastCycleBadge = war.lastRank
-                ? (war.lastRank === 1 ? '<span style="color:#c8a800; font-size:0.68em;">🏆 Last cycle champs</span>'
-                   : war.lastRank === 2 ? '<span style="color:#aaa; font-size:0.68em;">🥈 Last cycle 2nd</span>'
-                   : '<span style="color:#666; font-size:0.68em;">Last cycle: ' + (war.lastNodes||0) + ' nodes</span>')
+                ? (war.lastRank === 1 ? '<span style="color:#c8a800;font-size:0.65em;">🏆 Cycle Champs</span>'
+                   : war.lastRank === 2 ? '<span style="color:#aaa;font-size:0.65em;">🥈 Cycle 2nd</span>'
+                   : '<span style="color:#555;font-size:0.65em;">Last: ' + (war.lastNodes||0) + ' nodes</span>')
                 : '';
 
-            return '<div style="background:' + bg + '; border:1px solid ' + border + '; border-radius:10px; padding:12px 16px; margin-bottom:8px;">'
-                + '<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">'
-                +   '<div style="display:flex; align-items:center; gap:10px;">'
-                +     '<div style="font-size:1.4em; min-width:28px; text-align:center;">' + medal + '</div>'
-                +     '<div style="font-size:1.5em;">' + pactEmb + '</div>'
+            return '<div onclick="showPactGuildPopup(window._pactLbData[' + i + '])" style="background:' + bg + ';border:1px solid ' + border + ';border-radius:12px;padding:13px 16px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;">' + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">'
+                +   '<div style="display:flex;align-items:center;gap:10px;">'
+                +     '<div style="font-size:1.3em;min-width:26px;text-align:center;">' + medal + '</div>'
+                +     '<div style="font-size:1.4em;">' + pactEmb + '</div>'
                 +     '<div>'
-                +       '<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">'
-                +         '<span style="color:' + color + '; font-weight:bold; font-size:1em;">' + pact.pact_name + (isMe ? ' <span style="color:#666;font-size:0.75em;font-weight:normal;">(yours)</span>' : '') + '</span>'
+                +       '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
+                +         '<span style="color:' + color + ';font-weight:bold;font-size:0.95em;">' + pact.pact_name + (isMe ? ' <span style="color:#554477;font-size:0.72em;font-weight:normal;">(yours)</span>' : '') + '</span>'
                 +         warBadge + lastCycleBadge
                 +       '</div>'
-                +       '<div style="color:#555; font-size:0.7em; margin-top:2px;">' + ((pact.members || []).join(' · ') || 'No members') + '</div>'
+                +       '<div style="color:#3a2255;font-size:0.68em;margin-top:2px;">' + ((pact.members||[]).join(' · ')||'No members') + '</div>'
                 +     '</div>'
                 +   '</div>'
-                +   '<div style="display:flex; gap:14px; text-align:center; flex-wrap:wrap;">'
-                +     '<div><div style="color:' + color + '; font-weight:bold;">' + pact.totalAsc + '</div><div style="color:#555; font-size:0.7em;">Ascensions</div></div>'
-                +     '<div><div style="color:#888; font-size:0.85em;">' + formatNumber(pact.totalSouls instanceof Decimal ? pact.totalSouls : D(pact.totalSouls)) + '</div><div style="color:#555; font-size:0.7em;">Lifetime Souls</div></div>'
-                +     '<div><div style="color:' + (war.current > 0 ? pactColor : '#444') + '; font-weight:bold;">' + war.current + '</div><div style="color:#555; font-size:0.7em;">Nodes Now</div></div>'
-                +     (war.highScore > 0 ? '<div><div style="color:#aa44ff; font-size:0.8em;">' + formatNumber(war.highScore) + '</div><div style="color:#555; font-size:0.7em;">Best Siege</div></div>' : '')
-                +     '<div><div style="color:#666;">' + pact.memberCount + ' / 4</div><div style="color:#555; font-size:0.7em;">Members</div></div>'
+                +   '<div style="display:flex;gap:14px;text-align:center;flex-wrap:wrap;align-items:center;">'
+                +     '<div><div style="color:' + color + ';font-weight:bold;">' + pact.totalAsc + '</div><div style="color:#3a2255;font-size:0.65em;">Ascensions</div></div>'
+                +     '<div><div style="color:#886699;font-size:0.85em;">' + formatNumber(pact.totalSouls instanceof Decimal ? pact.totalSouls : D(pact.totalSouls)) + '</div><div style="color:#3a2255;font-size:0.65em;">Souls</div></div>'
+                +     '<div><div style="color:' + (war.current>0?pactColor:'#332244') + ';font-weight:bold;">' + war.current + '</div><div style="color:#3a2255;font-size:0.65em;">Nodes</div></div>'
+                +     '<div style="color:#554477;font-size:0.7em;">›</div>'
                 +   '</div>'
                 + '</div>'
                 + '</div>';
@@ -30250,7 +30357,7 @@ function _getBundleTypeOptions(slotsBySide) {
 
     const potionOpts = [];
     try {
-        const TI = {weapon:'⚔️',idol:'🗿',sigil:'✦',helm:'🪖',tome:'📖'};
+        const TI = {weapon:'⚔',idol:'🗿',sigil:'✦',helm:'🪖',tome:'📖'};
         for (const id in gameState.potions || {}) {
             const total = gameState.potions[id] || 0;
             if (total < 1) continue;
@@ -30639,7 +30746,7 @@ function getBarterTypeInfo(type, amt, listing) {
 
     if(type.startsWith('potion:')){const id=type.slice(7);const p=potions[id];const _pm=typeof potionMeta!=='undefined'?potionMeta[id]:null;if(p)return{icon:_pm?.icon||'⚗️',name:p.name,color:_pm?.color||'#9944cc',subtitle:`x${formatNumber(amt)}`,desc:p.desc||''};return{icon:'⚗️',name:id,color:'#9944cc',subtitle:`x${formatNumber(amt)}`,desc:''};}
 
-    if(type.startsWith('item:')){const id=type.slice(5);const it=items[id];const rC={common:'#aaa',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00',forged:'#ff4444'};if(it){let durCur=undefined,durMax=undefined;if(listing?.offer_note&&listing.offer_note.startsWith('{')){try{const _dn=JSON.parse(listing.offer_note);if(_dn.durMax){durCur=Math.floor(_dn.durCur);durMax=_dn.durMax;}}catch(e){}}return{icon:{weapon:'⚔️',idol:'🗿',sigil:'✦',helm:'🪖',tome:'📖'}[it.type]||'🎁',name:it.name,color:rC[it.rarity]||'#aaa',subtitle:it.rarity.toUpperCase(),desc:it.desc||'',durCur,durMax};}return{icon:'🎁',name:id,color:'#aaa',subtitle:'',desc:''};}
+    if(type.startsWith('item:')){const id=type.slice(5);const it=items[id];const rC={common:'#aaa',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00',forged:'#ff4444'};if(it){let durCur=undefined,durMax=undefined;if(listing?.offer_note&&listing.offer_note.startsWith('{')){try{const _dn=JSON.parse(listing.offer_note);if(_dn.durMax){durCur=Math.floor(_dn.durCur);durMax=_dn.durMax;}}catch(e){}}return{icon:{weapon:'⚔',idol:'🗿',sigil:'✦',helm:'🪖',tome:'📖'}[it.type]||'🎁',name:it.name,color:rC[it.rarity]||'#aaa',subtitle:it.rarity.toUpperCase(),desc:it.desc||'',durCur,durMax};}return{icon:'🎁',name:id,color:'#aaa',subtitle:'',desc:''};}
 
     if (type.startsWith('minion:')) {
         const id = type.slice(7);
@@ -32675,7 +32782,7 @@ function gntRenderLocationPicker() {
     // Update header styling for light mode
     const titleEl = document.getElementById('gauntlet-title');
     if (titleEl) {
-        titleEl.textContent = isLight ? '✦ THE CELESTIAL GAUNTLET ✦' : '⚔️ THE ABYSSAL GAUNTLET ⚔️';
+        titleEl.textContent = isLight ? '✦ THE CELESTIAL GAUNTLET ✦' : '⚔ THE ABYSSAL GAUNTLET ⚔';
         titleEl.style.color = isLight ? '#c8b4ff' : '#ff6644';
     }
     const activeMapConfig = isLight ? GNT_LIGHT_WORLD_MAP_CONFIG : GNT_WORLD_MAP_CONFIG;
@@ -33274,7 +33381,7 @@ const CODEX_CHAPTERS = [
     // ── CHAPTER 7: Unlocks after first PvP encounter ──────────────
     {
         id: 'pvp',
-        title: '⚔️ PvP & Raids',
+        title: '⚔ PvP & Raids',
         unlockCondition: () => (gameState.pvpWins||0) + (gameState.pvpLosses||0) > 0,
         content: () => `
             <div style="color:#ff4444; font-family:var(--font-title); font-size:1.1em; letter-spacing:2px; margin-bottom:18px; text-align:center;">THE ARENA OF SOULS</div>
@@ -33282,7 +33389,7 @@ const CODEX_CHAPTERS = [
 
             <div style="display:grid; gap:10px; margin-bottom:18px;">
                 <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
-                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔️ Soul Siege (PvP Duels)</div>
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔ Soul Siege (PvP Duels)</div>
                     <div style="color:#888; font-size:0.82em; line-height:1.5;">Challenge real players from the PvP screen. You build a team from your owned minions and fight their defensive lineup. Victories earn <strong style="color:#ddd;">Dark Essence</strong>. Each player can only be challenged once per day. Win 3 in a day for a bonus reward.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
@@ -33298,7 +33405,7 @@ const CODEX_CHAPTERS = [
                     <div style="color:#888; font-size:0.82em; line-height:1.5;">A solo high-stakes gambling mode. You bet souls, Dark Essence, or Shards, then choose a multiplier target. A rift crashes at a random point — cash out before it crashes to win. Wait too long and you lose everything you bet. The multiplier can reach enormous values — but the crash is always coming.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #ff444422; border-radius:8px; padding:12px 16px;">
-                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔️ Pact Wars</div>
+                    <div style="color:#ff4444; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔ Pact Wars</div>
                     <div style="color:#888; font-size:0.82em; line-height:1.5;">An organised PvP mode between Pacts (guilds). Join or form a Pact to participate in coordinated battles against rival groups. Pact War rewards are distributed to all contributing members.</div>
                 </div>
             </div>
@@ -33418,7 +33525,7 @@ const CODEX_CHAPTERS = [
 
             <div style="display:grid; gap:10px; margin-bottom:18px;">
                 <div style="background:#0a0812; border:1px solid #aa44ff22; border-radius:8px; padding:12px 16px;">
-                    <div style="color:#aa44ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔️ Equipment Slots</div>
+                    <div style="color:#aa44ff; font-size:0.8em; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">⚔ Equipment Slots</div>
                     <div style="color:#888; font-size:0.82em; line-height:1.5;">Five slots: <strong style="color:#ddd;">Weapon</strong>, <strong style="color:#ddd;">Idol</strong>, <strong style="color:#ddd;">Sigil</strong>, <strong style="color:#ddd;">Helm</strong>, and <strong style="color:#ddd;">Tome</strong>. Each slot type has different specialisations — Tomes boost expedition rewards, Sigils affect banking and raids, Weapons boost SPC, and so on. Items survive all resets.</div>
                 </div>
                 <div style="background:#0a0812; border:1px solid #aa44ff22; border-radius:8px; padding:12px 16px;">
@@ -33440,7 +33547,7 @@ const CODEX_CHAPTERS = [
     // ── CHAPTER 11: Unlocks after first proving grounds win ───────
     {
         id: 'provinggrounds',
-        title: '⚔️ Proving Grounds',
+        title: '⚔ Proving Grounds',
         unlockCondition: () => (gameState.completedPuzzles || []).length > 0,
         content: () => {
             const completed = (gameState.completedPuzzles || []).length;
@@ -33531,7 +33638,7 @@ const CODEX_CHAPTERS = [
                     ["⚗️","Stack potions before ascending","Brew potions in advance and fire them just before ascending for a massive Shard bonus. The Ichor of Wealth is especially powerful here."],
                     ["🔮","Fuse market potions","Two potions fused in the Brewery Cauldron create something far more powerful than using them separately. Market-only potions fuse into legendary effects."],
                     ["🏦","Bank before you log off","The Soul Vault (Bank screen) locks your souls, fragments, and essence away safely so raids can't steal them. Use it every time you go idle."],
-                    ["⚔️","Build your Proving Grounds rewards early","Proving Grounds rewards are permanent and stack from day one. Even Tier I bonuses add up significantly over many Ascensions."],
+                    ["⚔","Build your Proving Grounds rewards early","Proving Grounds rewards are permanent and stack from day one. Even Tier I bonuses add up significantly over many Ascensions."],
                     ["🌀","Breaches reward preparation","Bring an Imp to reveal tiles and an Ash Golem to absorb traps. A well-prepared breach team makes completion far more consistent."],
                     ["⚔","Soul Raids — bring your strongest party","Pick high-level minions with good HP for the front. Use potions strategically in elite and boss rooms. Fleeing early still rewards fragments — don't wipe for nothing."],
                     ["📦","Hourly Shop resets every hour exactly","Set a reminder if you want to catch rare stock. Secret minions (500 Fragments each) and market potions appear at low chance. Owned secret minions appear in your Minions tab — they survive Ascension permanently."],
@@ -38054,7 +38161,7 @@ function renderChallengesPanel() {
         const equipped = gs.equipped || {};
         const equippedIds = Object.values(equipped).filter(Boolean);
         if (equippedIds.length) {
-            html += '<div style="color:#ffaa44;font-size:0.68em;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">⚔️ Equipped</div>';
+            html += '<div style="color:#ffaa44;font-size:0.68em;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">⚔ Equipped</div>';
             html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">';
             for (const [slot, id] of Object.entries(equipped)) {
                 if (!id) continue;
@@ -39126,7 +39233,7 @@ function launchPrologueIfNew() {
             ]
         },
         {
-            icon: '⚔️',
+            icon: '⚔',
             title: 'Forge a Soul Pact!',
             lines: [
                 'Team up with up to 3 collectors for bonus soul gains & a shared clan tag.',

@@ -4909,85 +4909,123 @@ text-decoration: underline; /* Adds an underline on hover */
             <!-- PACTS SCREEN -->
             <div id="pacts-screen" class="screen" style="padding:0;overflow-y:auto;">
                 <style>
-                #pacts-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a,#070412 50%,#0d0620 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px 20px;text-align:center;}
-                #pacts-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,#7722cc1e,transparent 70%);pointer-events:none;}
+                #pacts-hero{position:relative;width:100%;background:linear-gradient(180deg,#03010a 0%,#07040f 40%,#0d0520 100%);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px 24px;text-align:center;}
+                #pacts-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 100% 80% at 50% 120%,#7722cc22,transparent 65%);pointer-events:none;}
+                #pacts-hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#aa44ff44,transparent);}
                 #pacts-stars{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
                 .pacts-s{position:absolute;border-radius:50%;background:#fff;animation:pactsTw var(--d,3s) ease-in-out infinite;opacity:0;}
                 @keyframes pactsTw{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:var(--o,.4);transform:scale(1)}}
-                #pacts-hero h2{font-family:var(--font-title);font-size:1.85em;letter-spacing:7px;background:linear-gradient(135deg,#fff,#f4f0ff,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 18px rgba(255,255,255,.45));margin:0 0 5px;animation:pactsGl 4s ease-in-out infinite alternate;}
-                @keyframes pactsGl{0%{filter:drop-shadow(0 0 8px rgba(255,255,255,.25));}100%{filter:drop-shadow(0 0 26px #aa44ff99);}}
+                #pacts-hero h2{font-family:var(--font-title);font-size:2em;letter-spacing:8px;background:linear-gradient(135deg,#fff 0%,#e0d4ff 50%,#fff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent!important;background-clip:text;color:#fff!important;text-shadow:none!important;filter:drop-shadow(0 0 20px rgba(170,68,255,.5));margin:0 0 6px;animation:pactsGl 4s ease-in-out infinite alternate;}
+                @keyframes pactsGl{0%{filter:drop-shadow(0 0 10px rgba(170,68,255,.3));}100%{filter:drop-shadow(0 0 30px #aa44ffaa);}}
+                .pact-stat-pill{background:linear-gradient(135deg,#130d20,#0e0a18);border:1px solid #2a1a40;border-radius:10px;padding:12px 20px;text-align:center;flex:1;min-width:110px;transition:border-color .2s,transform .2s;cursor:default;}
+                .pact-stat-pill:hover{border-color:#aa44ff44;transform:translateY(-2px);}
+                .pact-member-card{background:linear-gradient(135deg,#0a0816,#0e0b1c);border:1px solid #1a1030;border-left:3px solid var(--mc,#aa44ff);border-radius:12px;overflow:hidden;transition:border-color .2s,box-shadow .2s;}
+                .pact-member-card:hover{box-shadow:0 0 20px #aa44ff0a;}
+                .pmc-header{display:flex;align-items:center;gap:12px;padding:14px 16px;}
+                .pmc-stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #120d20;}
+                .pmc-stat{padding:10px 8px;text-align:center;border-right:1px solid #120d20;}
+                .pmc-stat:last-child{border-right:none;}
+                #pact-power-bar-outer{background:#07040e;border:1px solid #2a1a40;border-radius:10px;height:8px;overflow:hidden;margin-top:6px;}
+                #pact-power-bar-inner{height:100%;border-radius:10px;transition:width .8s ease;background:linear-gradient(90deg,#6622aa,#aa44ff,#cc66ff);}
+                .ptab-btn{background:transparent;border:1px solid #1a1030;border-radius:8px;padding:7px 14px;color:#554477;font-size:0.75em;cursor:pointer;font-family:inherit;letter-spacing:1px;transition:all .2s;}
+                .ptab-btn.active{background:#1a1030;border-color:#aa44ff55;color:#cc88ff;}
+                .ptab-btn:hover:not(.active){border-color:#2a1a40;color:#887799;}
+                #pact-banner{background:linear-gradient(135deg,#0e0a1a,#160d28);border:1px solid #aa44ff33;border-radius:14px;padding:20px 24px;margin-bottom:16px;position:relative;overflow:hidden;}
+                #pact-banner::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#aa44ff88,transparent);}
+                @keyframes pactMemberFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+                .pact-member-card{animation:pactMemberFadeIn .3s ease both;}
                 </style>
                 <div id="pacts-hero">
                     <div id="pacts-stars"></div>
                     <div style="position:relative;z-index:1;">
-                        <h2>⚔ SOUL PACTS ⚔</h2>
-                        <p style="color:#4a4060;font-size:0.82em;max-width:520px;margin:0 auto;letter-spacing:1px;">Forge a blood alliance. Every active member empowers your harvest.</p>
+                        <div style="font-size:2em;margin-bottom:8px;filter:drop-shadow(0 0 14px #aa44ff88);">⚔</div>
+                        <h2>SOUL PACTS</h2>
+                        <p style="color:#4a3868;font-size:0.78em;max-width:480px;margin:0 auto;letter-spacing:2px;text-transform:uppercase;">Forge a blood alliance · Claim the Abyss together</p>
                     </div>
                 </div>
-                <script>(function(){const b=document.getElementById('pacts-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(let i=0;i<30;i++){const s=document.createElement('div');s.className='pacts-s';const z=Math.random()*2+.5;s.style.cssText=`width:${z}px;height:${z}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*4+2).toFixed(1)}s;--o:${(Math.random()*.4+.15).toFixed(2)};animation-delay:${(Math.random()*5).toFixed(1)}s;`;b.appendChild(s);}}})();</script>
-                <div style="padding:24px;">
+                <script>(function(){var b=document.getElementById('pacts-stars');if(b&&!b.dataset.i){b.dataset.i='1';for(var i=0;i<40;i++){var s=document.createElement('div');s.className='pacts-s';var z=Math.random()*2+.5;s.style.cssText='width:'+z+'px;height:'+z+'px;left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;--d:'+(Math.random()*4+2).toFixed(1)+'s;--o:'+(Math.random()*.4+.15).toFixed(2)+';animation-delay:'+(Math.random()*5).toFixed(1)+'s;';b.appendChild(s);}}})()</script>
+                <div style="padding:20px 20px 28px;">
 
-
-                <!-- Pact stats strip -->
-                <div style="display:flex; justify-content:center; gap:14px; flex-wrap:wrap; margin-bottom:20px;">
-                    <div style="background:linear-gradient(135deg,#1a0e2a,#0e0a1a); border:1px solid #c8a80044; border-radius:8px; padding:9px 18px; text-align:center;">
-                        <div style="color:#c8a800; font-size:1em; font-weight:bold;">+10% per member</div>
-                        <div style="color:var(--dim-color); font-size:0.72em;">SPS &amp; SPC boost</div>
+                <!-- Pact perks strip -->
+                <div id="pact-perks-strip" style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+                    <div class="pact-stat-pill">
+                        <div style="font-size:1.3em;margin-bottom:4px;">⚡</div>
+                        <div style="color:#c8a800;font-size:0.9em;font-weight:bold;">+10% per ally</div>
+                        <div style="color:#3d2d55;font-size:0.65em;margin-top:2px;">SPS &amp; SPC</div>
                     </div>
-                    <div style="background:linear-gradient(135deg,#1a0e2a,#0e0a1a); border:1px solid #c8a80044; border-radius:8px; padding:9px 18px; text-align:center;">
-                        <div style="color:#c8a800; font-size:1em; font-weight:bold;">2 – 4 members</div>
-                        <div style="color:var(--dim-color); font-size:0.72em;">max pact size</div>
+                    <div class="pact-stat-pill">
+                        <div style="font-size:1.3em;margin-bottom:4px;">👥</div>
+                        <div style="color:#aa44ff;font-size:0.9em;font-weight:bold;">Up to 4 souls</div>
+                        <div style="color:#3d2d55;font-size:0.65em;margin-top:2px;">alliance size</div>
                     </div>
-                    <div style="background:linear-gradient(135deg,#1a0e2a,#0e0a1a); border:1px solid #c8a80044; border-radius:8px; padding:9px 18px; text-align:center;">
-                        <div style="color:#c8a800; font-size:1em; font-weight:bold;">+30% max</div>
-                        <div style="color:var(--dim-color); font-size:0.72em;">full pact bonus</div>
+                    <div class="pact-stat-pill">
+                        <div style="font-size:1.3em;margin-bottom:4px;">🎲</div>
+                        <div style="color:#cc88ff;font-size:0.9em;font-weight:bold;">Shared blessings</div>
+                        <div style="color:#3d2d55;font-size:0.65em;margin-top:2px;">roll buffs together</div>
                     </div>
-                    <div style="background:linear-gradient(135deg,#1a0e2a,#0e0a1a); border:1px solid #aa44ff44; border-radius:8px; padding:9px 18px; text-align:center;">
-                        <div style="color:#aa44ff; font-size:1em; font-weight:bold;">Clan Tag</div>
-                        <div style="color:var(--dim-color); font-size:0.72em;">shows in chat</div>
+                    <div class="pact-stat-pill">
+                        <div style="font-size:1.3em;margin-bottom:4px;">🏷️</div>
+                        <div style="color:#44ccff;font-size:0.9em;font-weight:bold;">Clan Tag</div>
+                        <div style="color:#3d2d55;font-size:0.65em;margin-top:2px;">identity in chat</div>
+                    </div>
+                    <div class="pact-stat-pill">
+                        <div style="font-size:1.3em;margin-bottom:4px;">⚔</div>
+                        <div style="color:#ff8844;font-size:0.9em;font-weight:bold;">Pact Wars</div>
+                        <div style="color:#3d2d55;font-size:0.65em;margin-top:2px;">siege the abyss</div>
                     </div>
                 </div>
 
-                <!-- Pact Identity Panel (shown when in a pact) -->
-                <div id="pact-identity-panel" style="display:none; background:#0e0a1a; border:1px solid #aa44ff44; border-radius:12px; padding:16px 20px; margin-bottom:16px;">
-                    <div style="color:#aa44ff; font-weight:bold; font-size:0.82em; letter-spacing:2px; margin-bottom:10px;">⚜ PACT IDENTITY</div>
-                    <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-                        <div id="pact-identity-badge" style="font-size:2.6em; width:56px; height:56px; display:flex; align-items:center; justify-content:center; background:#1a1030; border:2px solid #aa44ff44; border-radius:10px;"></div>
-                        <div style="flex:1; min-width:160px;">
-                            <div id="pact-identity-name" style="color:#ddd; font-weight:bold; font-size:1.1em;"></div>
-                            <div id="pact-identity-members" style="color:#555; font-size:0.74em; margin-top:2px;"></div>
-                            <!-- Clan tag display -->
-                            <div id="pact-tag-display" style="margin-top:6px; display:none;">
-                                <span style="color:#555; font-size:0.7em; letter-spacing:1px; text-transform:uppercase;">Your tag in chat: </span>
-                                <span id="pact-tag-preview-badge" style="font-size:0.75em; padding:2px 8px; border-radius:4px; font-weight:700; vertical-align:middle;"></span>
+                <!-- Pact Identity Banner (shown when in a pact) -->
+                <div id="pact-identity-panel" style="display:none;">
+                    <div id="pact-banner">
+                        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+                            <div id="pact-identity-badge" style="font-size:2.2em;width:56px;height:56px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1030,#0e0820);border:2px solid #aa44ff44;border-radius:12px;flex-shrink:0;filter:drop-shadow(0 0 10px #aa44ff33);"></div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="color:#5533aa;font-size:0.65em;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;">Your Blood Alliance</div>
+                                <div id="pact-identity-name" style="color:#e0d0ff;font-weight:bold;font-size:1.25em;line-height:1.2;"></div>
+                                <div style="display:flex;align-items:center;gap:10px;margin-top:5px;flex-wrap:wrap;">
+                                    <div id="pact-identity-members" style="color:#4a3868;font-size:0.72em;"></div>
+                                    <div id="pact-tag-display" style="display:none;">
+                                        <span style="color:#3d2d55;font-size:0.68em;letter-spacing:1px;">TAG </span>
+                                        <span id="pact-tag-preview-badge" style="font-size:0.72em;padding:2px 8px;border-radius:4px;font-weight:700;vertical-align:middle;"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="pact-banner-bonus" style="display:none;background:#00e5ff0a;border:1px solid #00e5ff22;border-radius:10px;padding:10px 16px;text-align:center;flex-shrink:0;">
+                                <div style="color:#00e5ff;font-size:1.15em;font-weight:bold;" id="pact-banner-bonus-pct"></div>
+                                <div style="color:#1a4a55;font-size:0.62em;margin-top:1px;letter-spacing:1px;">BONUS ACTIVE</div>
+                            </div>
+                        </div>
+                        <div style="margin-top:14px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                                <span style="color:#3d2d55;font-size:0.62em;letter-spacing:2px;text-transform:uppercase;">Alliance Strength</span>
+                                <span id="pact-power-label" style="color:#6644aa;font-size:0.62em;"></span>
+                            </div>
+                            <div id="pact-power-bar-outer">
+                                <div id="pact-power-bar-inner" style="width:25%;"></div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Current Pact Panel -->
-                <div id="pact-current-panel" style="display:none; background:linear-gradient(135deg,#110d1e,#1c1428); border:1px solid #c8a80066; border-top:3px solid #c8a800; border-radius:12px; padding:20px; margin-bottom:20px; position:relative; overflow:hidden;">
-                    <div style="position:absolute; top:0; left:0; right:0; bottom:0; background:radial-gradient(ellipse at top, #c8a80008 0%, transparent 70%); pointer-events:none;"></div>
-
-                    <!-- Pact name + tabs -->
-                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
-                        <span style="font-size:1.6em;">⚔</span>
-                        <div style="flex:1;">
-                            <div style="color:var(--dim-color); font-size:0.7em; text-transform:uppercase; letter-spacing:2px;">Your Alliance</div>
-                            <div style="color:#c8a800; font-size:1.3em; font-weight:bold;" id="pact-name-display"></div>
+                <div id="pact-current-panel" style="display:none;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="color:#6633aa;font-size:0.65em;letter-spacing:2px;text-transform:uppercase;">Alliance Command</div>
+                            <div style="color:#c8a800;font-size:1.05em;font-weight:bold;margin-top:2px;" id="pact-name-display"></div>
                         </div>
-                        <!-- Pact tabs -->
-                        <div style="display:flex; gap:6px;">
-                            <button onclick="pactShowTab('overview')" id="ptab-overview" style="background:#1a1030; border:1px solid #aa44ff66; border-radius:7px; padding:5px 12px; color:#aa44ff; font-size:0.72em; cursor:pointer; font-family:inherit; letter-spacing:1px;">📋 Overview</button>
-                            <button onclick="pactShowTab('blessings')" id="ptab-blessings" style="background:transparent; border:1px solid #2a1a3a; border-radius:7px; padding:5px 12px; color:#555; font-size:0.72em; cursor:pointer; font-family:inherit; letter-spacing:1px;">🎲 Blessings</button>
-                            <button onclick="pactShowTab('settings')" id="ptab-settings" style="background:transparent; border:1px solid #2a1a3a; border-radius:7px; padding:5px 12px; color:#555; font-size:0.72em; cursor:pointer; font-family:inherit; letter-spacing:1px;">⚙ Settings</button>
+                        <div style="display:flex;gap:6px;">
+                            <button onclick="pactShowTab(\'overview\')" id="ptab-overview" class="ptab-btn active">📋 Overview</button>
+                            <button onclick="pactShowTab(\'blessings\')" id="ptab-blessings" class="ptab-btn">🎲 Blessings</button>
+                            <button onclick="pactShowTab(\'settings\')" id="ptab-settings" class="ptab-btn">⚙ Settings</button>
                         </div>
                     </div>
 
                     <!-- TAB: Overview -->
                     <div id="ptab-content-overview">
-                        <div id="pact-members-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;"></div>
-                        <div id="pact-bonus-display" style="background:#00e5ff11; border:1px solid #00e5ff33; border-radius:6px; padding:7px 14px; color:#00e5ff; font-size:0.85em; margin-bottom:10px; display:inline-block;"></div>
+                        <div id="pact-members-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;"></div>
+                        <div id="pact-bonus-display" style="background:#00e5ff0d;border:1px solid #00e5ff22;border-radius:8px;padding:10px 16px;color:#00e5ff;font-size:0.85em;display:inline-block;"></div>
                     </div>
 
                     <!-- TAB: Blessings -->
@@ -29281,9 +29319,7 @@ function pactShowTab(tab) {
     ['overview','blessings','settings'].forEach(function(t) {
         var btn = document.getElementById('ptab-' + t);
         var cnt = document.getElementById('ptab-content-' + t);
-        if (btn) btn.style.cssText = t === tab
-            ? 'background:#1a1030; border:1px solid #aa44ff66; border-radius:7px; padding:5px 12px; color:#aa44ff; font-size:0.72em; cursor:pointer; font-family:inherit; letter-spacing:1px;'
-            : 'background:transparent; border:1px solid #2a1a3a; border-radius:7px; padding:5px 12px; color:#555; font-size:0.72em; cursor:pointer; font-family:inherit; letter-spacing:1px;';
+        if (btn) { btn.classList.toggle('active', t === tab); }
         if (cnt) cnt.style.display = t === tab ? 'block' : 'none';
     });
     if (tab === 'settings') _pactRenderSettingsTab();
@@ -29487,74 +29523,117 @@ function renderPactScreen() {
     if (!currentPanel || !nonePanel) return;
 
     if (window.playerPact) {
-        // Sync clan tag to localStorage and update badge
         _pactUpdateIdentityBadge();
         currentPanel.style.display = 'block';
         nonePanel.style.display    = 'none';
+        // Hide perks strip when in pact (banner replaces it)
+        var perks = document.getElementById('pact-perks-strip');
+        if (perks) perks.style.display = 'none';
 
         document.getElementById('pact-name-display').textContent = window.playerPact.pact_name || window.playerPact.name || '';
 
-        (function(){var _pip=document.getElementById('pact-identity-panel'),_idn=document.getElementById('pact-identity-name'),_idm=document.getElementById('pact-identity-members'),_idb=document.getElementById('pact-identity-badge');if(!_pip||!_idn)return;var _pN=window.playerPact.pact_name||window.playerPact.name||'';var _pM=(window.playerPact.members||[]).length+' member'+((window.playerPact.members||[]).length!==1?'s':'');_idn.textContent=_pN;_idm.textContent=_pM;_idb.textContent=window.playerPact.emblem||'⚔';_pip.style.display='block';})();
+        // Populate identity banner
+        (function(){
+            var _pip = document.getElementById('pact-identity-panel');
+            var _idn = document.getElementById('pact-identity-name');
+            var _idm = document.getElementById('pact-identity-members');
+            var _idb = document.getElementById('pact-identity-badge');
+            if (!_pip || !_idn) return;
+            var _pN = window.playerPact.pact_name || window.playerPact.name || '';
+            var _mCount = (window.playerPact.members || []).length;
+            _idn.textContent = _pN;
+            _idm.textContent = _mCount + ' member' + (_mCount !== 1 ? 's' : '');
+            _idb.textContent = window.playerPact.emblem || '⚔';
+            _pip.style.display = 'block';
+        })();
 
-        const members      = window.playerPact.members || [];
-        const isLeader     = members[0] === gameState.playerName;
-        const memberColors = ['#ffd700','#00e5ff','#ff9944','#88ff88'];
+        const members  = window.playerPact.members || [];
+        const isLeader = members[0] === gameState.playerName;
+        const others   = members.filter(function(m){ return m !== gameState.playerName; }).length;
+        const bonusPct = others * 10;
+
+        // Update banner bonus pill
+        var bonusPill = document.getElementById('pact-banner-bonus');
+        var bonusPct2 = document.getElementById('pact-banner-bonus-pct');
+        if (bonusPill && bonusPct2) {
+            if (others > 0) {
+                bonusPct2.textContent = '+' + bonusPct + '% SPS & SPC';
+                bonusPill.style.display = 'block';
+            } else {
+                bonusPill.style.display = 'none';
+            }
+        }
+
+        // Update alliance power bar (1 member = 25%, 2 = 50%, 3 = 75%, 4 = 100%)
+        var bar = document.getElementById('pact-power-bar-inner');
+        var lbl = document.getElementById('pact-power-label');
+        if (bar) {
+            var pct = Math.min(100, (members.length / 4) * 100);
+            bar.style.width = pct + '%';
+            var labels = ['', 'Nascent', 'Bonded', 'Mighty', 'Full Strength'];
+            if (lbl) lbl.textContent = (labels[members.length] || '') + ' — ' + members.length + '/4';
+        }
+
+        const memberColors = ['#ffd700','#44ccff','#ff9944','#88ff88'];
         const memberIcons  = ['👑','⚔','⚔','⚔'];
 
-        // Build member cards with stats pulled from players table
         const listEl = document.getElementById('pact-members-list');
-        listEl.innerHTML = '<div style="color:#444; font-size:0.78em;">Loading member stats...</div>';
+        listEl.innerHTML = '<div style="color:#3d2a55;font-size:0.78em;padding:8px 0;">Loading member data...</div>';
 
-        (async () => {
-            let memberStats = {};
+        (async function() {
+            var memberStats = {};
             try {
-                const { data } = await supabaseClient.from('players').select('name,ascensions,pvpWins,lifetimeSouls,soulsLog').in('name', members).then(r => r).catch(() => ({ data: null }));
-                if (data) data.forEach(p => { memberStats[p.name] = p; });
+                var res = await supabaseClient.from('players').select('name,ascensions,pvpWins,lifetimeSouls,soulsLog').in('name', members);
+                if (res.data) res.data.forEach(function(p){ memberStats[p.name] = p; });
             } catch(e) {}
 
-            listEl.innerHTML = members.map((m, i) => {
-                const isMe    = m === gameState.playerName;
-                const color   = memberColors[i % memberColors.length];
-                const stats   = isMe ? { ascensions: gameState.ascensions, pvpWins: gameState.pvpWins, lifetimeSouls: D(gameState.lifetimeSouls) } : (memberStats[m] || {});
-                const asc     = stats.ascensions ?? '?';
-                const wins    = stats.pvpWins ?? '?';
-                // Use lifetimeSouls directly, or reconstruct from soulsLog if lifetimeSouls is null
-                let souls;
+            listEl.innerHTML = members.map(function(m, i) {
+                var isMe  = m === gameState.playerName;
+                var color = memberColors[i % memberColors.length];
+                var stats = isMe
+                    ? { ascensions: gameState.ascensions, pvpWins: gameState.pvpWins, lifetimeSouls: D(gameState.lifetimeSouls) }
+                    : (memberStats[m] || {});
+                var asc  = stats.ascensions != null ? stats.ascensions : '—';
+                var wins = stats.pvpWins != null ? stats.pvpWins : '—';
+                var souls;
                 if (stats.lifetimeSouls != null) {
                     souls = formatNumber(stats.lifetimeSouls instanceof Decimal ? stats.lifetimeSouls : D(stats.lifetimeSouls));
                 } else if (stats.soulsLog && stats.soulsLog > 0) {
-                    // Reconstruct from log: 10^soulsLog
                     souls = formatNumber(Decimal.pow(10, stats.soulsLog));
-                } else {
-                    souls = '—';
-                }
-                const canKick = isLeader && !isMe;
+                } else { souls = '—'; }
+                var canKick = isLeader && !isMe;
+                var delay = i * 80;
 
-                return `<div style="background:#0a0812; border:1px solid ${color}22; border-left:3px solid ${color}55; border-radius:10px; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; width:100%; box-sizing:border-box;">
-                    <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
-                        <span style="font-size:1.6em; flex-shrink:0;">${memberIcons[i]}</span>
-                        <div style="min-width:0;">
-                            <div style="color:${color}; font-weight:bold; font-size:1.05em;">${m}${isMe ? ' <span style="color:#555; font-size:0.8em; font-weight:normal;">(you)</span>' : ''}</div>
-                            <div style="color:#888; font-size:0.82em; margin-top:5px; display:flex; gap:16px; flex-wrap:wrap;">
-                                <span>✨ <strong style="color:#ccc;">${asc}</strong> Asc</span>
-                                <span>👻 <strong style="color:#ccc;">${souls}</strong> souls</span>
-                                <span>⚔ <strong style="color:#ccc;">${wins}</strong> PvP wins</span>
-                            </div>
-                        </div>
-                    </div>
-                    ${canKick ? `<button onclick="kickPactMember('${m}')" style="background:#1a0808; border:1px solid #cc333366; border-radius:8px; padding:7px 14px; color:#cc4444; cursor:pointer; font-family:inherit; font-size:0.8em; font-weight:bold; flex-shrink:0; white-space:nowrap;">✕ Remove</button>` : ''}
-                </div>`;
+                return '<div class="pact-member-card" style="--mc:' + color + ';animation-delay:' + delay + 'ms;">'
+                    + '<div class="pmc-header">'
+                    + '<span style="font-size:1.5em;flex-shrink:0;">' + memberIcons[i] + '</span>'
+                    + '<div style="flex:1;min-width:0;">'
+                    + '<div style="color:' + color + ';font-weight:bold;font-size:1em;">'
+                    + m + (isMe ? ' <span style="color:#3d2d55;font-size:0.75em;font-weight:normal;">(you)</span>' : '') + '</div>'
+                    + '<div style="color:#3d2a55;font-size:0.68em;margin-top:2px;letter-spacing:1px;">'
+                    + (i === 0 ? 'Pact Leader' : 'Sworn Ally') + '</div>'
+                    + '</div>'
+                    + (canKick ? '<button onclick="kickPactMember(\'' + m + '\')" style="background:#1a0808;border:1px solid #cc333355;border-radius:7px;padding:5px 12px;color:#cc4444;cursor:pointer;font-family:inherit;font-size:0.72em;flex-shrink:0;">✕ Remove</button>' : '')
+                    + '</div>'
+                    + '<div class="pmc-stats">'
+                    + '<div class="pmc-stat"><div style="color:' + color + ';font-weight:bold;font-size:1.05em;">' + asc + '</div><div style="color:#3d2a55;font-size:0.62em;margin-top:2px;text-transform:uppercase;letter-spacing:1px;">Ascensions</div></div>'
+                    + '<div class="pmc-stat"><div style="color:' + color + ';font-weight:bold;font-size:1.05em;">' + souls + '</div><div style="color:#3d2a55;font-size:0.62em;margin-top:2px;text-transform:uppercase;letter-spacing:1px;">Lifetime Souls</div></div>'
+                    + '<div class="pmc-stat"><div style="color:' + color + ';font-weight:bold;font-size:1.05em;">' + wins + '</div><div style="color:#3d2a55;font-size:0.62em;margin-top:2px;text-transform:uppercase;letter-spacing:1px;">PvP Wins</div></div>'
+                    + '</div>'
+                    + '</div>';
             }).join('');
         })();
 
-        const others = members.filter(m => m !== gameState.playerName).length;
-        const bonusPct = others * 10;
         document.getElementById('pact-bonus-display').innerHTML = others > 0
-            ? `⚡ Pact Bonus Active: <strong>+${bonusPct}% SPS &amp; SPC</strong> from ${others} allied soul${others > 1 ? 's' : ''}`
-            : `<span style="color:#666;">⏳ Waiting for allies to join your pact...</span>`;
+            ? '⚡ Pact Bonus Active: <strong>+' + bonusPct + '% SPS &amp; SPC</strong> from ' + others + ' allied soul' + (others > 1 ? 's' : '')
+            : '<span style="color:#3d2a55;">⏳ Waiting for allies to join your pact...</span>';
     } else {
         currentPanel.style.display = 'none';
         nonePanel.style.display    = 'block';
+        var identPanel = document.getElementById('pact-identity-panel');
+        if (identPanel) identPanel.style.display = 'none';
+        var perks = document.getElementById('pact-perks-strip');
+        if (perks) perks.style.display = 'flex';
     }
 }
 

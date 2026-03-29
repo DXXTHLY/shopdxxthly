@@ -4616,7 +4616,6 @@ text-decoration: underline; /* Adds an underline on hover */
                                         <option value="darkEssence">🌑 Dark Essence</option>
                                         <option value="abyssalShards">💎 Abyssal Shards</option>
                                         <option value="aether">✨ Aether</option>
-                                        <option value="corruptedFragments">🔮 Corrupted Fragments</option>
                                     </select>
                                     <input type="number" id="gnt-bet-input" value="100" min="1" style="width:100%; box-sizing:border-box; background:#0d0a18; border:1px solid #2a1a3a; color:#ddd; padding:8px 10px; border-radius:7px; font-family:inherit; font-size:0.85em; margin-bottom:8px;">
                                     <div style="display:flex; gap:5px; margin-bottom:12px;">
@@ -20240,7 +20239,19 @@ function wmapShowPanel(id, isLight) {
 
     // Gauntlet enter button (only when unlocked and not sealed)
     var gBtn = (isUnlocked && !isSealed)
-        ? '<button onclick="wmapOpenGauntlet(\'' + id + '\')" style="background:#0a0812;border:1px solid #2a1a3a;border-radius:10px;padding:10px 18px;color:#555;font-family:var(--font-title);font-size:0.75em;letter-spacing:1px;cursor:pointer;transition:all 0.2s;white-space:nowrap;" onmouseover="this.style.borderColor=\'#aa44ff88\';this.style.color=\'#aa44ff\'" onmouseout="this.style.borderColor=\'#2a1a3a\';this.style.color=\'#555\'">&#x2694; ENTER GAUNTLET</button>'
+        ? (function() {
+            var _cd = Math.max((typeof gntState !== 'undefined' ? gntState._worldSwitchCooldownEnd || 0 : 0), gameState.gauntletCooldownEnd || 0);
+            var _locked = Date.now() < _cd;
+            var _secsLeft = _locked ? Math.ceil((_cd - Date.now()) / 1000) : 0;
+            var _mLeft = Math.floor(_secsLeft / 60), _sLeft = _secsLeft % 60;
+            var _cdStr = _locked ? ('⏳ LOCKED ' + _mLeft + 'm ' + (_sLeft < 10 ? '0' : '') + _sLeft + 's') : '&#x2694; ENTER GAUNTLET';
+            var _style = _locked
+                ? 'background:#0a0812;border:1px solid #331111;border-radius:10px;padding:10px 18px;color:#442222;font-family:var(--font-title);font-size:0.75em;letter-spacing:1px;cursor:not-allowed;white-space:nowrap;'
+                : 'background:#0a0812;border:1px solid #2a1a3a;border-radius:10px;padding:10px 18px;color:#555;font-family:var(--font-title);font-size:0.75em;letter-spacing:1px;cursor:pointer;transition:all 0.2s;white-space:nowrap;';
+            var _click = _locked ? '' : 'onclick="wmapOpenGauntlet(\'' + id + '\')"';
+            var _hover = _locked ? '' : 'onmouseover="this.style.borderColor=\'#aa44ff88\';this.style.color=\'#aa44ff\'" onmouseout="this.style.borderColor=\'#2a1a3a\';this.style.color=\'#555\'"';
+            return '<button ' + _click + ' ' + _hover + ' style="' + _style + '">' + _cdStr + '</button>';
+        })()
         : '';
 
     // Close button
@@ -20328,11 +20339,24 @@ function wmapDoUnlock(id, isLight) {
 }
 
 function wmapOpenGauntlet(id) {
-    // Pre-select this world in gauntlet, then navigate there
+    // Check cooldown FIRST — this is the main bypass vector
+    const _cdEnd = Math.max(
+        (typeof gntState !== 'undefined' ? gntState._worldSwitchCooldownEnd || 0 : 0),
+        gameState.gauntletCooldownEnd || 0
+    );
+    if (Date.now() < _cdEnd) {
+        const _secsLeft = Math.ceil((_cdEnd - Date.now()) / 1000);
+        const _mLeft = Math.floor(_secsLeft / 60), _sLeft = _secsLeft % 60;
+        Toastify({
+            text: '⏳ Gauntlet locked — ' + _mLeft + 'm ' + _sLeft + 's remaining. You must wait between runs.',
+            duration: 4000, gravity: 'top', position: 'center',
+            style: { background: 'linear-gradient(135deg,#1a0000,#550000)' }
+        }).showToast();
+        return;
+    }
     if (typeof gntState !== 'undefined') { gntState.locationChosen = false; }
     showScreen('crashgame');
     wmapClosePanel();
-    // After screen switches, auto-select this location
     setTimeout(function() {
         if (typeof gntSelectLocation === 'function') gntSelectLocation(id);
     }, 200);
@@ -32387,18 +32411,18 @@ async function arenaEndBattle(playerWon) {
 
 // Wave multiplier table
 const GNT_WAVES = [
-    { wave:1,  mult:0.1,  label:'0.10x (almost nothing)',  color:'#444444' },
-    { wave:2,  mult:0.5,  label:'0.50x (half your bet)',   color:'#666666' },
-    { wave:3,  mult:1.5,  label:'1.50x',  color:'#44cc88' },
-    { wave:4,  mult:2.5,  label:'2.50x',  color:'#44cc88' },
-    { wave:5,  mult:4.0,  label:'4.00x',  color:'#c8a800' },
-    { wave:6,  mult:6.0,  label:'6.00x',  color:'#c8a800' },
-    { wave:7,  mult:9.0,  label:'9.00x',  color:'#ff9944' },
-    { wave:8,  mult:13.0, label:'13.00x', color:'#ff9944' },
+    { wave:1,  mult:0.05, label:'0.05x (loss)',            color:'#333333' },
+    { wave:2,  mult:0.4,  label:'0.40x (still a loss)',    color:'#555555' },
+    { wave:3,  mult:1.1,  label:'1.10x',  color:'#556655' },
+    { wave:4,  mult:1.8,  label:'1.80x',  color:'#44cc88' },
+    { wave:5,  mult:3.0,  label:'3.00x',  color:'#44cc88' },
+    { wave:6,  mult:5.0,  label:'5.00x',  color:'#c8a800' },
+    { wave:7,  mult:8.0,  label:'8.00x',  color:'#c8a800' },
+    { wave:8,  mult:12.0, label:'12.00x', color:'#ff9944' },
     { wave:9,  mult:18.0, label:'18.00x', color:'#ff6644' },
-    { wave:10, mult:25.0, label:'25.00x', color:'#ff4444' },
-    { wave:11, mult:35.0, label:'35.00x', color:'#ff4444' },
-    { wave:12, mult:50.0, label:'50.00x', color:'#aa44ff' },
+    { wave:10, mult:28.0, label:'28.00x', color:'#ff4444' },
+    { wave:11, mult:42.0, label:'42.00x', color:'#ff2222' },
+    { wave:12, mult:65.0, label:'65.00x', color:'#aa44ff' },
 ];
 // Waves beyond 10: multiplier = previous * 1.5
 function gntGetWaveData(waveNum) {
@@ -32433,10 +32457,10 @@ function gntEnemyTier(waveNum) {
 function gntGenerateEnemies(waveNum) {
     const pool = (typeof gntGetDailyEnemyPool==='function') ? gntGetDailyEnemyPool(waveNum) : gntEnemyTier(waveNum);
     const extraEnemies = (typeof gntGetEnemyCountBonus==='function') ? gntGetEnemyCountBonus() : 0;
-    const count = Math.min(2 + Math.floor(waveNum*0.8) + extraEnemies, 8);
-    const scaleMult = 1 + (waveNum-1)*0.35;
+    const count = Math.min(3 + waveNum + extraEnemies, 10);
+    const scaleMult = Math.pow(1.40, waveNum - 1); // exponential: wave3=2x, wave5=3.8x, wave7=7.5x, wave10=20x
     const enemies = [], positions = [];
-    for (let y=0;y<2;y++) for (let x=0;x<3;x++) positions.push({x,y});
+    for (let y=0;y<4;y++) for (let x=0;x<3;x++) positions.push({x,y});
     for (let i=positions.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [positions[i],positions[j]]=[positions[j],positions[i]]; }
     for (let i=0;i<Math.min(count,positions.length);i++) {
         const id = pool[Math.floor(Math.random()*pool.length)];
@@ -32471,8 +32495,12 @@ let gntState = { phase:'LOBBY', wave:1, betAmount:0, betCurrency:'souls', player
 function gntLog(msg,color){const log=document.getElementById('gnt-log');if(!log)return;const el=document.createElement('div');el.style.color=color||'#888';el.textContent=msg;log.prepend(el);while(log.children.length>30)log.removeChild(log.lastChild);}
 function gntSetBet(v){const el=document.getElementById('gnt-bet-input');if(el)el.value=v;}
 function gntSetBetMax(){const cur=document.getElementById('gnt-currency')?.value||'souls';gntSetBet(D(gameState[cur]||0).toNumber().toFixed(0));}
-function gntCurrencyLabel(key){return{souls:'👻 Souls',darkEssence:'🌑 Dark Essence',abyssalShards:'💎 Shards',aether:'✨ Aether',corruptedFragments:'🔮 Fragments'}[key]||key;}
-function gntCalcBudget(){return 10+(gameState.ascensions||0)*3+(gntState.wave-1)*2;}
+function gntCurrencyLabel(key){return{souls:'👻 Souls',darkEssence:'🌑 Dark Essence',abyssalShards:'💎 Shards',aether:'✨ Aether'}[key]||key;}
+function gntCalcBudget(){
+    // Fixed per wave only — ascensions do NOT grant extra deployment power
+    // Wave 1: 14pts, Wave 3: 20, Wave 5: 26, Wave 7: 32, Wave 10+: 40 (hard cap)
+    return Math.min(40, 14 + (gntState.wave - 1) * 3);
+}
 function gntUpdateBudgetBar(){
     const fill=document.getElementById('gnt-budget-fill'),txt=document.getElementById('gnt-budget-text');
     const pct=gntState.pointBudget>0?Math.min(100,(gntState.pointsSpent/gntState.pointBudget)*100):0;
@@ -32540,7 +32568,11 @@ function gntOpenMinionPicker(){
     for(const id in battleMinions){
         if(!(gameState.minions[id]&&gameState.minions[id].level>0))continue;
         const bm=battleMinions[id],gm=gameState.minions[id],lvl=gm?.level||0,promo=gm?.promotionTier||0;
-        const tot=(1+(Math.floor(lvl/25)*0.05))*(1+(promo*0.20));
+        // Gauntlet uses a REDUCED scaling - your minion level/promo matters less here.
+    // Max scale cap of 1.5x total regardless of level or promos - gauntlet is not about raw power
+    const lvlBonus = Math.min(0.25, (Math.floor(lvl/25)*0.04));
+    const promoBonus = Math.min(0.25, (promo*0.08));
+    const tot = Math.min(1.5, (1 + lvlBonus) * (1 + promoBonus));
         const sHp=Math.ceil(bm.hp*tot),sAtk=Math.ceil(bm.atk*tot),canBuy=gntState.pointsSpent+bm.cost<=gntState.pointBudget;
         const tc=bm.cost<=3?'#44cc88':bm.cost<=8?'#c8a800':bm.cost<=14?'#ff9944':'#aa44ff';
         const card=document.createElement('div');
@@ -32603,6 +32635,14 @@ function gntBeginWave(){
     if(gntState.wave===1){
         if(isNaN(betInput)||betInput<=0){Toastify({text:'Enter a valid bet amount.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
         if(D(gameState[currency] || 0).lt(D(betInput))){Toastify({text:'Not enough resources.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
+        // Block fragments from being bet
+        if(currency==='corruptedFragments'){Toastify({text:'🔮 Fragments cannot be wagered in the Gauntlet.',duration:3000,gravity:'top',position:'center',style:{background:'#330033'}}).showToast();return;}
+        // Hard bet caps to prevent exponential snowballing
+        const _betCaps = { souls: 1e15, darkEssence: 1e12, abyssalShards: 1e10, aether: 1e9 };
+        const _cap = _betCaps[currency] || 1e15;
+        if (betInput > _cap) {
+            Toastify({text:'⚠ Max bet is ' + formatNumber(D(_cap)) + ' ' + gntCurrencyLabel(currency) + '.', duration:3000,gravity:'top',position:'center',style:{background:'#331100'}}).showToast(); return;
+        }
         if(gntState.playerUnits.length===0){Toastify({text:'Deploy at least one minion.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
         gntState.betAmount=betInput;gntState.betCurrency=currency;
         // Deduct bet — souls is Decimal, others may be too
@@ -32663,16 +32703,30 @@ function gntWaveWon(){
     const wd=gntGetWaveData(gntState.wave),next=gntGetWaveData(gntState.wave+1);
     const winD = D(gntState.betAmount).mul(D(wd.mult));
     const winDisplay = formatNumber(winD);
-    gntLog(`✦ Wave ${gntState.wave} cleared at ${wd.label}!`,'#44cc88');playSound('ascend');
+    // Small flat fragment bonus for deep waves (not multiplicative, not exploitable)
+    const _fragBonus = [0,0,0,0,0,3,5,8,12,18,25,40][Math.min(gntState.wave,11)] || 40;
+    if (gntState.wave >= 5) {
+        gameState.corruptedFragments = D(gameState.corruptedFragments||0).add(_fragBonus);
+        gntLog(`🔮 +${_fragBonus} Fragments (depth bonus)`, '#aa44ff');
+    }
+    gntLog('✦ Wave ' + gntState.wave + ' cleared at ' + wd.label + '!','#44cc88');playSound('ascend');
     const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`✦ Wave ${gntState.wave} cleared! Cash out or push deeper.`;sb.style.borderLeftColor='#44cc88';sb.style.color='#44cc88';}
     const bt=document.getElementById('gnt-between-text');if(bt)bt.innerHTML=`Multiplier: <strong style="color:${wd.color};">${wd.label}</strong><br>Cash out: <strong style="color:#44cc88;">${winDisplay} ${gntCurrencyLabel(gntState.betCurrency)}</strong><br><br>Next: <strong style="color:${next.color};">${next.label}</strong> — lose everything if you fall.`;
     const nb=document.getElementById('gnt-next-btn');if(nb)nb.textContent=`⚔ Wave ${gntState.wave+1} (${next.label})`;
     gntState.playerUnits=[];gntState.pointsSpent=0;gntState.pointBudget=gntCalcBudget();gntUpdateBudgetBar();gntSetPhase('BETWEEN');gntRenderGrid();gntRenderWaveTable();
 }
 function gntWaveLost(){
-    gntLog(`💀 Wave ${gntState.wave} — annihilated.`,'#cc3333');playSound('harvest');
-    const box=document.getElementById('gnt-result-box');if(box){box.style.borderTopColor='#cc3333';box.innerHTML=`<div style="font-size:2em;margin-bottom:8px;">💀</div><div style="color:#ff4444;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:8px;">DEFEATED</div><div style="color:#888;font-size:0.82em;line-height:1.6;">Fell on Wave ${gntState.wave}.<br>Lost <strong style="color:#cc3333;">${formatNumber(gntState.betAmount)} ${gntCurrencyLabel(gntState.betCurrency)}</strong>.</div>`;}
-    const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`💀 Defeated on Wave ${gntState.wave}.`;sb.style.borderLeftColor='#cc3333';sb.style.color='#ff6666';}
+    gntLog('💀 Wave ' + gntState.wave + ' — annihilated.','#cc3333');playSound('harvest');
+    // Set cooldown on loss too — you can't just farm by losing fast
+    const lossCooldownMs = 30 * 60 * 1000;
+    gntState._worldSwitchCooldownEnd = Date.now() + lossCooldownMs;
+    gameState._gauntletBypassFlag = true;
+    gameState.gauntletCooldownEnd = gntState._worldSwitchCooldownEnd;
+    saveGame();
+    const mLeft = Math.floor(lossCooldownMs / 60000);
+    const box=document.getElementById('gnt-result-box');
+    if(box){box.style.borderTopColor='#cc3333';box.innerHTML='<div style="font-size:2em;margin-bottom:8px;">💀</div><div style="color:#ff4444;font-family:var(--font-title);font-size:1em;letter-spacing:2px;margin-bottom:8px;">DEFEATED</div><div style="color:#888;font-size:0.82em;line-height:1.6;">Fell on Wave ' + gntState.wave + '.<br>Lost <strong style="color:#cc3333;">' + formatNumber(gntState.betAmount) + ' ' + gntCurrencyLabel(gntState.betCurrency) + '</strong>.<br><span style="color:#443;font-size:0.85em;">⏳ Next run available in ' + mLeft + ' minutes.</span></div>';}
+    const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent='💀 Defeated on Wave ' + gntState.wave + '. Gauntlet locked for ' + mLeft + ' min.';sb.style.borderLeftColor='#cc3333';sb.style.color='#ff6666';}
     gntSetPhase('RESULT');gntRenderGrid();
 }
 function gntCashOut(){
@@ -32681,7 +32735,7 @@ function gntCashOut(){
 
     // Anti-abuse: waves 1-2 cashout only returns the original bet (no profit)
     // This kills the bet-cashout-switch-world loop since there's nothing to gain early
-    const isWeak = gntState.wave <= 2;
+    const isWeak = gntState.wave <= 3; // waves 1-3 no cashout profit
     if (isWeak) {
         winD = D(gntState.betAmount); // just get your bet back, no profit
     }
@@ -32693,15 +32747,15 @@ function gntCashOut(){
         gameState[gntState.betCurrency] = D(gameState[gntState.betCurrency] || 0).add(winD);
     }
 
-    // Set world-switch cooldown: 3 min after any cashout, 10 min after profitable cashout
-    const cooldownMs = isWeak ? 3 * 60 * 1000 : 10 * 60 * 1000;
+    // 30 minute cooldown after any run — makes gauntlet a real commitment, not a farm loop
+    const cooldownMs = 30 * 60 * 1000;
     gntState._worldSwitchCooldownEnd = Date.now() + cooldownMs;
-    // Persist to gameState so logout/reload can't bypass it
+    gameState._gauntletBypassFlag = true; // detect logout bypass
     gameState.gauntletCooldownEnd = gntState._worldSwitchCooldownEnd;
     saveGame();
 
     updateDynamicDisplays(); saveGame(); playSound('upgrade');
-    gntLog('Cashed out at ' + wd.label + ' -- +' + winDisplay + ' ' + gntCurrencyLabel(gntState.betCurrency) + (isWeak ? ' (no profit on wave 1-2 cashout)' : ''), '#c8a800');
+    gntLog('Cashed out at ' + wd.label + ' -- +' + winDisplay + ' ' + gntCurrencyLabel(gntState.betCurrency) + ' | Next run in 30 min.', '#c8a800');
     const box = document.getElementById('gnt-result-box');
     if (box) {
         box.style.borderTopColor = '#44cc88';
@@ -33152,6 +33206,21 @@ function gntShowMapInfo(worldId) {
 
 
 function gntSelectLocation(locationId) {
+    // Cooldown gate — catches any path into the gauntlet
+    const _cdEnd = Math.max(
+        gntState._worldSwitchCooldownEnd || 0,
+        gameState.gauntletCooldownEnd || 0
+    );
+    if (Date.now() < _cdEnd) {
+        const _secsLeft = Math.ceil((_cdEnd - Date.now()) / 1000);
+        const _mLeft = Math.floor(_secsLeft / 60), _sLeft = _secsLeft % 60;
+        Toastify({
+            text: '⏳ Gauntlet locked — ' + _mLeft + 'm ' + _sLeft + 's remaining.',
+            duration: 4000, gravity: 'top', position: 'center',
+            style: { background: 'linear-gradient(135deg,#1a0000,#550000)' }
+        }).showToast();
+        return;
+    }
     gntState.location = locationId;
     gntState.locationChosen = true;
     const cfg = GNT_WORLD_MAP_CONFIG[locationId];

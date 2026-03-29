@@ -20081,12 +20081,22 @@ function _renderVisualWorldMap(isLight) {
         var ringW    = isActive ? '3px' : (isUnlocked ? '2px' : '1px');
 
         nodes += '<div style="position:absolute;left:' + cfg.x + '%;top:' + cfg.y + '%;transform:translate(-50%,-50%);text-align:center;width:80px;z-index:2;cursor:pointer;" onclick="wmapNodeClick(\'' + id + '\',' + isLight + ')" onmouseover="wmapNodeHover(\'' + id + '\',true,' + isLight + ')" onmouseout="wmapNodeHover(\'' + id + '\',false,' + isLight + ')">'
-            + '<div id="wmap-node-' + id + '" style="width:48px;height:48px;border-radius:50%;margin:0 auto 5px;background:' + bgColor + ';border:' + ringW + ' solid ' + borderColor + ';' + (isSel ? 'outline:2px solid #ffffff55;outline-offset:3px;' : '') + 'display:flex;align-items:center;justify-content:center;font-size:1.4em;line-height:1;box-shadow:' + glowCSS + ';transition:all 0.2s;">' + icon + '</div>'
-            + '<div id="wmap-label-' + id + '" style="font-size:' + labelSize + ';line-height:1.3;color:' + labelColor + ';white-space:nowrap;text-shadow:0 1px 4px #000000cc;' + (isActive || isSealed ? 'font-weight:bold;' : '') + '">' + name + '</div>'
+            + '<div id="wmap-node-' + id + '" class="' + (isSealed ? 'wmap-node-sealed' : '') + '" style="width:48px;height:48px;border-radius:50%;margin:0 auto 5px;background:' + bgColor + ';border:' + ringW + ' solid ' + borderColor + ';' + (isSel ? 'outline:2px solid #ffffff55;outline-offset:3px;' : '') + 'display:flex;align-items:center;justify-content:center;font-size:1.4em;line-height:1;box-shadow:' + glowCSS + ';">' + icon + '</div>'
+            + '<div id="wmap-label-' + id + '" class="' + (isSealed ? 'wmap-label-sealed' : '') + '" style="font-size:' + labelSize + ';line-height:1.3;color:' + labelColor + ';white-space:nowrap;text-shadow:0 1px 4px #000000cc;' + (isActive || isSealed ? 'font-weight:bold;' : '') + '">' + name + '</div>'
             + subLabel
             + '</div>';
     });
 
+    // Inject sealed flash keyframes once
+    if (!document.getElementById('wmap-sealed-style')) {
+        var _ss = document.createElement('style');
+        _ss.id = 'wmap-sealed-style';
+        _ss.textContent = '@keyframes wmapSealedPulse{0%,100%{box-shadow:0 0 8px #cc113355,0 0 0px #ff224400;border-color:#cc1133;}50%{box-shadow:0 0 28px #ff2244cc,0 0 50px #ff224444;border-color:#ff4466;}}' +
+            '.wmap-node-sealed{animation:wmapSealedPulse 1.4s ease-in-out infinite!important;}' +
+            '@keyframes wmapSealedLabelFlash{0%,100%{opacity:1;}50%{opacity:0.35;}}' +
+            '.wmap-label-sealed{animation:wmapSealedLabelFlash 1.4s ease-in-out infinite!important;}';
+        document.head.appendChild(_ss);
+    }
     cardsEl.innerHTML = '<div style="background:#04020e;border:1px solid #1e1236;border-radius:14px;overflow:hidden;margin-bottom:0;">'
         + '<div style="position:relative;width:100%;padding-bottom:72%;min-height:360px;">'
         // Background image — stretched, low opacity
@@ -33082,33 +33092,47 @@ function gntRenderLocationPicker() {
         const w = worldSource ? worldSource[id] : null;
         if (!cfg) return;
         const isUnlocked = unlocked.includes(id);
+        const isSealed = typeof isWorldLocked === 'function' ? isWorldLocked(id, isLight) : false;
         const name = (w && w.name) ? w.name : cfg.label;
+
+        // Sealed = red pulse, locked = dim, unlocked = normal
+        const nodeBg     = isSealed ? 'rgba(40,0,10,0.92)' : (isUnlocked ? cfg.color + '25' : '#0c0818');
+        const nodeBorder = isSealed ? '#cc1133' : (isUnlocked ? cfg.color : '#241436');
+        const nodeBorderW = isUnlocked ? '2px' : '1px';
+        const nodeGlow   = isSealed ? '0 0 16px #cc113377' : (isUnlocked ? '0 0 12px ' + cfg.color + '44' : 'none');
+        const nodeIcon   = isSealed ? '🔒' : (isUnlocked ? cfg.icon : '🔒');
+        const nodeOpacity = isSealed ? 1 : (isUnlocked ? 1 : 0.4);
+        const labelColor = isSealed ? '#ff2244' : (isUnlocked ? cfg.color : '#2a1a3a');
+        const labelOpacity = isSealed ? 1 : (isUnlocked ? 1 : 0.5);
+        const sealedClass = isSealed ? 'wmap-node-sealed' : '';
+        const sealedLabelClass = isSealed ? 'wmap-label-sealed' : '';
+        const sealedSub = isSealed ? '<div style="font-size:6px;color:#ff2244;letter-spacing:1px;margin-top:1px;">SEALED</div>' : '';
+        // Sealed nodes are not clickable
+        const clickable = isUnlocked && !isSealed;
 
         nodes += `
         <div style="position:absolute; left:${cfg.x}%; top:${cfg.y}%;
                     transform:translate(-50%,-50%); text-align:center;
-                    width:70px; z-index:2; cursor:${isUnlocked ? 'pointer' : 'default'};"
-             ${isUnlocked ? `onclick="gntSelectLocation('${id}')"
+                    width:70px; z-index:2; cursor:${clickable ? 'pointer' : 'default'};"
+             ${clickable ? `onclick="gntSelectLocation('${id}')"
                             onmouseover="gntMapHover('${id}',this)"
                             onmouseout="gntMapUnhover('${id}',this)"` : ''}>
-            <!-- Circle node -->
-            <div id="gnt-node-${id}"
+            <div id="gnt-node-${id}" class="${sealedClass}"
                  style="width:44px; height:44px; border-radius:50%; margin:0 auto 4px;
-                        background:${isUnlocked ? cfg.color + '25' : '#0c0818'};
-                        border:${isUnlocked ? '2px' : '1px'} solid ${isUnlocked ? cfg.color : '#241436'};
+                        background:${nodeBg};
+                        border:${nodeBorderW} solid ${nodeBorder};
                         display:flex; align-items:center; justify-content:center;
                         font-size:1.3em; line-height:1;
-                        opacity:${isUnlocked ? 1 : 0.4};
-                        box-shadow:${isUnlocked ? '0 0 12px ' + cfg.color + '44' : 'none'};
-                        transition:all 0.2s;">
-                ${isUnlocked ? cfg.icon : '🔒'}
+                        opacity:${nodeOpacity};
+                        box-shadow:${nodeGlow};">
+                ${nodeIcon}
             </div>
-            <!-- Label -->
-            <div style="font-size:7.5px; line-height:1.2; color:${isUnlocked ? cfg.color : '#2a1a3a'};
-                        opacity:${isUnlocked ? 1 : 0.5}; white-space:nowrap;
+            <div class="${sealedLabelClass}" style="font-size:7.5px; line-height:1.2; color:${labelColor};
+                        opacity:${labelOpacity}; white-space:nowrap; font-weight:${isSealed ? 'bold' : 'normal'};
                         text-shadow:${isUnlocked ? '0 0 6px ' + cfg.color + '66' : 'none'};">
                 ${name}
             </div>
+            ${sealedSub}
         </div>`;
     });
 
@@ -33137,6 +33161,7 @@ function gntRenderLocationPicker() {
             <div style="padding:8px 16px; border-top:1px solid #140824; display:flex; gap:16px;
                         flex-wrap:wrap; justify-content:center; background:#04020e;">
                 <span style="color:#2a1a4a; font-size:0.68em;">🔒 Locked — unlock worlds to access</span>
+                <span style="color:#cc1133; font-size:0.68em;">🔒 Red pulse = Sealed by the Abyss</span>
                 <span style="color:#555; font-size:0.68em;">Hover to preview · Click to enter</span>
                 <span style="color:#2a1a4a; font-size:0.68em;">Wave difficulty rotates daily</span>
             </div>

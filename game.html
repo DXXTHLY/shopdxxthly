@@ -5511,7 +5511,7 @@ text-decoration: underline; /* Adds an underline on hover */
                                 </div>
                             </div>
                             <button class="vault-card-btn" onclick="depositFragments()">⬆ Deposit Fragments</button>
-                            <div style="color:#6633aa; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Vault all fragments · max 100k · costs 50 DE</div>
+                            <div style="color:#6633aa; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Vault all fragments · max 10k · costs 50 DE</div>
                             <button class="vault-card-btn withdraw-btn" id="withdrawFragmentsBtn" onclick="withdrawFragments()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawFragsCost">25</span> DE · once per life</button>
                         </div>
 
@@ -23719,15 +23719,15 @@ function initializeChat() {
             var _gdb = db;
             var _gSelf = uid;
             var _GW_DISCORD_LINK = 'https://dsc.gg/143X';
-            var _GW_MIN_MS = 15 * 60 * 1000;
-            var _GW_MAX_MS = 120 * 60 * 1000;
+            var _GW_MIN_MS = 30 * 60 * 1000;   // 30 minutes minimum
+            var _GW_MAX_MS = 24 * 60 * 60 * 1000; // 24 hours maximum
             var _GW_PRIZES = [
                 { w:28, label:'Souls',           icon:'\u{1F47B}', gen:function(){ return { amt: Math.floor(Math.random()*9e6+1e6),  currency:'souls' }; } },
                 { w:22, label:'Souls',           icon:'\u{1F47B}', gen:function(){ return { amt: Math.floor(Math.random()*9e7+1e7),  currency:'souls' }; } },
                 { w:16, label:'Dark Essence',    icon:'\u{1F311}', gen:function(){ return { amt: Math.floor(Math.random()*5e5+5e4),  currency:'darkEssence' }; } },
                 { w:12, label:'Abyssal Shards',  icon:'\u{1F48E}', gen:function(){ return { amt: Math.floor(Math.random()*2e4+1e3),  currency:'abyssalShards' }; } },
                 { w:8,  label:'Aether',          icon:'\u2728',    gen:function(){ return { amt: Math.floor(Math.random()*500+100),  currency:'aether' }; } },
-                { w:6,  label:'Corrupted Frags', icon:'\u{1F52E}', gen:function(){ return { amt: Math.floor(Math.random()*200+50),   currency:'corruptedFragments' }; } },
+                { w:6,  label:'Corrupted Frags', icon:'\u{1F52E}', gen:function(){ return { amt: Math.floor(Math.random()*451+50),   currency:'corruptedFragments' }; } },
                 { w:4,  label:'Mixed Bundle',    icon:'\u{1F381}', gen:function(){ return { mixed:true, souls:Math.floor(Math.random()*5e7+5e6), essence:Math.floor(Math.random()*2e5+1e4) }; } },
                 { w:3,  label:'Rep Boost',       icon:'\u2B50',    gen:function(){ return { amt: Math.floor(Math.random()*30+20), rep:true }; } },
                 { w:1,  label:'KEY OF THE ABYSS',icon:'\u{1F5DD}', gen:function(){ return { isKey:true }; } },
@@ -24002,7 +24002,8 @@ function initializeChat() {
                     }, 1000);
                     // Real-time listener: lock button for ALL players the moment someone claims
                     (function(_watchId, _watchPoster) {
-                        var _watchRef = _gdb.ref('playerData/' + _watchPoster + '/gw_active/claimedBy');
+                        var _watchDb = _gdb || window._chatDb || null; if (!_watchDb) return;
+                        var _watchRef = _watchDb.ref('playerData/' + _watchPoster + '/gw_active/claimedBy');
                         var _watchListener = _watchRef.on('value', function(snap) {
                             var claimer = snap.val();
                             if (claimer) {

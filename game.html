@@ -23726,7 +23726,7 @@ function initializeChat() {
                 if (Date.now() < lastPosted + delay) { cb(false); return; }
                 _gdb.ref('slitherChat').orderByChild('time').startAt(Date.now() - 10*60*1000).once('value', function(snap) {
                     var recentGw = false;
-                    snap.forEach(function(child) { if (child.val().isGiveaway) recentGw = true; });
+                    snap.forEach(function(child) { var v = child.val(); if (v && v.text && v.text.indexOf('__GW__') === 0) recentGw = true; });
                     cb(!recentGw);
                 });
             }
@@ -23739,7 +23739,8 @@ function initializeChat() {
                 // Strip gen() and any functions — Firebase rejects them
                 var safePrize = JSON.parse(JSON.stringify(prize, function(k, v) { return typeof v === 'function' ? undefined : v; }));
                 _gdb.ref('playerData/' + _gSelf + '/gw_active').set({ id:gwId, prize:safePrize, prizeDesc:desc, expiresAt:expiresAt, postedBy:_gSelf, postedAt:Date.now() });
-                _gdb.ref('slitherChat').push({ uid:'system', name:'\u{1F381} Abyss Giveaway', chatNameColor:'#c8a800', time:firebase.database.ServerValue.TIMESTAMP, isGiveaway:true, gwId:gwId, gwPoster:_gSelf, prizeDesc:desc, expiresAt:expiresAt, text:'__GW__' });
+                var _gwPayload = JSON.stringify({ gwId:gwId, gwPoster:_gSelf, prizeDesc:desc, expiresAt:expiresAt });
+                _gdb.ref('slitherChat').push({ uid:'system', name:'🎁 Abyss Giveaway', chatNameColor:'#c8a800', time:firebase.database.ServerValue.TIMESTAMP, text:'__GW__' + _gwPayload });
                 console.log('[Giveaway] Posted:', desc);
             }
             function _gwScheduleCheck() {
@@ -23758,27 +23759,25 @@ function initializeChat() {
                 _gdb.ref('playerData/' + _gSelf + '/discordUsername').once('value', function(snap) {
                     if (!snap.val()) { _gwShowDiscordGate(gwId); return; }
                     var poster = gwPoster || _gSelf;
-                    _gdb.ref('playerData/' + poster + '/gw_active').once('value', function(gwSnap) {
-                        var gw = gwSnap.val();
-                        if (!gw || gw.id !== gwId || Date.now() > gw.expiresAt) {
-                            Toastify({text:'\u{1F614} Giveaway expired!',duration:3500,gravity:'top',position:'center',style:{background:'#220000'}}).showToast(); return;
+                    // Atomic transaction on poster node — only first claimer wins
+                    _gdb.ref('playerData/' + poster + '/gw_active').transaction(function(gw) {
+                        if (!gw || gw.id !== gwId || Date.now() > gw.expiresAt || gw.claimedBy) return; // abort
+                        gw.claimedBy = _gSelf; gw.claimedByName = playerName; return gw;
+                    }, function(err, committed, snap) {
+                        if (err || !committed) {
+                            Toastify({text:"Already claimed or expired!",duration:3000,gravity:'top',position:'center',style:{background:'#220000'}}).showToast();
+                            var btn=document.getElementById('gw-claim-btn-'+gwId); if(btn){btn.textContent='Claimed';btn.disabled=true;btn.style.opacity='0.4';}
+                            return;
                         }
-                        var claimRef = _gdb.ref('playerData/' + _gSelf + '/gw_claim_' + gwId);
-                        claimRef.transaction(function(cur) {
-                            if (cur !== null) return;
-                            return { claimedAt: Date.now(), playerName: playerName };
-                        }, function(err, committed) {
-                            if (err || !committed) { Toastify({text:'\u{1F614} Already claimed!',duration:3000,gravity:'top',position:'center',style:{background:'#220000'}}).showToast(); return; }
-                            _gdb.ref('playerData/' + poster + '/gw_active/claimedBy').set(_gSelf);
-                            var prize = gw.prize;
-                            if (prize.isKey) { gameState.heldKey = { id:'key_of_shadows', obtainedAt:Date.now() }; saveGame(); }
-                            else if (prize.mixed) { gameState.souls=D(gameState.souls||0).add(D(prize.souls)); gameState.darkEssence=D(gameState.darkEssence||0).add(D(prize.essence)); saveGame(); }
-                            else if (prize.rep) { _gdb.ref('playerData/'+_gSelf+'/rep').transaction(function(c){return(c||0)+prize.amt;}); }
-                            else if (prize.currency) { if(prize.currency==='souls'){gameState.souls=D(gameState.souls||0).add(D(prize.amt));}else{gameState[prize.currency]=D(gameState[prize.currency]||0).add(D(prize.amt));} saveGame(); }
-                            updateDynamicDisplays();
-                            _gdb.ref('slitherChat').push({ uid:'system', name:'\u{1F381} Abyss Giveaway', chatNameColor:'#44cc88', time:firebase.database.ServerValue.TIMESTAMP, text:'\u{1F389} ' + playerName + ' won: ' + gw.prizeDesc + '!' });
-                            Toastify({text:'\u{1F381} You won: ' + gw.prizeDesc, duration:8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();
-                        });
+                        var gw=snap.val(), prize=gw.prize;
+                        if(prize.isKey){gameState.heldKey={id:'key_of_shadows',obtainedAt:Date.now()};saveGame();}
+                        else if(prize.mixed){gameState.souls=D(gameState.souls||0).add(D(prize.souls));gameState.darkEssence=D(gameState.darkEssence||0).add(D(prize.essence));saveGame();}
+                        else if(prize.rep){_gdb.ref('playerData/'+_gSelf+'/rep').transaction(function(c){return(c||0)+prize.amt;});}
+                        else if(prize.currency){if(prize.currency==='souls'){gameState.souls=D(gameState.souls||0).add(D(prize.amt));}else{gameState[prize.currency]=D(gameState[prize.currency]||0).add(D(prize.amt));}saveGame();}
+                        updateDynamicDisplays();
+                        _gdb.ref('slitherChat').push({uid:'system',name:'Abyss Giveaway',chatNameColor:'#44cc88',time:firebase.database.ServerValue.TIMESTAMP,text:'🎉 '+playerName+' won: '+gw.prizeDesc+'!'});
+                        Toastify({text:'🎁 You won: '+gw.prizeDesc,duration:8000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();
+                        var btn=document.getElementById('gw-claim-btn-'+gwId);if(btn){btn.textContent='You won!';btn.disabled=true;btn.style.background='linear-gradient(135deg,#1a3a00,#44cc8833)';btn.style.color='#44cc88';}
                     });
                 });
             };
@@ -23934,14 +23933,13 @@ function initializeChat() {
             }
 
             // ── Giveaway message rendering ──────────────────────────────
-            var _gwPfx='GW', _gwPrizePfx='PRIZE', _gwEnd='END';
-            if (msg.text && msg.text.indexOf(_gwPfx) !== -1) {
-                var _gwIdS = msg.text.indexOf(_gwPfx) + _gwPfx.length;
-                var _gwIdE = msg.text.indexOf(_gwPrizePfx, _gwIdS);
-                var _gwPrS = _gwIdE + _gwPrizePfx.length;
-                var _gwPrE = msg.text.indexOf(_gwEnd, _gwPrS);
-                var _gwId2 = (_gwIdE > _gwIdS) ? msg.text.slice(_gwIdS, _gwIdE) : null;
-                var _gwPrize2 = (_gwPrE > _gwPrS) ? msg.text.slice(_gwPrS, _gwPrE) : '?';
+            if (msg.text && msg.text.indexOf('__GW__') === 0) {
+                var _gwData2 = null;
+                try { _gwData2 = JSON.parse(msg.text.slice(6)); } catch(e) {}
+                var _gwId2     = _gwData2 ? _gwData2.gwId : null;
+                var _gwPrize2  = _gwData2 ? (_gwData2.prizeDesc || '?') : '?';
+                var _gwPoster2 = _gwData2 ? (_gwData2.gwPoster || '') : '';
+                var _gwExpiry2b = _gwData2 ? (_gwData2.expiresAt || (Date.now()+300000)) : (Date.now()+300000);
                 if (_gwId2) {
                     var _isKey2 = _gwPrize2.indexOf('KEY OF THE ABYSS') !== -1;
                     var _gwEl = document.createElement('div');
@@ -23949,40 +23947,37 @@ function initializeChat() {
                     _gwEl.style.cssText = 'margin:10px 0;padding:16px 18px;'
                         + 'background:linear-gradient(135deg,#1a1000,#2a1a00,#1a1000);'
                         + 'border:1px solid ' + (_isKey2 ? '#c8a800' : '#c8a80044') + ';'
-                        + 'border-left:3px solid ' + (_isKey2 ? '#c8a800' : '#c8a800') + ';'
+                        + 'border-left:3px solid #c8a800;'
                         + 'border-radius:12px;position:relative;overflow:hidden;'
-                        + (_isKey2 ? 'box-shadow:0 0 30px #c8a80033,0 0 60px #c8a80011;animation:gwKeyPulse 2s ease-in-out infinite;' : '');
+                        + (_isKey2 ? 'box-shadow:0 0 30px #c8a80033;animation:gwKeyPulse 2s ease-in-out infinite;' : '');
                     _gwEl.innerHTML = '<div style="color:#c8a800;font-size:0.68em;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">🎁 ABYSS GIVEAWAY</div>'
                         + '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">'
                         + '<div style="flex:1;">'
                         + '<div style="color:' + (_isKey2 ? '#ffe066' : '#e0cc88') + ';font-weight:bold;font-size:' + (_isKey2 ? '1.05em' : '0.95em') + ';margin-bottom:4px;">' + escapeHTML(_gwPrize2) + '</div>'
                         + '<div style="color:#443300;font-size:0.68em;">First eligible Discord member to claim wins · <span id="gw-timer-' + _gwId2 + '">5:00</span> remaining</div>'
                         + '</div>'
-                        + '<button id="gw-claim-btn-' + _gwId2 + '" onclick="window._gwClaim(\'' + _gwId2 + '\',\'' + (msg.gwPoster||'') + '\')" '
-                        + 'style="background:linear-gradient(135deg,#3a2a00,#c8a80033);border:1px solid #c8a80077;border-radius:9px;padding:9px 20px;color:#c8a800;font-weight:bold;font-family:inherit;font-size:0.85em;cursor:pointer;white-space:nowrap;letter-spacing:1px;transition:all .2s;"'
-                        + '>'                        
-                        + '🎁 Claim</button>'
+                        + '<button id="gw-claim-btn-' + _gwId2 + '" onclick="window._gwClaim(\'' + _gwId2 + '\',\'' + _gwPoster2 + '\')" '
+                        + 'style="background:linear-gradient(135deg,#3a2a00,#c8a80033);border:1px solid #c8a80077;border-radius:9px;padding:9px 20px;color:#c8a800;font-weight:bold;font-family:inherit;font-size:0.85em;cursor:pointer;white-space:nowrap;letter-spacing:1px;"'
+                        + '>🎁 Claim</button>'
                         + '</div>';
                     chatBodyElement.appendChild(_gwEl);
                     if (shouldScroll) chatBodyElement.scrollTop = chatBodyElement.scrollHeight;
-
-                    // Countdown timer
-                    var _gwExpiry2 = msg.expiresAt || (Date.now() + 5*60*1000);
+                    var _gwExpiry2 = _gwExpiry2b;
                     var _gwTimer2 = setInterval(function() {
                         var _timerEl = document.getElementById('gw-timer-' + _gwId2);
                         var _claimEl = document.getElementById('gw-claim-btn-' + _gwId2);
                         var _secsLeft2 = Math.max(0, Math.ceil((_gwExpiry2 - Date.now()) / 1000));
-                        var _m2 = Math.floor(_secsLeft2 / 60), _s2 = _secsLeft2 % 60;
-                        if (_timerEl) _timerEl.textContent = _m2 + ':' + (_s2 < 10 ? '0' : '') + _s2;
+                        var _m2 = Math.floor(_secsLeft2/60), _s2 = _secsLeft2%60;
+                        if (_timerEl) _timerEl.textContent = _m2 + ':' + (_s2<10?'0':'') + _s2;
                         if (_secsLeft2 <= 0) {
                             clearInterval(_gwTimer2);
-                            if (_claimEl) { _claimEl.disabled = true; _claimEl.textContent = 'Expired'; _claimEl.style.opacity = '0.35'; _claimEl.style.cursor = 'default'; }
+                            if (_claimEl) { _claimEl.disabled=true; _claimEl.textContent='Expired'; _claimEl.style.opacity='0.35'; }
                             if (_timerEl) _timerEl.textContent = 'Expired';
                         }
                     }, 1000);
                     return;
                 }
-            }
+            } // end __GW__ block
             // ────────────────────────────────────────────────────────────
 
             var _trId=(function(){var pfx='T',sfx='E';if(!msg.text||msg.text.indexOf(pfx)===-1)return null;var s=msg.text.indexOf(pfx)+pfx.length,e=msg.text.indexOf(sfx,s);return s<e?msg.text.slice(s,e):null;})();

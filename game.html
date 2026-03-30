@@ -23736,12 +23736,8 @@ function initializeChat() {
                 var expiresAt = Date.now() + 5*60*1000;
                 var desc = _gwPrizeDesc(prize);
                 localStorage.setItem(_GW_LS_KEY, String(Date.now()));
-                // Strip gen() — Firebase cannot serialize functions
-                var safePrize = { t: prize.t, label: prize.label, icon: prize.icon, amt: prize.amt || 0 };
-                if (prize.currency) safePrize.currency = prize.currency;
-                if (prize.isKey)    safePrize.isKey = true;
-                if (prize.mixed)    { safePrize.mixed = true; safePrize.souls = prize.souls; safePrize.essence = prize.essence; }
-                if (prize.rep)      safePrize.rep = true;
+                // Strip gen() and any functions — Firebase rejects them
+                var safePrize = JSON.parse(JSON.stringify(prize, function(k, v) { return typeof v === 'function' ? undefined : v; }));
                 _gdb.ref('playerData/' + _gSelf + '/gw_active').set({ id:gwId, prize:safePrize, prizeDesc:desc, expiresAt:expiresAt, postedBy:_gSelf, postedAt:Date.now() });
                 _gdb.ref('slitherChat').push({ uid:'system', name:'\u{1F381} Abyss Giveaway', chatNameColor:'#c8a800', time:firebase.database.ServerValue.TIMESTAMP, isGiveaway:true, gwId:gwId, gwPoster:_gSelf, prizeDesc:desc, expiresAt:expiresAt, text:'__GW__' });
                 console.log('[Giveaway] Posted:', desc);

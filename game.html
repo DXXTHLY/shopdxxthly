@@ -5189,7 +5189,7 @@ text-decoration: underline; /* Adds an underline on hover */
                         <span style="color:#ff6644;">★★★★★ Omega</span>
                     </div>
                     <!-- The actual map SVG+nodes container -->
-                    <div id="pw-map" style="position:relative; padding:10px 20px 20px; min-height:400px;"></div>
+                    <div id="pw-map" style="position:relative; padding:10px 20px 20px; min-height:400px; overflow:hidden; border-radius:0 0 12px 12px;"></div>
                 </div>
 
                 <!-- Attack / Defend modal (hidden) -->
@@ -35510,11 +35510,11 @@ function pwRenderMap() {
     const TIER_COLORS = ['#333','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];
 
     const PW_NODE_POS = [
-        [10,8],[28,5],[50,3],[70,6],[88,9],
-        [5,28],[22,24],[42,20],[62,22],[82,26],
-        [15,46],[35,42],[50,38],[65,43],[85,47],
-        [8,65],[28,62],[50,58],[72,60],[92,64],
-        [18,82],[38,78],[50,86],[62,78],[82,82]
+        [10,10],[28,7],[50,5],[70,8],[88,11],
+        [5,29],[22,25],[42,22],[62,24],[82,27],
+        [15,46],[35,42],[50,39],[65,43],[85,47],
+        [8,63],[28,60],[50,57],[72,59],[92,62],
+        [18,80],[38,76],[50,84],[62,76],[82,80]
     ];
 
     const ROADS = [
@@ -35550,7 +35550,7 @@ function pwRenderMap() {
     }
 
     // Draw roads
-    var nodePixels = PW_NODE_POS.map(function(p) { return [p[0]/100*W, p[1]/100*H]; });
+    var _topPad = 30; var nodePixels = PW_NODE_POS.map(function(p) { return [p[0]/100*W, _topPad + p[1]/100*(H-_topPad)]; });
     for (var r = 0; r < ROADS.length; r++) {
         var a = ROADS[r][0], b = ROADS[r][1];
         var x1 = nodePixels[a][0].toFixed(1), y1 = nodePixels[a][1].toFixed(1);
@@ -35570,11 +35570,12 @@ function pwRenderMap() {
     map.style.height = H + 'px';
 
     // Place node DOM elements on top of SVG
+    var TOP_PAD = 30; // px breathing room so top row doesn't overlap legend
     for (var i = 0; i < 25; i++) {
         var node     = pwNodes[i];
         var pos      = PW_NODE_POS[i];
         var x        = pos[0] / 100 * W;
-        var y        = pos[1] / 100 * H;
+        var y        = TOP_PAD + pos[1] / 100 * (H - TOP_PAD);
         var isOwned  = !!(node && node.owner_pact);
         var isMine   = isOwned && node.owner_pact === myPact;
         var tier     = PW_NODE_BONUS[i] || 1;

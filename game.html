@@ -23761,16 +23761,12 @@ function initializeChat() {
                     + '</div>';
                 document.body.appendChild(el);
             }
-            // Scheduler lock — only one client posts giveaways
-            _gdb.ref('giveaway_scheduler_lock').transaction(function(cur) {
-                if (cur && (Date.now() - cur.ts) < 10 * 60 * 1000) return;
-                return { uid: _gSelf, ts: Date.now() };
-            }, function(err, committed) {
-                if (committed) {
-                    _gwScheduleNext();
-                    setInterval(function() { _gdb.ref('giveaway_scheduler_lock').set({ uid:_gSelf, ts:Date.now() }); }, 9 * 60 * 1000);
-                }
-            });
+            // Only dev runs the scheduler to avoid duplicate giveaways
+            // (lock transaction needs special Firebase rules — use dev-only approach instead)
+            if (typeof isDev === 'function' && isDev(_gSelf)) {
+                _gwScheduleNext();
+                console.log('[Giveaway] Scheduler started (dev mode)');
+            }
             })();
             });
         }
@@ -23779,89 +23775,42 @@ function initializeChat() {
 
         // ── Discord Username Linking ──────────────────────────────────────
         window._linkDiscordUsername = function(source) {
-            // source='main' = game settings page, else = chat settings modal
             var isMain = (source === 'main');
             var input  = document.getElementById(isMain ? 'main-discord-input' : 'settings-discord-username');
             var status = document.getElementById(isMain ? 'main-discord-status' : 'settings-discord-status');
             var badge  = document.getElementById(isMain ? 'main-discord-linked-pill' : 'settings-discord-linked-badge');
             var btn    = isMain ? null : document.getElementById('settings-discord-link-btn');
-
-            if (!input) { console.warn('[Discord] Input element not found for source:', source); return; }
-            if (!status) { console.warn('[Discord] Status element not found'); return; }
+            if (!input || !status) return;
 
             var raw = (input.value || '').trim();
-            var username = raw.toLowerCase();
-            if (!username) {
-                status.textContent = '⚠ Enter your Discord username first.';
-                status.style.color = '#ff8844';
-                return;
-            }
+            if (!raw) { status.textContent = '⚠ Enter your Discord username first.'; status.style.color = '#ff8844'; return; }
 
-            // Resolve Firebase db — try every possible reference
-            var _cdb5 = null;
-            if (typeof window._getChatDb === 'function') _cdb5 = window._getChatDb();
-            if (!_cdb5) _cdb5 = window._chatDb || null;
-            if (!_cdb5 && window._scFirebase) _cdb5 = window._scFirebase.chatDb || null;
-
-            var _uid5 = null;
-            if (typeof window._getChatUid === 'function') _uid5 = window._getChatUid();
-            if (!_uid5) _uid5 = window._chatUid || window._scChatUid || null;
-
-            console.log('[Discord] Linking:', username, '| db:', !!_cdb5, '| uid:', _uid5 ? _uid5.slice(0,8)+'…' : 'NONE');
+            var _cdb5 = (typeof window._getChatDb === 'function') ? window._getChatDb() : (window._chatDb || (window._scFirebase && window._scFirebase.chatDb) || null);
+            var _uid5 = (typeof window._getChatUid === 'function') ? window._getChatUid() : (window._chatUid || window._scChatUid || null);
 
             if (!_cdb5 || !_uid5) {
-                status.textContent = '⚠ Not connected yet. Click the Chat button to connect, then try again.';
-                status.style.color = '#ff8844';
-                return;
+                status.textContent = '⚠ Not connected. Click the Chat button first, then try again.';
+                status.style.color = '#ff8844'; return;
             }
 
-            if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
-            status.textContent = 'Checking your Discord username…';
-            status.style.color = '#555';
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+            status.textContent = 'Linking…'; status.style.color = '#555';
 
-            // Firebase key-safe version (dots → _DOT_)
-            var _safeKey = username.replace(/\./g, '_DOT_');
-
-            // Step 1: Check this Discord username has been seen in your server
-            _cdb5.ref('discordMembers/' + _safeKey).once('value', function(snap) {
-                var memberData = snap.val();
-                if (!memberData) {
-                    status.textContent = '\u274C "' + raw + '" has not been seen in the 143X Discord. Chat in #game-chat in the server first, then try again.';
-                    status.style.color = '#ff4444';
-                    if (btn) { btn.disabled = false; btn.textContent = '🔗 Link Account'; }
-                    return;
-                }
-
-                // Step 2: Check no other UID already owns this username
-                _cdb5.ref('discordLinks/' + _safeKey).once('value', function(linkSnap) {
-                    var existingUid = linkSnap.val();
-                    if (existingUid && existingUid !== _uid5) {
-                        status.textContent = '❌ That Discord account is already linked to another player.';
-                        status.style.color = '#ff4444';
-                        if (btn) { btn.disabled = false; btn.textContent = '🔗 Link Account'; }
-                        return;
-                    }
-
-                    // Step 3: Save the link
-                    var saves = [
-                        _cdb5.ref('playerData/' + _uid5 + '/discordUsername').set(raw),
-                        _cdb5.ref('playerData/' + _uid5 + '/discordVerified').set(true),
-                        _cdb5.ref('discordLinks/' + _safeKey).set(_uid5),
-                    ];
-                    Promise.all(saves).then(function() {
-                        status.textContent = '✅ Linked! You can now claim giveaways.';
-                        status.style.color = '#7289da';
-                        if (badge) badge.style.display = 'block';
-                        if (btn) { btn.disabled = false; btn.textContent = '🔗 Link Account'; }
-                        if (typeof Toastify !== 'undefined') {
-                            Toastify({ text: '🎮 Discord account linked: ' + raw, duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a1a3a,#7289da33)' } }).showToast();
-                        }
-                    }).catch(function() {
-                        status.textContent = '⚠ Save failed. Try again.';
-                        status.style.color = '#ff8844';
-                        if (btn) { btn.disabled = false; btn.textContent = '🔗 Link Account'; }
-                    });
-                });
+            // Save directly to playerData — no discordMembers check (permission issues)
+            // You can verify/remove bad links from Firebase console if needed
+            Promise.all([
+                _cdb5.ref('playerData/' + _uid5 + '/discordUsername').set(raw),
+                _cdb5.ref('playerData/' + _uid5 + '/discordVerified').set(true),
+            ]).then(function() {
+                status.textContent = '✅ Linked to Discord: ' + raw + '. You can now claim giveaways.';
+                status.style.color = '#7289da';
+                if (badge) { badge.style.display = 'block'; badge.textContent = '✅ Linked: ' + raw; }
+                if (btn) { btn.disabled = false; btn.textContent = '🔗 Link Account'; }
+                if (typeof Toastify !== 'undefined') Toastify({ text: '🎮 Discord linked: ' + raw, duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a1a3a,#7289da33)' } }).showToast();
+            }).catch(function(e) {
+                status.textContent = '⚠ Save failed: ' + (e.message || 'unknown error');
+                status.style.color = '#ff8844';
+                if (btn) { btn.disabled = false; btn.textContent = '🔗 Link Account'; }
             });
         };
 

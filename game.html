@@ -24002,7 +24002,7 @@ function initializeChat() {
                     }, 1000);
                     // Real-time listener: lock button for ALL players the moment someone claims
                     (function(_watchId, _watchPoster) {
-                        var _watchDb = _gdb || window._chatDb || null; if (!_watchDb) return;
+                        var _watchDb = (typeof _gdb !== 'undefined' ? _gdb : null) || window._chatDb || null; if (!_watchDb) return;
                         var _watchRef = _watchDb.ref('playerData/' + _watchPoster + '/gw_active/claimedBy');
                         var _watchListener = _watchRef.on('value', function(snap) {
                             var claimer = snap.val();
@@ -24012,7 +24012,8 @@ function initializeChat() {
                                     _claimEl2.disabled = true;
                                     _claimEl2.style.opacity = '0.4';
                                     _claimEl2.style.cursor = 'default';
-                                    if (claimer === _gSelf) {
+                                    var _wSelf = (typeof _gSelf !== 'undefined' ? _gSelf : null) || window._chatUid || null;
+                                    if (claimer === _wSelf) {
                                         _claimEl2.textContent = 'You won!';
                                         _claimEl2.style.background = 'linear-gradient(135deg,#1a3a00,#44cc8833)';
                                         _claimEl2.style.color = '#44cc88';

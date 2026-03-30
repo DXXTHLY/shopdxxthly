@@ -23687,63 +23687,96 @@ function initializeChat() {
                 window._addPassiveRep=function(a){if(_rtc>=50)return;_rtc=Math.min(50,_rtc+a);localStorage.setItem('repToday_'+_rdk,_rtc);db.ref('playerData/'+uid+'/rep').transaction(function(c){return(c||0)+a;});};
                 setInterval(function(){window._addPassiveRep&&window._addPassiveRep(1);},5*60*1000);
                 window._giveRep=function(tuid,tname){if(!uid||!tuid||tuid===uid)return;var today=new Date().toISOString().slice(0,10);var ck='repGiven_'+today+'_'+tuid;if(localStorage.getItem(ck)){if(typeof Toastify!=='undefined')Toastify({text:'⭐ Already gave rep to '+tname+' today!',duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a0a,#3a3a00)'}}).showToast();return;}db.ref('playerData/'+tuid+'/rep').transaction(function(cur){return(cur||0)+5;},function(err,committed,snap){if(!committed||err)return;var nr=snap.val()||0;localStorage.setItem(ck,'1');db.ref('repTransfers').push({from:gameState.playerName||'Unknown',fromUid:uid,to:tname,toUid:tuid,amount:5,time:firebase.database.ServerValue.TIMESTAMP});db.ref('slitherChat').push({uid:uid,name:gameState.playerName||'Unknown',chatNameColor:localStorage.getItem('slitherChatNameColor')||'#c8a800',time:firebase.database.ServerValue.TIMESTAMP,text:'⭐ '+(gameState.playerName||'Unknown')+' gave +5 Rep to '+tname+'!'});var popup=document.querySelector('.profile-popup');if(popup){var t=window._getRepTier(nr),n=window._getNextRepTier(nr),pct=n?Math.min(100,Math.round(((nr-t.min)/(n.min-t.min))*100)):100;var fill=popup.querySelector('#rep-bar-fill');if(fill)fill.style.width=pct+'%';var rc=popup.querySelector('#rep-count');if(rc)rc.textContent='• '+nr+' rep';var btn=popup.querySelector('#give-rep-btn');if(btn){btn.textContent='⭐ Gave today';btn.style.cursor='not-allowed';btn.style.color='#333';btn.style.borderColor='#1a1a1a';btn.style.background='#0a0a0a';}}if(typeof Toastify!=='undefined')Toastify({text:'⭐ +5 Rep to '+tname+'! They now have '+nr+' rep.',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();});};
-            // ── Chat Giveaway System (inside Firebase auth closure — db/uid in scope) ──
+            // ── Chat Giveaway System ─────────────────────────────────────
+            // Uses only playerData/{uid} and slitherChat — both are writable.
             (function() {
             var _gdb = db;
             var _gSelf = uid;
-            var _gGwRef = 'active_giveaway';
             var _GW_DISCORD_LINK = 'https://dsc.gg/143X';
+            var _GW_MIN_MS = 15 * 60 * 1000;
+            var _GW_MAX_MS = 120 * 60 * 1000;
             var _GW_PRIZES = [
-                { w:28, t:'souls',    label:'Souls',            icon:'👻', gen:function(){ return { amt: Math.floor(Math.random()*9e6+1e6), currency:'souls' }; } },
-                { w:22, t:'souls',    label:'Souls',            icon:'👻', gen:function(){ return { amt: Math.floor(Math.random()*9e7+1e7), currency:'souls' }; } },
-                { w:16, t:'essence',  label:'Dark Essence',     icon:'🌑', gen:function(){ return { amt: Math.floor(Math.random()*5e5+5e4), currency:'darkEssence' }; } },
-                { w:12, t:'shards',   label:'Abyssal Shards',   icon:'💎', gen:function(){ return { amt: Math.floor(Math.random()*2e4+1e3), currency:'abyssalShards' }; } },
-                { w:8,  t:'aether',   label:'Aether',           icon:'✨', gen:function(){ return { amt: Math.floor(Math.random()*500+100), currency:'aether' }; } },
-                { w:6,  t:'frags',    label:'Corrupted Frags',  icon:'🔮', gen:function(){ return { amt: Math.floor(Math.random()*200+50), currency:'corruptedFragments' }; } },
-                { w:4,  t:'mixed',    label:'Mixed Bundle',     icon:'🎁', gen:function(){ return { amt:0, mixed:true, souls:Math.floor(Math.random()*5e7+5e6), essence:Math.floor(Math.random()*2e5+1e4) }; } },
-                { w:3,  t:'rep',      label:'Rep Boost',        icon:'⭐', gen:function(){ return { amt: Math.floor(Math.random()*30+20), rep:true }; } },
-                { w:1,  t:'key',      label:'KEY OF THE ABYSS', icon:'🗝️', gen:function(){ return { amt:1, isKey:true }; } },
+                { w:28, label:'Souls',           icon:'\u{1F47B}', gen:function(){ return { amt: Math.floor(Math.random()*9e6+1e6),  currency:'souls' }; } },
+                { w:22, label:'Souls',           icon:'\u{1F47B}', gen:function(){ return { amt: Math.floor(Math.random()*9e7+1e7),  currency:'souls' }; } },
+                { w:16, label:'Dark Essence',    icon:'\u{1F311}', gen:function(){ return { amt: Math.floor(Math.random()*5e5+5e4),  currency:'darkEssence' }; } },
+                { w:12, label:'Abyssal Shards',  icon:'\u{1F48E}', gen:function(){ return { amt: Math.floor(Math.random()*2e4+1e3),  currency:'abyssalShards' }; } },
+                { w:8,  label:'Aether',          icon:'\u2728',    gen:function(){ return { amt: Math.floor(Math.random()*500+100),  currency:'aether' }; } },
+                { w:6,  label:'Corrupted Frags', icon:'\u{1F52E}', gen:function(){ return { amt: Math.floor(Math.random()*200+50),   currency:'corruptedFragments' }; } },
+                { w:4,  label:'Mixed Bundle',    icon:'\u{1F381}', gen:function(){ return { mixed:true, souls:Math.floor(Math.random()*5e7+5e6), essence:Math.floor(Math.random()*2e5+1e4) }; } },
+                { w:3,  label:'Rep Boost',       icon:'\u2B50',    gen:function(){ return { amt: Math.floor(Math.random()*30+20), rep:true }; } },
+                { w:1,  label:'KEY OF THE ABYSS',icon:'\u{1F5DD}', gen:function(){ return { isKey:true }; } },
             ];
-            var _GW_TOTAL_W = _GW_PRIZES.reduce(function(s,p){ return s + p.w; }, 0);
+            var _GW_TOTAL_W = _GW_PRIZES.reduce(function(s,p){ return s+p.w; }, 0);
             function _gwRollPrize() {
                 var r = Math.random() * _GW_TOTAL_W, acc = 0;
-                for (var i = 0; i < _GW_PRIZES.length; i++) { acc += _GW_PRIZES[i].w; if (r <= acc) return Object.assign({}, _GW_PRIZES[i], _GW_PRIZES[i].gen()); }
+                for (var i=0; i<_GW_PRIZES.length; i++) { acc += _GW_PRIZES[i].w; if (r<=acc) return Object.assign({}, _GW_PRIZES[i], _GW_PRIZES[i].gen()); }
                 return Object.assign({}, _GW_PRIZES[0], _GW_PRIZES[0].gen());
+            }
+            function _gwPrizeDesc(prize) {
+                if (prize.isKey) return '\u{1F5DD} KEY OF THE ABYSS';
+                if (prize.mixed) return '\u{1F381} ' + formatNumber(D(prize.souls)) + ' Souls + ' + formatNumber(D(prize.essence)) + ' Essence';
+                if (prize.rep)   return '\u2B50 +' + prize.amt + ' Rep';
+                return prize.icon + ' ' + formatNumber(D(prize.amt)) + ' ' + prize.label;
+            }
+            // Scheduler: check recent chat for giveaways, post if none in window
+            var _GW_LS_KEY = 'gw_last_posted_' + _gSelf;
+            function _gwShouldPost(cb) {
+                var lastPosted = parseInt(localStorage.getItem(_GW_LS_KEY) || '0');
+                var delay = _GW_MIN_MS + Math.random() * (_GW_MAX_MS - _GW_MIN_MS);
+                if (Date.now() < lastPosted + delay) { cb(false); return; }
+                _gdb.ref('slitherChat').orderByChild('time').startAt(Date.now() - 10*60*1000).once('value', function(snap) {
+                    var recentGw = false;
+                    snap.forEach(function(child) { if (child.val().isGiveaway) recentGw = true; });
+                    cb(!recentGw);
+                });
             }
             function _gwPost() {
                 var prize = _gwRollPrize();
                 var gwId = 'gw_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-                var expiresAt = Date.now() + 5 * 60 * 1000;
-                var prizeDesc = prize.isKey ? '🗝️ KEY OF THE ABYSS'
-                    : prize.mixed ? '🎁 ' + formatNumber(D(prize.souls)) + ' Souls + ' + formatNumber(D(prize.essence)) + ' Essence'
-                    : prize.rep ? '⭐ +' + prize.amt + ' Rep'
-                    : prize.icon + ' ' + formatNumber(D(prize.amt)) + ' ' + prize.label;
-                _gdb.ref(_gGwRef).set({ id:gwId, prizeDesc:prizeDesc, prize:prize, expiresAt:expiresAt, claimedBy:null, postedAt:firebase.database.ServerValue.TIMESTAMP });
-                _gdb.ref('slitherChat').push({ uid:'system', name:'🎁 Abyss Giveaway', chatNameColor:'#c8a800', time:firebase.database.ServerValue.TIMESTAMP, isGiveaway:true, gwId:gwId, prizeDesc:prizeDesc, expiresAt:expiresAt, text:'GW'+gwId+'PRIZE'+prizeDesc+'END' });
-                console.log('[Giveaway] Posted:', prizeDesc);
+                var expiresAt = Date.now() + 5*60*1000;
+                var desc = _gwPrizeDesc(prize);
+                localStorage.setItem(_GW_LS_KEY, String(Date.now()));
+                _gdb.ref('playerData/' + _gSelf + '/gw_active').set({ id:gwId, prize:prize, prizeDesc:desc, expiresAt:expiresAt, postedBy:_gSelf, postedAt:Date.now() });
+                _gdb.ref('slitherChat').push({ uid:'system', name:'\u{1F381} Abyss Giveaway', chatNameColor:'#c8a800', time:firebase.database.ServerValue.TIMESTAMP, isGiveaway:true, gwId:gwId, gwPoster:_gSelf, prizeDesc:desc, expiresAt:expiresAt, text:'__GW__' });
+                console.log('[Giveaway] Posted:', desc);
             }
-            function _gwScheduleNext() {
-                var delay = Math.floor(Math.random() * (120-15) * 60000) + 15 * 60000;
-                setTimeout(function() { _gwPost(); _gwScheduleNext(); }, delay);
+            function _gwScheduleCheck() {
+                _gwShouldPost(function(should) {
+                    if (should) _gwPost();
+                    var next = _GW_MIN_MS + Math.random() * (_GW_MAX_MS - _GW_MIN_MS);
+                    setTimeout(_gwScheduleCheck, next);
+                });
             }
-            window._gwClaim = function(gwId) {
-                if (!_gdb || !_gSelf) { Toastify({text:'⚠ Not connected.',duration:3000,gravity:'top',position:'center',style:{background:'#332200'}}).showToast(); return; }
+            setTimeout(_gwScheduleCheck, 30000 + Math.random() * 60000);
+            console.log('[Giveaway] Scheduler started (all clients)');
+            // Claim: write to claimer own playerData (always writable)
+            window._gwClaim = function(gwId, gwPoster) {
+                if (!_gdb || !_gSelf) return;
                 var playerName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
                 _gdb.ref('playerData/' + _gSelf + '/discordUsername').once('value', function(snap) {
                     if (!snap.val()) { _gwShowDiscordGate(gwId); return; }
-                    _gdb.ref(_gGwRef).transaction(function(current) {
-                        if (!current || current.id !== gwId || current.claimedBy || Date.now() > current.expiresAt) return;
-                        current.claimedBy = _gSelf; current.claimedByName = playerName; current.claimedAt = Date.now(); return current;
-                    }, function(err, committed, snap) {
-                        if (err || !committed) { Toastify({text:'😔 Already claimed or expired!',duration:3500,gravity:'top',position:'center',style:{background:'#220000'}}).showToast(); return; }
-                        var data = snap.val(), prize = data.prize;
-                        if (prize.isKey) { gameState.heldKey = { id:'key_of_shadows', obtainedAt:Date.now() }; saveGame(); }
-                        else if (prize.mixed) { gameState.souls=D(gameState.souls||0).add(D(prize.souls)); gameState.darkEssence=D(gameState.darkEssence||0).add(D(prize.essence)); saveGame(); }
-                        else if (prize.rep) { _gdb.ref('playerData/'+_gSelf+'/rep').transaction(function(c){return(c||0)+prize.amt;}); }
-                        else if (prize.currency) { if(prize.currency==='souls'){gameState.souls=D(gameState.souls||0).add(D(prize.amt));}else{gameState[prize.currency]=D(gameState[prize.currency]||0).add(D(prize.amt));} saveGame(); }
-                        updateDynamicDisplays();
-                        _gdb.ref('slitherChat').push({ uid:'system', name:'🎁 Abyss Giveaway', chatNameColor:'#44cc88', time:firebase.database.ServerValue.TIMESTAMP, text:'🎉 ' + playerName + ' claimed and won ' + data.prizeDesc + '!' });
-                        Toastify({text:'🎁 You won: ' + data.prizeDesc, duration:8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();
+                    var poster = gwPoster || _gSelf;
+                    _gdb.ref('playerData/' + poster + '/gw_active').once('value', function(gwSnap) {
+                        var gw = gwSnap.val();
+                        if (!gw || gw.id !== gwId || Date.now() > gw.expiresAt) {
+                            Toastify({text:'\u{1F614} Giveaway expired!',duration:3500,gravity:'top',position:'center',style:{background:'#220000'}}).showToast(); return;
+                        }
+                        var claimRef = _gdb.ref('playerData/' + _gSelf + '/gw_claim_' + gwId);
+                        claimRef.transaction(function(cur) {
+                            if (cur !== null) return;
+                            return { claimedAt: Date.now(), playerName: playerName };
+                        }, function(err, committed) {
+                            if (err || !committed) { Toastify({text:'\u{1F614} Already claimed!',duration:3000,gravity:'top',position:'center',style:{background:'#220000'}}).showToast(); return; }
+                            _gdb.ref('playerData/' + poster + '/gw_active/claimedBy').set(_gSelf);
+                            var prize = gw.prize;
+                            if (prize.isKey) { gameState.heldKey = { id:'key_of_shadows', obtainedAt:Date.now() }; saveGame(); }
+                            else if (prize.mixed) { gameState.souls=D(gameState.souls||0).add(D(prize.souls)); gameState.darkEssence=D(gameState.darkEssence||0).add(D(prize.essence)); saveGame(); }
+                            else if (prize.rep) { _gdb.ref('playerData/'+_gSelf+'/rep').transaction(function(c){return(c||0)+prize.amt;}); }
+                            else if (prize.currency) { if(prize.currency==='souls'){gameState.souls=D(gameState.souls||0).add(D(prize.amt));}else{gameState[prize.currency]=D(gameState[prize.currency]||0).add(D(prize.amt));} saveGame(); }
+                            updateDynamicDisplays();
+                            _gdb.ref('slitherChat').push({ uid:'system', name:'\u{1F381} Abyss Giveaway', chatNameColor:'#44cc88', time:firebase.database.ServerValue.TIMESTAMP, text:'\u{1F389} ' + playerName + ' won: ' + gw.prizeDesc + '!' });
+                            Toastify({text:'\u{1F381} You won: ' + gw.prizeDesc, duration:8000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();
+                        });
                     });
                 });
             };
@@ -23752,52 +23785,15 @@ function initializeChat() {
                 var el = document.createElement('div'); el.id = 'gw-discord-gate';
                 el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10005;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
                 el.innerHTML = '<div style="background:linear-gradient(135deg,#0d0a1a,#1a102a);border:1px solid #7289da55;border-top:3px solid #7289da;border-radius:16px;padding:32px 28px;max-width:420px;width:92%;text-align:center;position:relative;">'
-                    + '<button onclick="document.getElementById(\'gw-discord-gate\').remove()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:#444;font-size:1.3em;cursor:pointer;">×</button>'
-                    + '<div style="font-size:2.5em;margin-bottom:12px;">🎁</div>'
+                    + '<button onclick="var g=document.getElementById(\'gw-discord-gate\');if(g)g.remove();" style="position:absolute;top:12px;right:14px;background:none;border:none;color:#444;font-size:1.3em;cursor:pointer;">&times;</button>'
+                    + '<div style="font-size:2.5em;margin-bottom:12px;">\u{1F381}</div>'
                     + '<div style="color:#7289da;font-family:var(--font-title);font-size:1.1em;letter-spacing:2px;margin-bottom:8px;">DISCORD REQUIRED</div>'
                     + '<div style="color:#554466;font-size:0.82em;line-height:1.7;margin-bottom:20px;">Giveaways are exclusive to <strong style="color:#7289da;">143X Discord</strong> members.<br>Join, chat in <strong>#game-chat</strong>, then link your account in Settings.</div>'
-                    + '<a href="' + _GW_DISCORD_LINK + '" target="_blank" rel="noopener" style="display:inline-block;background:#7289da;color:#fff;font-weight:bold;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:0.9em;margin-bottom:14px;">Join 143X Discord ↗</a><br>'
-                    + '<button onclick="document.getElementById(\'gw-discord-gate\').remove();showScreen(\'settings\')" style="background:linear-gradient(135deg,#1a1a3a,#2a2a5a);border:1px solid #7289da55;border-radius:8px;padding:8px 20px;color:#7289da;cursor:pointer;font-family:inherit;font-size:0.82em;margin-top:8px;letter-spacing:1px;">⚙ Open Settings to Link Discord</button>'
+                    + '<a href="' + _GW_DISCORD_LINK + '" target="_blank" rel="noopener" style="display:inline-block;background:#7289da;color:#fff;font-weight:bold;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:0.9em;margin-bottom:14px;">Join 143X Discord \u2197</a><br>'
+                    + '<button onclick="var g=document.getElementById(\'gw-discord-gate\');if(g)g.remove();showScreen(\'settings\')" style="background:linear-gradient(135deg,#1a1a3a,#2a2a5a);border:1px solid #7289da55;border-radius:8px;padding:8px 20px;color:#7289da;cursor:pointer;font-family:inherit;font-size:0.82em;margin-top:8px;letter-spacing:1px;">\u2699 Open Settings to Link Discord</button>'
                     + '</div>';
                 document.body.appendChild(el);
             }
-            // Fully random scheduler using Firebase active_giveaway node
-            // Any client can post — we use a timestamp lock inside active_giveaway
-            // so only one client posts at a time (last-write-wins is fine for giveaways)
-            var _GW_MIN_MS = 15 * 60 * 1000;   // 15 min minimum
-            var _GW_MAX_MS = 120 * 60 * 1000;  // 120 min maximum
-            function _gwRandomDelay() { return _GW_MIN_MS + Math.random() * (_GW_MAX_MS - _GW_MIN_MS); }
-
-            function _gwCheckAndSchedule() {
-                _gdb.ref(_gGwRef).once('value', function(snap) {
-                    var existing = snap.val();
-                    var now = Date.now();
-                    // If no active giveaway or the last one expired > 2 min ago, schedule next
-                    var lastExpiry = existing ? (existing.expiresAt || 0) : 0;
-                    var lastPosted = existing ? (existing.postedAt_ms || 0) : 0;
-                    var nextAt = lastPosted + _gwRandomDelay();
-
-                    if (now >= nextAt && now > lastExpiry + 2 * 60 * 1000) {
-                        // Claim the slot by writing postedAt_ms — first writer wins
-                        _gdb.ref(_gGwRef + '/postedAt_ms').transaction(function(cur) {
-                            // Only claim if nobody else has claimed recently (within 30s)
-                            if (cur && (now - cur) < 30000) return; // abort
-                            return now;
-                        }, function(err, committed) {
-                            if (committed) {
-                                _gwPost();
-                                console.log('[Giveaway] Posted by client:', _gSelf.slice(0,8));
-                            }
-                        });
-                    }
-                    // Check again in 5 min
-                    setTimeout(_gwCheckAndSchedule, 5 * 60 * 1000);
-                });
-            }
-
-            // Start checking after a random delay so all clients don't fire at once
-            setTimeout(_gwCheckAndSchedule, Math.random() * 60000 + 5000);
-            console.log('[Giveaway] Scheduler started (all clients participate)');
             })();
             });
         }
@@ -23960,7 +23956,7 @@ function initializeChat() {
                         + '<div style="color:' + (_isKey2 ? '#ffe066' : '#e0cc88') + ';font-weight:bold;font-size:' + (_isKey2 ? '1.05em' : '0.95em') + ';margin-bottom:4px;">' + escapeHTML(_gwPrize2) + '</div>'
                         + '<div style="color:#443300;font-size:0.68em;">First eligible Discord member to claim wins · <span id="gw-timer-' + _gwId2 + '">5:00</span> remaining</div>'
                         + '</div>'
-                        + '<button id="gw-claim-btn-' + _gwId2 + '" onclick="window._gwClaim(\'' + _gwId2 + '\')" '
+                        + '<button id="gw-claim-btn-' + _gwId2 + '" onclick="window._gwClaim(\'' + _gwId2 + '\',\'' + (msg.gwPoster||'') + '\')" '
                         + 'style="background:linear-gradient(135deg,#3a2a00,#c8a80033);border:1px solid #c8a80077;border-radius:9px;padding:9px 20px;color:#c8a800;font-weight:bold;font-family:inherit;font-size:0.85em;cursor:pointer;white-space:nowrap;letter-spacing:1px;transition:all .2s;"'
                         + '>'                        
                         + '🎁 Claim</button>'

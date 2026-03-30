@@ -13480,6 +13480,24 @@ function loadGame() {
             document.getElementById('musicStatus').innerText = `Status: ${audio.bgm.muted ? 'OFF' : 'ON'}`;
             document.getElementById('sfxStatus').innerText   = `Status: ${audio.sfxMuted  ? 'OFF' : 'ON'}`;
             repairNegativeValues();
+            // ── Clamp fragments: 10k cap for non-donors ───────────────
+            (function() {
+                var _isDonor = !!gameState.donorTitle;
+                // Clamp on-hand fragments
+                if (!_isDonor) {
+                    var _cf = D(gameState.corruptedFragments || 0).toNumber();
+                    if (_cf > 10000) {
+                        console.log('[Fragments] Clamped on-hand from ' + Math.round(_cf) + ' to 10,000');
+                        gameState.corruptedFragments = D(10000);
+                    }
+                }
+                // Clamp banked fragments - refund excess to on-hand (but still cap that)
+                var _bf = parseFloat(gameState.bankedFragments || 0);
+                if (_bf > 10000) {
+                    console.log('[Fragments] Clamped banked from ' + Math.round(_bf) + ' to 10,000 (excess discarded)');
+                    gameState.bankedFragments = 10000;
+                }
+            })();
             calculateStats();
             renderAll();
             updateDynamicDisplays();
@@ -14576,6 +14594,13 @@ function updateAscensionPreview() {
 
 
 function calculateStats() {
+    // ── Hard cap on corrupted fragments (non-donors) ──────────────
+    if (!gameState.donorTitle) {
+        var _fragCap = 10000;
+        if (D(gameState.corruptedFragments||0).gt(_fragCap)) {
+            gameState.corruptedFragments = D(_fragCap);
+        }
+    }
     // =================================================================
     // 1. INITIALIZE MULTIPLIERS & BASE VALUES (CORRECTED ORDER)
     // =================================================================
@@ -17846,6 +17871,7 @@ function usePotion(id) {
                 Toastify({ text: `👆 SPC ×10 for ${effect2.duration/60}min!`, duration:3000, gravity:'top', position:'center' }).showToast();
             }
             if (effect2.type === 'gain_fragments_uncapped') {
+                // Despite the name, cap to prevent abuse — max 500 per trigger
                 const _fv2 = Math.min(effect2.value, 100); // hard cap — max 100 per potion use
                 _addFragments(_fv2, true);
                 Toastify({ text: `🔮 Gained ${formatNumber(_fv2)} Corrupted Fragments!`, duration:3000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#0a0818,#aa44ff)'} }).showToast();
@@ -22441,7 +22467,7 @@ function depositFragments() {
         Toastify({ text: `Need ${essenceCost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    const _fC=100000,_cF=parseFloat(gameState.bankedFragments||0);if(_cF>=_fC){Toastify({text:`🔮 Fragment Vault full! Max 100k.`,duration:3500,gravity:'top',position:'center',style:{background:'#0a0a1a'}}).showToast();return;}
+    const _fC=10000,_cF=parseFloat(gameState.bankedFragments||0);if(_cF>=_fC){Toastify({text:`🔮 Fragment Vault full! Max 10k.`,duration:3500,gravity:'top',position:'center',style:{background:'#0a0a1a'}}).showToast();return;}
     const _rF=parseFloat(depositAmt.toString()),_aF=Math.min(_rF,_fC-_cF),_lF=_rF-_aF;
     gameState.darkEssence=D(gameState.darkEssence).sub(essenceCost);gameState.corruptedFragments=D(_lF);gameState.bankedFragments=_cF+_aF;
     playSound('upgrade');Toastify({text:`🔮 ${formatNumber(_aF)} fragments secured!${_aF<_rF?` (capped — ${formatNumber(_lF)} returned)`:''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#0a2a1a,#44cc88)'}}).showToast();
@@ -23944,22 +23970,20 @@ function initializeChat() {
                     var _isKey2 = _gwPrize2.indexOf('KEY OF THE ABYSS') !== -1;
                     var _gwEl = document.createElement('div');
                     _gwEl.dataset.gwid = _gwId2;
-                    _gwEl.style.cssText = 'margin:10px 0;padding:16px 18px;'
+                    _gwEl.style.cssText = 'margin:10px 0;padding:14px 16px;'
                         + 'background:linear-gradient(135deg,#1a1000,#2a1a00,#1a1000);'
-                        + 'border:1px solid ' + (_isKey2 ? '#c8a800' : '#c8a80044') + ';'
+                        + 'border:1px solid ' + (_isKey2 ? '#c8a800' : '#c8a80066') + ';'
                         + 'border-left:3px solid #c8a800;'
-                        + 'border-radius:12px;position:relative;overflow:hidden;'
+                        + 'border-radius:10px;position:relative;'
                         + (_isKey2 ? 'box-shadow:0 0 30px #c8a80033;animation:gwKeyPulse 2s ease-in-out infinite;' : '');
-                    _gwEl.innerHTML = '<div style="color:#c8a800;font-size:0.68em;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">🎁 ABYSS GIVEAWAY</div>'
-                        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">'
-                        + '<div style="flex:1;">'
-                        + '<div style="color:' + (_isKey2 ? '#ffe066' : '#e0cc88') + ';font-weight:bold;font-size:' + (_isKey2 ? '1.05em' : '0.95em') + ';margin-bottom:4px;">' + escapeHTML(_gwPrize2) + '</div>'
-                        + '<div style="color:#443300;font-size:0.68em;">First eligible Discord member to claim wins · <span id="gw-timer-' + _gwId2 + '">5:00</span> remaining</div>'
-                        + '</div>'
-                        + '<button id="gw-claim-btn-' + _gwId2 + '" onclick="window._gwClaim(\'' + _gwId2 + '\',\'' + _gwPoster2 + '\')" '
-                        + 'style="background:linear-gradient(135deg,#3a2a00,#c8a80033);border:1px solid #c8a80077;border-radius:9px;padding:9px 20px;color:#c8a800;font-weight:bold;font-family:inherit;font-size:0.85em;cursor:pointer;white-space:nowrap;letter-spacing:1px;"'
-                        + '>🎁 Claim</button>'
-                        + '</div>';
+                    var _gwClaimFn = "window._gwClaim('" + _gwId2 + "','" + _gwPoster2 + "')";
+                    var _gwBtnStyle = 'width:100%;background:linear-gradient(135deg,#3a2a00,#c8a80033);border:1px solid #c8a80077;border-radius:8px;padding:9px;color:#c8a800;font-weight:bold;font-family:inherit;font-size:0.85em;cursor:pointer;letter-spacing:1px;';
+                    var _gwTimerId = 'gw-timer-' + _gwId2;
+                    var _gwBtnId = 'gw-claim-btn-' + _gwId2;
+                    var _gwPrizeColor = _isKey2 ? '#ffe066' : '#e0cc88';
+                    _gwEl.innerHTML = '<div style="color:#c8a800;font-size:0.65em;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">\uD83C\uDF81 ABYSS GIVEAWAY \u00B7 <span id="' + _gwTimerId + '" style="color:#887744;">5:00</span></div>'
+                        + '<div style="color:' + _gwPrizeColor + ';font-weight:bold;font-size:0.92em;margin-bottom:8px;">' + escapeHTML(_gwPrize2) + '</div>'
+                        + '<button id="' + _gwBtnId + '" onclick="' + _gwClaimFn + '" style="' + _gwBtnStyle + '">\uD83C\uDF81 Claim Prize</button>';
                     chatBodyElement.appendChild(_gwEl);
                     if (shouldScroll) chatBodyElement.scrollTop = chatBodyElement.scrollHeight;
                     var _gwExpiry2 = _gwExpiry2b;

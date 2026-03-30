@@ -290,7 +290,7 @@
 
   <!-- STATS -->
   <div class="stats-bar">
-    <div class="stat"><span class="stat-n">7+</span><span class="stat-l">Releases</span></div>
+    <div class="stat"><span class="stat-n">98</span><span class="stat-l">Tracks</span></div>
     <div class="stat"><span class="stat-n">3</span><span class="stat-l">Genres</span></div>
     <div class="stat"><span class="stat-n">1</span><span class="stat-l">Game on itch.io</span></div>
     <div class="stat" data-gag="yeah i counted. fight me."><span class="stat-n green" id="cDays">0</span><span class="stat-l">Days Sober</span></div>
@@ -340,16 +340,101 @@
 
   <!-- RELEASES -->
   <div class="stag">Discography</div>
-  <h2 class="stitle">Releases</h2>
-  <div class="rel-list">
-    <a href="https://www.youtube.com/watch?v=9RxvslEexts&list=OLAK5uy_lJCp3EFMFKXiKo4leo3lQi4kBsc5fS-Hg" target="_blank" class="rel-row"><div class="rel-badge">Album</div><div class="rel-name">Silence Was Louder</div><div class="rel-genre">Mixed</div><div class="rel-meta">Dec 2025</div><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim);flex-shrink:0"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-    <a href="https://www.youtube.com/watch?v=rVHiLtkE2rI&list=OLAK5uy_mX_hnrFXmsGRoqJFvrIJbGAyE_tGgYrho" target="_blank" class="rel-row"><div class="rel-badge">EP</div><div class="rel-name">to you</div><div class="rel-genre">Rock</div><div class="rel-meta">Oct 2025</div><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim);flex-shrink:0"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-    <a href="https://www.youtube.com/watch?v=Fea8SJDU6u8&list=OLAK5uy_l8Ps88azAssLrUbRPH5s680BvnqaG3e4s" target="_blank" class="rel-row"><div class="rel-badge">EP</div><div class="rel-name">DXXD</div><div class="rel-genre">Hip-Hop</div><div class="rel-meta">Jul 2025</div><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim);flex-shrink:0"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-    <a href="https://www.youtube.com/watch?v=xycn8WL1V2o" target="_blank" class="rel-row"><div class="rel-badge">Single</div><div class="rel-name">Dear Dad</div><div class="rel-genre">Hip-Hop</div><div class="rel-meta">Early 2026</div><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim);flex-shrink:0"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-    <a href="https://www.youtube.com/watch?v=lrbNQUOr-7c" target="_blank" class="rel-row"><div class="rel-badge">Single</div><div class="rel-name">BREAK</div><div class="rel-genre">Metal</div><div class="rel-meta">Mid 2025</div><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim);flex-shrink:0"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-    <a href="https://www.youtube.com/watch?v=jJduG4wuImI&list=OLAK5uy_nYU-TO_5RQDnmXfyjTfwr03B0xn1JzDXI" target="_blank" class="rel-row"><div class="rel-badge">Single</div><div class="rel-name">Welcome to Hell</div><div class="rel-genre">Metal</div><div class="rel-meta">2025</div><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim);flex-shrink:0"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-    <a href="https://www.youtube.com/watch?v=ts9bX0g-7gQ&list=OLAK5uy_m5QWwdiaDj30SPIbfVc5uYPxjKhOUVhJQ" target="_blank" class="rel-row"><div class="rel-badge">Single</div><div class="rel-name">fly</div><div class="rel-genre">Hip-Hop</div><div class="rel-meta">2025</div><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim);flex-shrink:0"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+  <h2 class="stitle">98 Tracks — click any to search on YouTube</h2>
+
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;animation:fadeUp .6s ease .25s both;">
+    <button class="fact-btn" id="sortPlays" onclick="sortTracks('plays')" style="border-color:var(--red);color:var(--bone);">Top Plays</button>
+    <button class="fact-btn" id="sortAlpha" onclick="sortTracks('alpha')">A–Z</button>
+    <input id="trackSearch" placeholder="search tracks..." style="background:var(--surface);border:1px solid var(--border);color:var(--bone);font-family:'Share Tech Mono',monospace;font-size:.72rem;letter-spacing:.1em;padding:7px 14px;outline:none;flex:1;min-width:140px;" oninput="filterTracks(this.value)">
   </div>
+
+  <div class="rel-list" id="trackList" style="max-height:540px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--red) var(--surface);"></div>
+
+  <script>
+  var TRACKS_ALL = [
+    {t:"Venom in My Name (feat. Neiche)",p:810},{t:"bad intentions",p:740},
+    {t:"stay for the war (feat. kidd punk)",p:416},{t:"Heart In The Trunk",p:282},
+    {t:"Falling Through Mystic",p:226},{t:"you thought i loved you (feat. kidd punk)",p:216},
+    {t:"When I Breathe (feat. loake)",p:194},{t:"fuck me right (feat. dap)",p:159},
+    {t:"die with me",p:150},{t:"one more drink",p:129},
+    {t:"hex",p:121},{t:"kill the vibe",p:109},
+    {t:"angels dont cry",p:104},{t:"Drown Me",p:97},
+    {t:"ghosted me first (feat. KYL8T)",p:89},{t:"my day (feat. Neiche) (Radio Edit)",p:90},
+    {t:"DEMONS (feat. BVNDY)",p:81},{t:"No Heart In Me (feat. Neiche)",p:79},
+    {t:"buried in my throat (feat. KYL8T)",p:73},{t:"DRIFT__ (feat. KYL8T & Neiche)",p:72},
+    {t:"HATE MYSELF (SLOWED)",p:67},{t:"blvde",p:67},
+    {t:"tell me why? (feat. BVNDY)",p:63},{t:"hold me now",p:60},
+    {t:"withdrawal letter (feat. dap & BVNDY)",p:53},{t:"kill switch",p:52},
+    {t:"anxiety",p:15},{t:"burn it all (feat. issbabee & KYL8T)",p:41},
+    {t:"ceiling fan",p:44},{t:"Puppet Strings",p:26},
+    {t:"Reflection",p:35},{t:"through the pain",p:40},
+    {t:"ur name",p:7},{t:"hurricane",p:113},
+    {t:"intro",p:43},{t:"the world changed",p:142},
+    {t:"not like you",p:34},{t:"silence",p:34},
+    {t:"Sad Love Song (feat. Niche)",p:32},{t:"feel again (Radio Edit)",p:30},
+    {t:"luv u 2 dxxth (feat. Neiche)",p:8},{t:"fck u",p:127},
+    {t:"sharpie (feat. BVNDY)",p:108},{t:"Rain On The Lane",p:22},
+    {t:"taste like you",p:134},{t:"to you",p:71},
+    {t:"stay close",p:51},{t:"ghosted heart (feat. BVNDY)",p:72},
+    {t:"shadows in my veins (feat. KYL8T) (Radio Edit)",p:30},{t:"i was high once",p:7},
+    {t:"distance",p:46},{t:"temp part. 2 (feat. KYL8T)",p:5},
+    {t:"D13",p:34},{t:"1, 2, 3, 4!",p:2},
+    {t:"BREAK",p:123},{t:"holding on",p:21},
+    {t:"black thorns",p:15},{t:"YANK (feat. KYL8T)",p:29},
+    {t:"r0t",p:34},{t:"give up",p:22},
+    {t:"black lung",p:6},{t:"666",p:25},
+    {t:"graveyard text",p:7},{t:"stitches (feat. BVNDY)",p:22},
+    {t:"choke me",p:18},{t:"bloodrush",p:11},
+    {t:"Wonder Man (feat. halle)",p:35},{t:"rising again",p:19},
+    {t:"NO SIGNAL",p:10},{t:"done",p:30},
+    {t:"alright",p:5},{t:"think i care?",p:2},
+    {t:"worms",p:25},{t:"prada",p:14},
+    {t:"velvet choke",p:18},{t:"Know The Vibe",p:14},
+    {t:"break my silence",p:22},{t:"poems (feat. lolli)",p:18},
+    {t:"gone (feat. KYL8T)",p:28},{t:"void__",p:4},
+    {t:"wasted generation (feat. raeh & KYL8T)",p:5},{t:"She want hands, not hearts",p:12},
+    {t:"shadow play",p:10},{t:"I dont miss it (feat. NamelessNin980)",p:23},
+    {t:"No Friends",p:14},{t:"better without me",p:11},
+    {t:"im alive",p:12},{t:"ghost in my room",p:18},
+    {t:"hellb0ne",p:8},{t:"blood on the sheets",p:30},
+    {t:"i stayed up late",p:10},{t:"WARNING",p:9},
+    {t:"group chat",p:3},{t:"Stranger Things (feat. BVNDY & dap)",p:20},
+    {t:"temp (feat. BVNDY)",p:21},{t:"Who Am I (feat. Neiche & KYL8T)",p:27},
+    {t:"Phantom Drop (feat. BVNDY)",p:23},{t:"hellra!ser",p:11},
+  ];
+  var currentSort='plays', currentFilter='';
+  function ytSearch(title){window.open('https://www.youtube.com/results?search_query='+encodeURIComponent('DXXTHLY '+title),'_blank');}
+  function sortTracks(mode){
+    currentSort=mode;
+    document.getElementById('sortPlays').style.borderColor=mode==='plays'?'var(--red)':'var(--border)';
+    document.getElementById('sortPlays').style.color=mode==='plays'?'var(--bone)':'var(--dim)';
+    document.getElementById('sortAlpha').style.borderColor=mode==='alpha'?'var(--red)':'var(--border)';
+    document.getElementById('sortAlpha').style.color=mode==='alpha'?'var(--bone)':'var(--dim)';
+    renderTracks();
+  }
+  function filterTracks(v){currentFilter=v.toLowerCase();renderTracks();}
+  function renderTracks(){
+    var list=TRACKS_ALL.filter(function(t){return t.t.toLowerCase().indexOf(currentFilter)>=0;});
+    if(currentSort==='plays') list.sort(function(a,b){return b.p-a.p;});
+    else list.sort(function(a,b){return a.t.toLowerCase()<b.t.toLowerCase()?-1:1;});
+    var html='';
+    list.forEach(function(tr,i){
+      var bars=Math.round((tr.p/810)*10);
+      html+='<div class="rel-row" style="cursor:pointer;" onclick="ytSearch(\''+tr.t.replace(/'/g,"\\'")+'\')">'
+        +'<div class="rel-badge">#'+(i+1)+'</div>'
+        +'<div class="rel-name">'+tr.t+'</div>'
+        +'<div style="display:flex;gap:2px;align-items:flex-end;height:14px;flex-shrink:0;">'
+        +Array.from({length:10},function(_,b){return '<span style="display:block;width:3px;background:'+(b<bars?'var(--red-glow)':'var(--border)')+';height:'+(b<bars?(4+b*1.1).toFixed(0):3)+'px;border-radius:1px;"></span>';}).join('')
+        +'</div>'
+        +'<div class="rel-meta">'+tr.p+' plays</div>'
+        +'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dim);flex-shrink:0"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'
+        +'</div>';
+    });
+    if(!html) html='<div style="padding:24px;color:var(--dim);font-size:.8rem;text-align:center;">no tracks match that search</div>';
+    document.getElementById('trackList').innerHTML=html;
+  }
+  renderTracks();
+  </script>
 
   <!-- SOBER COUNTER -->
   <div class="stag">The Clock</div>

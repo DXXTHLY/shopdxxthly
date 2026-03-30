@@ -831,6 +831,10 @@
             display: inline-block;
         }
         .chat-msg-text { color: #c8c0d8; }
+        @keyframes gwKeyPulse {
+            0%,100%{box-shadow:0 0 16px #c8a80022,0 0 0 #c8a80000;border-color:#c8a80066;}
+            50%{box-shadow:0 0 40px #c8a80055,0 0 80px #c8a80022;border-color:#c8a800;}
+        }
         .chat-username { font-weight: bold; cursor: pointer; transition: opacity 0.15s; }
         .chat-username:hover { opacity: 0.8; text-decoration: underline dotted; }
 
@@ -892,7 +896,7 @@
         #chat-send-btn:hover { color: var(--primary-color); background: rgba(196,24,24,0.1); }
         .chat-username { font-weight: bold; cursor: pointer; text-decoration: underline dotted; }
         .chat-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); display: flex; justify-content: center; align-items: center; z-index: 400; backdrop-filter: blur(8px); }
-        .chat-modal-content { padding: 0; background: linear-gradient(160deg, #06040f, #0e0a1a); border: 1px solid #3a1a5a; border-top: 3px solid #c41818; border-radius: 16px; text-align: left; box-shadow: 0 0 60px rgba(196,24,24,0.2), 0 0 30px rgba(80,0,140,0.3); min-width: 420px; max-width: 460px; width: 92%; overflow: hidden; }
+        .chat-modal-content { padding: 0; background: linear-gradient(160deg, #06040f, #0e0a1a); border: 1px solid #3a1a5a; border-top: 3px solid #c41818; border-radius: 16px; text-align: left; box-shadow: 0 0 60px rgba(196,24,24,0.2), 0 0 30px rgba(80,0,140,0.3); min-width: 420px; max-width: 460px; width: 92%; overflow-y: auto; max-height: 90vh; }
         .chat-modal-content h2 { text-align: center; margin: 0; padding: 22px 28px 18px; font-family: var(--font-title); font-size: 0.95em; letter-spacing: 3px; color: var(--primary-color); text-transform: uppercase; border-bottom: 1px solid #1a0d26; text-shadow: 0 0 20px rgba(196,24,24,0.5); }
         .chat-modal-body { padding: 24px 28px; }
         /* ── Animated Profile Backgrounds ───────────────────────────────── */
@@ -2201,257 +2205,196 @@
         /* ================================================================= */
         /* CINEMATIC INTRO - FULL REBUILD                                   */
         /* ================================================================= */
+        /* ═══════════════════════════════════════════════════════
+           INTRO SCREEN — Soul Collector: Abyssal Ascension
+        ═══════════════════════════════════════════════════════ */
         #intro-overlay {
-            position: fixed;
-            top: 0; left: 0;
+            position: fixed; top: 0; left: 0;
             width: 100vw; height: 100vh;
-            background: radial-gradient(ellipse at center, #0d0520 0%, #060010 60%, #000 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            overflow: hidden;
-            cursor: pointer;
+            background: radial-gradient(ellipse at 50% 40%, #120025 0%, #06000f 55%, #000 100%);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 9999; overflow: hidden; cursor: pointer;
         }
+        #intro-canvas { position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none; }
 
-        #intro-canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-        }
-
-        /* Purple vignette pulse */
+        /* Deep red–purple vignette that breathes */
         #intro-vignette {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: radial-gradient(ellipse at center, transparent 30%, rgba(60, 0, 140, 0.5) 80%, rgba(20, 0, 60, 0.9) 100%);
-            pointer-events: none;
-            opacity: 0;
-            animation: vignetteBreath 3s ease-in-out infinite;
-            animation-delay: 3s;
+            position:absolute;inset:0;pointer-events:none;
+            background: radial-gradient(ellipse at center, transparent 25%, #2a004488 65%, #08000ecc 100%);
+            animation: vignetteBreath 4s ease-in-out infinite;
         }
-        @keyframes vignetteBreath {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
-        }
+        @keyframes vignetteBreath { 0%,100%{opacity:.6} 50%{opacity:1} }
 
-        /* Flash overlay for the ignition effect */
+        /* White ignition flash */
         #intro-flash {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: #fff;
-            opacity: 0;
-            pointer-events: none;
-            animation: introFlash 0.4s ease-out forwards;
-            animation-delay: 1.8s;
+            position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;
+            animation: introFlash 0.5s ease-out forwards; animation-delay:1.6s;
         }
-        @keyframes introFlash {
-            0%   { opacity: 0; }
-            20%  { opacity: 0.7; }
-            100% { opacity: 0; }
-        }
+        @keyframes introFlash { 0%{opacity:0} 15%{opacity:.8} 100%{opacity:0} }
 
-        /* Horizontal scan line that sweeps before the title */
+        /* Scanline sweep */
         #intro-scanline {
-            position: absolute;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(to right, transparent, #8b50ff, #a0c4ff, #8b50ff, transparent);
-            box-shadow: 0 0 20px 6px rgba(120, 60, 255, 0.7);
-            top: 50%;
-            opacity: 0;
-            animation: scanSweep 0.6s ease-in-out forwards;
-            animation-delay: 1.6s;
+            position:absolute;width:100%;height:2px;
+            background:linear-gradient(to right,transparent,#8b50ff,#ff4466,#8b50ff,transparent);
+            box-shadow:0 0 24px 8px #7a30ff99;
+            top:50%;opacity:0;
+            animation:scanSweep .7s ease-in-out forwards; animation-delay:1.5s;
         }
         @keyframes scanSweep {
-            0%   { opacity: 0; transform: translateY(-40px) scaleX(0); }
-            40%  { opacity: 1; transform: translateY(0px) scaleX(1); }
-            100% { opacity: 0; transform: translateY(40px) scaleX(0.3); }
+            0%{opacity:0;transform:translateY(-60px) scaleX(0)}
+            40%{opacity:1;transform:translateY(0) scaleX(1)}
+            100%{opacity:0;transform:translateY(60px) scaleX(.2)}
         }
 
-        /* Main title wrapper */
+        /* Blood drip container */
+        #intro-drips { position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1; }
+        .i-drip {
+            position:absolute;top:0;width:2px;border-radius:0 0 50% 50%;
+            background:linear-gradient(to bottom,#cc0022,#880011,transparent);
+            box-shadow:0 0 6px #ff003366;
+            opacity:0;animation:dripFall var(--dd) ease-in forwards; animation-delay:var(--dl);
+        }
+        @keyframes dripFall {
+            0%{opacity:0;height:0} 10%{opacity:.9} 100%{opacity:.5;height:var(--dh)}
+        }
+
+        /* Floating ghost souls */
+        #intro-souls { position:absolute;inset:0;pointer-events:none;z-index:1; }
+        .i-soul {
+            position:absolute;font-size:var(--ss);opacity:0;
+            animation:soulFloat var(--sd) ease-in-out infinite; animation-delay:var(--sl);
+            filter:drop-shadow(0 0 6px #aa44ff88);
+        }
+        @keyframes soulFloat {
+            0%{opacity:0;transform:translateY(0) scale(.8)}
+            20%{opacity:.7}
+            80%{opacity:.4}
+            100%{opacity:0;transform:translateY(-120px) scale(1.1)}
+        }
+
+        /* Central skull sigil */
+        #intro-sigil {
+            position:absolute;font-size:clamp(6rem,15vw,14rem);
+            opacity:0;z-index:1;pointer-events:none;
+            animation:sigilReveal 2s ease-out forwards; animation-delay:.4s;
+            filter:drop-shadow(0 0 40px #cc003388) drop-shadow(0 0 80px #44004488);
+            color:#1a0008;
+        }
+        @keyframes sigilReveal {
+            0%{opacity:0;transform:scale(2);filter:drop-shadow(0 0 0 #cc003300)}
+            40%{opacity:.15;transform:scale(1.1)}
+            100%{opacity:.08;transform:scale(1)}
+        }
+
+        /* Horizontal rift crack */
+        #intro-rift {
+            position:absolute;width:0%;height:1px;top:50%;
+            background:linear-gradient(to right,transparent,#cc0033,#ff0044,#cc0033,transparent);
+            box-shadow:0 0 12px #ff004488,0 0 30px #cc002244;
+            opacity:0;animation:riftOpen .8s ease-out forwards; animation-delay:1.8s;
+        }
+        @keyframes riftOpen {
+            0%{width:0%;opacity:0;left:50%}
+            100%{width:100%;opacity:.6;left:0}
+        }
+
+        /* Title block */
         #intro-title {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0;
+            position:relative;z-index:2;display:flex;
+            flex-direction:column;align-items:center;gap:0;
         }
-
-        /* SOUL COLLECTOR title line */
         #intro-title-top {
-            font-family: 'Metamorphous', serif;
-            font-size: clamp(2rem, 6vw, 5.5rem);
-            font-weight: bold;
-            color: #e8e0ff;
-            text-transform: uppercase;
-            letter-spacing: 8px;
-            white-space: nowrap;
-            opacity: 0;
-            transform: scale(1.4);
-            animation: titleSlam 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) forwards;
-            animation-delay: 2s;
-            text-shadow:
-                0 0 10px #9b6fff,
-                0 0 30px rgba(120, 60, 255, 0.9),
-                0 0 60px rgba(80, 20, 200, 0.6),
-                0 0 100px rgba(60, 0, 180, 0.3),
-                0 2px 4px #000;
+            font-family:'Metamorphous',serif;
+            font-size:clamp(2rem,6vw,5.5rem);
+            font-weight:bold;color:#f0e8ff;
+            text-transform:uppercase;letter-spacing:10px;white-space:nowrap;
+            opacity:0;transform:scale(1.5) translateY(-30px);
+            animation:titleSlam .6s cubic-bezier(.2,1.4,.4,1) forwards; animation-delay:2s;
+            text-shadow:0 0 12px #9b6fff,0 0 40px #7830ff99,0 0 80px #4010cc44,
+                        0 0 2px #fff,0 2px 6px #000;
         }
         @keyframes titleSlam {
-            0%   { opacity: 0; transform: scale(1.5) translateY(-20px); }
-            60%  { opacity: 1; transform: scale(0.97) translateY(3px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
+            0%{opacity:0;transform:scale(1.6) translateY(-30px)}
+            55%{opacity:1;transform:scale(.96) translateY(4px)}
+            100%{opacity:1;transform:scale(1) translateY(0)}
         }
-
-        /* Glitch flicker on the title after it appears */
         #intro-title-top.glitch-active {
-            animation: titleGlitch 0.15s steps(2) forwards;
+            animation:titleGlitch .15s steps(2) forwards;
         }
         @keyframes titleGlitch {
-            0%   { opacity: 1; text-shadow: -3px 0 #a78bff, 3px 0 #60a0ff, 0 0 30px rgba(120,60,255,0.9); clip-path: inset(20% 0 50% 0); }
-            50%  { opacity: 1; text-shadow: 3px 0 #a78bff, -3px 0 #60a0ff, 0 0 30px rgba(120,60,255,0.9); clip-path: inset(60% 0 10% 0); }
-            100% { opacity: 1; text-shadow: 0 0 10px #9b6fff, 0 0 30px rgba(120,60,255,0.9), 0 0 60px rgba(80,20,200,0.6); clip-path: none; }
+            0%{text-shadow:-4px 0 #ff4466,4px 0 #4488ff,0 0 40px #7830ff99;clip-path:inset(15% 0 55% 0)}
+            50%{text-shadow:4px 0 #ff4466,-4px 0 #4488ff,0 0 40px #7830ff99;clip-path:inset(65% 0 5% 0)}
+            100%{text-shadow:0 0 12px #9b6fff,0 0 40px #7830ff99,0 0 80px #4010cc44;clip-path:none}
         }
-
-        /* Separator rune line between title and subtitle */
         #intro-rune-line {
-            width: 0%;
-            height: 1px;
-            background: linear-gradient(to right, transparent, #7b3fff, #c8a800, #7b3fff, transparent);
-            box-shadow: 0 0 10px rgba(120, 60, 255, 0.8);
-            margin: 8px 0;
-            opacity: 0;
-            animation: runeExpand 0.8s ease-out forwards;
-            animation-delay: 2.6s;
+            width:0%;height:1px;
+            background:linear-gradient(to right,transparent,#cc0033,#c8a800,#cc0033,transparent);
+            box-shadow:0 0 10px #cc003388;
+            margin:10px 0;opacity:0;
+            animation:runeExpand .9s ease-out forwards; animation-delay:2.7s;
         }
-        @keyframes runeExpand {
-            0%   { width: 0%; opacity: 0; }
-            100% { width: 80%; opacity: 1; }
-        }
+        @keyframes runeExpand { 0%{width:0%;opacity:0} 100%{width:90%;opacity:1} }
 
-        /* ABYSSAL ASCENSION subtitle */
         #intro-subtitle {
-            font-family: 'Metamorphous', serif;
-            font-size: clamp(1rem, 3vw, 2.2rem);
-            color: #e8a800;
-            text-transform: uppercase;
-            letter-spacing: 0px;
-            opacity: 0;
-            animation: subtitleReveal 1.2s ease-out forwards;
-            animation-delay: 2.8s;
-            text-shadow:
-                0 0 12px rgba(232, 168, 0, 0.9),
-                0 0 30px rgba(180, 120, 0, 0.5),
-                0 0 6px rgba(120, 60, 255, 0.3),
-                0 1px 3px #000;
+            font-family:'Metamorphous',serif;
+            font-size:clamp(.9rem,2.8vw,2.1rem);
+            color:#cc3322;text-transform:uppercase;letter-spacing:-4px;opacity:0;
+            animation:subtitleReveal 1.2s ease-out forwards; animation-delay:2.9s;
+            text-shadow:0 0 16px #cc003399,0 0 40px #88001144,0 1px 4px #000;
         }
         @keyframes subtitleReveal {
-            0%   { opacity: 0; letter-spacing: -4px; filter: blur(8px); }
-            60%  { opacity: 0.8; letter-spacing: 14px; filter: blur(0); }
-            100% { opacity: 1; letter-spacing: 10px; }
+            0%{opacity:0;letter-spacing:-6px;filter:blur(10px)}
+            60%{opacity:.9;letter-spacing:18px;filter:blur(0)}
+            100%{opacity:1;letter-spacing:12px}
         }
 
-        /* Click to enter prompt */
+        /* Tagline */
+        #intro-tagline {
+            position:relative;z-index:2;
+            font-family:'Metamorphous',serif;
+            font-size:clamp(.65rem,1.2vw,.9rem);
+            color:#441122;letter-spacing:6px;text-transform:uppercase;
+            margin-top:18px;opacity:0;
+            animation:taglineReveal 1s ease-out forwards; animation-delay:4s;
+        }
+        @keyframes taglineReveal { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+        /* Enter prompt */
         #intro-enter {
-            position: absolute;
-            bottom: 8vh;
-            font-family: 'Metamorphous', serif;
-            font-size: clamp(0.8rem, 1.5vw, 1.1rem);
-            color: var(--dim-color);
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            opacity: 0;
-            animation: enterPulse 1.5s ease-in-out infinite;
-            animation-delay: 4.5s;
+            position:absolute;bottom:6vh;
+            font-family:'Metamorphous',serif;
+            font-size:clamp(.7rem,1.2vw,.95rem);
+            color:#330011;letter-spacing:5px;text-transform:uppercase;
+            opacity:0;z-index:2;
+            animation:enterPulse 2s ease-in-out infinite; animation-delay:4.5s;
         }
         @keyframes enterPulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.9; color: var(--secondary-color); }
+            0%,100%{opacity:.2;color:#330011}
+            50%{opacity:.8;color:#cc2244;text-shadow:0 0 12px #cc224466}
         }
 
-        /* Dev credits panel */
+        /* Credits */
         #intro-credits {
-            position: absolute;
-            bottom: 18vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            opacity: 0;
-            animation: creditsReveal 1s ease-out forwards;
-            animation-delay: 4s;
-            z-index: 3;
+            position:absolute;bottom:14vh;
+            display:flex;flex-direction:column;align-items:center;gap:6px;
+            opacity:0;z-index:3;
+            animation:creditsReveal 1s ease-out forwards; animation-delay:4.2s;
         }
-        @keyframes creditsReveal {
-            from { opacity: 0; transform: translateY(10px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes creditsReveal { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
         #intro-credits .credits-label {
-            font-family: 'Metamorphous', serif;
-            font-size: 0.75rem;
-            letter-spacing: 5px;
-            text-transform: uppercase;
-            color: var(--dim-color);
-            margin-bottom: 4px;
-            border-bottom: 1px solid #2a0a0a;
-            padding-bottom: 6px;
-            width: 100%;
-            text-align: center;
+            font-family:'Metamorphous',serif;font-size:.7rem;letter-spacing:5px;
+            text-transform:uppercase;color:#2a0a1a;margin-bottom:4px;
+            border-bottom:1px solid #1a0508;padding-bottom:6px;
+            width:100%;text-align:center;
         }
-        #intro-credits .credits-names {
-            display: flex;
-            gap: 28px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        @keyframes keyFloat {
-            0%,100% { transform: translateY(0) rotate(-5deg); }
-            50%      { transform: translateY(-8px) rotate(5deg); }
-        }
-        @keyframes keyPanelPulse {
-            0%,100% { box-shadow: 0 0 20px transparent; }
-            50%      { box-shadow: 0 0 30px rgba(200,168,0,0.15); }
-        }
-        @keyframes urgentPulse {
-            0%,100% { opacity:1; } 50% { opacity:0.4; }
-        }
-        @keyframes shimmerPot {
-            0%   { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        @keyframes fusedBorderPulse {
-            0%,100% { box-shadow: 0 0 10px var(--fc,#ff884466); }
-            50%      { box-shadow: 0 0 24px var(--fc,#ff884499), 0 0 40px var(--fc,#ff884422); }
-        }
+        #intro-credits .credits-names { display:flex;gap:24px;flex-wrap:wrap;justify-content:center; }
         #intro-credits .credits-dev {
-            font-family: 'Metamorphous', serif;
-            font-size: 1.1rem;
-            font-weight: bold;
-            letter-spacing: 2px;
+            font-family:'Metamorphous',serif;font-size:1rem;font-weight:bold;
+            color:#3a1020;letter-spacing:1px;
         }
-        .intro-drip {
-            position: absolute;
-            top: 0;
-            width: 2px;
-            background: linear-gradient(to bottom, #8b50ff, #4020cc, transparent);
-            box-shadow: 0 0 8px rgba(120, 60, 255, 0.8), 0 0 3px #a78bff;
-            border-radius: 0 0 50% 50%;
-            opacity: 0;
-            animation: dripDown var(--drip-dur) ease-in forwards;
-            animation-delay: var(--drip-delay);
-        }
-        @keyframes dripDown {
-            0%   { opacity: 0; height: 0; }
-            20%  { opacity: 1; }
-            100% { opacity: 0.7; height: var(--drip-len); }
-        }
+        #cred-1 { color:#6a1a30; }
+
 /* ================================================================= */
 /* ABYSSAL ARENA STYLES (NEW!) */
 /* ================================================================= */
@@ -2892,12 +2835,22 @@ text-decoration: underline; /* Adds an underline on hover */
         <div id="intro-vignette"></div>
         <div id="intro-flash"></div>
         <div id="intro-scanline"></div>
+        <!-- Blood drips from ceiling -->
+        <div id="intro-drips"></div>
+        <!-- Floating soul orbs -->
+        <div id="intro-souls"></div>
+        <!-- Centre sigil -->
+        <div id="intro-sigil">☠</div>
+        <!-- Horizontal rift crack -->
+        <div id="intro-rift"></div>
 
         <div id="intro-title">
             <div id="intro-title-top">Soul Collector</div>
             <div id="intro-rune-line"></div>
             <div id="intro-subtitle">Abyssal Ascension</div>
         </div>
+
+        <div id="intro-tagline">Every soul has a price.</div>
 
         <div id="intro-credits">
             <div class="credits-label">Created by</div>
@@ -2909,6 +2862,7 @@ text-decoration: underline; /* Adds an underline on hover */
                 <span class="credits-dev" id="cred-5">RecoveringSoul</span>
             </div>
         </div>
+        <div id="intro-enter">— touch to descend —</div>
     </div>
 
     <!-- ══ SOUL COLLECTOR PROLOGUE — first-time players only ══ -->
@@ -5970,6 +5924,31 @@ text-decoration: underline; /* Adds an underline on hover */
                     <!-- Keys of the Abyss — hidden until you hold one -->
                     <div id="key-settings-panel" style="display:none;"></div>
 
+                    <!-- ═══ DISCORD ═══ -->
+                    <div id="main-discord-section" style="background:linear-gradient(135deg,#06080f,#0a0d1a);border:1px solid #7289da22;border-radius:14px;overflow:hidden;">
+                        <div style="padding:12px 18px;border-bottom:1px solid #7289da11;display:flex;align-items:center;gap:8px;">
+                            <span style="width:8px;height:8px;background:#7289da;border-radius:50%;box-shadow:0 0 8px #7289da;flex-shrink:0;"></span>
+                            <span style="color:#7289da;font-family:var(--font-title);font-size:0.72em;letter-spacing:3px;">DISCORD</span>
+                            <span id="main-discord-linked-pill" style="display:none;background:#7289da22;border:1px solid #7289da44;border-radius:20px;padding:1px 10px;font-size:0.65em;color:#7289da;margin-left:auto;">✅ Linked</span>
+                        </div>
+                        <div style="padding:14px 18px;">
+                            <p style="color:#334;font-size:0.75em;margin:0 0 12px;">Link your Discord account to claim in-game giveaways. You must have chatted in the <strong style="color:#5566aa;">#game-chat</strong> channel in our Discord first.</p>
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+                                <input type="text" id="main-discord-input" maxlength="32" placeholder="Your Discord username (e.g. dxxthly.)"
+                                    style="flex:1;min-width:140px;background:#07060f;border:1px solid #7289da33;color:#fff;padding:10px 13px;border-radius:8px;font-family:inherit;font-size:0.85em;outline:none;transition:border-color .2s;"
+                                    onfocus="this.style.borderColor='#7289da88'" onblur="this.style.borderColor='#7289da33'">
+                                <button onclick="window._linkDiscordUsername('main')"
+                                    style="background:linear-gradient(135deg,#1a1a3a,#2a2a5a);border:1px solid #7289da55;border-radius:8px;padding:10px 18px;color:#7289da;cursor:pointer;font-family:inherit;font-size:0.82em;font-weight:bold;white-space:nowrap;letter-spacing:1px;transition:all .2s;"
+                                    onmouseover="this.style.borderColor='#7289daaa';this.style.background='linear-gradient(135deg,#2a2a4a,#3a3a6a)'"
+                                    onmouseout="this.style.borderColor='#7289da55';this.style.background='linear-gradient(135deg,#1a1a3a,#2a2a5a)'">
+                                    🔗 Link Account
+                                </button>
+                            </div>
+                            <div id="main-discord-status" style="color:#555;font-size:0.72em;min-height:16px;line-height:1.5;"></div>
+                            <a href="https://dsc.gg/143X" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;color:#7289da;font-size:0.72em;text-decoration:none;opacity:0.7;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.7">↗ Join 143X Discord</a>
+                        </div>
+                    </div>
+
                     <!-- ═══ CHALLENGES ═══ -->
                     <div style="background:linear-gradient(135deg,#0c0900,#1a1300);border:1px solid #c8a80022;border-radius:14px;overflow:hidden;">
                         <div style="padding:12px 18px;border-bottom:1px solid #c8a80011;display:flex;align-items:center;justify-content:space-between;">
@@ -6717,40 +6696,42 @@ window.onload = function() {
     // --- PARTICLE CANVAS ---
     const canvas = document.getElementById('intro-canvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
+    // ── Canvas particles: rising souls + falling embers ──────────────────
     const particles = [];
-    for (let i = 0; i < 120; i++) {
+    for (let i = 0; i < 180; i++) {
+        const isSoul = Math.random() > 0.4;
         particles.push({
             x: Math.random() * canvas.width,
-            y: canvas.height + Math.random() * 200,
-            size: Math.random() * 3 + 1,
-            speedY: Math.random() * 1.2 + 0.3,
-            speedX: (Math.random() - 0.5) * 0.5,
-            opacity: Math.random() * 0.7 + 0.3,
-            hue: Math.random() > 0.6 ? 265 : (Math.random() > 0.5 ? 220 : 45), // mostly purple, some blue, some gold
+            y: isSoul ? canvas.height + Math.random() * 300 : Math.random() * canvas.height,
+            size: Math.random() * 2.5 + 0.8,
+            speedY: isSoul ? -(Math.random() * 1.4 + 0.4) : (Math.random() * 0.6 + 0.1),
+            speedX: (Math.random() - 0.5) * 0.6,
+            opacity: Math.random() * 0.6 + 0.2,
+            hue: isSoul ? (Math.random() > 0.5 ? 270 : 320) : 0, // purple/pink souls, red embers
+            isSoul,
         });
     }
-
     function drawParticles() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         particles.forEach(p => {
-            p.y -= p.speedY;
-            p.x += p.speedX;
-            p.opacity -= 0.002;
-            if (p.y < -10 || p.opacity <= 0) {
-                p.y = canvas.height + 10;
+            p.y += p.speedY;
+            p.x += p.speedX + Math.sin(Date.now() * 0.001 + p.x) * 0.3;
+            p.opacity -= 0.0015;
+            const reset = p.isSoul ? p.y < -20 : p.y > canvas.height + 20;
+            if (reset || p.opacity <= 0) {
+                p.y = p.isSoul ? canvas.height + 20 : -20;
                 p.x = Math.random() * canvas.width;
-                p.opacity = Math.random() * 0.7 + 0.3;
+                p.opacity = Math.random() * 0.6 + 0.2;
             }
             ctx.save();
             ctx.globalAlpha = p.opacity;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = `hsl(${p.hue}, 100%, 50%)`;
-            ctx.fillStyle = `hsl(${p.hue}, 100%, 60%)`;
+            ctx.shadowBlur = p.isSoul ? 14 : 6;
+            ctx.shadowColor = `hsl(${p.hue}, 100%, ${p.isSoul ? 60 : 50}%)`;
+            ctx.fillStyle = `hsl(${p.hue}, 100%, ${p.isSoul ? 65 : 55}%)`;
             ctx.beginPath();
-            ctx.ellipse(p.x, p.y, p.size * 0.5, p.size * 1.8, 0, 0, Math.PI * 2);
+            ctx.ellipse(p.x, p.y, p.size * 0.5, p.size * 2, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         });
@@ -6758,53 +6739,63 @@ window.onload = function() {
     }
     drawParticles();
 
-    // --- BLOOD DRIPS ---
-    setTimeout(() => {
-        for (let i = 0; i < 18; i++) {
-            const drip = document.createElement('div');
-            drip.className = 'intro-drip';
-            const len = (Math.random() * 30 + 15) + 'vh';
-            drip.style.cssText = `
-                left: ${Math.random() * 100}%;
-                width: ${Math.random() * 2 + 1}px;
-                --drip-dur: ${(Math.random() * 1.5 + 1).toFixed(2)}s;
-                --drip-delay: ${(Math.random() * 2).toFixed(2)}s;
-                --drip-len: ${len};
-            `;
-            introOverlay.appendChild(drip);
+    // ── Blood drips from ceiling ──────────────────────────────────────────
+    const dripContainer = document.getElementById('intro-drips');
+    if (dripContainer) {
+        for (let i = 0; i < 22; i++) {
+            const d = document.createElement('div');
+            d.className = 'i-drip';
+            const h = (Math.random() * 35 + 12) + 'vh';
+            d.style.cssText = 'left:' + (Math.random()*100).toFixed(1) + '%;'
+                + 'width:' + (Math.random()*2+1).toFixed(1) + 'px;'
+                + '--dd:' + (Math.random()*2+1).toFixed(2) + 's;'
+                + '--dl:' + (Math.random()*3.5).toFixed(2) + 's;'
+                + '--dh:' + h + ';';
+            dripContainer.appendChild(d);
         }
-    }, 200);
+    }
 
-    // --- GLITCH BURSTS on title after it appears ---
+    // ── Floating emoji souls ──────────────────────────────────────────────
+    const soulContainer = document.getElementById('intro-souls');
+    const soulEmojis = ['👻','💀','🌑','⚫','🔮'];
+    if (soulContainer) {
+        for (let i = 0; i < 14; i++) {
+            const s = document.createElement('div');
+            s.className = 'i-soul';
+            s.textContent = soulEmojis[Math.floor(Math.random() * soulEmojis.length)];
+            s.style.cssText = 'left:' + (Math.random()*90+5).toFixed(1) + '%;'
+                + 'bottom:' + (Math.random()*40+5).toFixed(1) + '%;'
+                + '--ss:' + (Math.random()*1.4+0.8).toFixed(1) + 'rem;'
+                + '--sd:' + (Math.random()*4+3).toFixed(1) + 's;'
+                + '--sl:' + (Math.random()*5).toFixed(1) + 's;';
+            soulContainer.appendChild(s);
+        }
+    }
+
+    // ── Glitch bursts on title ────────────────────────────────────────────
     const titleEl = document.getElementById('intro-title-top');
     setTimeout(() => {
-        // Lock opacity so replacing the animation doesn't hide the element
         titleEl.style.opacity = '1';
-        let glitches = 0;
-        const glitchInterval = setInterval(() => {
+        let g = 0;
+        const gi = setInterval(() => {
             titleEl.classList.add('glitch-active');
-            setTimeout(() => {
-                titleEl.classList.remove('glitch-active');
-                titleEl.style.opacity = '1'; // Re-lock after each glitch
-            }, 150);
-            glitches++;
-            if (glitches >= 3) clearInterval(glitchInterval);
-        }, 400);
-    }, 2600); // after slam animation fully finishes
+            setTimeout(() => { titleEl.classList.remove('glitch-active'); titleEl.style.opacity='1'; }, 150);
+            if (++g >= 4) clearInterval(gi);
+        }, 350);
+    }, 2500);
 
-    // --- CREDITS RAINBOW NAMES ---
-    const flashColors = ['#ff2244','#2979ff','#00e676','#ff4dd2'];
+    // ── Credits letter-by-letter colour flash ────────────────────────────
     function animateCreditsName(el) {
         el.innerHTML = el.textContent.split('').map((ch, i) =>
-            `<span style="display:inline-block;animation:devFlash 1.6s infinite linear;animation-delay:${i*0.13}s;font-weight:bold;">${ch}</span>`
+            '<span style="display:inline-block;animation:devFlash 1.8s infinite linear;animation-delay:' + (i*0.11) + 's;font-weight:bold;">' + ch + '</span>'
         ).join('');
     }
     setTimeout(() => {
-        ['cred-1','cred-2','cred-3','cred-4','cred-5'].forEach(id => {
+        ['cred-1','cred-2','cred-3','cred-4','cred-5'].forEach(function(id) {
             const el = document.getElementById(id);
             if (el) animateCreditsName(el);
         });
-    }, 4100);
+    }, 4300);
 
     // --- DISMISS FUNCTION ---
     function dismissIntro() {
@@ -15338,6 +15329,24 @@ function showScreen(screenId) {
     
     // Handle screen-specific loading
     if (screenId === 'settings') {
+        // Populate Discord field
+        (function() {
+            var _di = document.getElementById('main-discord-input');
+            var _dp = document.getElementById('main-discord-linked-pill');
+            var _ds = document.getElementById('main-discord-status');
+            var _cdb6 = window._chatDb || (window._scFirebase && window._scFirebase.chatDb);
+            var _uid6 = window._chatUid || window._scChatUid;
+            if (_di && _cdb6 && _uid6) {
+                _cdb6.ref('playerData/' + _uid6 + '/discordUsername').once('value', function(snap) {
+                    var saved = snap.val();
+                    if (saved) {
+                        _di.value = saved;
+                        if (_dp) _dp.style.display = 'inline-block';
+                        if (_ds) { _ds.textContent = '✅ Linked: ' + saved; _ds.style.color = '#7289da'; }
+                    }
+                });
+            }
+        })();
         updateAccountBtn();
         if (typeof window._devPanelInit === 'function') window._devPanelInit();
         // Update donation preview with player's actual name
@@ -23673,6 +23682,337 @@ function initializeChat() {
             });
         }
 
+        // ── Chat Giveaway System ─────────────────────────────────────────
+        // Fires every 15–120 min. Only Discord-verified players can claim.
+        // Prize table: common=currencies, rare=items, legendary=key (0.1%)
+        (function() {
+            var _gdb = db;                         // firebase chat db
+            var _gSelf = uid;                      // our uid
+            var _gGwRef = 'active_giveaway';       // single live giveaway node
+            var _GW_DISCORD_LINK = 'https://dsc.gg/143X';
+
+            // ── Prize table ─────────────────────────────────────────────
+            var _GW_PRIZES = [
+                // weight, type, label, icon, generator
+                { w:28, t:'souls',    label:'Souls',            icon:'👻', gen:function(){ return { amt: Math.floor(Math.random()*9e6+1e6), currency:'souls' }; } },
+                { w:22, t:'souls',    label:'Souls',            icon:'👻', gen:function(){ return { amt: Math.floor(Math.random()*9e7+1e7), currency:'souls' }; } },
+                { w:16, t:'essence',  label:'Dark Essence',     icon:'🌑', gen:function(){ return { amt: Math.floor(Math.random()*5e5+5e4), currency:'darkEssence' }; } },
+                { w:12, t:'shards',   label:'Abyssal Shards',   icon:'💎', gen:function(){ return { amt: Math.floor(Math.random()*2e4+1e3), currency:'abyssalShards' }; } },
+                { w:8,  t:'aether',   label:'Aether',           icon:'✨', gen:function(){ return { amt: Math.floor(Math.random()*500+100), currency:'aether' }; } },
+                { w:6,  t:'frags',    label:'Corrupted Frags',  icon:'🔮', gen:function(){ return { amt: Math.floor(Math.random()*200+50), currency:'corruptedFragments' }; } },
+                { w:4,  t:'mixed',    label:'Mixed Bundle',     icon:'🎁', gen:function(){ return { amt:0, mixed:true, souls:Math.floor(Math.random()*5e7+5e6), essence:Math.floor(Math.random()*2e5+1e4) }; } },
+                { w:3,  t:'rep',      label:'Rep Boost',        icon:'⭐', gen:function(){ return { amt: Math.floor(Math.random()*30+20), rep:true }; } },
+                { w:1,  t:'key',      label:'🗝️ KEY OF THE ABYSS', icon:'🗝️', gen:function(){ return { amt:1, isKey:true }; } },
+            ];
+            var _GW_TOTAL_W = _GW_PRIZES.reduce(function(s,p){ return s + p.w; }, 0);
+
+            function _gwRollPrize() {
+                var r = Math.random() * _GW_TOTAL_W, acc = 0;
+                for (var i = 0; i < _GW_PRIZES.length; i++) {
+                    acc += _GW_PRIZES[i].w;
+                    if (r <= acc) return Object.assign({}, _GW_PRIZES[i], _GW_PRIZES[i].gen());
+                }
+                return Object.assign({}, _GW_PRIZES[0], _GW_PRIZES[0].gen());
+            }
+
+            // ── Post a giveaway to chat ──────────────────────────────────
+            function _gwPost() {
+                if (!_gdb) return;
+                var prize = _gwRollPrize();
+                var gwId = 'gw_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+                var claimWindow = 5 * 60 * 1000; // 5 minutes to claim
+                var expiresAt = Date.now() + claimWindow;
+                var prizeDesc = prize.isKey
+                    ? '🗝️ KEY OF THE ABYSS'
+                    : (prize.mixed
+                        ? '🎁 ' + formatNumber(D(prize.souls)) + ' Souls + ' + formatNumber(D(prize.essence)) + ' Essence'
+                        : prize.rep
+                            ? '⭐ +' + prize.amt + ' Rep'
+                            : prize.icon + ' ' + formatNumber(D(prize.amt)) + ' ' + prize.label);
+
+                // Write the active giveaway node
+                _gdb.ref(_gGwRef).set({
+                    id: gwId,
+                    prizeDesc: prizeDesc,
+                    prize: prize,
+                    expiresAt: expiresAt,
+                    claimedBy: null,
+                    postedAt: firebase.database.ServerValue.TIMESTAMP,
+                });
+
+                // Post the message to chat
+                _gdb.ref('slitherChat').push({
+                    uid: 'system',
+                    name: '🎁 Abyss Giveaway',
+                    chatNameColor: '#c8a800',
+                    time: firebase.database.ServerValue.TIMESTAMP,
+                    isGiveaway: true,
+                    gwId: gwId,
+                    prizeDesc: prizeDesc,
+                    expiresAt: expiresAt,
+                    text: '\u0002GW\u0003' + gwId + '\u0002PRIZE\u0003' + prizeDesc + '\u0002END\u0003',
+                });
+
+                console.log('[Giveaway] Posted:', prizeDesc, 'id:', gwId);
+            }
+
+            // ── Schedule next giveaway ───────────────────────────────────
+            function _gwScheduleNext() {
+                var minMs = 15 * 60 * 1000;
+                var maxMs = 120 * 60 * 1000;
+                var delay = Math.floor(Math.random() * (maxMs - minMs)) + minMs;
+                console.log('[Giveaway] Next in', Math.round(delay/60000), 'min');
+                setTimeout(function() {
+                    _gwPost();
+                    _gwScheduleNext();
+                }, delay);
+            }
+
+            // ── Claim handler ────────────────────────────────────────────
+            window._gwClaim = function(gwId) {
+                if (!_gdb || !_gSelf) {
+                    Toastify({text:'⚠ Not connected to chat. Try again.',duration:3000,gravity:'top',position:'center',style:{background:'#332200'}}).showToast();
+                    return;
+                }
+                var playerName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
+
+                // Step 1: Check Discord username is linked
+                _gdb.ref('playerData/' + _gSelf + '/discordUsername').once('value', function(snap) {
+                    var discordUser = snap.val();
+                    if (!discordUser) {
+                        // No Discord linked — show gate
+                        _gwShowDiscordGate(gwId);
+                        return;
+                    }
+                    // Step 2: Try to claim atomically
+                    _gwAttemptClaim(gwId, playerName);
+                });
+            };
+
+            function _gwAttemptClaim(gwId, playerName) {
+                _gdb.ref(_gGwRef).transaction(function(current) {
+                    if (!current) return; // no giveaway active
+                    if (current.id !== gwId) return; // wrong giveaway
+                    if (current.claimedBy) return; // already claimed — abort
+                    if (Date.now() > current.expiresAt) return; // expired — abort
+                    current.claimedBy = _gSelf;
+                    current.claimedByName = playerName;
+                    current.claimedAt = Date.now();
+                    return current;
+                }, function(err, committed, snap) {
+                    if (err || !committed) {
+                        Toastify({text:'😔 Already claimed or expired!',duration:3500,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#220000,#440000)'}}).showToast();
+                        return;
+                    }
+                    var data = snap.val();
+                    var prize = data.prize;
+                    _gwAwardPrize(prize, playerName, data.prizeDesc);
+                });
+            }
+
+            function _gwAwardPrize(prize, playerName, prizeDesc) {
+                // Apply prize to player
+                if (prize.isKey) {
+                    // Key award — grant a random abyss key
+                    var keyIds = ['key_of_shadows','key_of_void','key_of_ruin','key_of_entropy'];
+                    var keyId = keyIds[Math.floor(Math.random()*keyIds.length)];
+                    if (typeof KEYS !== 'undefined' && KEYS[keyId]) {
+                        gameState.heldKey = { id: keyId, obtainedAt: Date.now() };
+                        saveGame();
+                    }
+                } else if (prize.mixed) {
+                    gameState.souls = D(gameState.souls||0).add(D(prize.souls));
+                    gameState.darkEssence = D(gameState.darkEssence||0).add(D(prize.essence));
+                    saveGame();
+                } else if (prize.rep) {
+                    _gdb.ref('playerData/' + _gSelf + '/rep').transaction(function(c){ return (c||0) + prize.amt; });
+                } else if (prize.currency) {
+                    if (prize.currency === 'souls') {
+                        gameState.souls = D(gameState.souls||0).add(D(prize.amt));
+                    } else {
+                        gameState[prize.currency] = D(gameState[prize.currency]||0).add(D(prize.amt));
+                    }
+                    saveGame();
+                }
+                updateDynamicDisplays();
+
+                // Announce in chat
+                _gdb.ref('slitherChat').push({
+                    uid: 'system', name: '🎁 Abyss Giveaway',
+                    chatNameColor: '#44cc88',
+                    time: firebase.database.ServerValue.TIMESTAMP,
+                    text: '🎉 ' + playerName + ' claimed the giveaway and won ' + prizeDesc + '!',
+                });
+
+                Toastify({
+                    text: '🎁 You won: ' + prizeDesc,
+                    duration: 8000, gravity: 'top', position: 'center',
+                    style: { background: 'linear-gradient(135deg,#1a1a00,#c8a80033,#1a1a00)' }
+                }).showToast();
+            }
+
+            // ── Discord gate popup ───────────────────────────────────────
+            function _gwShowDiscordGate(gwId) {
+                var ex = document.getElementById('gw-discord-gate');
+                if (ex) ex.remove();
+                var el = document.createElement('div');
+                el.id = 'gw-discord-gate';
+                el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:10005;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+                el.innerHTML = '<div style="background:linear-gradient(135deg,#0d0a1a,#1a102a);border:1px solid #aa44ff55;border-top:3px solid #7289da;border-radius:16px;padding:32px 28px;max-width:420px;width:92%;text-align:center;position:relative;">'
+                    + '<button onclick="document.getElementById(\'gw-discord-gate\').remove()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:#444;font-size:1.3em;cursor:pointer;">×</button>'
+                    + '<div style="font-size:2.5em;margin-bottom:12px;">🎁</div>'
+                    + '<div style="color:#7289da;font-family:var(--font-title);font-size:1.1em;letter-spacing:2px;margin-bottom:8px;">DISCORD REQUIRED</div>'
+                    + '<div style="color:#554466;font-size:0.82em;line-height:1.7;margin-bottom:20px;">Giveaways are exclusive to <strong style="color:#7289da;">143X Discord</strong> members.<br>Join the server, chat in it once so we see your username, then link your account in Chat Settings.</div>'
+                    + '<a href="' + _GW_DISCORD_LINK + '" target="_blank" rel="noopener" style="display:inline-block;background:#7289da;color:#fff;font-weight:bold;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:0.9em;margin-bottom:14px;letter-spacing:1px;">Join 143X Discord ↗</a>'
+                    + '<br>'
+                    + '<button onclick="document.getElementById(\'gw-discord-gate\').remove();document.getElementById(\'chat-settings-btn\').click();" style="background:linear-gradient(135deg,#1a1a3a,#2a2a5a);border:1px solid #7289da55;border-radius:8px;padding:8px 20px;color:#7289da;cursor:pointer;font-family:inherit;font-size:0.82em;margin-top:8px;letter-spacing:1px;">⚙ Open Chat Settings to Link Discord</button>'
+                    + '<div style="color:#333;font-size:0.68em;margin-top:10px;line-height:1.5;">Already joined? Chat in <strong>#game-chat</strong> in the Discord, then link your username in ⚙ Chat Settings.</div>'
+                    + '</div>';
+                document.body.appendChild(el);
+            }
+
+            // ── Discord verify flow ──────────────────────────────────────
+            // Opens Discord OAuth in a popup window; the redirect URL writes to Firebase.
+            // For now: honour-system self-verify (you can harden with OAuth later).
+            window._gwVerifyDiscord = function(gwId) {
+                var status = document.getElementById('gw-verify-status');
+                if (status) status.textContent = 'Verifying…';
+                // Check if player has been in the Discord (joined message was ever seen)
+                // Harden this by checking a server-side record or Discord OAuth
+                _gdb.ref('discordMembers/' + _gSelf).once('value', function(snap) {
+                    if (snap.val()) {
+                        // Already on the verified list
+                        _gdb.ref('playerData/' + _gSelf + '/discordVerified').set(true, function() {
+                            if (status) status.textContent = '✅ Verified! Claiming now…';
+                            setTimeout(function() {
+                                var gate = document.getElementById('gw-discord-gate');
+                                if (gate) gate.remove();
+                                window._gwClaim(gwId);
+                            }, 800);
+                        });
+                    } else {
+                        if (status) {
+                            status.style.color = '#ff6644';
+                            status.textContent = 'Not detected in Discord yet. Join the server first, then try again.';
+                        }
+                    }
+                });
+            };
+
+            // ── Listen for active giveaways ──────────────────────────────
+            _gdb.ref(_gGwRef).on('value', function(snap) {
+                var gw = snap.val();
+                var btn = document.getElementById('gw-claim-btn');
+                if (!gw || gw.claimedBy || Date.now() > gw.expiresAt) {
+                    if (btn) btn.remove();
+                    return;
+                }
+                // Update any visible claim buttons
+                if (btn) {
+                    btn.dataset.gwid = gw.id;
+                    btn.disabled = false;
+                    btn.textContent = '🎁 Claim: ' + gw.prizeDesc;
+                }
+            });
+
+            // ── Only the "host" client posts giveaways ───────────────────
+            // Use Firebase to elect a single poster: first client to write wins
+            if (typeof isDev === 'function' && isDev(_gSelf)) {
+                // Dev always schedules (ensures someone always runs it)
+                _gwScheduleNext();
+            } else {
+                // Non-dev: race for the scheduler lock (1 per server)
+                _gdb.ref('giveaway_scheduler_lock').transaction(function(cur) {
+                    if (cur && (Date.now() - cur.ts) < 10 * 60 * 1000) return; // lock held
+                    return { uid: _gSelf, ts: Date.now() };
+                }, function(err, committed) {
+                    if (committed) {
+                        _gwScheduleNext();
+                        // Renew lock every 9 minutes
+                        setInterval(function() {
+                            _gdb.ref('giveaway_scheduler_lock').set({ uid: _gSelf, ts: Date.now() });
+                        }, 9 * 60 * 1000);
+                    }
+                });
+            }
+        })();
+
+        // ── Discord Username Linking ──────────────────────────────────────
+        window._linkDiscordUsername = function(source) {
+            // source='main' = game settings page, else = chat settings modal
+            var isMain = source === 'main';
+            var input  = document.getElementById(isMain ? 'main-discord-input'          : 'settings-discord-username');
+            var status = document.getElementById(isMain ? 'main-discord-status'         : 'settings-discord-status');
+            var badge  = document.getElementById(isMain ? 'main-discord-linked-pill'    : 'settings-discord-linked-badge');
+            var btn    = document.getElementById(isMain ? null                          : 'settings-discord-link-btn');
+            if (!input || !status) return;
+
+            var raw = input.value.trim();
+            var username = raw.toLowerCase();
+            if (!username) {
+                status.textContent = '⚠ Enter your Discord username first.';
+                status.style.color = '#ff8844';
+                return;
+            }
+
+            var _cdb5 = (typeof _getChatDb === 'function') ? _getChatDb() : null;
+            var _uid5 = (typeof _getChatUid === 'function') ? _getChatUid() : null;
+            if (!_cdb5 || !_uid5) {
+                status.textContent = '⚠ Chat not connected. Try again.';
+                status.style.color = '#ff8844';
+                return;
+            }
+
+            if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+            status.textContent = 'Checking your Discord username…';
+            status.style.color = '#555';
+
+            // Firebase key-safe version (dots → _DOT_)
+            var _safeKey = username.replace(/\./g, '_DOT_');
+
+            // Step 1: Check this Discord username has been seen in your server
+            _cdb5.ref('discordMembers/' + _safeKey).once('value', function(snap) {
+                var memberData = snap.val();
+                if (!memberData) {
+                    status.textContent = '\u274C "' + raw + '" has not been seen in the 143X Discord. Chat in #game-chat in the server first, then try again.';
+                    status.style.color = '#ff4444';
+                    if (btn) { btn.disabled = false; btn.textContent = '🔗 Link Account'; }
+                    return;
+                }
+
+                // Step 2: Check no other UID already owns this username
+                _cdb5.ref('discordLinks/' + _safeKey).once('value', function(linkSnap) {
+                    var existingUid = linkSnap.val();
+                    if (existingUid && existingUid !== _uid5) {
+                        status.textContent = '❌ That Discord account is already linked to another player.';
+                        status.style.color = '#ff4444';
+                        if (btn) { btn.disabled = false; btn.textContent = '🔗 Link Account'; }
+                        return;
+                    }
+
+                    // Step 3: Save the link
+                    var saves = [
+                        _cdb5.ref('playerData/' + _uid5 + '/discordUsername').set(raw),
+                        _cdb5.ref('playerData/' + _uid5 + '/discordVerified').set(true),
+                        _cdb5.ref('discordLinks/' + _safeKey).set(_uid5),
+                    ];
+                    Promise.all(saves).then(function() {
+                        status.textContent = '✅ Linked! You can now claim giveaways.';
+                        status.style.color = '#7289da';
+                        if (badge) badge.style.display = 'block';
+                        if (btn) { btn.disabled = false; btn.textContent = '🔗 Link Account'; }
+                        if (typeof Toastify !== 'undefined') {
+                            Toastify({ text: '🎮 Discord account linked: ' + raw, duration: 4000, gravity: 'top', position: 'center', style: { background: 'linear-gradient(135deg,#1a1a3a,#7289da33)' } }).showToast();
+                        }
+                    }).catch(function() {
+                        status.textContent = '⚠ Save failed. Try again.';
+                        status.style.color = '#ff8844';
+                        if (btn) { btn.disabled = false; btn.textContent = '🔗 Link Account'; }
+                    });
+                });
+            });
+        };
+
         // ── Trade Proposal System ────────────────────────────────────
         // Sends a chat trade-request message; target sees Accept/Decline buttons
 
@@ -23760,7 +24100,59 @@ function initializeChat() {
                 // _bc === false → not banned, fall through
             }
 
-            var _trId=(function(){var pfx='\u0002T\u0003',sfx='\u0002E\u0003';if(!msg.text||msg.text.indexOf(pfx)===-1)return null;var s=msg.text.indexOf(pfx)+pfx.length,e=msg.text.indexOf(sfx,s);return s<e?msg.text.slice(s,e):null;})();
+            // ── Giveaway message rendering ──────────────────────────────
+            var _gwPfx='GW', _gwPrizePfx='PRIZE', _gwEnd='END';
+            if (msg.text && msg.text.indexOf(_gwPfx) !== -1) {
+                var _gwIdS = msg.text.indexOf(_gwPfx) + _gwPfx.length;
+                var _gwIdE = msg.text.indexOf(_gwPrizePfx, _gwIdS);
+                var _gwPrS = _gwIdE + _gwPrizePfx.length;
+                var _gwPrE = msg.text.indexOf(_gwEnd, _gwPrS);
+                var _gwId2 = (_gwIdE > _gwIdS) ? msg.text.slice(_gwIdS, _gwIdE) : null;
+                var _gwPrize2 = (_gwPrE > _gwPrS) ? msg.text.slice(_gwPrS, _gwPrE) : '?';
+                if (_gwId2) {
+                    var _isKey2 = _gwPrize2.indexOf('KEY OF THE ABYSS') !== -1;
+                    var _gwEl = document.createElement('div');
+                    _gwEl.dataset.gwid = _gwId2;
+                    _gwEl.style.cssText = 'margin:10px 0;padding:16px 18px;'
+                        + 'background:linear-gradient(135deg,#1a1000,#2a1a00,#1a1000);'
+                        + 'border:1px solid ' + (_isKey2 ? '#c8a800' : '#c8a80044') + ';'
+                        + 'border-left:3px solid ' + (_isKey2 ? '#c8a800' : '#c8a800') + ';'
+                        + 'border-radius:12px;position:relative;overflow:hidden;'
+                        + (_isKey2 ? 'box-shadow:0 0 30px #c8a80033,0 0 60px #c8a80011;animation:gwKeyPulse 2s ease-in-out infinite;' : '');
+                    _gwEl.innerHTML = '<div style="color:#c8a800;font-size:0.68em;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">🎁 ABYSS GIVEAWAY</div>'
+                        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">'
+                        + '<div style="flex:1;">'
+                        + '<div style="color:' + (_isKey2 ? '#ffe066' : '#e0cc88') + ';font-weight:bold;font-size:' + (_isKey2 ? '1.05em' : '0.95em') + ';margin-bottom:4px;">' + escapeHTML(_gwPrize2) + '</div>'
+                        + '<div style="color:#443300;font-size:0.68em;">First eligible Discord member to claim wins · <span id="gw-timer-' + _gwId2 + '">5:00</span> remaining</div>'
+                        + '</div>'
+                        + '<button id="gw-claim-btn-' + _gwId2 + '" onclick="window._gwClaim(\'' + _gwId2 + '\')" '
+                        + 'style="background:linear-gradient(135deg,#3a2a00,#c8a80033);border:1px solid #c8a80077;border-radius:9px;padding:9px 20px;color:#c8a800;font-weight:bold;font-family:inherit;font-size:0.85em;cursor:pointer;white-space:nowrap;letter-spacing:1px;transition:all .2s;"'
+                        + '>'                        
+                        + '🎁 Claim</button>'
+                        + '</div>';
+                    chatBodyElement.appendChild(_gwEl);
+                    if (shouldScroll) chatBodyElement.scrollTop = chatBodyElement.scrollHeight;
+
+                    // Countdown timer
+                    var _gwExpiry2 = msg.expiresAt || (Date.now() + 5*60*1000);
+                    var _gwTimer2 = setInterval(function() {
+                        var _timerEl = document.getElementById('gw-timer-' + _gwId2);
+                        var _claimEl = document.getElementById('gw-claim-btn-' + _gwId2);
+                        var _secsLeft2 = Math.max(0, Math.ceil((_gwExpiry2 - Date.now()) / 1000));
+                        var _m2 = Math.floor(_secsLeft2 / 60), _s2 = _secsLeft2 % 60;
+                        if (_timerEl) _timerEl.textContent = _m2 + ':' + (_s2 < 10 ? '0' : '') + _s2;
+                        if (_secsLeft2 <= 0) {
+                            clearInterval(_gwTimer2);
+                            if (_claimEl) { _claimEl.disabled = true; _claimEl.textContent = 'Expired'; _claimEl.style.opacity = '0.35'; _claimEl.style.cursor = 'default'; }
+                            if (_timerEl) _timerEl.textContent = 'Expired';
+                        }
+                    }, 1000);
+                    return;
+                }
+            }
+            // ────────────────────────────────────────────────────────────
+
+            var _trId=(function(){var pfx='T',sfx='E';if(!msg.text||msg.text.indexOf(pfx)===-1)return null;var s=msg.text.indexOf(pfx)+pfx.length,e=msg.text.indexOf(sfx,s);return s<e?msg.text.slice(s,e):null;})();
             if(_trId){var tel=document.createElement('div');tel.style.cssText='margin:8px 0;padding:14px 16px;background:linear-gradient(135deg,#0a1a0a,#0e1a0e);border:1px solid #44cc8844;border-left:3px solid #44cc88;border-radius:10px;';tel.dataset.tradeid=_trId;tel.innerHTML='<div style="color:#44cc88;font-size:0.7em;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">🤝 Trade Proposal</div><div style="color:#555;font-size:0.75em;">Loading...</div>';chatBodyElement.appendChild(tel);if(shouldScroll)chatBodyElement.scrollTop=chatBodyElement.scrollHeight;
                 function _rt(tr){if(!tr||!tel.parentNode)return;var mn2=gameState.playerName||localStorage.getItem('slitherChatNickname')||'';var isTgt=mn2===tr.to,isFrm=mn2===tr.from;var ab='';if(isTgt){var da='data-tradeid="'+escapeHTML(tr.id||'')+'" data-from="'+escapeHTML(tr.from||'')+'" data-wanticon="'+escapeHTML(tr.wantIcon||'')+'" data-wantname="'+escapeHTML(tr.wantName||'')+'" data-offertext="'+escapeHTML(tr.offerText||'')+'" data-wanttype="'+escapeHTML(tr.wantType||'')+'" data-wantamt="'+escapeHTML(String(tr.wantAmt||1))+'" data-offerbartertype="'+escapeHTML(tr.offerBarterType||'')+'" data-offerbarteramt="'+escapeHTML(String(tr.offerBarterAmt||1))+'"';ab='<div style="display:flex;gap:8px;margin-top:10px;"><button class="trb" '+da+' data-accepted="false" style="flex:1;background:#ff444422;border:1px solid #ff444466;border-radius:7px;padding:8px;color:#ff8888;cursor:pointer;font-family:inherit;font-size:0.82em;">❌ Decline</button><button class="trb" '+da+' data-accepted="true" style="flex:2;background:linear-gradient(135deg,#44cc8833,#44cc8811);border:1px solid #44cc8866;border-radius:7px;padding:8px;color:#44cc88;cursor:pointer;font-family:inherit;font-size:0.85em;font-weight:bold;">✅ Accept — auto-posts to Market</button></div>';}else if(isFrm){ab='<div style="color:#555;font-size:0.72em;text-align:center;margin-top:8px;font-style:italic;">Awaiting response from '+escapeHTML(tr.to||'')+'...</div>';}
                 var ms='';if(tr.offerBarterType&&tr.offerBarterType.startsWith('minion:')&&tr.minionNote){var mn=tr.minionNote;ms='<div style="color:#888;font-size:0.62em;margin-top:3px;">Lv'+mn.level+(mn.promoTier>0?' '+'★'.repeat(mn.promoTier):'')+' — <span style="color:#cc4444;">❤'+mn.scaledHp+'</span> <span style="color:#ff9944;">⚔'+mn.scaledAtk+'</span></div>';}
@@ -23785,6 +24177,22 @@ function initializeChat() {
             if (isDiscordBot) {
                 nameHtml = `<span style="color:${userColor};font-weight:bold;">${displayName}</span>`;
                 roleTagHTML = ` <span style="background: #7289DA; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">DISCORD</span>`;
+                // Extract Discord username from "Discord(username.)" and record it
+                (function() {
+                    var _rawName = msg.name || '';
+                    var _m = _rawName.match(/^Discord\((.+)\)$/);
+                    if (_m && _m[1]) {
+                        var _dUser = _m[1].trim().toLowerCase();
+                        var _cdb3 = (typeof _getChatDb === 'function') ? _getChatDb() : null;
+                        if (_cdb3 && _dUser) {
+                            // Record this Discord username as having been seen in your server
+                            _cdb3.ref('discordMembers/' + _dUser.replace(/\./g,'_DOT_')).set({
+                                displayName: _m[1].trim(),
+                                lastSeen: Date.now()
+                            });
+                        }
+                    }
+                })();
             } else if (isDev(msg.uid)) {
                 // Devs always keep rainbow name, but can override their badge display
                 nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="cursor:pointer;">${rainbowTextStyle(displayName)}</span>`;
@@ -23932,6 +24340,14 @@ function initializeChat() {
                 el.innerHTML = `<span class="chat-msg-text">${finalMessage}</span>`;
             } else if (isDiscordBot && (!msg.text || msg.text.trim() === '')) {
                 el.innerHTML = `<span class="chat-msg-time">[${timestamp}]</span><b>${nameHtml}${roleTagHTML}</b> <span style="color:#7289DA; font-size:0.9em;">joined the <a href="https://dsc.gg/143X" target="_blank" rel="noopener noreferrer" style="color:#7289DA; font-weight:bold; text-decoration:underline;">143X Discord</a>! 🎉</span>`;
+                // Mark this player as a Discord member for giveaway verification
+                if (msg.uid && !['system','discord_bot','system_badge'].includes(msg.uid)) {
+                    var _gwCdb = (typeof _getChatDb === 'function') ? _getChatDb() : null;
+                    if (_gwCdb) {
+                        _gwCdb.ref('discordMembers/' + msg.uid).set({ name: msg.name || '', verifiedAt: Date.now() });
+                        _gwCdb.ref('playerData/' + msg.uid + '/discordVerified').set(true);
+                    }
+                }
             } else {
                 el.innerHTML = `<span class="chat-msg-time">[${timestamp}]</span><b>${nameHtml}${roleTagHTML}:</b> <span class="chat-msg-text">${finalMessage}</span>`;
             }
@@ -24694,6 +25110,27 @@ function initializeChat() {
                 document.getElementById('settings-name-color').value = localStorage.getItem("slitherChatNameColor") || '#FFD700';
                 document.getElementById('settings-avatar').value = localStorage.getItem("slitherChatAvatar") || '';
                 document.getElementById('settings-motto').value = localStorage.getItem("slitherChatMotto") || '';
+                // Load existing Discord link
+                (function() {
+                    var _discInput = document.getElementById('settings-discord-username');
+                    var _discBadge = document.getElementById('settings-discord-linked-badge');
+                    var _discStatus = document.getElementById('settings-discord-status');
+                    var _cdb4 = (typeof _getChatDb === 'function') ? _getChatDb() : null;
+                    var _uid4 = (typeof _getChatUid === 'function') ? _getChatUid() : null;
+                    if (_cdb4 && _uid4 && _discInput) {
+                        _cdb4.ref('playerData/' + _uid4 + '/discordUsername').once('value', function(snap) {
+                            var saved = snap.val();
+                            if (saved) {
+                                _discInput.value = saved;
+                                if (_discBadge) _discBadge.style.display = 'block';
+                                if (_discStatus) { _discStatus.textContent = '✅ Linked to Discord: ' + saved; _discStatus.style.color = '#7289da'; }
+                            } else {
+                                if (_discBadge) _discBadge.style.display = 'none';
+                                if (_discStatus) { _discStatus.textContent = 'Not linked. Enter your Discord username to claim giveaways.'; _discStatus.style.color = '#333'; }
+                            }
+                        });
+                    }
+                })();
                 // Clan tag display toggle row
                 (function() {
                     var tag = localStorage.getItem('myClanTag');
@@ -31629,7 +32066,7 @@ Your listing will remain until someone accepts it or it expires.`;
 </div>
 
 <div id="settings-modal-overlay" class="chat-modal-overlay" style="display: none;">
-    <div id="settings-modal" class="chat-modal-content" style="min-width:unset;max-width:min(820px,96vw);width:min(820px,96vw);">
+    <div id="settings-modal" class="chat-modal-content" style="min-width:unset;max-width:min(820px,96vw);width:min(820px,96vw);overflow-y:auto;max-height:92vh;">
         <h2>⚙ Chat &amp; Profile</h2>
         <div class="chat-modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:0 28px;align-items:start;">
             <!-- LEFT COLUMN -->
@@ -31688,6 +32125,26 @@ Your listing will remain until someone accepts it or it expires.`;
                     <div id="profile-bg-preview" style="height:48px;border-radius:8px;margin-top:8px;border:1px solid #2a1a3a;transition:all 0.4s;"></div>
                 </div>
             </div>
+        </div>
+        <!-- Discord Link Section -->
+        <div style="padding:16px 28px 4px;border-top:1px solid #1a0d26;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+                <span style="font-size:1.3em;">🎮</span>
+                <div style="flex:1;">
+                    <div style="color:#7289da;font-weight:bold;font-size:0.88em;letter-spacing:1px;">DISCORD ACCOUNT</div>
+                    <div style="color:#3a3055;font-size:0.7em;margin-top:1px;">Required to claim giveaways · Must match your 143X Discord username</div>
+                </div>
+                <div id="settings-discord-linked-badge" style="display:none;background:#7289da22;border:1px solid #7289da55;border-radius:6px;padding:3px 10px;color:#7289da;font-size:0.72em;font-weight:bold;">✅ Linked</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <input type="text" id="settings-discord-username" maxlength="32" placeholder="Your Discord username (e.g. dxxthly.)"
+                    style="flex:1;min-width:160px;background:#06040e;border:1px solid #2a1a3a;color:#fff;padding:9px 12px;border-radius:7px;font-family:inherit;font-size:0.85em;">
+                <button id="settings-discord-link-btn" onclick="window._linkDiscordUsername()"
+                    style="background:linear-gradient(135deg,#1a1a3a,#2a2a5a);border:1px solid #7289da66;border-radius:7px;padding:9px 18px;color:#7289da;cursor:pointer;font-family:inherit;font-size:0.82em;font-weight:bold;white-space:nowrap;letter-spacing:1px;">
+                    🔗 Link Account
+                </button>
+            </div>
+            <div id="settings-discord-status" style="color:#555;font-size:0.72em;margin-top:8px;min-height:16px;line-height:1.5;padding-bottom:8px;"></div>
         </div>
         <div class="modal-buttons">
             <button id="settings-cancel-btn">✕ Cancel</button>
@@ -32640,29 +33097,31 @@ function gntBackToMap() {
 }
 
 function gntBeginWave(){
-    const betInput=parseInt(document.getElementById('gnt-bet-input')?.value||'0',10);
     const currency=document.getElementById('gnt-currency')?.value||'souls';
     if(gntState.wave===1){
-        if(isNaN(betInput)||betInput<=0){Toastify({text:'Enter a valid bet amount.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
-        if(D(gameState[currency] || 0).lt(D(betInput))){Toastify({text:'Not enough resources.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
-        // Block fragments from being bet
-        if(currency==='corruptedFragments'){Toastify({text:'🔮 Fragments cannot be wagered in the Gauntlet.',duration:3000,gravity:'top',position:'center',style:{background:'#330033'}}).showToast();return;}
-        // Hard bet caps to prevent exponential snowballing
-        const _betCaps = { souls: 1e15, darkEssence: 1e12, abyssalShards: 1e10, aether: 1e9 };
-        const _cap = _betCaps[currency] || 1e15;
-        if (betInput > _cap) {
-            Toastify({text:'⚠ Max bet is ' + formatNumber(D(_cap)) + ' ' + gntCurrencyLabel(currency) + '.', duration:3000,gravity:'top',position:'center',style:{background:'#331100'}}).showToast(); return;
-        }
+        // Parse bet with D() — parseInt('1e15')=1 is an exploit
+        let _rawBet = (document.getElementById('gnt-bet-input')?.value||'0').trim();
+        let betD; try { betD = D(_rawBet).floor(); } catch(e) { betD = D(0); }
+        const betInput = betD.toNumber();
+
+        // All validation BEFORE any deduction
+        if(betD.lte(0)||betD.isNaN()){Toastify({text:'Enter a valid bet amount.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
+        if(currency==='corruptedFragments'){Toastify({text:'🔮 Fragments cannot be wagered.',duration:3000,gravity:'top',position:'center',style:{background:'#330033'}}).showToast();return;}
+        const _betCaps = { souls: D(1e15), darkEssence: D(1e12), abyssalShards: D(1e10), aether: D(1e9) };
+        const _capD = _betCaps[currency] || D(1e15);
+        if(betD.gt(_capD)){Toastify({text:'⚠ Max bet: '+formatNumber(_capD)+' '+gntCurrencyLabel(currency),duration:3000,gravity:'top',position:'center',style:{background:'#331100'}}).showToast();return;}
+        if(D(gameState[currency]||0).lt(betD)){Toastify({text:'Not enough resources.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
         if(gntState.playerUnits.length===0){Toastify({text:'Deploy at least one minion.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
+
+        // Deduct AFTER all checks pass — double-save so quit can't undo it
         gntState.betAmount=betInput;gntState.betCurrency=currency;
-        // Deduct bet — souls is Decimal, others may be too
-        if (currency === 'souls') {
-            gameState.souls = D(gameState.souls).sub(D(betInput));
-            gameState.soulsSpent = D(gameState.soulsSpent || 0).add(D(betInput));
+        if(currency==='souls'){
+            gameState.souls=D(gameState.souls).sub(betD);
+            gameState.soulsSpent=D(gameState.soulsSpent||0).add(betD);
         } else {
-            gameState[currency] = D(gameState[currency] || 0).sub(D(betInput));
+            gameState[currency]=D(gameState[currency]||0).sub(betD);
         }
-        updateDynamicDisplays();saveGame();
+        updateDynamicDisplays();saveGame();saveGame(); // double-save intentional
     } else {
         if(gntState.playerUnits.length===0){Toastify({text:'Deploy at least one minion.',duration:2500,gravity:'top',position:'center',style:{background:'#aa2222'}}).showToast();return;}
     }

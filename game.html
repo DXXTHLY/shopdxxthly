@@ -23761,12 +23761,43 @@ function initializeChat() {
                     + '</div>';
                 document.body.appendChild(el);
             }
-            // Only dev runs the scheduler to avoid duplicate giveaways
-            // (lock transaction needs special Firebase rules — use dev-only approach instead)
-            if (typeof isDev === 'function' && isDev(_gSelf)) {
-                _gwScheduleNext();
-                console.log('[Giveaway] Scheduler started (dev mode)');
+            // Fully random scheduler using Firebase active_giveaway node
+            // Any client can post — we use a timestamp lock inside active_giveaway
+            // so only one client posts at a time (last-write-wins is fine for giveaways)
+            var _GW_MIN_MS = 15 * 60 * 1000;   // 15 min minimum
+            var _GW_MAX_MS = 120 * 60 * 1000;  // 120 min maximum
+            function _gwRandomDelay() { return _GW_MIN_MS + Math.random() * (_GW_MAX_MS - _GW_MIN_MS); }
+
+            function _gwCheckAndSchedule() {
+                _gdb.ref(_gGwRef).once('value', function(snap) {
+                    var existing = snap.val();
+                    var now = Date.now();
+                    // If no active giveaway or the last one expired > 2 min ago, schedule next
+                    var lastExpiry = existing ? (existing.expiresAt || 0) : 0;
+                    var lastPosted = existing ? (existing.postedAt_ms || 0) : 0;
+                    var nextAt = lastPosted + _gwRandomDelay();
+
+                    if (now >= nextAt && now > lastExpiry + 2 * 60 * 1000) {
+                        // Claim the slot by writing postedAt_ms — first writer wins
+                        _gdb.ref(_gGwRef + '/postedAt_ms').transaction(function(cur) {
+                            // Only claim if nobody else has claimed recently (within 30s)
+                            if (cur && (now - cur) < 30000) return; // abort
+                            return now;
+                        }, function(err, committed) {
+                            if (committed) {
+                                _gwPost();
+                                console.log('[Giveaway] Posted by client:', _gSelf.slice(0,8));
+                            }
+                        });
+                    }
+                    // Check again in 5 min
+                    setTimeout(_gwCheckAndSchedule, 5 * 60 * 1000);
+                });
             }
+
+            // Start checking after a random delay so all clients don't fire at once
+            setTimeout(_gwCheckAndSchedule, Math.random() * 60000 + 5000);
+            console.log('[Giveaway] Scheduler started (all clients participate)');
             })();
             });
         }
@@ -36728,14 +36759,11 @@ async function pwCheckCycleReset() {
         }
 
         // 3. Check if current cycle needs to be closed
-        // (no result exists for this cycle_id = hasn't been tallied yet)
+        // If lastResult doesn't exist for the CURRENT cycle_id, we're in a new week
+        // Close the previous cycle (tally + clear nodes) whenever we enter a new cycle
         if (!lastResult || lastResult.cycle_id !== cycleId) {
-            // Also check if there was a previous cycle that wasn't closed
-            // (i.e. lastResult is from 2+ weeks ago or null)
-            // Trigger close if we're in a new cycle
-            if (!lastResult || lastResult.cycle_id < pwGetPrevCycleId()) {
-                await pwCloseCycle(cycleId);
-            }
+            console.log('[PW] New cycle detected. Last:', lastResult?.cycle_id, 'Current:', cycleId, '— closing old cycle.');
+            await pwCloseCycle(cycleId);
         }
 
     } catch(e) {

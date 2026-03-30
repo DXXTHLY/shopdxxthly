@@ -23687,7 +23687,6 @@ function initializeChat() {
                 window._addPassiveRep=function(a){if(_rtc>=50)return;_rtc=Math.min(50,_rtc+a);localStorage.setItem('repToday_'+_rdk,_rtc);db.ref('playerData/'+uid+'/rep').transaction(function(c){return(c||0)+a;});};
                 setInterval(function(){window._addPassiveRep&&window._addPassiveRep(1);},5*60*1000);
                 window._giveRep=function(tuid,tname){if(!uid||!tuid||tuid===uid)return;var today=new Date().toISOString().slice(0,10);var ck='repGiven_'+today+'_'+tuid;if(localStorage.getItem(ck)){if(typeof Toastify!=='undefined')Toastify({text:'⭐ Already gave rep to '+tname+' today!',duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a0a,#3a3a00)'}}).showToast();return;}db.ref('playerData/'+tuid+'/rep').transaction(function(cur){return(cur||0)+5;},function(err,committed,snap){if(!committed||err)return;var nr=snap.val()||0;localStorage.setItem(ck,'1');db.ref('repTransfers').push({from:gameState.playerName||'Unknown',fromUid:uid,to:tname,toUid:tuid,amount:5,time:firebase.database.ServerValue.TIMESTAMP});db.ref('slitherChat').push({uid:uid,name:gameState.playerName||'Unknown',chatNameColor:localStorage.getItem('slitherChatNameColor')||'#c8a800',time:firebase.database.ServerValue.TIMESTAMP,text:'⭐ '+(gameState.playerName||'Unknown')+' gave +5 Rep to '+tname+'!'});var popup=document.querySelector('.profile-popup');if(popup){var t=window._getRepTier(nr),n=window._getNextRepTier(nr),pct=n?Math.min(100,Math.round(((nr-t.min)/(n.min-t.min))*100)):100;var fill=popup.querySelector('#rep-bar-fill');if(fill)fill.style.width=pct+'%';var rc=popup.querySelector('#rep-count');if(rc)rc.textContent='• '+nr+' rep';var btn=popup.querySelector('#give-rep-btn');if(btn){btn.textContent='⭐ Gave today';btn.style.cursor='not-allowed';btn.style.color='#333';btn.style.borderColor='#1a1a1a';btn.style.background='#0a0a0a';}}if(typeof Toastify!=='undefined')Toastify({text:'⭐ +5 Rep to '+tname+'! They now have '+nr+' rep.',duration:4000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();});};
-            });
             // ── Chat Giveaway System (inside Firebase auth closure — db/uid in scope) ──
             (function() {
             var _gdb = db;
@@ -23773,6 +23772,7 @@ function initializeChat() {
                 }
             });
             })();
+            });
         }
 
 
@@ -24032,22 +24032,7 @@ function initializeChat() {
             if (isDiscordBot) {
                 nameHtml = `<span style="color:${userColor};font-weight:bold;">${displayName}</span>`;
                 roleTagHTML = ` <span style="background: #7289DA; color: #fff; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 700; vertical-align:middle;">DISCORD</span>`;
-                // Extract Discord username from "Discord(username.)" and record it
-                (function() {
-                    var _rawName = msg.name || '';
-                    var _m = _rawName.match(/^Discord\((.+)\)$/);
-                    if (_m && _m[1]) {
-                        var _dUser = _m[1].trim().toLowerCase();
-                        var _cdb3 = (typeof _getChatDb === 'function') ? _getChatDb() : null;
-                        if (_cdb3 && _dUser) {
-                            // Record this Discord username as having been seen in your server
-                            _cdb3.ref('discordMembers/' + _dUser.replace(/\./g,'_DOT_')).set({
-                                displayName: _m[1].trim(),
-                                lastSeen: Date.now()
-                            });
-                        }
-                    }
-                })();
+                // Discord bridge message — username recorded server-side by bot
             } else if (isDev(msg.uid)) {
                 // Devs always keep rainbow name, but can override their badge display
                 nameHtml = `<span class="chat-username" data-uid="${msg.uid}" style="cursor:pointer;">${rainbowTextStyle(displayName)}</span>`;
@@ -24195,14 +24180,7 @@ function initializeChat() {
                 el.innerHTML = `<span class="chat-msg-text">${finalMessage}</span>`;
             } else if (isDiscordBot && (!msg.text || msg.text.trim() === '')) {
                 el.innerHTML = `<span class="chat-msg-time">[${timestamp}]</span><b>${nameHtml}${roleTagHTML}</b> <span style="color:#7289DA; font-size:0.9em;">joined the <a href="https://dsc.gg/143X" target="_blank" rel="noopener noreferrer" style="color:#7289DA; font-weight:bold; text-decoration:underline;">143X Discord</a>! 🎉</span>`;
-                // Mark this player as a Discord member for giveaway verification
-                if (msg.uid && !['system','discord_bot','system_badge'].includes(msg.uid)) {
-                    var _gwCdb = (typeof _getChatDb === 'function') ? _getChatDb() : null;
-                    if (_gwCdb) {
-                        _gwCdb.ref('discordMembers/' + msg.uid).set({ name: msg.name || '', verifiedAt: Date.now() });
-                        _gwCdb.ref('playerData/' + msg.uid + '/discordVerified').set(true);
-                    }
-                }
+
             } else {
                 el.innerHTML = `<span class="chat-msg-time">[${timestamp}]</span><b>${nameHtml}${roleTagHTML}:</b> <span class="chat-msg-text">${finalMessage}</span>`;
             }

@@ -6801,11 +6801,19 @@ window.onload = function() {
     function dismissIntro() {
         introOverlay.style.transition = 'opacity 1.2s ease-out';
         introOverlay.style.opacity = '0';
+        // Force hide after transition, with fallback timeout so it never blocks clicks
         introOverlay.addEventListener('transitionend', () => {
             introOverlay.style.display = 'none';
-            // loadGame already handled showing game vs auth screen
+            introOverlay.style.pointerEvents = 'none';
         }, { once: true });
+        // Failsafe: ensure hidden even if transitionend never fires
+        setTimeout(() => {
+            introOverlay.style.display = 'none';
+            introOverlay.style.pointerEvents = 'none';
+        }, 1600);
     }
+    // Click anywhere to dismiss early
+    introOverlay.addEventListener('click', dismissIntro);
 
     // Auto-dismiss after 8s
     // For NEW players: prologue launches after title card (if no save detected)
@@ -23940,14 +23948,16 @@ function initializeChat() {
         // ── Discord Username Linking ──────────────────────────────────────
         window._linkDiscordUsername = function(source) {
             // source='main' = game settings page, else = chat settings modal
-            var isMain = source === 'main';
-            var input  = document.getElementById(isMain ? 'main-discord-input'          : 'settings-discord-username');
-            var status = document.getElementById(isMain ? 'main-discord-status'         : 'settings-discord-status');
-            var badge  = document.getElementById(isMain ? 'main-discord-linked-pill'    : 'settings-discord-linked-badge');
-            var btn    = document.getElementById(isMain ? null                          : 'settings-discord-link-btn');
-            if (!input || !status) return;
+            var isMain = (source === 'main');
+            var input  = document.getElementById(isMain ? 'main-discord-input' : 'settings-discord-username');
+            var status = document.getElementById(isMain ? 'main-discord-status' : 'settings-discord-status');
+            var badge  = document.getElementById(isMain ? 'main-discord-linked-pill' : 'settings-discord-linked-badge');
+            var btn    = isMain ? null : document.getElementById('settings-discord-link-btn');
 
-            var raw = input.value.trim();
+            if (!input) { console.warn('[Discord] Input element not found for source:', source); return; }
+            if (!status) { console.warn('[Discord] Status element not found'); return; }
+
+            var raw = (input.value || '').trim();
             var username = raw.toLowerCase();
             if (!username) {
                 status.textContent = '⚠ Enter your Discord username first.';
@@ -23955,10 +23965,20 @@ function initializeChat() {
                 return;
             }
 
-            var _cdb5 = (typeof _getChatDb === 'function') ? _getChatDb() : null;
-            var _uid5 = (typeof _getChatUid === 'function') ? _getChatUid() : null;
+            // Resolve Firebase db — try every possible reference
+            var _cdb5 = null;
+            if (typeof window._getChatDb === 'function') _cdb5 = window._getChatDb();
+            if (!_cdb5) _cdb5 = window._chatDb || null;
+            if (!_cdb5 && window._scFirebase) _cdb5 = window._scFirebase.chatDb || null;
+
+            var _uid5 = null;
+            if (typeof window._getChatUid === 'function') _uid5 = window._getChatUid();
+            if (!_uid5) _uid5 = window._chatUid || window._scChatUid || null;
+
+            console.log('[Discord] Linking:', username, '| db:', !!_cdb5, '| uid:', _uid5 ? _uid5.slice(0,8)+'…' : 'NONE');
+
             if (!_cdb5 || !_uid5) {
-                status.textContent = '⚠ Chat not connected. Try again.';
+                status.textContent = '⚠ Not connected yet. Click the Chat button to connect, then try again.';
                 status.style.color = '#ff8844';
                 return;
             }
@@ -24019,6 +24039,9 @@ function initializeChat() {
         var TRADE_PREFIX='\u0002T\u0003',TRADE_SUFFIX='\u0002E\u0003';
         function _getChatDb(){return(window._scFirebase&&window._scFirebase.chatDb)?window._scFirebase.chatDb:window._chatDb||null;}
         function _getChatUid(){return window._chatUid||window._scChatUid||null;}
+        // Expose globally so settings page can call them
+        window._getChatDb = _getChatDb;
+        window._getChatUid = _getChatUid;
         var _tradeCache={};
         window._proposeItemTrade=function(it,inn,ii,ia,tp){if(!_getChatDb()||!_getChatUid()){alert('Chat not ready.');return;}var mn=gameState.playerName||localStorage.getItem('slitherChatNickname')||'Unknown';if(mn===tp){alert('Cannot trade with yourself.');return;}var pp=document.querySelector('.profile-popup');if(pp)pp.remove();window._showTradeOfferPicker(it,inn,ii,ia,tp);};
         window._showTradeOfferPicker=function(wantType,wantName,wantIcon,wantAmt,targetName){var ex=document.getElementById('trade-offer-overlay');if(ex)ex.remove();var RC={common:'#888',uncommon:'#44cc44',rare:'#4488ff',epic:'#aa44ff',legendary:'#ffaa00'};var TI={weapon:'⚔',idol:'🗿',sigil:'✶',helm:'🧖',tome:'📖'};var TC=['#555','#44cc88','#4488ff','#c8a800','#aa44ff','#ff6644'];var oc=[];function aC(lb,ic,tc,bt,mx,isc,bh){var idx=oc.length;oc.push({label:lb,icon:ic,barterType:bt,maxAmt:mx,isCurrency:!!isc});return'<div class="toc-card" data-idx="'+idx+'" style="border-radius:8px;padding:7px 5px;text-align:center;cursor:pointer;transition:all 0.15s;border:1px solid #2a1a3a;background:linear-gradient(135deg,#0e0a1a,#1a1020);border-top:2px solid '+tc+';">'+bh+'</div>';}function sec(t,cs){if(!cs)return'';return'<div style="margin-bottom:12px;"><div style="color:#555;font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">'+t+'</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:6px;">'+cs+'</div></div>';}

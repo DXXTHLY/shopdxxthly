@@ -23987,6 +23987,7 @@ function initializeChat() {
                     chatBodyElement.appendChild(_gwEl);
                     if (shouldScroll) chatBodyElement.scrollTop = chatBodyElement.scrollHeight;
                     var _gwExpiry2 = _gwExpiry2b;
+                    // Countdown timer
                     var _gwTimer2 = setInterval(function() {
                         var _timerEl = document.getElementById('gw-timer-' + _gwId2);
                         var _claimEl = document.getElementById('gw-claim-btn-' + _gwId2);
@@ -23999,6 +24000,32 @@ function initializeChat() {
                             if (_timerEl) _timerEl.textContent = 'Expired';
                         }
                     }, 1000);
+                    // Real-time listener: lock button for ALL players the moment someone claims
+                    (function(_watchId, _watchPoster) {
+                        var _watchRef = _gdb.ref('playerData/' + _watchPoster + '/gw_active/claimedBy');
+                        var _watchListener = _watchRef.on('value', function(snap) {
+                            var claimer = snap.val();
+                            if (claimer) {
+                                var _claimEl2 = document.getElementById('gw-claim-btn-' + _watchId);
+                                if (_claimEl2) {
+                                    _claimEl2.disabled = true;
+                                    _claimEl2.style.opacity = '0.4';
+                                    _claimEl2.style.cursor = 'default';
+                                    if (claimer === _gSelf) {
+                                        _claimEl2.textContent = 'You won!';
+                                        _claimEl2.style.background = 'linear-gradient(135deg,#1a3a00,#44cc8833)';
+                                        _claimEl2.style.color = '#44cc88';
+                                    } else {
+                                        _claimEl2.textContent = 'Claimed';
+                                    }
+                                }
+                                clearInterval(_gwTimer2);
+                                _watchRef.off('value', _watchListener);
+                            }
+                        });
+                        // Auto-cleanup when giveaway expires
+                        setTimeout(function() { _watchRef.off('value', _watchListener); }, _gwExpiry2b - Date.now() + 10000);
+                    })(_gwId2, _gwPoster2 || _gSelf);
                     return;
                 }
             } // end __GW__ block

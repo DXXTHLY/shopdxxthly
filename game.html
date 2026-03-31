@@ -23759,7 +23759,7 @@ function initializeChat() {
             function _gwPost() {
                 var prize = _gwRollPrize();
                 var gwId = 'gw_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-                var expiresAt = Date.now() + 5*60*1000;
+                var expiresAt = Date.now() + _GW_MIN_MS + Math.random() * (_GW_MAX_MS - _GW_MIN_MS); // stays up 30min–24hrs
                 var desc = _gwPrizeDesc(prize);
                 localStorage.setItem(_GW_LS_KEY, String(Date.now()));
                 // Strip gen() and any functions — Firebase rejects them
@@ -23965,7 +23965,7 @@ function initializeChat() {
                 var _gwId2     = _gwData2 ? _gwData2.gwId : null;
                 var _gwPrize2  = _gwData2 ? (_gwData2.prizeDesc || '?') : '?';
                 var _gwPoster2 = _gwData2 ? (_gwData2.gwPoster || '') : '';
-                var _gwExpiry2b = _gwData2 ? (_gwData2.expiresAt || (Date.now()+300000)) : (Date.now()+300000);
+                var _gwExpiry2b = _gwData2 ? (_gwData2.expiresAt || (Date.now()+1800000)) : (Date.now()+1800000);
                 if (_gwId2) {
                     var _isKey2 = _gwPrize2.indexOf('KEY OF THE ABYSS') !== -1;
                     var _gwEl = document.createElement('div');

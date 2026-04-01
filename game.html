@@ -5466,7 +5466,7 @@ text-decoration: underline; /* Adds an underline on hover */
                                 </div>
                             </div>
                             <button class="vault-card-btn" onclick="depositSouls()">⬆ Deposit Souls</button>
-                            <div style="color:#776622; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Store 10× SPS · max 100k · costs 25 DE</div>
+                            <div style="color:#776622; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Store 10× SPS · max 10k · costs 25 DE</div>
                             <button class="vault-card-btn withdraw-btn" id="withdrawBtn" onclick="withdrawSouls()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawCost">10</span> DE · once per life</button>
                         </div>
 
@@ -5481,7 +5481,7 @@ text-decoration: underline; /* Adds an underline on hover */
                                 </div>
                             </div>
                             <button class="vault-card-btn" onclick="depositEssence()">⬆ Deposit Essence</button>
-                            <div style="color:#776622; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Vault 50% of essence · max 100k · costs 30 DE</div>
+                            <div style="color:#776622; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Vault 50% of essence · max 10k · costs 30 DE</div>
                             <button class="vault-card-btn withdraw-btn" id="withdrawEssenceBtn" onclick="withdrawEssence()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawEssenceCost">20</span> DE · once per life</button>
                         </div>
 
@@ -5496,7 +5496,7 @@ text-decoration: underline; /* Adds an underline on hover */
                                 </div>
                             </div>
                             <button class="vault-card-btn" onclick="depositShards()">⬆ Deposit Shards</button>
-                            <div style="color:#2255aa; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Vault 50% of shards · max 100k · costs 40 DE</div>
+                            <div style="color:#2255aa; font-size:0.7em; text-align:center; margin:2px 0 4px; letter-spacing:0.5px;">Vault 50% of shards · max 10k · costs 40 DE</div>
                             <button class="vault-card-btn withdraw-btn" id="withdrawShardsBtn" onclick="withdrawShards()">⬇ Withdraw &nbsp;·&nbsp; Fee: <span id="withdrawShardsCost">30</span> DE · once per life</button>
                         </div>
 
@@ -13489,6 +13489,22 @@ function loadGame() {
                 }
                 // On-hand fragments (corruptedFragments) have NO cap — players accumulate freely
             })();
+            // ── Clamp all other vaults to 10k ──────────────────────────
+            (function() {
+                var VAULT_CAP = 10000;
+                if (D(gameState.bankedSouls || 0).gt(VAULT_CAP)) {
+                    console.log('[Bank] Clamped bankedSouls to 10k');
+                    gameState.bankedSouls = D(VAULT_CAP);
+                }
+                if ((gameState.bankedEssence || 0) > VAULT_CAP) {
+                    console.log('[Bank] Clamped bankedEssence to 10k');
+                    gameState.bankedEssence = VAULT_CAP;
+                }
+                if (D(gameState.bankedShards || 0).gt(VAULT_CAP)) {
+                    console.log('[Bank] Clamped bankedShards to 10k');
+                    gameState.bankedShards = D(VAULT_CAP);
+                }
+            })();
             calculateStats();
             renderAll();
             updateDynamicDisplays();
@@ -15581,7 +15597,7 @@ function renderMinions() {
             <div style="display:flex; align-items:center; gap:10px; min-width:0;">
                 <span style="font-size:2em; line-height:1; flex-shrink:0;">${m.icon || '👿'}</span>
                 <div style="flex:1; min-width:0; overflow:hidden;">
-                    <div style="color:${theme.color}; font-weight:bold; font-size:0.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${m.name}${tierStars}</div>
+                    <div style="color:${theme.color}; font-weight:bold; font-size:0.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${m.name}${tierStars}${(()=>{const _t=window.MINION_TYPES&&window.MINION_TYPES[id];const _c=_t&&window.TYPE_COLORS&&window.TYPE_COLORS[_t];const _l=_t&&window.TYPE_LABELS&&window.TYPE_LABELS[_t];return _l?` <span style="display:inline-block;font-size:0.52em;font-family:var(--font-title);letter-spacing:1px;padding:1px 5px;border-radius:3px;border:1px solid ${_c};color:${_c};background:${_c}18;vertical-align:middle;">${_l}</span>`:'';})()}</div>
                     <div style="display:flex; gap:6px; align-items:center; margin-top:2px; flex-wrap:wrap;">
                         <span style="background:${theme.color}22; border:1px solid ${theme.color}44; border-radius:8px; padding:1px 7px; font-size:0.7em; color:${theme.color}; flex-shrink:0;">Lv. ${p.level}</span>
                         <span style="color:#666; font-size:0.72em; white-space:nowrap;">⚡ ${formatNumber(effectiveSps * p.level)} SPS</span>
@@ -15974,7 +15990,36 @@ function renderBestiary() {
     if (fill) fill.style.width = Math.round(unlocked/total*100) + '%';
     if (txt)  txt.textContent = `${unlocked} / ${total}`;
 
-    // Render worlds in logical progression order
+    // ── Synergy Legend ─────────────────────────────────────────────
+    const synergyLegend = document.createElement('div');
+    synergyLegend.style.cssText = 'background:linear-gradient(135deg,#0a0818,#120a20);border:1px solid #3a1a5a;border-left:4px solid #aa44ff;border-radius:10px;padding:14px 18px;margin-bottom:20px;';
+    const _sc = typeof calcSynergyMult === 'function' ? calcSynergyMult() : { mult:1, active:[] };
+    const _typeOrder = ['demon','undead','void','spirit','elemental'];
+    const _typeColMap = { demon:'#ff6644', undead:'#88aaff', void:'#cc88ff', spirit:'#44ddaa', elemental:'#88ddff' };
+    const _typeLblMap = { demon:'DEMON', undead:'UNDEAD', void:'VOID', spirit:'SPIRIT', elemental:'ELEMENTAL' };
+    const _typeCounts = {};
+    for (const id in (gameState.minions||{})) {
+        if ((gameState.minions[id]?.level||0) < 1) continue;
+        const t = (typeof MINION_TYPES !== 'undefined') ? MINION_TYPES[id] : null;
+        if (t) _typeCounts[t] = (_typeCounts[t]||0)+1;
+    }
+    const typePills = _typeOrder.map(t => {
+        const cnt = _typeCounts[t] || 0;
+        const stacks = Math.floor(cnt/3);
+        const col = _typeColMap[t];
+        const active = stacks > 0;
+        return `<div style="background:${active?col+'18':'#0a0810'};border:1px solid ${active?col+'66':'#1a1030'};border-radius:8px;padding:6px 12px;text-align:center;min-width:90px;">
+            <div style="color:${active?col:'#333'};font-family:var(--font-title);font-size:0.65em;letter-spacing:1.5px;">${_typeLblMap[t]}</div>
+            <div style="color:${active?'#ddd':'#2a2a2a'};font-size:0.9em;font-weight:bold;">${cnt} <span style="color:#444;font-size:0.7em;">/ 3</span></div>
+            ${active ? `<div style="color:${col};font-size:0.6em;margin-top:2px;">+${Math.round((Math.pow(1.15,stacks)-1)*100)}% SPS</div>` : '<div style="color:#222;font-size:0.6em;margin-top:2px;">inactive</div>'}
+        </div>`;
+    }).join('');
+    synergyLegend.innerHTML = `
+        <div style="color:#aa44ff;font-family:var(--font-title);font-size:0.8em;letter-spacing:2px;margin-bottom:8px;">⚡ MINION SYNERGIES</div>
+        <div style="color:#665588;font-size:0.72em;margin-bottom:12px;line-height:1.5;">Own 3+ minions of the same type to unlock a hidden <span style="color:#aa44ff;">+15% SPS</span> multiplier. Each additional stack of 3 multiplies again. Types are shown on each card below.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">${typePills}</div>
+        ${_sc.mult > 1 ? `<div style="margin-top:10px;color:#44cc88;font-size:0.72em;">✦ Current synergy bonus: <strong>×${_sc.mult.toFixed(3)}</strong> global SPS</div>` : ''}`;
+    grid.appendChild(synergyLegend);
     const worldOrder = [
         'nether_plains','ashen_wastes','stygian_depths','burning_hells','frozen_abyss',
         'celestial_ruins','void_threshold','singularity','event_horizon','genesis',
@@ -16049,12 +16094,16 @@ function renderBestiary() {
                 }).join('') || '';
 
                 card.style.cssText = `background:linear-gradient(135deg,#0e0a1a,#1a1020); border:1px solid ${tc}22; border-top:3px solid ${tc}; border-radius:12px; padding:16px;`;
+                const _mType = (typeof MINION_TYPES !== 'undefined' && MINION_TYPES[id]) || null;
+                const _typeCol = _mType && (typeof TYPE_COLORS !== 'undefined') ? TYPE_COLORS[_mType] : null;
+                const _typeLbl = _mType && (typeof TYPE_LABELS !== 'undefined') ? TYPE_LABELS[_mType] : null;
+                const _typeBadge = _typeLbl ? `<span style="display:inline-block;font-size:0.58em;font-family:var(--font-title);letter-spacing:1.5px;padding:1px 6px;border-radius:3px;border:1px solid ${_typeCol};color:${_typeCol};background:${_typeCol}18;vertical-align:middle;margin-left:5px;">${_typeLbl}</span>` : '';
                 card.innerHTML = `
                     <!-- Header row -->
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
                         <div style="font-size:2em; filter:drop-shadow(0 0 6px ${tc}66); position:relative;">${m.icon}${(pm.barterLevels||0)>0 ? '<span style=\"position:absolute;top:-4px;right:-6px;font-size:0.45em;background:#aa44ff;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;\" title=\"Has barter-acquired levels\">🔀</span>' : ''}</div>
                         <div style="flex:1;">
-                            <div style="color:#ddd; font-weight:bold; font-size:0.88em;">${m.name}${(pm.promotionTier||0)>0 ? ' <span style=\"color:#c8a800; font-size:0.8em;\">' + '★'.repeat(pm.promotionTier) + '</span>' : ''}</div>
+                            <div style="color:#ddd; font-weight:bold; font-size:0.88em;">${m.name}${(pm.promotionTier||0)>0 ? ' <span style=\"color:#c8a800; font-size:0.8em;\">' + '★'.repeat(pm.promotionTier) + '</span>' : ''}${_typeBadge}</div>
                             <div style="color:#555; font-size:0.7em;">Lv ${pm.level} · ${formatNumber(m.baseSps)} base SPS</div>
                         </div>
                         <div style="text-align:right;">
@@ -16245,12 +16294,16 @@ function renderBestiary() {
                 })() : '';
 
                 card.style.cssText = `background:linear-gradient(135deg,#0e0a1a,#1a0a2a); border:1px solid ${tc}22; border-top:3px solid ${tc}; border-radius:12px; padding:16px; position:relative;`;
+                const _smType = window.MINION_TYPES && window.MINION_TYPES[id];
+                const _smCol  = _smType && window.TYPE_COLORS && window.TYPE_COLORS[_smType];
+                const _smLbl  = _smType && window.TYPE_LABELS && window.TYPE_LABELS[_smType];
+                const _smBadge = _smLbl ? `<span style="display:inline-block;font-size:0.58em;font-family:var(--font-title);letter-spacing:1.5px;padding:1px 6px;border-radius:3px;border:1px solid ${_smCol};color:${_smCol};background:${_smCol}18;vertical-align:middle;margin-left:5px;">${_smLbl}</span>` : '';
                 card.innerHTML = `
                     <div style="position:absolute; top:8px; right:10px; background:#aa44ff22; border:1px solid #aa44ff44; border-radius:10px; padding:1px 8px; font-size:0.62em; color:#aa44ff; letter-spacing:1px;">SECRET</div>
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
                         <div style="font-size:2em; filter:drop-shadow(0 0 8px ${tc}88);">${m.icon}</div>
                         <div style="flex:1;">
-                            <div style="color:#ddd; font-weight:bold; font-size:0.88em;">${m.name}</div>
+                            <div style="color:#ddd; font-weight:bold; font-size:0.88em;">${m.name}${_smBadge}</div>
                             <div style="color:#555; font-size:0.7em;">Lv ${pm.level} · Obtained ${pm.level} time${pm.level !== 1 ? 's' : ''}</div>
                         </div>
                         <div style="text-align:right;">
@@ -22349,10 +22402,10 @@ function depositEssence() {
         Toastify({ text: `Need more than ${cost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    const _eC=100000,_cE=gameState.bankedEssence||0;if(_cE>=_eC){Toastify({text:`🌑 Essence Vault full! Max 100k.`,duration:3500,gravity:'top',position:'center',style:{background:'#1a0a00'}}).showToast();return;}
+    const _eC=10000,_cE=gameState.bankedEssence||0;if(_cE>=_eC){Toastify({text:`🌑 Essence Vault full! Max 10k.`,duration:3500,gravity:'top',position:'center',style:{background:'#1a0a00'}}).showToast();return;}
     const _rD=Math.floor(available*0.5),depositAmt=Math.min(_rD,_eC-_cE);
     gameState.darkEssence=D(gameState.darkEssence).sub(depositAmt+cost);gameState.bankedEssence=_cE+depositAmt;
-    playSound('upgrade');Toastify({text:`🌑 ${formatNumber(depositAmt)} Essence secured!${depositAmt<_rD?' (capped at 100k)':''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a0a00,#c8a800)'}}).showToast();
+    playSound('upgrade');Toastify({text:`🌑 ${formatNumber(depositAmt)} Essence secured!${depositAmt<_rD?' (capped at 10k)':''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a0a00,#c8a800)'}}).showToast();
     renderBank(); updateDynamicDisplays(); saveGame();
 }
 
@@ -22387,11 +22440,11 @@ function depositShards() {
     if (D(gameState.darkEssence).lt(cost)) {
         Toastify({ text: `Need ${cost} Dark Essence to deposit shards.`, duration:2500, gravity:'top', position:'center' }).showToast(); return;
     }
-    const _shC=100000,_cSh=D(gameState.bankedShards||0);if(_cSh.gte(_shC)){Toastify({text:`💎 Shard Vault full! Max 100k.`,duration:3500,gravity:'top',position:'center',style:{background:'#001a2a'}}).showToast();return;}
+    const _shC=10000,_cSh=D(gameState.bankedShards||0);if(_cSh.gte(_shC)){Toastify({text:`💎 Shard Vault full! Max 10k.`,duration:3500,gravity:'top',position:'center',style:{background:'#001a2a'}}).showToast();return;}
     const _rSh=D(gameState.abyssalShards).mul(0.5);if(_rSh.lte(0)){Toastify({text:`No Abyssal Shards to deposit.`,duration:2500,gravity:'top',position:'center'}).showToast();return;}
     const _shR=D(_shC).sub(_cSh),depositAmt=_rSh.gt(_shR)?_shR:_rSh;
     gameState.darkEssence=D(gameState.darkEssence).sub(cost);gameState.abyssalShards=D(gameState.abyssalShards).sub(depositAmt);gameState.bankedShards=_cSh.add(depositAmt);
-    playSound('upgrade');Toastify({text:`💎 ${formatNumber(depositAmt)} Shards secured!${depositAmt.lt(_rSh)?' (capped at 100k)':''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#001a2a,#4488ff)'}}).showToast();
+    playSound('upgrade');Toastify({text:`💎 ${formatNumber(depositAmt)} Shards secured!${depositAmt.lt(_rSh)?' (capped at 10k)':''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#001a2a,#4488ff)'}}).showToast();
     calculateStats(); renderBank(); updateDynamicDisplays(); saveGame();
 }
 
@@ -22437,10 +22490,10 @@ function depositSouls() {
         Toastify({ text: `Need ${essenceCost} Dark Essence to deposit.`, duration:2500, gravity:'top', position:'center' }).showToast();
         return;
     }
-    const _sC=100000,_cB=D(gameState.bankedSouls||0);if(_cB.gte(_sC)){Toastify({text:`🏦 Soul Vault full! Max 100k.`,duration:3500,gravity:'top',position:'center',style:{background:'#3a1800'}}).showToast();return;}
+    const _sC=10000,_cB=D(gameState.bankedSouls||0);if(_cB.gte(_sC)){Toastify({text:`🏦 Soul Vault full! Max 10k.`,duration:3500,gravity:'top',position:'center',style:{background:'#3a1800'}}).showToast();return;}
     const _rS=D(_sC).sub(_cB),_aD=depositAmt.gt(_rS)?_rS:depositAmt;
     gameState.souls=D(gameState.souls).sub(_aD);gameState.darkEssence=D(gameState.darkEssence).sub(essenceCost);gameState.bankedSouls=_cB.add(_aD);
-    playSound('upgrade');Toastify({text:`🏦 ${formatNumber(_aD)} souls secured!${_aD.lt(depositAmt)?' (capped at 100k)':''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#2a1800,#c8a800)'}}).showToast();
+    playSound('upgrade');Toastify({text:`🏦 ${formatNumber(_aD)} souls secured!${_aD.lt(depositAmt)?' (capped at 10k)':''}`,duration:3000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#2a1800,#c8a800)'}}).showToast();
     calculateStats(); renderBank(); updateDynamicDisplays(); saveGame();
 }
 
@@ -40040,5 +40093,540 @@ function launchPrologueIfNew() {
             .cache-reel-item .ri-rarity { font-size:0.52em; letter-spacing:2px; text-transform:uppercase; }
             </style>
 
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- ██  SOUL COLLECTOR — FEATURE PACK: ECLIPSES · SYNERGIES · PULSE  ██ -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── Abyss Pulse vignette ── */
+#abyss-pulse-vignette {
+    position: fixed; inset: 0; pointer-events: none; z-index: 5;
+    background: radial-gradient(ellipse at center,
+        transparent 40%,
+        rgba(80,0,120,0.18) 70%,
+        rgba(40,0,60,0.55) 100%);
+    opacity: 0.6;
+    animation: abyssPulse 4s ease-in-out infinite;
+}
+@keyframes abyssPulse {
+    0%,100% { opacity: 0.55; transform: scale(1);   }
+    50%      { opacity: 0.85; transform: scale(1.02); }
+}
+#abyss-pulse-vignette.eclipse-mode {
+    background: radial-gradient(ellipse at center,
+        transparent 30%,
+        rgba(140,0,0,0.25) 60%,
+        rgba(80,0,0,0.75) 100%);
+    animation: abyssPulseEclipse 1.8s ease-in-out infinite;
+}
+@keyframes abyssPulseEclipse {
+    0%,100% { opacity: 0.75; transform: scale(1);    }
+    50%      { opacity: 1.0;  transform: scale(1.03); }
+}
+
+/* ── Eclipse overlay banner ── */
+#eclipse-banner {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: linear-gradient(135deg, #1a0000, #3a0000, #1a0000);
+    border-bottom: 2px solid #cc0000;
+    color: #ff4444;
+    font-family: var(--font-title);
+    font-size: 0.72em;
+    letter-spacing: 3px;
+    text-align: center;
+    padding: 6px 12px;
+    z-index: 999;
+    display: none;
+    animation: eclipseBannerPulse 1.5s ease-in-out infinite;
+    box-shadow: 0 2px 20px rgba(200,0,0,0.5);
+    text-transform: uppercase;
+}
+@keyframes eclipseBannerPulse {
+    0%,100% { background: linear-gradient(135deg,#1a0000,#3a0000,#1a0000); }
+    50%      { background: linear-gradient(135deg,#2a0000,#550000,#2a0000); }
+}
+
+/* ── Eclipse Boss button on altar ── */
+#eclipse-boss-btn {
+    display: none;
+    margin: 10px auto;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #3a0000, #660000, #3a0000);
+    border: 2px solid #cc2200;
+    border-bottom: 4px solid #000;
+    border-radius: 6px;
+    color: #ff6644;
+    font-family: var(--font-title);
+    font-size: 0.85em;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    animation: bossGlow 2s ease-in-out infinite;
+    box-shadow: 0 0 30px rgba(200,0,0,0.4), 0 0 60px rgba(200,0,0,0.15);
+    position: relative;
+    overflow: hidden;
+}
+#eclipse-boss-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,100,0,0.1), transparent);
+    animation: bossSweep 2.5s linear infinite;
+}
+@keyframes bossSweep { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
+@keyframes bossGlow {
+    0%,100% { box-shadow: 0 0 20px rgba(200,0,0,0.4); }
+    50%      { box-shadow: 0 0 50px rgba(255,60,0,0.7), 0 0 80px rgba(200,0,0,0.3); }
+}
+#eclipse-boss-btn:hover { filter: brightness(1.3); transform: scale(1.02); }
+
+/* ── Eclipse countdown ring ── */
+#eclipse-countdown {
+    position: fixed; bottom: 18px; right: 18px;
+    width: 58px; height: 58px;
+    z-index: 200;
+    cursor: default;
+    display: none;
+}
+#eclipse-countdown svg { transform: rotate(-90deg); }
+#eclipse-cd-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-title);
+    font-size: 0.52em;
+    color: #aa44ff;
+    letter-spacing: 0px;
+    text-align: center;
+    line-height: 1.1;
+    pointer-events: none;
+}
+
+/* ── Critical hit flash ── */
+#crit-flash {
+    position: fixed; inset: 0; pointer-events: none; z-index: 300;
+    background: radial-gradient(ellipse at center, rgba(255,200,0,0.18) 0%, transparent 70%);
+    opacity: 0; transition: opacity 0.05s;
+}
+
+/* ── Minion type badge ── */
+.minion-type-badge {
+    display: inline-block;
+    font-size: 0.55em;
+    font-family: var(--font-title);
+    letter-spacing: 1.5px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+    font-weight: bold;
+    text-transform: uppercase;
+    border: 1px solid currentColor;
+    opacity: 0.85;
+}
+.badge-undead  { color: #88aaff; background: rgba(100,120,255,0.12); }
+.badge-demon   { color: #ff6644; background: rgba(255,80,0,0.12); }
+.badge-void    { color: #cc88ff; background: rgba(180,80,255,0.12); }
+.badge-spirit  { color: #44ddaa; background: rgba(40,200,150,0.12); }
+.badge-elemental { color: #88ddff; background: rgba(80,180,255,0.12); }
+
+/* ── Synergy banner ── */
+#synergy-banner {
+    position: fixed; bottom: 90px; right: 18px;
+    background: linear-gradient(135deg, #0a0a1a, #1a0a2a);
+    border: 1px solid #6633aa;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 0.7em;
+    font-family: var(--font-title);
+    color: #aa66ff;
+    letter-spacing: 1px;
+    z-index: 200;
+    display: none;
+    animation: synergyPulse 3s ease-in-out infinite;
+    max-width: 200px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(100,0,180,0.3);
+}
+@keyframes synergyPulse {
+    0%,100% { border-color: #6633aa; box-shadow: 0 0 10px rgba(100,0,180,0.2); }
+    50%      { border-color: #aa44ff; box-shadow: 0 0 25px rgba(150,0,255,0.4); }
+}
+
+/* ── UI glitch on purchase ── */
+@keyframes purchaseGlitch {
+    0%   { filter: none; transform: translate(0,0); }
+    15%  { filter: hue-rotate(30deg) brightness(1.3); transform: translate(-1px, 0); }
+    30%  { filter: none; transform: translate(1px, 0); }
+    45%  { filter: hue-rotate(-20deg) brightness(0.9); transform: translate(0, -1px); }
+    60%  { filter: none; transform: translate(0,0); }
+    100% { filter: none; transform: translate(0,0); }
+}
+.purchase-glitch { animation: purchaseGlitch 0.18s linear forwards; }
+
+/* ── Collapse supernova ── */
+#collapse-nova {
+    position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+    display: none;
+    background: radial-gradient(ellipse at center, #fff 0%, #ffaa00 20%, #ff4400 45%, #aa0000 65%, transparent 100%);
+    opacity: 0;
+}
+</style>
+
+<div id="abyss-pulse-vignette"></div>
+<div id="eclipse-banner">☽ ABYSSAL ECLIPSE — The Void Boss has manifested ☾</div>
+<div id="eclipse-countdown" title="Next Eclipse">
+    <svg width="58" height="58" viewBox="0 0 58 58">
+        <circle cx="29" cy="29" r="24" fill="none" stroke="#1a0a2a" stroke-width="5"/>
+        <circle id="eclipse-cd-ring" cx="29" cy="29" r="24" fill="none" stroke="#aa44ff" stroke-width="4"
+            stroke-dasharray="150.8" stroke-dashoffset="0" stroke-linecap="round"
+            style="transition:stroke-dashoffset 1s linear;"/>
+    </svg>
+    <div id="eclipse-cd-text">☽<br>--:--</div>
+</div>
+<div id="crit-flash"></div>
+<div id="synergy-banner"></div>
+<div id="collapse-nova"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// FEATURE PACK INIT — waits for game to be ready
+// ══════════════════════════════════════════════════════════════════
+(function initFeaturePack() {
+    if (typeof gameState === 'undefined' || !gameState.stats) {
+        return setTimeout(initFeaturePack, 500);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 1. MINION SYNERGY SYSTEM
+    // Type assignments: undead, demon, void, spirit, elemental
+    // ─────────────────────────────────────────────────────────────
+    const MINION_TYPES = window.MINION_TYPES = {
+        // ── Regular minions ──
+        imp:             'demon',
+        ghoul:           'undead',
+        demon:           'demon',
+        ash_golem:       'elemental',
+        cinder_wraith:   'spirit',
+        abyssal_stalker: 'void',
+        river_hydra:     'elemental',
+        hellhound:       'demon',
+        balrog:          'demon',
+        pit_lord:        'demon',
+        frost_lich:      'undead',
+        icefiend:        'elemental',
+        glacial_titan:   'elemental',
+        fallen_angel:    'spirit',
+        corrupted_cherub:'spirit',
+        shoggoth:        'void',
+        void_spawn:      'void',
+        banshee:         'undead',
+        lich_king:       'undead',
+        revenant:        'undead',
+        specter:         'spirit',
+        phantom:         'spirit',
+        wraith:          'undead',
+        necromancer:     'undead',
+        abyssal_wyrm:    'void',
+        void_titan:      'void',
+        entropy_shade:   'void',
+        // ── Secret minions ──
+        wraith_of_avarice:    'undead',  // greed-wraith, spectral nature
+        hollow_sovereign:     'undead',  // hollow king, spectral ruler
+        the_pale_accord:      'void',    // abstract void entity
+        the_devouring_silence:'void',    // annihilation, void nature
+        eyeless_prophet:      'spirit',  // seer, spirit realm
+        marrow_king:          'undead',  // built from bones of dead rulers
+        the_last_hymn:        'spirit',  // song of the dead, spirit
+        null_shepherd:        'void',    // herds nonexistent things, void
+        the_inverse:          'void',    // negative space, void
+        the_forgotten_god:    'spirit',  // forgotten divine, spirit
+        the_wound_between:    'void',    // wound in reality, void
+        echo_of_the_first:    'spirit',  // echo/resonance, spirit
+        the_last_dream:       'spirit',  // dream entity, spirit
+        the_starving_dark:    'void',    // darkness, void
+        terminus:             'void',    // end of all things, void
+        // Donor exclusives
+        the_void_author:      'void',    // wrote the void
+        the_bleeding_throne:  'undead',  // built from dead kings
+        the_unmaker:          'void',    // pre-creation void
+        // Leaderboard
+        god:                  'spirit',  // divine
+        satan:                'demon',   // supreme demon
+    };
+    const TYPE_COLORS = window.TYPE_COLORS = { demon:'#ff6644', undead:'#88aaff', void:'#cc88ff', spirit:'#44ddaa', elemental:'#88ddff' };
+    const TYPE_LABELS = window.TYPE_LABELS = { demon:'DEMON', undead:'UNDEAD', void:'VOID', spirit:'SPIRIT', elemental:'ELEMENTAL' };
+
+    // Expose for calculateStats hook and bestiary
+    window._minionSynergyMult = 1;
+    window.calcSynergyMult = calcSynergyMult;
+
+    function calcSynergyMult() {
+        const counts = {};
+        for (const id in (gameState.minions || {})) {
+            const lvl = gameState.minions[id]?.level || 0;
+            if (lvl < 1) continue;
+            const t = MINION_TYPES[id];
+            if (t) counts[t] = (counts[t] || 0) + 1;
+        }
+        let mult = 1;
+        const active = [];
+        for (const t in counts) {
+            if (counts[t] >= 3) {
+                mult *= Math.pow(1.15, Math.floor(counts[t] / 3));
+                active.push({ type: t, count: counts[t] });
+            }
+        }
+        window._minionSynergyMult = mult;
+        return { mult, active };
+    }
+
+    function updateSynergyBanner() {
+        const { mult, active } = calcSynergyMult();
+        const banner = document.getElementById('synergy-banner');
+        if (!banner) return;
+        if (active.length === 0) { banner.style.display = 'none'; return; }
+        const lines = active.map(a => {
+            const col = TYPE_COLORS[a.type] || '#aaa';
+            const stacks = Math.floor(a.count / 3);
+            return `<span style="color:${col};">${TYPE_LABELS[a.type]}</span> ×${a.count} <span style="color:#888;font-size:0.85em;">(+${Math.round((Math.pow(1.15,stacks)-1)*100)}%)</span>`;
+        });
+        banner.innerHTML = '⚡ SYNERGY<br>' + lines.join('<br>');
+        banner.style.display = 'block';
+    }
+
+    // Inject synergy into SPS — hook updateDynamicDisplays
+    const _origUDD = window.updateDynamicDisplays;
+    window.updateDynamicDisplays = function() {
+        if (typeof _origUDD === 'function') _origUDD.apply(this, arguments);
+        updateSynergyBanner();
+        // Apply synergy multiplier live to displayed SPS (visual only label)
+        // The real mult is applied via the calculateStats hook below
+    };
+
+    // Hook calculateStats to bake synergy into SPS — guard against re-entry
+    let _synergyHookActive = false;
+    const _origCS = window.calculateStats;
+    window.calculateStats = function() {
+        if (typeof _origCS === 'function') _origCS.apply(this, arguments);
+        if (_synergyHookActive) return;
+        _synergyHookActive = true;
+        const { mult } = calcSynergyMult();
+        window._minionSynergyMult = mult;
+        if (mult > 1 && gameState.stats?.sps) {
+            gameState.stats.sps = D(gameState.stats.sps).mul(D(mult));
+        }
+        _synergyHookActive = false;
+    };
+
+    // Glitch effect on minion purchase
+    const _origBM = window.buyMinion;
+    window.buyMinion = function(id) {
+        if (typeof _origBM === 'function') _origBM.apply(this, arguments);
+        const gc = document.getElementById('game-container');
+        if (gc) {
+            gc.classList.remove('purchase-glitch');
+            void gc.offsetWidth;
+            gc.classList.add('purchase-glitch');
+            setTimeout(() => gc.classList.remove('purchase-glitch'), 200);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────
+    // 2. CRITICAL HITS on harvest click
+    // ─────────────────────────────────────────────────────────────
+    const _origHS = window.harvestSoul;
+    window.harvestSoul = function() {
+        if (typeof _origHS === 'function') _origHS.apply(this, arguments);
+        // 2% crit chance — forgeBlast gold explosion
+        if (Math.random() < 0.02) {
+            if (typeof triggerForgeBlast === 'function') triggerForgeBlast('#c8a800');
+            // Bonus: crit gives 5× SPC as extra souls
+            const critBonus = D(gameState.stats?.spc || 1).mul(4); // 5× total (1 already given)
+            gameState.souls = D(gameState.souls).add(critBonus);
+            gameState.lifetimeSouls = D(gameState.lifetimeSouls).add(critBonus);
+            // Flash
+            const flash = document.getElementById('crit-flash');
+            if (flash) {
+                flash.style.opacity = '1';
+                setTimeout(() => flash.style.opacity = '0', 120);
+            }
+            if (typeof Toastify !== 'undefined') {
+                Toastify({ text: `⚡ CRITICAL HARVEST! +${typeof formatNumber==='function'?formatNumber(critBonus):critBonus} Souls`,
+                    duration: 1800, gravity: 'top', position: 'center',
+                    style: { background: 'linear-gradient(135deg,#1a0a00,#c8a80044)', fontSize:'0.8em' }
+                }).showToast();
+            }
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────
+    // 3. COLLAPSE SUPERNOVA
+    // ─────────────────────────────────────────────────────────────
+    const _origEC = window.executeCollapse;
+    window.executeCollapse = function() {
+        // Fire supernova first, then execute after brief delay
+        const nova = document.getElementById('collapse-nova');
+        if (nova) {
+            nova.style.display = 'block';
+            nova.style.opacity = '0';
+            let op = 0;
+            const expand = setInterval(() => {
+                op = Math.min(1, op + 0.08);
+                nova.style.opacity = op;
+                if (op >= 1) {
+                    clearInterval(expand);
+                    setTimeout(() => {
+                        if (typeof _origEC === 'function') _origEC.apply(this, arguments);
+                        // Fade out
+                        let fo = 1;
+                        const fade = setInterval(() => {
+                            fo = Math.max(0, fo - 0.06);
+                            nova.style.opacity = fo;
+                            if (fo <= 0) { clearInterval(fade); nova.style.display = 'none'; }
+                        }, 30);
+                    }, 300);
+                }
+            }, 25);
+        } else {
+            if (typeof _origEC === 'function') _origEC.apply(this, arguments);
+        }
+    };
+
+    // ─────────────────────────────────────────────────────────────
+    // 4. ABYSSAL ECLIPSE SYSTEM
+    // Eclipse every 20 minutes, lasts 3 minutes
+    // ─────────────────────────────────────────────────────────────
+    const ECLIPSE_INTERVAL_MS  = 20 * 60 * 1000;  // every 20 min
+    const ECLIPSE_DURATION_MS  =  3 * 60 * 1000;  // lasts 3 min
+    const ECLIPSE_BOSS_HP      = 50;               // clicks to defeat
+    let   eclipseState = { active: false, bossHp: 0, nextEclipse: Date.now() + ECLIPSE_INTERVAL_MS };
+
+    function injectEclipseBossBtn() {
+        if (document.getElementById('eclipse-boss-btn')) return;
+        const riftSection = document.getElementById('altar-rift-section') || document.getElementById('rift-container');
+        if (!riftSection) return;
+        const btn = document.createElement('button');
+        btn.id = 'eclipse-boss-btn';
+        btn.innerHTML = '☽ SMITE THE VOID BOSS ☾<br><small id="eclipse-boss-hp-text" style="font-size:0.7em;opacity:0.7;">HP: 50/50</small>';
+        btn.onclick = onEclipseBossClick;
+        riftSection.parentNode.insertBefore(btn, riftSection.nextSibling);
+    }
+
+    function onEclipseBossClick() {
+        if (!eclipseState.active || eclipseState.bossHp <= 0) return;
+        eclipseState.bossHp--;
+        const hpText = document.getElementById('eclipse-boss-hp-text');
+        if (hpText) hpText.textContent = `HP: ${eclipseState.bossHp}/${ECLIPSE_BOSS_HP}`;
+        // Shake the button
+        const btn = document.getElementById('eclipse-boss-btn');
+        if (btn) { btn.style.transform = 'scale(0.95)'; setTimeout(() => btn.style.transform = '', 80); }
+        // Boss defeated
+        if (eclipseState.bossHp <= 0) endEclipse(true);
+    }
+
+    function startEclipse() {
+        eclipseState.active = true;
+        eclipseState.bossHp = ECLIPSE_BOSS_HP;
+        eclipseState.eclipseEnd = Date.now() + ECLIPSE_DURATION_MS;
+
+        // Visual changes
+        const vignette = document.getElementById('abyss-pulse-vignette');
+        if (vignette) vignette.classList.add('eclipse-mode');
+        const banner = document.getElementById('eclipse-banner');
+        if (banner) banner.style.display = 'block';
+        const btn = document.getElementById('eclipse-boss-btn');
+        if (btn) { btn.style.display = 'block'; const ht = btn.querySelector('#eclipse-boss-hp-text'); if(ht) ht.textContent = `HP: ${ECLIPSE_BOSS_HP}/${ECLIPSE_BOSS_HP}`; }
+
+        if (typeof Toastify !== 'undefined') {
+            Toastify({ text: '🌑 ABYSSAL ECLIPSE — A Void Boss has emerged on the Altar! Smite it for Aether & Essence!',
+                duration: 6000, gravity: 'top', position: 'center',
+                style: { background: 'linear-gradient(135deg,#1a0000,#550000)', border: '1px solid #cc0000' }
+            }).showToast();
+        }
+        playSound && playSound('ascend');
+    }
+
+    function endEclipse(bossKilled) {
+        eclipseState.active = false;
+        eclipseState.nextEclipse = Date.now() + ECLIPSE_INTERVAL_MS;
+
+        // Restore visuals
+        const vignette = document.getElementById('abyss-pulse-vignette');
+        if (vignette) vignette.classList.remove('eclipse-mode');
+        const banner = document.getElementById('eclipse-banner');
+        if (banner) banner.style.display = 'none';
+        const btn = document.getElementById('eclipse-boss-btn');
+        if (btn) btn.style.display = 'none';
+
+        if (bossKilled) {
+            // Reward: Aether + Dark Essence (or Light Essence if transcended)
+            const aetherReward = Math.floor(Math.random() * 3) + 2; // 2-4 Aether
+            const essenceReward = Math.floor(Math.random() * 20) + 15; // 15-35 DE
+            gameState.aether = D(gameState.aether || 0).add(aetherReward);
+            if (gameState.isTranscended) {
+                gameState.lightEssence = D(gameState.lightEssence || 0).add(essenceReward);
+            } else {
+                gameState.darkEssence = D(gameState.darkEssence || 0).add(essenceReward);
+            }
+            if (typeof triggerForgeBlast === 'function') triggerForgeBlast('#aa44ff');
+            if (typeof Toastify !== 'undefined') {
+                const esLabel = gameState.isTranscended ? 'Light Essence' : 'Dark Essence';
+                Toastify({ text: `☽ VOID BOSS SLAIN! +${aetherReward} Aether · +${essenceReward} ${esLabel}`,
+                    duration: 7000, gravity: 'top', position: 'center',
+                    style: { background: 'linear-gradient(135deg,#0a0020,#440088)', border: '1px solid #aa44ff' }
+                }).showToast();
+            }
+            if (typeof calculateStats === 'function') calculateStats();
+            if (typeof updateDynamicDisplays === 'function') updateDynamicDisplays();
+            if (typeof saveGame === 'function') saveGame();
+        } else {
+            if (typeof Toastify !== 'undefined') {
+                Toastify({ text: '🌑 The Eclipse fades... The Void Boss retreats undefeated.',
+                    duration: 4000, gravity: 'top', position: 'center',
+                    style: { background: 'linear-gradient(135deg,#0a0000,#1a0000)' }
+                }).showToast();
+            }
+        }
+    }
+
+    // Eclipse countdown ring
+    function updateEclipseCountdown() {
+        const cdDiv = document.getElementById('eclipse-countdown');
+        const ring  = document.getElementById('eclipse-cd-ring');
+        const text  = document.getElementById('eclipse-cd-text');
+        if (!cdDiv || !ring || !text) return;
+
+        if (eclipseState.active) {
+            // Show remaining fight time
+            cdDiv.style.display = 'block';
+            const rem = Math.max(0, eclipseState.eclipseEnd - Date.now());
+            if (rem <= 0) { endEclipse(false); return; }
+            const secs = Math.ceil(rem / 1000);
+            const m = Math.floor(secs/60), s = secs%60;
+            ring.style.stroke = '#cc2200';
+            ring.style.strokeDashoffset = 150.8 * (1 - rem / ECLIPSE_DURATION_MS);
+            text.innerHTML = `☽<br>${m}:${s<10?'0'+s:s}`;
+        } else {
+            // Show time until next eclipse
+            const rem = Math.max(0, eclipseState.nextEclipse - Date.now());
+            cdDiv.style.display = rem < 5 * 60 * 1000 ? 'block' : 'none'; // only show last 5 min
+            if (rem <= 0) { startEclipse(); return; }
+            const secs = Math.ceil(rem / 1000);
+            const m = Math.floor(secs/60), s = secs%60;
+            ring.style.stroke = '#aa44ff';
+            ring.style.strokeDashoffset = 150.8 * (1 - rem / ECLIPSE_INTERVAL_MS);
+            text.innerHTML = `☽<br>${m}:${s<10?'0'+s:s}`;
+        }
+    }
+
+    // Bootstrap
+    injectEclipseBossBtn();
+    setInterval(updateEclipseCountdown, 1000);
+    setInterval(() => {
+        if (!eclipseState.active && Date.now() >= eclipseState.nextEclipse) startEclipse();
+    }, 5000);
+
+    console.log('[FeaturePack] Eclipses · Synergies · Critical Hits · Collapse Nova · Abyss Pulse — all active.');
+})();
+</script>
 </body>
 </html>

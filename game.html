@@ -26405,7 +26405,7 @@ function performInfusion(rarity) {
     if (typeof triggerForgeBlast === 'function') triggerForgeBlast(rc);
     Toastify({text:`🔥 FORGED! ${items[rewardId].name} (${nextRarity})`,duration:6000,gravity:'top',position:'center',style:{background:`linear-gradient(135deg,#1a0505,${rc}44)`}}).showToast();
     playSound('ascend');
-    calculateStats(); renderSoulForge(); saveGame();
+    calculateStats(); renderSoulForge(); if (typeof renderInventory === 'function') renderInventory(); saveGame();
 }
 
 function performRecipe(recipeId) {
@@ -26413,12 +26413,17 @@ function performRecipe(recipeId) {
     if (!recipe) return;
 
     const inv = [...(gameState.inventory||[])];
-    const toRemove = [];
+    const toRemove = []; // indices into gameState.inventory, found on the copy to handle duplicates correctly
     for (const inputId of recipe.inputs) {
         const idx = inv.indexOf(inputId);
         if (idx === -1) { Toastify({text:`🔮 Missing: ${items[inputId]?.name || inputId}`,duration:3000,gravity:'top',position:'center'}).showToast(); return; }
-        toRemove.push(idx);
-        inv.splice(idx,1);
+        // Map copy-index back to real inventory index (accounting for already-removed items)
+        let realIdx = -1, seen = 0;
+        for (let i = 0; i < gameState.inventory.length; i++) {
+            if (gameState.inventory[i] === inputId && !toRemove.includes(i)) { realIdx = i; break; }
+        }
+        toRemove.push(realIdx);
+        inv.splice(idx, 1);
     }
 
     if (D(gameState.souls).lt(D(recipe.souls))) { Toastify({text:`💀 Need ${formatNumber(recipe.souls)} Souls.`,duration:2500,gravity:'top',position:'center'}).showToast(); return; }
@@ -26438,10 +26443,10 @@ Cost: ${formatNumber(recipe.souls)} Souls + ${recipe.fragments} Fragments
     gameState.souls = D(gameState.souls).sub(D(recipe.souls));
     gameState.corruptedFragments = D(gameState.corruptedFragments||0).sub(recipe.fragments);
 
-    // Remove inputs from inventory (reverse order to keep indices stable)
-    const sortedIndices = [...recipe.inputs].map(inputId => gameState.inventory.indexOf(inputId)).sort((a,b) => b-a);
-    for (const idx of sortedIndices) {
-        if (idx !== -1) gameState.inventory.splice(idx,1);
+    // Remove inputs using pre-validated indices (sorted descending so splices don't shift positions)
+    toRemove.sort((a, b) => b - a);
+    for (const idx of toRemove) {
+        if (idx !== -1) gameState.inventory.splice(idx, 1);
     }
     gameState.inventory.push(recipe.output);
     gameState.totalForged = (gameState.totalForged || 0) + 1;
@@ -26450,7 +26455,7 @@ Cost: ${formatNumber(recipe.souls)} Souls + ${recipe.fragments} Fragments
     if (typeof triggerForgeBlast === 'function') triggerForgeBlast(outColor);
     Toastify({text:`⚒ CRAFTED: ${outputItem?.name}${outputItem?.rarity==='forged'?' 🔥':''}`,duration:6000,gravity:'top',position:'center',style:{background:`linear-gradient(135deg,#1a0a00,${outColor}55)`}}).showToast();
     playSound('ascend');
-    calculateStats(); renderSoulForge(); saveGame();
+    calculateStats(); renderSoulForge(); if (typeof renderInventory === 'function') renderInventory(); saveGame();
 }
 
 

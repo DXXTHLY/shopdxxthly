@@ -13480,23 +13480,14 @@ function loadGame() {
             document.getElementById('musicStatus').innerText = `Status: ${audio.bgm.muted ? 'OFF' : 'ON'}`;
             document.getElementById('sfxStatus').innerText   = `Status: ${audio.sfxMuted  ? 'OFF' : 'ON'}`;
             repairNegativeValues();
-            // ── Clamp fragments: 10k cap for non-donors ───────────────
+            // ── Clamp banked fragments: vault max is 10k ───────────────
             (function() {
-                var _isDonor = !!gameState.donorTitle;
-                // Clamp on-hand fragments
-                if (!_isDonor) {
-                    var _cf = D(gameState.corruptedFragments || 0).toNumber();
-                    if (_cf > 10000) {
-                        console.log('[Fragments] Clamped on-hand from ' + Math.round(_cf) + ' to 10,000');
-                        gameState.corruptedFragments = D(10000);
-                    }
-                }
-                // Clamp banked fragments - refund excess to on-hand (but still cap that)
                 var _bf = parseFloat(gameState.bankedFragments || 0);
                 if (_bf > 10000) {
-                    console.log('[Fragments] Clamped banked from ' + Math.round(_bf) + ' to 10,000 (excess discarded)');
+                    console.log('[Fragments] Clamped banked from ' + Math.round(_bf) + ' to 10,000');
                     gameState.bankedFragments = 10000;
                 }
+                // On-hand fragments (corruptedFragments) have NO cap — players accumulate freely
             })();
             calculateStats();
             renderAll();
@@ -14594,12 +14585,9 @@ function updateAscensionPreview() {
 
 
 function calculateStats() {
-    // ── Hard cap on corrupted fragments (non-donors) ──────────────
-    if (!gameState.donorTitle) {
-        var _fragCap = 10000;
-        if (D(gameState.corruptedFragments||0).gt(_fragCap)) {
-            gameState.corruptedFragments = D(_fragCap);
-        }
+    // ── Hard cap on banked fragments: vault max is 10k. On-hand has no cap. ──────────────
+    if ((gameState.bankedFragments || 0) > 10000) {
+        gameState.bankedFragments = 10000;
     }
     // =================================================================
     // 1. INITIALIZE MULTIPLIERS & BASE VALUES (CORRECTED ORDER)
@@ -32739,55 +32727,117 @@ async function arenaEndBattle(playerWon) {
 // =================================================================
 
 // Wave multiplier table
-const GNT_WAVES = [
-    { wave:1,  mult:0.05, label:'0.05x (loss)',            color:'#333333' },
-    { wave:2,  mult:0.4,  label:'0.40x (still a loss)',    color:'#555555' },
-    { wave:3,  mult:1.1,  label:'1.10x',  color:'#556655' },
-    { wave:4,  mult:1.8,  label:'1.80x',  color:'#44cc88' },
-    { wave:5,  mult:3.0,  label:'3.00x',  color:'#44cc88' },
-    { wave:6,  mult:5.0,  label:'5.00x',  color:'#c8a800' },
-    { wave:7,  mult:8.0,  label:'8.00x',  color:'#c8a800' },
-    { wave:8,  mult:12.0, label:'12.00x', color:'#ff9944' },
-    { wave:9,  mult:18.0, label:'18.00x', color:'#ff6644' },
-    { wave:10, mult:28.0, label:'28.00x', color:'#ff4444' },
-    { wave:11, mult:42.0, label:'42.00x', color:'#ff2222' },
-    { wave:12, mult:65.0, label:'65.00x', color:'#aa44ff' },
+// ── WAVE REWARD MILESTONES (1–1000) ──────────────────────────────────────────
+// Between milestones, multipliers are linearly interpolated.
+const GNT_MILESTONES = [
+    { wave:   1, mult:    0.05, label: '0.05x — Entry',           color: '#333333' },
+    { wave:   2, mult:    0.40, label: '0.40x — Warm-Up',         color: '#555555' },
+    { wave:   3, mult:    1.10, label: '1.10x',                   color: '#556655' },
+    { wave:   4, mult:    1.80, label: '1.80x',                   color: '#44cc88' },
+    { wave:   5, mult:    3.00, label: '3.00x',                   color: '#44cc88' },
+    { wave:   6, mult:    5.00, label: '5.00x',                   color: '#c8a800' },
+    { wave:   7, mult:    8.00, label: '8.00x',                   color: '#c8a800' },
+    { wave:   8, mult:   12.00, label: '12.00x',                  color: '#ff9944' },
+    { wave:   9, mult:   18.00, label: '18.00x',                  color: '#ff6644' },
+    { wave:  10, mult:   28.00, label: '28.00x — Tier I',         color: '#ff4444' },
+    { wave:  15, mult:   50.00, label: '50x',                     color: '#ff2222' },
+    { wave:  20, mult:   80.00, label: '80x',                     color: '#aa44ff' },
+    { wave:  25, mult:  120.00, label: '120x',                    color: '#aa44ff' },
+    { wave:  30, mult:  180.00, label: '180x — Tier II',          color: '#cc66ff' },
+    { wave:  40, mult:  280.00, label: '280x',                    color: '#ff44cc' },
+    { wave:  50, mult:  420.00, label: '420x',                    color: '#ff44cc' },
+    { wave:  60, mult:  600.00, label: '600x',                    color: '#ff2288' },
+    { wave:  75, mult:  900.00, label: '900x — Tier III',         color: '#ff2288' },
+    { wave: 100, mult:  1500,   label: '1,500x ⚔ CENTURY',        color: '#ff0066' },
+    { wave: 125, mult:  2200,   label: '2,200x',                  color: '#ff0066' },
+    { wave: 150, mult:  3200,   label: '3,200x',                  color: '#dd0055' },
+    { wave: 200, mult:  5000,   label: '5,000x — Tier IV',        color: '#dd0055' },
+    { wave: 250, mult:  8000,   label: '8,000x ⚔ QUARTER',        color: '#bb0044' },
+    { wave: 300, mult: 12000,   label: '12,000x',                 color: '#bb0044' },
+    { wave: 400, mult: 22000,   label: '22,000x',                 color: '#990033' },
+    { wave: 500, mult: 40000,   label: '40,000x ☠ HALFWAY',       color: '#990033' },
+    { wave: 600, mult: 70000,   label: '70,000x — Tier V',        color: '#770022' },
+    { wave: 700, mult:120000,   label: '120,000x',                color: '#770022' },
+    { wave: 750, mult:175000,   label: '175,000x ☠ THREE-QUARTERS',color:'#550011' },
+    { wave: 800, mult:200000,   label: '200,000x',                color: '#550011' },
+    { wave: 900, mult:350000,   label: '350,000x — Penultimate',  color: '#330000' },
+    { wave:1000, mult:666000,   label: '666,000x ☠☠ FINAL WAVE',  color: '#ff0000' },
 ];
-// Waves beyond 10: multiplier = previous * 1.5
+
 function gntGetWaveData(waveNum) {
-    let base;
-    if (waveNum <= GNT_WAVES.length) {
-        base = GNT_WAVES[waveNum - 1];
-    } else {
-        let mult = GNT_WAVES[GNT_WAVES.length - 1].mult;
-        for (let i = GNT_WAVES.length; i < waveNum; i++) mult = Math.round(mult * 1.5 * 10) / 10;
-        base = { wave: waveNum, mult, label: mult + 'x', color: '#ff00ff' };
+    const w = Math.max(1, Math.min(waveNum, 1000));
+    // Find surrounding milestones
+    let lo = GNT_MILESTONES[0], hi = GNT_MILESTONES[GNT_MILESTONES.length - 1];
+    for (let i = 0; i < GNT_MILESTONES.length - 1; i++) {
+        if (GNT_MILESTONES[i].wave <= w && GNT_MILESTONES[i+1].wave >= w) {
+            lo = GNT_MILESTONES[i]; hi = GNT_MILESTONES[i+1]; break;
+        }
     }
+    let mult, label, color;
+    if (w === lo.wave) {
+        mult = lo.mult; label = lo.label; color = lo.color;
+    } else if (w === hi.wave) {
+        mult = hi.mult; label = hi.label; color = hi.color;
+    } else {
+        const t = (w - lo.wave) / (hi.wave - lo.wave);
+        mult = lo.mult + (hi.mult - lo.mult) * t;
+        mult = Math.round(mult * 10) / 10;
+        color = t >= 0.5 ? hi.color : lo.color;
+        label = mult >= 1000 ? Math.round(mult).toLocaleString() + 'x' : mult.toFixed(1) + 'x';
+    }
+    let base = { wave: w, mult, label, color };
     if (typeof gntGetDailyWaveMult === 'function') base = gntGetDailyWaveMult(base);
     const locMod = (typeof gntGetMultModifier === 'function') ? gntGetMultModifier() : 1;
     if (locMod !== 1) {
         const m = Math.round(base.mult * locMod * 100) / 100;
-        base = { ...base, mult: m, label: m.toFixed(2) + 'x' };
+        base = { ...base, mult: m, label: m >= 1000 ? Math.round(m).toLocaleString() + 'x' : m.toFixed(2) + 'x' };
     }
     return base;
 }
 
+// ── GAUNTLET WAVE SCALING (1–1000) ───────────────────────────────────────────
+// Enemy HP/ATK uses a piecewise logarithmic-exponential curve so waves stay
+// challenging all the way to 1000 without hitting JS number limits.
+// Multiplier = base * phase_scale, kept as a normal float throughout.
+function gntEnemyScaleMult(waveNum) {
+    const w = waveNum;
+    if (w <= 10)  return Math.pow(1.40, w - 1);                            // waves 1–10:   1x → 20x
+    if (w <= 50)  return Math.pow(1.40, 9)  * Math.pow(1.18, w - 10);     // waves 11–50:  20x → ~800x
+    if (w <= 100) return Math.pow(1.40, 9)  * Math.pow(1.18, 40) * Math.pow(1.12, w - 50);  // 50–100
+    if (w <= 250) return Math.pow(1.40, 9)  * Math.pow(1.18, 40) * Math.pow(1.12, 50) * Math.pow(1.08, w - 100);
+    if (w <= 500) return Math.pow(1.40, 9)  * Math.pow(1.18, 40) * Math.pow(1.12, 50) * Math.pow(1.08, 150) * Math.pow(1.05, w - 250);
+    // waves 501–1000: growth slows to keep numbers representable
+    return Math.pow(1.40, 9) * Math.pow(1.18, 40) * Math.pow(1.12, 50) * Math.pow(1.08, 150) * Math.pow(1.05, 250) * Math.pow(1.03, w - 500);
+}
+
+// Enemy tier pool — 6 tiers unlocking progressively
 const GNT_ENEMY_TIERS = [
-    ['imp','ghoul','demon','ash_golem','cinder_wraith'],
-    ['abyssal_stalker','frost_lich','hellhound','balrog','corrupted_cherub'],
-    ['shoggoth','river_hydra','fallen_angel','pit_lord','glacial_titan'],
-    ['spacetime_ghast','reality_warper','void_spawn','alpha_omega','god_eater'],
-    ['the_final_observer','concept_of_death','the_last_question','eon_devourer','time_leech'],
-    ['manifold_horror','silence_incarnate','blank_slate','entropy_wraith','universe_shard'],
+    ['imp','ghoul','demon','ash_golem','cinder_wraith'],                                              // tier 1:  waves 1–10
+    ['abyssal_stalker','frost_lich','hellhound','balrog','corrupted_cherub'],                          // tier 2:  waves 11–30
+    ['shoggoth','river_hydra','fallen_angel','pit_lord','glacial_titan'],                              // tier 3:  waves 31–75
+    ['spacetime_ghast','reality_warper','void_spawn','alpha_omega','god_eater'],                       // tier 4:  waves 76–200
+    ['the_final_observer','concept_of_death','the_last_question','eon_devourer','time_leech'],         // tier 5:  waves 201–500
+    ['manifold_horror','silence_incarnate','blank_slate','entropy_wraith','universe_shard'],           // tier 6:  waves 501–1000
 ];
 function gntEnemyTier(waveNum) {
-    return GNT_ENEMY_TIERS[Math.min(Math.floor((waveNum-1)/2), GNT_ENEMY_TIERS.length-1)];
+    if (waveNum <= 10)  return GNT_ENEMY_TIERS[0];
+    if (waveNum <= 30)  return GNT_ENEMY_TIERS[1];
+    if (waveNum <= 75)  return GNT_ENEMY_TIERS[2];
+    if (waveNum <= 200) return GNT_ENEMY_TIERS[3];
+    if (waveNum <= 500) return GNT_ENEMY_TIERS[4];
+    return GNT_ENEMY_TIERS[5];
 }
+
+// Enemy count: starts at 4, grows to 10 by wave 50, stays at 10
+function gntEnemyCount(waveNum, extraEnemies) {
+    return Math.min(10, 3 + Math.ceil(waveNum / 7) + (extraEnemies || 0));
+}
+
 function gntGenerateEnemies(waveNum) {
     const pool = (typeof gntGetDailyEnemyPool==='function') ? gntGetDailyEnemyPool(waveNum) : gntEnemyTier(waveNum);
     const extraEnemies = (typeof gntGetEnemyCountBonus==='function') ? gntGetEnemyCountBonus() : 0;
-    const count = Math.min(3 + waveNum + extraEnemies, 10);
-    const scaleMult = Math.pow(1.40, waveNum - 1); // exponential: wave3=2x, wave5=3.8x, wave7=7.5x, wave10=20x
+    const count = gntEnemyCount(waveNum, extraEnemies);
+    const scaleMult = gntEnemyScaleMult(waveNum);
     const enemies = [], positions = [];
     for (let y=0;y<4;y++) for (let x=0;x<3;x++) positions.push({x,y});
     for (let i=positions.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [positions[i],positions[j]]=[positions[j],positions[i]]; }
@@ -32796,16 +32846,14 @@ function gntGenerateEnemies(waveNum) {
         const bm = battleMinions[id]; if (!bm) continue;
         let hp  = (typeof gntApplyLocationEffects==='function') ? gntApplyLocationEffects('enemy','hp',Math.ceil(bm.hp*scaleMult))  : Math.ceil(bm.hp*scaleMult);
         let atk = (typeof gntApplyLocationEffects==='function') ? gntApplyLocationEffects('enemy','atk',Math.ceil(bm.atk*scaleMult)) : Math.ceil(bm.atk*scaleMult);
-        // Apply repeat-loadout penalty (enemy remembers your tactics)
         if (gntState.repeatPenalty > 0) {
             const penaltyMult = 1 + gntState.repeatPenalty * 0.2;
             hp  = Math.ceil(hp  * penaltyMult);
             atk = Math.ceil(atk * penaltyMult);
         }
-        // Apply run seed variation so enemies differ every attempt (±20%)
         if (gntState.runSeed) {
             const s = (gntState.runSeed + waveNum * 137 + i * 31) & 0x7fffffff;
-            const variation = 0.9 + (s % 200) / 1000; // 0.90–1.10
+            const variation = 0.9 + (s % 200) / 1000;
             hp  = Math.ceil(hp  * variation);
             atk = Math.ceil(atk * variation);
         }
@@ -32826,9 +32874,15 @@ function gntSetBet(v){const el=document.getElementById('gnt-bet-input');if(el)el
 function gntSetBetMax(){const cur=document.getElementById('gnt-currency')?.value||'souls';gntSetBet(D(gameState[cur]||0).toNumber().toFixed(0));}
 function gntCurrencyLabel(key){return{souls:'👻 Souls',darkEssence:'🌑 Dark Essence',abyssalShards:'💎 Shards',aether:'✨ Aether'}[key]||key;}
 function gntCalcBudget(){
-    // Fixed per wave only — ascensions do NOT grant extra deployment power
-    // Wave 1: 14pts, Wave 3: 20, Wave 5: 26, Wave 7: 32, Wave 10+: 40 (hard cap)
-    return Math.min(40, 14 + (gntState.wave - 1) * 3);
+    // Budget grows with wave depth — players need more firepower to face harder enemies
+    // Wave 1: 14pts | Wave 10: 40pts | Wave 50: 70pts | Wave 100: 100pts | Wave 500: 180pts | Wave 1000: 250pts
+    const w = gntState.wave;
+    if (w <= 10)  return Math.min(40,  14 + (w - 1) * 3);
+    if (w <= 50)  return Math.min(70,  40 + Math.floor((w - 10) * 0.75));
+    if (w <= 100) return Math.min(100, 70 + Math.floor((w - 50)  * 0.60));
+    if (w <= 250) return Math.min(140, 100 + Math.floor((w - 100) * 0.267));
+    if (w <= 500) return Math.min(180, 140 + Math.floor((w - 250) * 0.16));
+    return Math.min(250, 180 + Math.floor((w - 500) * 0.14));
 }
 function gntUpdateBudgetBar(){
     const fill=document.getElementById('gnt-budget-fill'),txt=document.getElementById('gnt-budget-text');
@@ -32942,6 +32996,7 @@ function gntBackToMap() {
         // Lose the bet — also set a penalty cooldown for abandoning
         gntState.betAmount = 0;
         gntState._worldSwitchCooldownEnd = Date.now() + 5 * 60 * 1000; // 5min penalty for abandoning mid-run
+        saveGame();
     }
     if (gntState.combatInterval) { clearInterval(gntState.combatInterval); gntState.combatInterval = null; }
     gntState.locationChosen = false;
@@ -32961,6 +33016,18 @@ function gntBackToMap() {
 function gntBeginWave(){
     const currency=document.getElementById('gnt-currency')?.value||'souls';
     if(gntState.wave===1){
+        // ── Permanent wave floor: once you clear a wave it's locked until Collapse ──
+        const _savedHighest = gameState._gauntletHighestWave || 0;
+        if (_savedHighest > 0) {
+            // Jump player straight to the next uncompleted wave — no replaying cleared waves
+            gntState.wave = _savedHighest + 1;
+            gntState.pointBudget = gntCalcBudget();
+            gntUpdateInfoBar(); gntRenderWaveTable(); gntUpdateBudgetBar();
+            Toastify({text:`⚔ Wave ${_savedHighest} already cleared — starting at Wave ${gntState.wave}. Cleared waves are locked until Collapse.`, duration:4000, gravity:'top', position:'center', style:{background:'linear-gradient(135deg,#1a0800,#442200)'}}).showToast();
+            const bb=document.getElementById('gnt-begin-btn');if(bb)bb.textContent=`⚔ Begin Wave ${gntState.wave}`;
+            const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`⚔ Wave ${gntState.wave} — Deploy your minions.`;sb.style.borderLeftColor='#ff6644';sb.style.color='#ff8866';}
+            return;
+        }
         // Parse bet with D() — parseInt('1e15')=1 is an exploit
         let _rawBet = (document.getElementById('gnt-bet-input')?.value||'0').trim();
         let betD; try { betD = D(_rawBet).floor(); } catch(e) { betD = D(0); }
@@ -33034,11 +33101,26 @@ function gntWaveWon(){
     const wd=gntGetWaveData(gntState.wave),next=gntGetWaveData(gntState.wave+1);
     const winD = D(gntState.betAmount).mul(D(wd.mult));
     const winDisplay = formatNumber(winD);
-    // Small flat fragment bonus for deep waves (not multiplicative, not exploitable)
-    const _fragBonus = [0,0,0,0,0,3,5,8,12,18,25,40][Math.min(gntState.wave,11)] || 40;
+    // Fragment bonus scales with wave depth — deeper = more valuable
+    const _fragBonus = (function(w) {
+        if (w < 5)   return 0;
+        if (w < 10)  return 3 + (w - 5) * 2;           // 3–13
+        if (w < 25)  return 15 + (w - 10) * 3;          // 15–60
+        if (w < 50)  return 60 + (w - 25) * 4;          // 60–160
+        if (w < 100) return 160 + (w - 50) * 5;         // 160–410
+        if (w < 250) return 410 + (w - 100) * 4;        // 410–1010
+        if (w < 500) return 1010 + (w - 250) * 6;       // 1010–2510
+        return Math.min(10000, 2510 + (w - 500) * 15);  // 2510–10000
+    })(gntState.wave);
     if (gntState.wave >= 5) {
         gameState.corruptedFragments = D(gameState.corruptedFragments||0).add(_fragBonus);
         gntLog(`🔮 +${_fragBonus} Fragments (depth bonus)`, '#aa44ff');
+    }
+    // Permanently record highest wave cleared — persists across cashouts, losses, refreshes.
+    // Only resets on Collapse (executeCollapse wipes gameState entirely).
+    if (gntState.wave > (gameState._gauntletHighestWave || 0)) {
+        gameState._gauntletHighestWave = gntState.wave;
+        saveGame();
     }
     gntLog('✦ Wave ' + gntState.wave + ' cleared at ' + wd.label + '!','#44cc88');playSound('ascend');
     const sb=document.getElementById('gnt-status-bar');if(sb){sb.textContent=`✦ Wave ${gntState.wave} cleared! Cash out or push deeper.`;sb.style.borderLeftColor='#44cc88';sb.style.color='#44cc88';}

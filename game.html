@@ -23823,29 +23823,74 @@ function initializeChat() {
             window._gwClaim = function(gwId, gwPoster) {
                 if (!_gdb || !_gSelf) return;
                 var playerName = gameState.playerName || localStorage.getItem('slitherChatNickname') || 'Unknown';
-                _gdb.ref('playerData/' + _gSelf + '/discordUsername').once('value', function(snap) {
-                    if (!snap.val()) { _gwShowDiscordGate(gwId); return; }
-                    var poster = gwPoster || _gSelf;
+                var poster = gwPoster || _gSelf;
+                var isPoster = (poster === _gSelf);
+
+                function _doClaim() {
                     // Atomic transaction on poster node — only first claimer wins
                     _gdb.ref('playerData/' + poster + '/gw_active').transaction(function(gw) {
-                        if (!gw || gw.id !== gwId || Date.now() > gw.expiresAt || gw.claimedBy) return; // abort
+                        // If gw_active is null, data may not have propagated yet — retry
+                        if (gw === null || gw === undefined) return; // abort, will retry
+                        if (gw.id !== gwId) return; // wrong giveaway, abort
+                        if (Date.now() > gw.expiresAt) return; // expired, abort
+                        if (gw.claimedBy) return; // already claimed, abort
                         gw.claimedBy = _gSelf; gw.claimedByName = playerName; return gw;
                     }, function(err, committed, snap) {
-                        if (err || !committed) {
-                            Toastify({text:"Already claimed or expired!",duration:3000,gravity:'top',position:'center',style:{background:'#220000'}}).showToast();
-                            var btn=document.getElementById('gw-claim-btn-'+gwId); if(btn){btn.textContent='Claimed';btn.disabled=true;btn.style.opacity='0.4';}
+                        if (err) {
+                            Toastify({text:"Claim failed — connection error. Try again.",duration:3000,gravity:'top',position:'center',style:{background:'#220000'}}).showToast();
                             return;
                         }
-                        var gw=snap.val(), prize=gw.prize;
-                        if(prize.isKey){gameState.heldKey={id:'key_of_shadows',obtainedAt:Date.now()};saveGame();}
-                        else if(prize.mixed){gameState.souls=D(gameState.souls||0).add(D(prize.souls));gameState.darkEssence=D(gameState.darkEssence||0).add(D(prize.essence));saveGame();}
-                        else if(prize.rep){_gdb.ref('playerData/'+_gSelf+'/rep').transaction(function(c){return(c||0)+prize.amt;});}
-                        else if(prize.currency){if(prize.currency==='souls'){gameState.souls=D(gameState.souls||0).add(D(prize.amt));}else{gameState[prize.currency]=D(gameState[prize.currency]||0).add(D(prize.amt));}saveGame();}
-                        updateDynamicDisplays();
-                        _gdb.ref('slitherChat').push({uid:'system',name:'Abyss Giveaway',chatNameColor:'#44cc88',time:firebase.database.ServerValue.TIMESTAMP,text:'🎉 '+playerName+' won: '+gw.prizeDesc+'!'});
-                        Toastify({text:'🎁 You won: '+gw.prizeDesc,duration:8000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();
-                        var btn=document.getElementById('gw-claim-btn-'+gwId);if(btn){btn.textContent='You won!';btn.disabled=true;btn.style.background='linear-gradient(135deg,#1a3a00,#44cc8833)';btn.style.color='#44cc88';}
+                        if (!committed) {
+                            // Check why it wasn't committed
+                            _gdb.ref('playerData/' + poster + '/gw_active').once('value', function(checkSnap) {
+                                var gw = checkSnap.val();
+                                if (!gw || gw.id !== gwId) {
+                                    // gw_active not yet written — race condition, retry once after delay
+                                    setTimeout(function() {
+                                        _gdb.ref('playerData/' + poster + '/gw_active').transaction(function(gw2) {
+                                            if (!gw2 || gw2.id !== gwId || Date.now() > gw2.expiresAt || gw2.claimedBy) return;
+                                            gw2.claimedBy = _gSelf; gw2.claimedByName = playerName; return gw2;
+                                        }, function(err2, committed2, snap2) {
+                                            if (!err2 && committed2) {
+                                                _gwGrantPrize(snap2.val(), gwId);
+                                            } else {
+                                                Toastify({text:"Already claimed or expired!",duration:3000,gravity:'top',position:'center',style:{background:'#220000'}}).showToast();
+                                                var btn=document.getElementById('gw-claim-btn-'+gwId); if(btn){btn.textContent='Claimed';btn.disabled=true;btn.style.opacity='0.4';}
+                                            }
+                                        });
+                                    }, 2000);
+                                } else if (gw.claimedBy && gw.claimedBy !== _gSelf) {
+                                    Toastify({text:"Already claimed by someone else!",duration:3000,gravity:'top',position:'center',style:{background:'#220000'}}).showToast();
+                                    var btn=document.getElementById('gw-claim-btn-'+gwId); if(btn){btn.textContent='Claimed';btn.disabled=true;btn.style.opacity='0.4';}
+                                } else if (Date.now() > (gw.expiresAt || 0)) {
+                                    Toastify({text:"Giveaway has expired!",duration:3000,gravity:'top',position:'center',style:{background:'#220000'}}).showToast();
+                                    var btn=document.getElementById('gw-claim-btn-'+gwId); if(btn){btn.textContent='Expired';btn.disabled=true;btn.style.opacity='0.4';}
+                                }
+                            });
+                            return;
+                        }
+                        _gwGrantPrize(snap.val(), gwId);
                     });
+                }
+
+                function _gwGrantPrize(gw, gwId) {
+                    var prize = gw.prize;
+                    if(prize.isKey){gameState.heldKey={id:'key_of_shadows',obtainedAt:Date.now()};saveGame();}
+                    else if(prize.mixed){gameState.souls=D(gameState.souls||0).add(D(prize.souls));gameState.darkEssence=D(gameState.darkEssence||0).add(D(prize.essence));saveGame();}
+                    else if(prize.rep){_gdb.ref('playerData/'+_gSelf+'/rep').transaction(function(c){return(c||0)+prize.amt;});}
+                    else if(prize.currency){if(prize.currency==='souls'){gameState.souls=D(gameState.souls||0).add(D(prize.amt));}else{gameState[prize.currency]=D(gameState[prize.currency]||0).add(D(prize.amt));}saveGame();}
+                    updateDynamicDisplays();
+                    _gdb.ref('slitherChat').push({uid:'system',name:'Abyss Giveaway',chatNameColor:'#44cc88',time:firebase.database.ServerValue.TIMESTAMP,text:'🎉 '+playerName+' won: '+gw.prizeDesc+'!'});
+                    Toastify({text:'🎁 You won: '+gw.prizeDesc,duration:8000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();
+                    var btn=document.getElementById('gw-claim-btn-'+gwId);if(btn){btn.textContent='You won!';btn.disabled=true;btn.style.background='linear-gradient(135deg,#1a3a00,#44cc8833)';btn.style.color='#44cc88';}
+                }
+
+                // Skip Discord gate if you're the poster (you obviously own the Discord)
+                if (isPoster) { _doClaim(); return; }
+
+                _gdb.ref('playerData/' + _gSelf + '/discordUsername').once('value', function(snap) {
+                    if (!snap.val()) { _gwShowDiscordGate(gwId); return; }
+                    _doClaim();
                 });
             };
             function _gwShowDiscordGate(gwId) {

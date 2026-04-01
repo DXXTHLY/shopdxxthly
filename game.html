@@ -23805,6 +23805,8 @@ function initializeChat() {
                 localStorage.setItem(_GW_LS_KEY, String(Date.now()));
                 // Strip gen() and any functions — Firebase rejects them
                 var safePrize = JSON.parse(JSON.stringify(prize, function(k, v) { return typeof v === 'function' ? undefined : v; }));
+                // Remove any stale gw_active first so old claimedBy can't block the new one
+                _gdb.ref('playerData/' + _gSelf + '/gw_active').remove();
                 _gdb.ref('playerData/' + _gSelf + '/gw_active').set({ id:gwId, prize:safePrize, prizeDesc:desc, expiresAt:expiresAt, postedBy:_gSelf, postedAt:Date.now() });
                 var _gwPayload = JSON.stringify({ gwId:gwId, gwPoster:_gSelf, prizeDesc:desc, expiresAt:expiresAt });
                 _gdb.ref('slitherChat').push({ uid:'system', name:'🎁 Abyss Giveaway', chatNameColor:'#c8a800', time:firebase.database.ServerValue.TIMESTAMP, text:'__GW__' + _gwPayload });
@@ -23883,6 +23885,11 @@ function initializeChat() {
                     _gdb.ref('slitherChat').push({uid:'system',name:'Abyss Giveaway',chatNameColor:'#44cc88',time:firebase.database.ServerValue.TIMESTAMP,text:'🎉 '+playerName+' won: '+gw.prizeDesc+'!'});
                     Toastify({text:'🎁 You won: '+gw.prizeDesc,duration:8000,gravity:'top',position:'center',style:{background:'linear-gradient(135deg,#1a1a00,#c8a80033)'}}).showToast();
                     var btn=document.getElementById('gw-claim-btn-'+gwId);if(btn){btn.textContent='You won!';btn.disabled=true;btn.style.background='linear-gradient(135deg,#1a3a00,#44cc8833)';btn.style.color='#44cc88';}
+                    // Clear gw_active on the poster's node after a delay so the watcher can fire first,
+                    // then it won't block future giveaways with a stale claimedBy
+                    setTimeout(function() {
+                        _gdb.ref('playerData/' + (gw.postedBy || _gSelf) + '/gw_active').remove();
+                    }, 10000);
                 }
 
                 // Skip Discord gate if you're the poster (you obviously own the Discord)
@@ -24089,9 +24096,13 @@ function initializeChat() {
                     // Real-time listener: lock button for ALL players the moment someone claims
                     (function(_watchId, _watchPoster) {
                         var _watchDb = (typeof _gdb !== 'undefined' ? _gdb : null) || window._chatDb || null; if (!_watchDb) return;
-                        var _watchRef = _watchDb.ref('playerData/' + _watchPoster + '/gw_active/claimedBy');
+                        // Watch the whole gw_active node so we can verify the gwId matches
+                        var _watchRef = _watchDb.ref('playerData/' + _watchPoster + '/gw_active');
                         var _watchListener = _watchRef.on('value', function(snap) {
-                            var claimer = snap.val();
+                            var gwNode = snap.val();
+                            // Only act if this is actually the giveaway we care about
+                            if (!gwNode || gwNode.id !== _watchId) return;
+                            var claimer = gwNode.claimedBy;
                             if (claimer) {
                                 var _claimEl2 = document.getElementById('gw-claim-btn-' + _watchId);
                                 if (_claimEl2) {

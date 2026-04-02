@@ -13364,10 +13364,16 @@ async function saveGame() {
         let error;
         if (gameState.supabaseRowId) {
             // We know our exact row — UPDATE by id, never creates duplicates
-            ({ error } = await supabaseClient
+            const { data: updatedRows, error: updateErr } = await supabaseClient
                 .from('players')
                 .update(publicData)
-                .eq('id', gameState.supabaseRowId));
+                .eq('id', gameState.supabaseRowId)
+                .select('id');
+            error = updateErr;
+            // If no rows were updated, the row no longer exists (e.g. table was wiped) — clear the stale ID so upsert runs
+            if (!updateErr && (!updatedRows || updatedRows.length === 0)) {
+                gameState.supabaseRowId = null;
+            }
         }
         if (!gameState.supabaseRowId || error) {
             // First save or row id unknown — upsert by name, then store the id

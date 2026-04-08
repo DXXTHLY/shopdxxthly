@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chokkatsuchi</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f;
+    --card: #13131a;
+    --card2: #1c1c26;
+    --border: rgba(255,255,255,0.07);
+    --border-h: rgba(255,255,255,0.15);
+    --text: #f0eef8;
+    --muted: rgba(240,238,248,0.45);
+    --r: 14px;
+    --rs: 9px;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem 3rem;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 15% 15%, rgba(132,7,230,0.09) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 85% 85%, rgba(201,6,18,0.07) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .wrap {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem 1rem 1.25rem;
+  }
+  .avatar-ring {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    padding: 3px;
+    background: linear-gradient(135deg, #8407E6, #C90612, #11ED34);
+    margin-bottom: 1rem;
+  }
+  .avatar-ring img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    border: 2px solid var(--bg);
+    border-radius: 50%;
+  }
+  .name {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(12px, 3.5vw, 17px);
+    letter-spacing: -1px;
+    background: linear-gradient(90deg, #9b59e8 0%, #f0eef8 45%, #C90612 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+  }
+  .tagline {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+  .badges { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: var(--card2);
+    border: 0.5px solid var(--border);
+    color: var(--muted);
+  }
+  .label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 2px;
+    margin-top: 0.25rem;
+  }
+  .platforms { display: flex; flex-direction: column; gap: 8px; }
+  .plink {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 16px;
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: var(--r);
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.18s, transform 0.15s, box-shadow 0.18s;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .plink:hover { transform: translateY(-2px); border-color: var(--border-h); }
+  .plink .bar {
+    position: absolute;
+    left: 0; top: 18%; bottom: 18%;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--ac);
+    opacity: 0;
+    transition: opacity 0.18s, top 0.18s, bottom 0.18s;
+  }
+  .plink:hover .bar { opacity: 1; top: 12%; bottom: 12%; }
+  .plink.yt  { --ac:#C90612; --gl:rgba(201,6,18,0.18); }
+  .plink.kick{ --ac:#11ED34; --gl:rgba(17,237,52,0.15); }
+  .plink.tw  { --ac:#8407E6; --gl:rgba(132,7,230,0.18); }
+  .plink.xt  { --ac:#e0ddf5; --gl:rgba(224,221,245,0.1); }
+  .plink.rb  { --ac:#0CEB07; --gl:rgba(12,235,7,0.15); }
+  .plink:hover { box-shadow: 0 4px 24px var(--gl); border-color: color-mix(in srgb, var(--ac) 35%, transparent); }
+  .picon {
+    width: 42px; height: 42px;
+    border-radius: var(--rs);
+    background: var(--card2);
+    border: 0.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: box-shadow 0.18s;
+  }
+  .plink:hover .picon { box-shadow: 0 0 14px color-mix(in srgb, var(--ac) 45%, transparent); }
+  .picon svg { width: 20px; height: 20px; }
+  .pinfo { flex: 1; min-width: 0; }
+  .pname { font-size: 14px; font-weight: 600; line-height: 1.2; }
+  .psub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .parr { color: var(--muted); flex-shrink: 0; transition: transform 0.18s, color 0.18s; }
+  .plink:hover .parr { transform: translateX(3px); color: var(--text); }
+
+  .embed-panel {
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+    display: none;
+  }
+  .embed-panel.open { display: block; }
+  .embed-tabs {
+    display: flex;
+    border-bottom: 0.5px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .embed-tabs::-webkit-scrollbar { display: none; }
+  .etab {
+    flex-shrink: 0;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+  }
+  .etab:hover { color: var(--text); }
+  .etab.t-yt.active   { color:#C90612; border-bottom-color:#C90612; }
+  .etab.t-kick.active { color:#11ED34; border-bottom-color:#11ED34; }
+  .etab.t-tw.active   { color:#8407E6; border-bottom-color:#8407E6; }
+  .etab.t-rb.active   { color:#0CEB07; border-bottom-color:#0CEB07; }
+  .embed-body { width:100%; aspect-ratio:16/9; background:#000; }
+  .embed-body iframe { width:100%; height:100%; border:none; display:block; }
+  .embed-note {
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--muted);
+    border-top: 0.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .embed-note a { color: var(--muted); text-decoration: underline; }
+  .embed-note a:hover { color: var(--text); }
+  .close-btn {
+    background: none;
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 11px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .close-btn:hover { color: var(--text); border-color: var(--border-h); }
+
+  .steam-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 14px 20px;
+    background: var(--card2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--r);
+    text-decoration: none;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.18s, border-color 0.18s, transform 0.15s;
+  }
+  .steam-btn:hover { background: var(--card); border-color: var(--border-h); transform: translateY(-1px); }
+  .steam-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+  .footer { text-align: center; font-size: 11px; color: rgba(240,238,248,0.18); padding-top: 0.25rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="avatar-ring">
+      <img src="https://static-cdn.jtvnw.net/jtv_user_pictures/chokkatsuchi-profile_image-0596bfb5c9f6ef24-150x150.png" alt="Chokkatsuchi profile picture">
+    </div>
+    <div class="name">CHOKKATSUCHI</div>
+    <div class="tagline">Live Streams</div>
+    <div class="badges">
+      <span class="badge">Streamer</span>
+      <span class="badge">Gamer</span>
+    </div>
+  </div>
+
+  <div class="label">Watch live</div>
+
+  <div class="platforms">
+
+    <div class="plink yt" onclick="openEmbed('yt')">
+      <div class="bar"></div>
+      <div class="picon">
+        <svg viewBox="0 0 40 40" fill="none"><path d="M37.6 27.1s-.3 2.4-1.4 3.5c-1.4 1.4-2.9 1.4-3.6 1.5C27.6 32.5 20.2 32.5 20.2 32.5s-9.2-.1-12.1-.4c-.8-.1-2.6-.1-3.9-1.5-1.1-1.1-1.4-3.5-1.4-3.5S2.4 24.2 2.4 21.4v-2.7c0-2.9.4-5.7.4-5.7s.3-2.4 1.4-3.5C5.5 8 7 8 7.7 7.9c5-.4 12.4-.4 12.4-.4h0s7.5 0 12.4.4c.8.1 2.3.1 3.7 1.5 1.1 1.1 1.4 3.5 1.4 3.5s.4 2.9.4 5.7v2.7c-.4 2.8-.4 5.7-.4 5.7zM16.5 14.6l0 9.9 9.6-5-9.6-4.9z" fill="#C90612"/></svg>
+      </div>
+      <div class="pinfo">
+        <div class="pname">YouTube</div>
+        <div class="psub">@chokkatsuchi/streams</div>
+      </div>
+      <svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="plink kick" onclick="openEmbed('kick')">
+      <div class="bar"></div>
+      <div class="picon">
+        <svg viewBox="0 0 40 40" fill="none"><path d="M6 4.23h10.13v7.01h3.38V7.73h3.37V4.23H33v10.52h-3.37v3.51h-3.37v3.51h3.37v3.51H33v10.52H22.88v-3.51H19.5v-3.51h-3.38v7.01H6V4.23z" fill="#11ED34"/></svg>
+      </div>
+      <div class="pinfo">
+        <div class="pname">Kick</div>
+        <div class="psub">kick.com/Chokkatsuchi</div>
+      </div>
+      <svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="plink tw" onclick="openEmbed('tw')">
+      <div class="bar"></div>
+      <div class="picon">
+        <svg viewBox="0 0 40 40" fill="none"><path d="M23.9 33.6h-5.2l-6.5 6.5v-6.5H4.5V10.4L11 3.9h24.5V22L23.9 33.6zM32.9 6.5H12.2v19.4h5.2V31l5.2-5.2h5.2l5.2-5.2V6.5zM26.5 11.7H29v7.7h-2.6V11.7zM20 11.7h2.6v7.7H20V11.7z" fill="#8407E6"/></svg>
+      </div>
+      <div class="pinfo">
+        <div class="pname">Twitch</div>
+        <div class="psub">twitch.tv/chokkatsuchi</div>
+      </div>
+      <svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <a href="https://x.com/Chokkatsuchi" class="plink xt">
+      <div class="bar"></div>
+      <div class="picon">
+        <svg viewBox="0 0 40 40" fill="none"><path d="M36 36l-12.4-18.3 11.6-13.7h-4l-9.4 11-7.5-11H4.2l12 17.7-12.2 14.3h4l9.9-11.7 7.9 11.7H36zM13 6.6l18.2 26.9h-4L9 6.6h4z" fill="#e0ddf5"/></svg>
+      </div>
+      <div class="pinfo">
+        <div class="pname">X (Twitter)</div>
+        <div class="psub">x.com/Chokkatsuchi</div>
+      </div>
+      <svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+
+    <div class="plink rb" onclick="openEmbed('rb')">
+      <div class="bar"></div>
+      <div class="picon">
+        <svg viewBox="0 0 40 40" fill="none"><path d="M25.6 22.2c1.4-1 1.4-3.1 0-4.2-1.9-1.6-4.1-2.9-6.3-4-1.6-.7-3.3.3-3.6 2-.4 2.6-.5 5.3-.2 7.9.2 1.8 1.9 2.8 3.5 2.1 2-.9 4.2-2.2 6.6-3.8zM35.8 14.5c3 3.2 3 8.1 0 11.2-5.1 5.5-11.8 9.4-19.2 11.2-3.9 1-7.9-1.3-9-5.1C5.3 24.4 5.6 16 7.8 8.5c1.1-3.9 4.9-6.4 8.8-5.5 7.2 1.7 14 6 19.2 11.5z" fill="#0CEB07"/></svg>
+      </div>
+      <div class="pinfo">
+        <div class="pname">Rumble</div>
+        <div class="psub">rumble.com/chokkatsuchi_Live</div>
+      </div>
+      <svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+  </div>
+
+  <div class="embed-panel" id="embedPanel">
+    <div class="embed-tabs">
+      <button class="etab t-yt"   data-id="yt"   onclick="switchTab('yt')">YouTube</button>
+      <button class="etab t-kick" data-id="kick" onclick="switchTab('kick')">Kick</button>
+      <button class="etab t-tw"   data-id="tw"   onclick="switchTab('tw')">Twitch</button>
+      <button class="etab t-rb"   data-id="rb"   onclick="switchTab('rb')">Rumble</button>
+    </div>
+    <div class="embed-body" id="embedBody"></div>
+    <div class="embed-note">
+      <span id="embedHint"></span>
+      <button class="close-btn" onclick="closeEmbed()">Close</button>
+    </div>
+  </div>
+
+  <div class="label" style="margin-top:0.25rem;">Also find me on</div>
+
+  <a href="https://steamcommunity.com/id/Chokkatsuchi/" class="steam-btn">
+    <svg viewBox="0 0 40 40" fill="none"><path d="M31 15.2c0 2.7-2.2 4.8-4.8 4.8-2.7 0-4.8-2.2-4.8-4.8 0-2.7 2.2-4.8 4.8-4.8C28.9 10.4 31 12.5 31 15.2zM22.6 15.2c0 2 1.6 3.6 3.6 3.6 2 0 3.6-1.6 3.6-3.6 0-2-1.6-3.6-3.6-3.6-2 0-3.6 1.6-3.6 3.6zM12.6 31.2c-.9-.4-1.7-1.1-2.1-2l2.4 1c1.5.6 3.3-.1 3.9-1.6.6-1.5-.1-3.3-1.6-3.9l-2.4-1c.9-.4 2-.4 3 0 1 .4 1.8 1.2 2.2 2.2.4 1 .4 2.1 0 3.1-1 2.1-3.4 3.1-5.4 2.2zM20 39.1c-8.6 0-15.8-5.7-18.2-13.5l7.2 3c.4 1.6 1.5 3.1 3.1 3.7 2.7 1.1 5.8-.2 6.9-2.9.3-.7.4-1.4.4-2.2l6.7-4.8.2 0c4 0 7.2-3.3 7.2-7.3S30.2 8 26.2 7.9c-4 0-7.2 3.3-7.2 7.3l0 .1-4.7 6.8c-.8 0-1.5.1-2.2.4-.3.1-.6.3-.9.5L1 18.7c.7-9.9 8.9-17.8 19-17.8 10.5 0 19 8.6 19 19.1S30.5 39.1 20 39.1z" fill="rgba(240,238,248,0.45)"/></svg>
+    Steam Profile
+  </a>
+
+  <div class="footer">chokkatsuchi.carrd.co</div>
+</div>
+
+<script>
+var cfg = {
+  yt:   { src: 'https://www.youtube.com/embed?listType=user_uploads&list=chokkatsuchi', hint: 'Showing latest YouTube uploads. <a href="https://m.youtube.com/@chokkatsuchi/streams" target="_blank">Open channel</a>' },
+  kick: { src: 'https://player.kick.com/chokkatsuchi', hint: 'Kick live player — shows live stream if online. <a href="https://kick.com/Chokkatsuchi" target="_blank">Open Kick</a>' },
+  tw:   { src: 'https://player.twitch.tv/?channel=chokkatsuchi&parent=' + (location.hostname || 'localhost') + '&autoplay=false', hint: 'Twitch live embed — best on the actual site. <a href="https://twitch.tv/chokkatsuchi" target="_blank">Open Twitch</a>' },
+  rb:   { src: 'https://rumble.com/embed/user/chokkatsuchi_Live/', hint: 'Rumble channel embed. <a href="https://rumble.com/user/chokkatsuchi_Live" target="_blank">Open Rumble</a>' }
+};
+
+function openEmbed(id) {
+  document.getElementById('embedPanel').classList.add('open');
+  switchTab(id);
+  setTimeout(function() {
+    document.getElementById('embedPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 50);
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.etab').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.id === id);
+  });
+  var c = cfg[id];
+  document.getElementById('embedBody').innerHTML = '<iframe src="' + c.src + '" allowfullscreen allow="autoplay; encrypted-media"></iframe>';
+  document.getElementById('embedHint').innerHTML = c.hint;
+}
+
+function closeEmbed() {
+  document.getElementById('embedPanel').classList.remove('open');
+  document.getElementById('embedBody').innerHTML = '';
+}
+</script>
+</body>
+</html>

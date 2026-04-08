@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BEAT — Copy the Rhythm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070d;--bg2:#0d0d16;--surface:#12121e;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --ink:#e2e0f0;--ink2:rgba(226,224,240,0.45);--ink3:rgba(226,224,240,0.18);
+  --acc:#7b61ff;--acc2:rgba(123,97,255,0.14);--accL:#a48bff;
+  --red:#ff5c7a;--amber:#ffb347;--green:#3ddc97;
+  --perfect:#3ddc97;--great:#7b61ff;--ok:#ffb347;--miss:#ff5c7a;
+  --gold:#ffd700;--silver:#c0c0c0;--bronze:#cd7f32;
+  --mono:'Space Mono',monospace;--display:'Bebas Neue',cursive;
+}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 4px);pointer-events:none;z-index:9999}
+#shell{position:relative;z-index:1;width:100%;max-width:430px;height:100dvh;margin:0 auto;display:flex;flex-direction:column;overflow:hidden}
+@media(min-width:500px){
+  body{display:flex;align-items:center;justify-content:center;overflow:auto}
+  #shell{height:min(860px,94dvh);border-radius:6px;border:1px solid var(--border2);box-shadow:0 0 0 1px rgba(123,97,255,0.06),0 48px 96px rgba(0,0,0,0.9)}
+}
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:1.75rem;text-align:center;position:relative;overflow-y:auto}
+.screen.active{display:flex}
+#hbar{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.4rem 0;flex-shrink:0;opacity:0;transition:opacity 0.4s}
+.hbar-group{display:flex;flex-direction:column;gap:2px}
+.hbar-label{font-size:0.5rem;letter-spacing:0.28em;color:var(--ink3);text-transform:uppercase}
+.hbar-val{font-size:0.78rem;color:var(--ink2)}
+.hbar-title{font-family:var(--display);font-size:1.5rem;color:var(--acc);letter-spacing:0.05em}
+.game-title{font-family:var(--display);font-size:clamp(4rem,16vw,5.5rem);color:var(--ink);letter-spacing:0.04em;line-height:0.9}
+.game-sub{font-size:0.58rem;letter-spacing:0.3em;color:var(--ink3);text-transform:uppercase;margin-top:0.6rem}
+.label{font-size:0.52rem;letter-spacing:0.3em;color:var(--ink3);text-transform:uppercase;margin-bottom:0.5rem}
+.big-num{font-family:var(--display);font-size:clamp(5rem,18vw,7rem);color:var(--acc);line-height:0.9}
+.round-tag{font-size:0.58rem;letter-spacing:0.25em;color:var(--ink2);text-transform:uppercase}
+.beat-track{width:100%;height:52px;position:relative;margin:1.4rem 0}
+.beat-dot{width:11px;height:11px;border-radius:50%;background:var(--border2);border:1px solid var(--border2);position:absolute;top:50%;transform:translateY(-50%);transition:background 0.08s,border-color 0.08s,box-shadow 0.08s}
+.beat-dot.lit{background:var(--acc);border-color:var(--accL);box-shadow:0 0 14px rgba(123,97,255,0.7)}
+.beat-dot.tapped{background:var(--acc2);border-color:var(--acc)}
+.beat-dot.g-PERFECT{background:var(--perfect);border-color:var(--perfect);box-shadow:0 0 12px rgba(61,220,151,0.5)}
+.beat-dot.g-GREAT{background:var(--great);border-color:var(--accL);box-shadow:0 0 12px rgba(123,97,255,0.5)}
+.beat-dot.g-OK{background:var(--ok);border-color:var(--amber);box-shadow:0 0 10px rgba(255,179,71,0.4)}
+.beat-dot.g-MISS{background:var(--miss);border-color:var(--red);box-shadow:0 0 10px rgba(255,92,122,0.4)}
+.tap-zone{width:170px;height:170px;border-radius:50%;border:1.5px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:background 0.07s,border-color 0.07s,transform 0.07s;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden}
+.tap-zone.hit{background:var(--acc2);border-color:var(--acc);transform:scale(0.95)}
+.tap-zone-symbol{font-size:2.4rem;color:var(--acc);line-height:1;margin-bottom:0.4rem}
+.tap-zone-text{font-size:0.52rem;letter-spacing:0.25em;color:var(--ink3);text-transform:uppercase}
+@keyframes rip{0%{transform:scale(0);opacity:0.5}100%{transform:scale(4);opacity:0}}
+.rip{position:absolute;width:50px;height:50px;border-radius:50%;background:var(--acc);pointer-events:none;animation:rip 0.5s ease-out forwards}
+.tap-counter{font-size:0.58rem;letter-spacing:0.15em;color:var(--ink3);text-transform:uppercase;margin-top:1rem}
+.tap-counter em{color:var(--acc);font-style:normal}
+.combo-badge{font-size:0.55rem;letter-spacing:0.2em;color:var(--amber);text-transform:uppercase;margin-top:0.3rem;min-height:1rem}
+.btn{padding:0.75rem 2rem;border:1px solid var(--border2);background:transparent;color:var(--ink);font-family:var(--mono);font-size:0.58rem;letter-spacing:0.22em;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:background 0.15s,border-color 0.15s,color 0.15s;margin-top:1.2rem;-webkit-tap-highlight-color:transparent}
+.btn:hover,.btn:active{background:var(--acc2);border-color:var(--acc);color:var(--accL)}
+.btn-ghost{border-color:var(--border);color:var(--ink3);font-size:0.5rem;margin-top:0.5rem}
+.btn-ghost:hover,.btn-ghost:active{background:var(--surface);border-color:var(--border2);color:var(--ink2)}
+.btn-row{display:flex;gap:10px;margin-top:1.2rem;flex-wrap:wrap;justify-content:center}
+.btn-row .btn{margin-top:0}
+.cd-num{font-family:var(--display);font-size:8rem;color:var(--ink3);line-height:1;animation:cd-pop 0.3s ease-out}
+@keyframes cd-pop{0%{transform:scale(1.3);opacity:0}100%{transform:scale(1);opacity:1}}
+.acc-track{width:100%;max-width:280px;height:3px;background:var(--border);border-radius:3px;overflow:hidden;margin:1.2rem auto 0.4rem}
+.acc-fill{height:100%;border-radius:3px;background:var(--acc);transition:width 0.7s cubic-bezier(.4,0,.2,1);width:0}
+.acc-label{font-size:0.62rem;letter-spacing:0.15em;color:var(--ink2)}
+.grade-pill{display:inline-block;font-size:0.48rem;font-weight:700;letter-spacing:0.15em;padding:3px 8px;border-radius:20px;text-transform:uppercase}
+.gp-PERFECT{background:rgba(61,220,151,0.12);color:var(--perfect)}
+.gp-GREAT{background:rgba(123,97,255,0.15);color:var(--accL)}
+.gp-OK{background:rgba(255,179,71,0.12);color:var(--amber)}
+.gp-MISS{background:rgba(255,92,122,0.12);color:var(--red)}
+.breakdown{width:100%;max-width:310px;margin:0.4rem auto}
+.br-row{display:flex;align-items:center;justify-content:space-between;padding:0.48rem 0;border-bottom:1px solid var(--border);font-size:0.62rem;opacity:0;transform:translateY(6px);transition:opacity 0.25s,transform 0.25s}
+.br-row.show{opacity:1;transform:none}
+.br-row:last-child{border-bottom:none}
+.br-beat{color:var(--ink3);min-width:50px;text-align:left}
+.br-pts{font-size:0.62rem;color:var(--acc);font-family:var(--display);letter-spacing:0.05em;min-width:50px;text-align:center}
+.br-ms{font-size:0.52rem;color:var(--ink3);text-align:right}
+.new-best{font-size:0.52rem;letter-spacing:0.25em;color:var(--acc);text-transform:uppercase;margin-top:0.4rem;display:none}
+.score-line{font-family:var(--display);font-size:2rem;color:var(--ink);letter-spacing:0.05em;line-height:1}
+.score-sub{font-size:0.5rem;letter-spacing:0.2em;color:var(--ink3);text-transform:uppercase;margin-bottom:0.15rem}
+.score-pair{margin:0.5rem 0}
+.listen-wrap{position:relative;width:170px;height:170px;margin:0.5rem 0}
+.listen-ring{width:100%;height:100%;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:0.52rem;letter-spacing:0.2em;color:var(--ink3);text-transform:uppercase}
+@keyframes ring-pulse{0%{transform:scale(1);opacity:0.6}100%{transform:scale(1.22);opacity:0}}
+.ring-wave{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--acc);pointer-events:none;animation:ring-pulse 0.5s ease-out forwards}
+.how{font-size:0.68rem;color:var(--ink2);line-height:2.1;text-align:left}
+.how span{color:var(--ink3);font-size:0.58rem}
+.start-best{font-size:0.55rem;letter-spacing:0.15em;color:var(--ink3)}
+.name-input{background:var(--surface);border:1px solid var(--border2);border-radius:3px;color:var(--ink);font-family:var(--mono);font-size:0.85rem;letter-spacing:0.1em;padding:0.85rem 1rem;width:100%;max-width:280px;text-align:center;outline:none;text-transform:uppercase;margin:1rem 0 0;transition:border-color 0.2s;user-select:text;-webkit-user-select:text}
+.name-input:focus{border-color:var(--acc)}
+.name-input.err{border-color:var(--red);animation:shake 0.3s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.name-error{font-size:0.52rem;letter-spacing:0.1em;color:var(--red);text-transform:uppercase;margin-top:0.4rem;min-height:1rem}
+.lb-list{width:100%;max-width:350px;margin:0.6rem auto}
+.lb-row{display:flex;align-items:center;gap:10px;padding:0.65rem 0.8rem;border-bottom:1px solid var(--border);font-size:0.62rem;opacity:0;transform:translateY(8px);transition:opacity 0.3s,transform 0.3s;border-radius:3px}
+.lb-row.show{opacity:1;transform:none}
+.lb-row:last-child{border-bottom:none}
+.lb-row.hl{background:var(--acc2);border:1px solid var(--acc);margin-bottom:2px}
+.lb-rank{font-family:var(--display);font-size:1.1rem;min-width:26px;line-height:1}
+.r1{color:var(--gold)}.r2{color:var(--silver)}.r3{color:var(--bronze)}.rn{color:var(--ink3)}
+.lb-name{flex:1;text-align:left;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0.08em}
+.lb-score{font-family:var(--display);font-size:1rem;color:var(--acc);letter-spacing:0.03em;min-width:65px;text-align:right}
+.lb-meta{font-size:0.45rem;color:var(--ink3);text-transform:uppercase;letter-spacing:0.08em;min-width:50px;text-align:right;line-height:1.6}
+.lb-empty{font-size:0.65rem;color:var(--ink3);letter-spacing:0.1em;padding:2rem 0}
+.final-val{font-family:var(--display);font-size:clamp(3.5rem,13vw,5rem);color:var(--acc);line-height:0.9}
+.stat-pair{display:flex;gap:2.5rem;justify-content:center;margin-top:0.8rem}
+.stat-box{text-align:center}
+.stat-n{font-family:var(--display);font-size:2.2rem;color:var(--ink);line-height:1}
+
+/* ── HOME BUTTON ── */
+#home-btn{
+  position:fixed;top:14px;left:16px;z-index:10000;
+  font-family:var(--mono);font-size:0.5rem;letter-spacing:0.22em;
+  text-transform:uppercase;text-decoration:none;
+  color:var(--ink3);
+  background:rgba(7,7,13,0.85);
+  border:1px solid var(--border2);
+  border-radius:99px;
+  padding:6px 14px;
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  transition:color 0.15s,border-color 0.15s;
+  cursor:pointer;
+}
+#home-btn:hover{color:var(--ink);border-color:rgba(123,97,255,0.4);}
+</style>
+</head>
+<body>
+<a id="home-btn" href="https://dxxthly.github.io/shopdxxthly/index.html">← home</a>
+<div id="shell">
+
+  <div id="hbar">
+    <div class="hbar-group"><div class="hbar-label">round</div><div class="hbar-val" id="h-round">1</div></div>
+    <div class="hbar-title">BEAT</div>
+    <div class="hbar-group" style="text-align:right"><div class="hbar-label">score</div><div class="hbar-val" id="h-score">0</div></div>
+  </div>
+
+  <!-- START -->
+  <div class="screen active" id="s-start">
+    <div class="game-title">BEAT</div>
+    <div class="game-sub">copy the rhythm</div>
+    <div style="height:2rem"></div>
+    <div class="label">how to play</div>
+    <div class="how">
+      01 &nbsp;listen to a random rhythm<br>
+      02 &nbsp;tap it back exactly<br>
+      03 &nbsp;every millisecond counts<br>
+      <span>gets harder every round</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="btn-start">— play —</button>
+      <button class="btn" id="btn-lb-start">leaderboard</button>
+    </div>
+    <div style="height:0.6rem"></div>
+    <div class="start-best" id="start-best"></div>
+  </div>
+
+  <!-- ROUND INTRO -->
+  <div class="screen" id="s-intro">
+    <div class="round-tag" id="intro-round">Round 1</div>
+    <div style="height:0.6rem"></div>
+    <div class="label">beats to copy</div>
+    <div class="big-num" id="intro-beats">4</div>
+    <div style="height:1.5rem"></div>
+    <div style="font-size:0.58rem;letter-spacing:0.15em;color:var(--ink3)">get ready to listen</div>
+  </div>
+
+  <!-- LISTEN -->
+  <div class="screen" id="s-listen">
+    <div class="label">listen carefully</div>
+    <div class="listen-wrap">
+      <div class="listen-ring" id="listen-ring">● &nbsp; ● &nbsp; ●</div>
+    </div>
+    <div class="beat-track" id="listen-dots"></div>
+    <div style="font-size:0.6rem;letter-spacing:0.12em;color:var(--ink3)">feel the gaps between beats</div>
+  </div>
+
+  <!-- COUNTDOWN -->
+  <div class="screen" id="s-cd">
+    <div class="label">your turn in</div>
+    <div class="cd-num" id="cd-num">3</div>
+  </div>
+
+  <!-- TAP -->
+  <div class="screen" id="s-tap">
+    <div class="label">tap the rhythm</div>
+    <div class="beat-track" id="tap-dots"></div>
+    <div class="tap-zone" id="tap-btn">
+      <div class="tap-zone-symbol">◆</div>
+      <div class="tap-zone-text">tap</div>
+    </div>
+    <div class="tap-counter">beat <em id="t-cur">0</em> / <em id="t-tot">4</em></div>
+    <div class="combo-badge" id="combo-badge"></div>
+    <div style="font-size:0.5rem;color:var(--ink3);letter-spacing:0.1em;margin-top:0.3rem">spacebar works too</div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="s-result">
+    <div class="label">round <span id="res-round">1</span> result</div>
+    <div class="beat-track" id="res-dots"></div>
+    <div class="breakdown" id="breakdown"></div>
+    <div class="acc-track"><div class="acc-fill" id="acc-fill"></div></div>
+    <div class="acc-label" id="acc-label">0% accuracy</div>
+    <div style="height:0.5rem"></div>
+    <div class="score-pair"><div class="score-sub">round score</div><div class="score-line" id="round-score-val">+0</div></div>
+    <div class="score-pair"><div class="score-sub">total</div><div class="score-line" id="total-score-val" style="color:var(--accL)">0</div></div>
+    <div class="new-best" id="new-best">✦ new best</div>
+    <button class="btn" id="btn-next">next round →</button>
+  </div>
+
+  <!-- GAME OVER -->
+  <div class="screen" id="s-over">
+    <div class="round-tag">session over</div>
+    <div style="height:0.4rem"></div>
+    <div class="game-title" style="font-size:clamp(2.8rem,10vw,4rem)">GAME<br>OVER</div>
+    <div style="height:1rem"></div>
+    <div class="label">final score</div>
+    <div class="final-val" id="over-score">0</div>
+    <div class="stat-pair">
+      <div class="stat-box"><div class="label" style="margin-bottom:0.2rem">rounds</div><div class="stat-n" id="over-rounds">1</div></div>
+      <div class="stat-box"><div class="label" style="margin-bottom:0.2rem">accuracy</div><div class="stat-n" id="over-acc">0%</div></div>
+    </div>
+    <button class="btn" id="btn-submit">submit to leaderboard →</button>
+    <button class="btn btn-ghost" id="btn-skip">skip · play again</button>
+  </div>
+
+  <!-- NAME ENTRY -->
+  <div class="screen" id="s-name">
+    <div class="label">enter your name</div>
+    <div style="font-size:0.68rem;color:var(--ink2);line-height:1.8;max-width:240px">your score will appear<br>on the leaderboard</div>
+    <input class="name-input" id="name-input" maxlength="16" placeholder="YOUR NAME" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="name-error" id="name-error"></div>
+    <button class="btn" id="btn-submit-name">submit →</button>
+    <button class="btn btn-ghost" id="btn-cancel-name">cancel · play again</button>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="screen" id="s-board">
+    <div class="game-title" style="font-size:clamp(2.2rem,9vw,3.2rem)">TOP 10</div>
+    <div class="game-sub">leaderboard</div>
+    <div class="lb-list" id="lb-list"></div>
+    <div class="btn-row">
+      <button class="btn" id="btn-play-board">play again</button>
+      <button class="btn" id="btn-home-board">home</button>
+    </div>
+  </div>
+
+</div>
+<script>
+// ── AUDIO ──
+let ctx=null;
+function aC(){if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume();return ctx;}
+function mkKick(when,accent){
+  const c=aC(),m=c.createGain();m.gain.value=accent?1.0:0.78;m.connect(c.destination);
+  const b=c.createOscillator(),bg=c.createGain();b.type='sine';
+  b.frequency.setValueAtTime(accent?180:140,when);b.frequency.exponentialRampToValueAtTime(38,when+0.08);
+  bg.gain.setValueAtTime(0.001,when);bg.gain.linearRampToValueAtTime(accent?1.1:0.85,when+0.005);bg.gain.exponentialRampToValueAtTime(0.001,when+0.45);
+  b.connect(bg);bg.connect(m);b.start(when);b.stop(when+0.5);
+  const s=c.createOscillator(),sg=c.createGain();s.type='sine';
+  s.frequency.setValueAtTime(55,when);s.frequency.exponentialRampToValueAtTime(28,when+0.12);
+  sg.gain.setValueAtTime(0.001,when);sg.gain.linearRampToValueAtTime(accent?0.6:0.4,when+0.01);sg.gain.exponentialRampToValueAtTime(0.001,when+0.35);
+  s.connect(sg);sg.connect(m);s.start(when);s.stop(when+0.4);
+  const nL=Math.floor(c.sampleRate*0.018),nB=c.createBuffer(1,nL,c.sampleRate),nd=nB.getChannelData(0);
+  for(let i=0;i<nL;i++)nd[i]=(Math.random()*2-1)*Math.pow(1-i/nL,4);
+  const sn=c.createBufferSource(),snG=c.createGain();sn.buffer=nB;snG.gain.value=accent?0.35:0.2;
+  sn.connect(snG);snG.connect(m);sn.start(when);
+}
+function tapClick(){
+  const c=aC(),now=c.currentTime,m=c.createGain();m.gain.value=0.5;m.connect(c.destination);
+  const o=c.createOscillator(),g=c.createGain();o.type='sine';
+  o.frequency.setValueAtTime(110,now);o.frequency.exponentialRampToValueAtTime(42,now+0.06);
+  g.gain.setValueAtTime(0.001,now);g.gain.linearRampToValueAtTime(1,now+0.004);g.gain.exponentialRampToValueAtTime(0.001,now+0.18);
+  o.connect(g);g.connect(m);o.start(now);o.stop(now+0.2);
+  const nL=Math.floor(c.sampleRate*0.012),nB=c.createBuffer(1,nL,c.sampleRate),nd=nB.getChannelData(0);
+  for(let i=0;i<nL;i++)nd[i]=(Math.random()*2-1)*Math.pow(1-i/nL,5);
+  const sn=c.createBufferSource(),snG=c.createGain();sn.buffer=nB;snG.gain.value=0.12;
+  sn.connect(snG);snG.connect(m);sn.start(now);
+}
+
+// ── PROFANITY FILTER ──
+function normalize(s){
+  return s.toLowerCase()
+    .replace(/3/g,'e').replace(/4/g,'a').replace(/0/g,'o').replace(/1/g,'i')
+    .replace(/\$/g,'s').replace(/@/g,'a').replace(/5/g,'s').replace(/7/g,'t')
+    .replace(/!/g,'i').replace(/\+/g,'t').replace(/\|/g,'l').replace(/\(/g,'c')
+    .replace(/9/g,'g').replace(/8/g,'b').replace(/6/g,'b').replace(/\^/g,'a')
+    .replace(/(.)\1+/g,'$1')  // collapse repeats: niiiggg → nig
+    .replace(/[^a-z]/g,'');   // strip non-alpha
+}
+// Build blocked list — split so they don't appear as plain strings in source
+const B=[
+  ['ni','gg','er'],['ni','gg','a'],['ni','ga'],['ni','g'],
+  ['fa','gg','ot'],['fa','gg'],['fa','get'],['fa','got'],
+  ['ki','ke'],['sp','ic','k'],['sp','ic'],['ch','ink'],['go','ok'],
+  ['cu','nt'],['re','ta','rd'],['co','on'],['we','tb','ac','k'],
+  ['tr','an','ny'],['wh','ore'],['sl','ut'],['tw','at'],
+  ['mo','th','er','fu','ck'],['mu','th','af','uc'],
+  ['as','sh','ol','e'],['ba','st','ar','d'],['di','ps','hi','t'],
+  ['sh','it'],['bi','tc','h'],['wa','nk','er'],['cr','ac','kk','er']
+].map(a=>a.join(''));
+function isProfane(input){
+  const variants=[
+    normalize(input),
+    normalize(input.replace(/\s+/g,'')),
+    input.toLowerCase().replace(/\s+/g,''),
+    input.toLowerCase().replace(/[^a-z]/g,'')
+  ];
+  for(const v of variants) for(const w of B) if(v.includes(w)) return true;
+  return false;
+}
+function validateName(raw){
+  const t=raw.trim();
+  if(!t) return{ok:false,msg:'name cannot be empty'};
+  if(t.length<2) return{ok:false,msg:'too short — min 2 characters'};
+  if(!/^[a-zA-Z0-9 _\-\.]+$/.test(t)) return{ok:false,msg:'letters and numbers only'};
+  if(isProfane(t)) return{ok:false,msg:'name not allowed — try another'};
+  return{ok:true,msg:''};
+}
+
+// ── LEADERBOARD (Firestore) ──
+let _db=null;
+let _cachedTop=0;
+
+function _loadFirestore(){
+  return new Promise(res=>{
+    if(_db){res(_db);return;}
+    const s1=document.createElement('script');
+    s1.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
+    s1.onload=()=>{
+      const s2=document.createElement('script');
+      s2.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js';
+      s2.onload=()=>{
+        try{window.firebase.app('beat-lb');}
+        catch{window.firebase.initializeApp({
+          apiKey:'AIzaSyDrd2hzQOFQI6zDQ29ZG5lFZqir0ZUL4A4',
+          authDomain:'beat-game-4a776.firebaseapp.com',
+          projectId:'beat-game-4a776',
+          storageBucket:'beat-game-4a776.firebasestorage.app',
+          messagingSenderId:'15648857835',
+          appId:'1:15648857835:web:4eff8dc6cbf159aa5d68ae'
+        },'beat-lb');}
+        _db=window.firebase.firestore(window.firebase.app('beat-lb'));
+        res(_db);
+      };
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s1);
+  });
+}
+
+async function loadLB(){
+  try{
+    const db=await _loadFirestore();
+    const snap=await db.collection('leaderboard').orderBy('score','desc').limit(10).get();
+    return snap.docs.map(d=>d.data());
+  }catch(e){console.warn('[lb] load failed',e);return[];}
+}
+async function addToLB(entry){
+  try{
+    const db=await _loadFirestore();
+    await db.collection('leaderboard').add({...entry,timestamp:window.firebase.firestore.FieldValue.serverTimestamp()});
+  }catch(e){console.warn('[lb] write failed',e);}
+}
+async function getTopScore(){
+  try{
+    const db=await _loadFirestore();
+    const snap=await db.collection('leaderboard').orderBy('score','desc').limit(1).get();
+    return snap.empty?0:snap.docs[0].data().score;
+  }catch{return _cachedTop;}
+}
+
+// ── RHYTHM GEN (guaranteed unique per session) ──
+let usedKeys=new Set();
+function rKey(ts){return ts.map((t,i)=>i?t-ts[i-1]:0).join(',');}
+function genRhythm(r){
+  const n=Math.min(3+r,11);
+  const pools=[
+    [400,500,600,700,800],[300,400,500,600,700],
+    [250,300,400,500,600,700],[200,250,300,400,500,600],
+    [150,200,250,300,400,500,600],[100,150,200,250,300,400,500],
+  ];
+  const pool=pools[Math.min(r-1,pools.length-1)];
+  let ts,att=0;
+  do{
+    const gaps=[];
+    for(let i=0;i<n-1;i++){
+      let g,t=0;
+      do{g=pool[Math.floor(Math.random()*pool.length)];t++;}
+      while(t<12&&gaps.length>1&&Math.abs(g-gaps[gaps.length-1])<80&&Math.abs(g-gaps[gaps.length-2])<80);
+      gaps.push(g);
+    }
+    ts=[0];for(const g of gaps)ts.push(ts[ts.length-1]+g);
+    att++;
+  }while(usedKeys.has(rKey(ts))&&att<30);
+  usedKeys.add(rKey(ts));return ts;
+}
+
+// ── SCORING ──
+const PTS={PERFECT:500,GREAT:350,OK:150,MISS:0};
+function scoreIt(taps,rhy){
+  if(!taps.length)return rhy.map(()=>({grade:'MISS',diff:null,pts:0,combo:0}));
+  const off=taps[0],sh=taps.map(t=>t-off);
+  let combo=0;
+  return rhy.map((exp,i)=>{
+    if(i>=sh.length){combo=0;return{grade:'MISS',diff:null,pts:0,combo:0};}
+    const diff=Math.abs(sh[i]-exp);
+    const grade=diff<55?'PERFECT':diff<120?'GREAT':diff<240?'OK':'MISS';
+    if(grade==='MISS')combo=0;else combo++;
+    const mult=1+Math.max(0,combo-1)*0.25;
+    return{grade,diff:Math.round(diff),pts:Math.round(PTS[grade]*mult),combo};
+  });
+}
+function accPct(res){
+  const w={PERFECT:100,GREAT:75,OK:40,MISS:0};
+  return Math.round(res.reduce((s,r)=>s+w[r.grade],0)/res.length);
+}
+
+// ── STATE ──
+let round=1,rhythm=[],playerTaps=[],tapStart=null;
+let tappingDone=false,tapTout=null,comboNow=0;
+let totalScore=0,sessionScores=[],pendingEntry=null;
+
+// ── SCREEN ──
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+// ── DOTS ──
+function buildDots(cid,n){
+  const c=document.getElementById(cid);c.innerHTML='';
+  const W=c.offsetWidth||320,pad=18,usable=W-pad*2-11,total=rhythm[rhythm.length-1]||1;
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div');d.className='beat-dot';d.id=cid+'-'+i;
+    d.style.left=(pad+(rhythm[i]/total)*usable)+'px';c.appendChild(d);
+  }
+}
+function lightDot(cid,i){const d=document.getElementById(cid+'-'+i);if(!d)return;d.classList.add('lit');setTimeout(()=>d.classList.remove('lit'),180);}
+function tapDot(cid,i){const d=document.getElementById(cid+'-'+i);if(d){d.classList.remove('tapped');void d.offsetWidth;d.classList.add('tapped');}}
+function gradeDot(cid,i,g){const d=document.getElementById(cid+'-'+i);if(d){d.classList.remove('tapped','lit');d.classList.add('g-'+g);}}
+function pulseRing(){const r=document.getElementById('listen-ring');const w=document.createElement('div');w.className='ring-wave';r.parentElement.appendChild(w);setTimeout(()=>w.remove(),600);}
+
+// ── LISTEN ──
+function doListen(){
+  show('s-listen');buildDots('listen-dots',rhythm.length);
+  const c=aC(),t0=c.currentTime+0.25;
+  rhythm.forEach((ms,i)=>{mkKick(t0+ms/1000,i===0);setTimeout(()=>{lightDot('listen-dots',i);pulseRing();},250+ms);});
+  setTimeout(doCountdown,250+rhythm[rhythm.length-1]+900);
+}
+
+// ── COUNTDOWN ──
+function doCountdown(){
+  show('s-cd');let n=3;const el=document.getElementById('cd-num');el.textContent=n;
+  const tick=()=>{n--;if(n<=0){doTap();return;}
+    el.style.animation='none';void el.offsetWidth;el.style.animation='cd-pop 0.3s ease-out';
+    el.textContent=n;setTimeout(tick,750);};
+  setTimeout(tick,750);
+}
+
+// ── TAP ──
+function doTap(){
+  show('s-tap');playerTaps=[];tapStart=null;tappingDone=false;comboNow=0;
+  buildDots('tap-dots',rhythm.length);
+  document.getElementById('t-cur').textContent='0';
+  document.getElementById('t-tot').textContent=rhythm.length;
+  document.getElementById('combo-badge').textContent='';
+  tapTout=setTimeout(()=>{if(!tappingDone)finishTap();},rhythm[rhythm.length-1]*2.5+3000);
+}
+function registerTap(e){
+  if(e)e.preventDefault();
+  if(!document.getElementById('s-tap').classList.contains('active'))return;
+  if(tappingDone)return;
+  const now=performance.now();
+  if(tapStart===null)tapStart=now;
+  playerTaps.push(now-tapStart);
+  tapClick();
+  const i=playerTaps.length-1;
+  tapDot('tap-dots',i);
+  // rough combo hint
+  if(i>0){const diff=Math.abs((playerTaps[i]-playerTaps[0])-(rhythm[i]||0));if(diff<120){comboNow++;if(comboNow>=3)document.getElementById('combo-badge').textContent=comboNow+'x combo 🔥';}else{comboNow=0;document.getElementById('combo-badge').textContent='';}}
+  const btn=document.getElementById('tap-btn');
+  const rip=document.createElement('div');rip.className='rip';btn.appendChild(rip);setTimeout(()=>rip.remove(),500);
+  btn.classList.add('hit');setTimeout(()=>btn.classList.remove('hit'),80);
+  document.getElementById('t-cur').textContent=playerTaps.length;
+  if(playerTaps.length>=rhythm.length){tappingDone=true;clearTimeout(tapTout);setTimeout(showResult,400);}
+}
+function finishTap(){tappingDone=true;clearTimeout(tapTout);showResult();}
+
+// ── RESULT ──
+function showResult(){
+  const results=scoreIt(playerTaps,rhythm);
+  const roundPts=results.reduce((s,r)=>s+r.pts,0)+(500*round);
+  totalScore+=roundPts;
+  const acc=accPct(results);
+  sessionScores.push(acc);
+  document.getElementById('h-score').textContent=totalScore.toLocaleString();
+  document.getElementById('res-round').textContent=round;
+  show('s-result');
+  buildDots('res-dots',rhythm.length);
+  document.getElementById('acc-fill').style.width='0';
+  const bd=document.getElementById('breakdown');bd.innerHTML='';
+  results.forEach((r,i)=>{
+    const row=document.createElement('div');row.className='br-row';
+    const cm=r.combo>=3?` ×${(1+(r.combo-1)*0.25).toFixed(2)}`:'';
+    row.innerHTML=`<span class="br-beat">beat ${i+1}</span><span class="grade-pill gp-${r.grade}">${r.grade}</span><span class="br-pts">+${r.pts}${cm}</span><span class="br-ms">${r.diff!==null?r.diff+'ms off':'—'}</span>`;
+    bd.appendChild(row);
+    setTimeout(()=>{gradeDot('res-dots',i,r.grade);row.classList.add('show');},i*140+80);
+  });
+  const delay=results.length*140+200;
+  setTimeout(()=>{
+    document.getElementById('acc-fill').style.width=acc+'%';
+    document.getElementById('acc-label').textContent=acc+'% accuracy';
+    document.getElementById('round-score-val').textContent='+'+roundPts.toLocaleString();
+    document.getElementById('total-score-val').textContent=totalScore.toLocaleString();
+  },delay);
+  getTopScore().then(ts=>{document.getElementById('new-best').style.display=totalScore>ts?'block':'none';});
+  const misses=results.filter(r=>r.grade==='MISS').length;
+  const failAt=round<=2?rhythm.length:Math.ceil(rhythm.length*0.5);
+  const nb=document.getElementById('btn-next');
+  if(misses>=failAt&&round>1){nb.textContent='see final score →';nb.onclick=showOver;}
+  else{nb.textContent='next round →';nb.onclick=nextRound;}
+}
+function nextRound(){round++;document.getElementById('h-round').textContent=round;document.getElementById('acc-fill').style.width='0';startRound();}
+
+// ── GAME OVER ──
+function showOver(){
+  show('s-over');
+  document.getElementById('over-score').textContent=totalScore.toLocaleString();
+  document.getElementById('over-rounds').textContent=round;
+  const avg=sessionScores.length?Math.round(sessionScores.reduce((a,b)=>a+b)/sessionScores.length):0;
+  document.getElementById('over-acc').textContent=avg+'%';
+  pendingEntry={score:totalScore,rounds:round,accuracy:avg};
+}
+
+// ── NAME ENTRY ──
+function goName(){
+  show('s-name');
+  const inp=document.getElementById('name-input');
+  inp.value='';inp.classList.remove('err');
+  document.getElementById('name-error').textContent='';
+  setTimeout(()=>inp.focus(),350);
+}
+async function submitScore(){
+  const inp=document.getElementById('name-input'),val=inp.value;
+  const v=validateName(val);
+  if(!v.ok){inp.classList.add('err');document.getElementById('name-error').textContent=v.msg;setTimeout(()=>inp.classList.remove('err'),400);return;}
+  const btn=document.getElementById('btn-submit-name');
+  btn.textContent='saving...';btn.disabled=true;
+  const entry={
+    name:val.trim().toUpperCase().slice(0,16),
+    score:pendingEntry.score,rounds:pendingEntry.rounds,
+    accuracy:pendingEntry.accuracy,
+    date:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+  };
+  await addToLB(entry);
+  btn.textContent='submit →';btn.disabled=false;
+  showBoard(entry.name,entry.score);
+}
+
+// ── LEADERBOARD SCREEN ──
+async function showBoard(hlName,hlScore){
+  show('s-board');
+  const list=document.getElementById('lb-list');
+  list.innerHTML='<div class="lb-empty" style="opacity:0.5">loading...</div>';
+  const lb=await loadLB();
+  list.innerHTML='';
+  if(!lb.length){list.innerHTML='<div class="lb-empty">no scores yet — be the first!</div>';return;}
+  const medals=['r1','r2','r3'],syms=['◆','◇','△'];
+  lb.forEach((e,i)=>{
+    const row=document.createElement('div');
+    const hl=e.name===hlName&&e.score===hlScore;
+    row.className='lb-row'+(hl?' hl':'');
+    const rc=i<3?medals[i]:'rn',sym=i<3?syms[i]:i+1;
+    row.innerHTML=`<span class="lb-rank ${rc}">${sym}</span><span class="lb-name">${e.name}</span><span class="lb-score">${e.score.toLocaleString()}</span><span class="lb-meta">${e.accuracy}%&nbsp;acc<br>round&nbsp;${e.rounds}</span>`;
+    list.appendChild(row);
+    setTimeout(()=>row.classList.add('show'),i*90+50);
+  });
+}
+
+// ── ROUND ──
+function startRound(){
+  rhythm=genRhythm(round);
+  show('s-intro');
+  document.getElementById('intro-round').textContent='Round '+round;
+  document.getElementById('intro-beats').textContent=rhythm.length;
+  setTimeout(doListen,1600);
+}
+function resetGame(){
+  round=1;totalScore=0;sessionScores=[];pendingEntry=null;
+  usedKeys=new Set();comboNow=0;
+  document.getElementById('h-round').textContent='1';
+  document.getElementById('h-score').textContent='0';
+  document.getElementById('acc-fill').style.width='0';
+  document.getElementById('hbar').style.opacity='1';
+}
+
+// ── INIT ──
+getTopScore().then(ts=>{
+  _cachedTop=ts;
+  if(ts>0)document.getElementById('start-best').textContent='top score: '+ts.toLocaleString();
+});
+
+document.getElementById('btn-start').onclick=()=>{aC();resetGame();startRound();};
+document.getElementById('btn-lb-start').onclick=()=>showBoard(null,null);
+document.getElementById('btn-submit').onclick=goName;
+document.getElementById('btn-skip').onclick=()=>{resetGame();startRound();};
+document.getElementById('btn-submit-name').onclick=submitScore;
+document.getElementById('btn-cancel-name').onclick=()=>{resetGame();startRound();};
+document.getElementById('btn-play-board').onclick=()=>{resetGame();startRound();};
+document.getElementById('btn-home-board').onclick=()=>{show('s-start');document.getElementById('hbar').style.opacity='0';};
+document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitScore();});
+document.getElementById('tap-btn').addEventListener('pointerdown',registerTap);
+document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();registerTap(null);}});
+</script>
+
+<!-- ════ CHAT SYSTEM ════ -->
+<style>
+#beat-chat{position:fixed;bottom:20px;left:20px;z-index:9000;font-family:var(--mono)}
+#chat-bar{display:flex;align-items:center;gap:10px;height:40px;padding:0 16px;background:rgba(10,10,18,0.95);border:1px solid var(--border2);border-radius:99px;cursor:pointer;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition:border-color 0.2s,box-shadow 0.2s;user-select:none}
+#chat-bar:hover{border-color:rgba(123,97,255,0.4);box-shadow:0 4px 24px rgba(0,0,0,0.5)}
+.chat-bar-dot{width:7px;height:7px;border-radius:50%;background:var(--acc);box-shadow:0 0 6px var(--acc);flex-shrink:0;animation:chatPulse 2.5s ease-in-out infinite}
+@keyframes chatPulse{0%,100%{opacity:1}50%{opacity:0.35}}
+.chat-bar-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink2)}
+.chat-bar-count{font-size:10px;letter-spacing:1px;color:var(--ink3);margin-left:2px}
+.chat-bar-chev{font-size:10px;color:var(--ink3);margin-left:4px;transition:transform 0.3s}
+#chat-panel{display:none;flex-direction:column;width:300px;height:380px;background:rgba(10,10,18,0.98);border:1px solid var(--border2);border-radius:14px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.7);margin-bottom:10px;animation:chatUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both}
+@keyframes chatUp{from{opacity:0;transform:translateY(16px) scale(0.96)}to{opacity:1;transform:none}}
+#chat-panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.cp-title{font-size:12px;font-weight:700;color:var(--ink);letter-spacing:0.05em}
+.cp-live{font-size:9px;letter-spacing:1px;color:var(--acc);text-transform:uppercase}
+#chat-close-btn{background:none;border:none;color:var(--ink3);font-size:18px;cursor:pointer;padding:0;line-height:1;transition:color 0.15s}
+#chat-close-btn:hover{color:var(--ink)}
+#chat-name-setup{display:none;flex-direction:column;gap:10px;padding:14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.cn-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink3)}
+.cn-row{display:flex;gap:8px}
+#cn-field{flex:1;height:34px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:12px;letter-spacing:0.05em;padding:0 10px;outline:none;transition:border-color 0.2s;caret-color:var(--acc);user-select:text;-webkit-user-select:text;touch-action:auto}
+#cn-field:focus{border-color:var(--acc)}
+#cn-field::placeholder{color:var(--ink3)}
+#cn-ok{height:34px;padding:0 12px;background:var(--acc);color:#fff;border:none;border-radius:6px;font-family:var(--mono);font-size:11px;letter-spacing:0.1em;font-weight:700;cursor:pointer;flex-shrink:0;transition:opacity 0.15s}
+#cn-ok:hover{opacity:0.85}
+.cn-err{font-size:10px;color:var(--red);letter-spacing:0.5px;min-height:12px}
+#chat-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.06) transparent}
+#chat-messages::-webkit-scrollbar{width:3px}
+#chat-messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.07);border-radius:3px}
+.cm{display:flex;flex-direction:column;gap:2px}
+.cm-hdr{display:flex;align-items:baseline;gap:6px}
+.cm-name{font-size:11px;font-weight:700;letter-spacing:0.3px;color:var(--ink2)}
+.cm-name.me{color:var(--accL)}
+.cm-time{font-size:9px;color:var(--ink3);letter-spacing:0.5px}
+.cm-text{font-size:12px;line-height:1.5;color:rgba(226,224,240,0.85);word-break:break-word}
+.cm.sys .cm-text{color:var(--ink3);font-style:italic;font-size:10px;text-align:center}
+.cm-loading{text-align:center;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);padding:16px 0}
+#chat-input-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid var(--border);flex-shrink:0}
+#chat-input-field{flex:1;height:34px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-family:var(--mono);font-size:12px;padding:0 10px;outline:none;transition:border-color 0.2s;caret-color:var(--acc);user-select:text;-webkit-user-select:text;touch-action:auto}
+#chat-input-field:focus{border-color:rgba(123,97,255,0.4)}
+#chat-input-field::placeholder{color:var(--ink3)}
+#chat-input-field:disabled{opacity:0.35;cursor:not-allowed}
+#chat-send-btn{width:34px;height:34px;flex-shrink:0;background:var(--acc2);border:1px solid rgba(123,97,255,0.3);border-radius:6px;color:var(--accL);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s}
+#chat-send-btn:hover{background:rgba(123,97,255,0.25)}
+#chat-send-btn svg{width:14px;height:14px}
+</style>
+
+<div id="beat-chat">
+  <div id="chat-panel">
+    <div id="chat-panel-hdr">
+      <div class="cp-title">CHAT</div>
+      <div class="cp-live">● live</div>
+      <button id="chat-close-btn">−</button>
+    </div>
+    <div id="chat-name-setup">
+      <div class="cn-label">pick a username</div>
+      <div class="cn-row">
+        <input id="cn-field" type="text" maxlength="16" placeholder="your name" autocomplete="off" autocorrect="off" spellcheck="false">
+        <button id="cn-ok">join</button>
+      </div>
+      <div class="cn-err" id="cn-err"></div>
+    </div>
+    <div id="chat-messages">
+      <div class="cm-loading" id="chat-loading">connecting...</div>
+    </div>
+    <div id="chat-input-row">
+      <input id="chat-input-field" type="text" maxlength="200" placeholder="say something..." autocomplete="off" autocorrect="off" spellcheck="false" disabled>
+      <button id="chat-send-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div id="chat-bar">
+    <div class="chat-bar-dot"></div>
+    <span class="chat-bar-label">chat</span>
+    <span class="chat-bar-count" id="chat-bar-count"></span>
+    <span class="chat-bar-chev" id="chat-chev">▲</span>
+  </div>
+</div>
+
+<script type="module">
+const CHAT_CONFIG={
+  apiKey:'AIzaSyCtTloqGNdhmI3Xt0ta11vF0MQJHiKpO7Q',
+  authDomain:'chatforslither.firebaseapp.com',
+  databaseURL:'https://chatforslither-default-rtdb.firebaseio.com',
+  projectId:'chatforslither',
+  storageBucket:'chatforslither.appspot.com',
+  messagingSenderId:'1045559625491',
+  appId:'1:1045559625491:web:79eb8200eb87edac00bce6'
+};
+const MSG_LIMIT=60;
+
+// ── profanity ──
+const _SL=[/nigg/i,/ni+g+[ae3@]*/i,/fuck/i,/shit/i,/cunt/i,/bitch/i,/fag/i,/kike/i,/nazi/i,/hitler/i,/rape/i,/retard/i];
+const _WD=[/\bfuck\b/i,/\bshit\b/i,/\bcunt\b/i,/\bpussy\b/i,/\bcock\b/i,/\bdick\b/i,/\bass\b/i,/\bslut\b/i,/\bwhore\b/i,/\bporn\b/i,/\brapist\b/i,/\bnazi\b/i,/\bhitler\b/i,/\bretard\b/i];
+const _lt=s=>s.replace(/@/g,'a').replace(/3/g,'e').replace(/[!1]/g,'i').replace(/0/g,'o').replace(/5/g,'s').replace(/9/g,'g');
+function _bad(t){const c=_lt(t.toLowerCase().replace(/[\s.\-_*]+/g,''));if(_SL.some(p=>p.test(c)))return true;if(_WD.some(p=>p.test(_lt(t.toLowerCase()))))return true;return false;}
+const _LR=/https?:\/\/\S+|www\.\S+|\S+\.(com|net|org|gg|io|co|me|tv|xyz|app|dev)[^\s]*/gi;
+function _clean(t){return t.replace(_LR,'[link removed]');}
+function _esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── state ──
+let _open=false,_name=localStorage.getItem('beat_chat_name')||'',_ready=false,_db=null,_uid=null,_count=0,_keys=new Set(),_listening=false;
+
+const _panel=document.getElementById('chat-panel');
+const _bar=document.getElementById('chat-bar');
+const _msgs=document.getElementById('chat-messages');
+const _inp=document.getElementById('chat-input-field');
+const _ns=document.getElementById('chat-name-setup');
+const _nf=document.getElementById('cn-field');
+const _ne=document.getElementById('cn-err');
+const _load=document.getElementById('chat-loading');
+const _bc=document.getElementById('chat-bar-count');
+const _chev=document.getElementById('chat-chev');
+
+function loadSrc(src){return new Promise(r=>{if(document.querySelector(`script[src="${src}"]`)){r();return;}const s=document.createElement('script');s.src=src;s.onload=r;document.head.appendChild(s);});}
+
+async function initChat(){
+  _load.textContent='connecting...';
+  await loadSrc('https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js');
+  await loadSrc('https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js');
+  await loadSrc('https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js');
+  let app;
+  try{app=window.firebase.app('beat-chat');}catch{app=window.firebase.initializeApp(CHAT_CONFIG,'beat-chat');}
+  const auth=window.firebase.auth(app);
+  _db=window.firebase.database(app);
+  auth.signInAnonymously().catch(e=>console.warn('[chat]',e));
+  auth.onAuthStateChanged(u=>{
+    if(u){
+      _uid=u.uid;_ready=true;_load.textContent='';
+      if(_name){
+        _inp.disabled=false;_inp.placeholder='say something...';
+        _db.ref('onlineUsers/'+_uid).set({name:_name,uid:_uid,lastActive:window.firebase.database.ServerValue.TIMESTAMP,_source:'beat'});
+        _db.ref('onlineUsers/'+_uid).onDisconnect().remove();
+      }
+      _startListen();
+    }
+  });
+}
+
+function _startListen(){
+  if(_listening||!_db)return;_listening=true;
+  _db.ref('slitherChat').orderByChild('time').limitToLast(MSG_LIMIT).on('child_added',snap=>{
+    const d=snap.val();if(!d||_keys.has(snap.key))return;
+    _keys.add(snap.key);_renderMsg(snap.key,d);_count++;
+    _bc.textContent=_count>0?'· '+(_count>99?'99+':_count):'';
+    const atBot=_msgs.scrollHeight-_msgs.scrollTop-_msgs.clientHeight<80;
+    if(atBot||_open)_scrollBot();
+  });
+}
+
+let _lastDate='';
+function _renderMsg(key,d){
+  if(!d)return;
+  const sys=d.uid==='system';
+  const isMe=d.name===_name&&!sys;
+  const ts=d.time?new Date(d.time):new Date();
+  const tStr=ts.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
+  const dStr=ts.toLocaleDateString([],{month:'short',day:'numeric'});
+  if(dStr!==_lastDate){_lastDate=dStr;const div=document.createElement('div');div.style.cssText='text-align:center;margin:6px 0 2px;font-size:9px;letter-spacing:1px;color:rgba(226,224,240,0.15);text-transform:uppercase;';div.textContent=dStr;_msgs.appendChild(div);}
+  const el=document.createElement('div');el.className='cm'+(sys?' sys':'');
+  const nc=isMe?'var(--accL)':(d.chatNameColor&&/^#[0-9a-fA-F]{3,6}$/.test(d.chatNameColor)?d.chatNameColor:'rgba(226,224,240,0.6)');
+  if(sys){el.innerHTML=`<div class="cm-text">${_esc(d.text||'')}</div>`;}
+  else{const badge=d._source==='beat'?'<span style="font-size:7px;opacity:0.3;margin-left:3px">beat</span>':'';el.innerHTML=`<div class="cm-hdr"><span class="cm-name${isMe?' me':''}" style="color:${nc}">${_esc(d.name||'anon')}</span>${badge}<span class="cm-time">${tStr}</span></div><div class="cm-text">${_esc(d.text||'')}</div>`;}
+  _msgs.appendChild(el);
+}
+function _scrollBot(){_msgs.scrollTop=_msgs.scrollHeight;}
+
+async function _send(){
+  const raw=_inp.value.trim();
+  if(!raw||!_name||!_db||!_ready||!_uid)return;
+  if(_bad(raw)){_inp.value='';return;}
+  const clean=_clean(raw);_inp.value='';
+  try{await _db.ref('slitherChat').push({uid:_uid,name:_name,text:clean,time:window.firebase.database.ServerValue.TIMESTAMP,chatNameColor:'#a48bff',_source:'beat'});}
+  catch(e){console.warn('[chat] send:',e);}
+}
+
+document.getElementById('chat-send-btn').addEventListener('click',_send);
+document.getElementById('chat-input-field').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();_send();}});
+
+const RESERVED=['dev','admin','mod','owner','staff','system','bot','dxxthly','support','help','discord','official'];
+function _valName(n){
+  const t=n.trim();
+  if(t.length<2)return{ok:false,err:'at least 2 characters'};
+  if(t.length>16)return{ok:false,err:'max 16 characters'};
+  if(!/^[a-zA-Z0-9_\- ]+$/.test(t))return{ok:false,err:'letters and numbers only'};
+  if(_bad(t))return{ok:false,err:"that name isn\'t allowed"};
+  const l=t.toLowerCase().replace(/[\s_\-]+/g,'');
+  if(RESERVED.some(r=>l===r||l.includes(r)))return{ok:false,err:'name is reserved'};
+  return{ok:true,name:t};
+}
+
+async function _setName(){
+  const r=_valName(_nf.value);
+  if(!r.ok){_ne.textContent=r.err;return;}
+  _ne.textContent='checking...';
+  let taken=false;
+  if(_db){try{const s=await _db.ref('onlineUsers').orderByChild('name').equalTo(r.name).limitToFirst(1).once('value');taken=s.exists();}catch{}}
+  if(taken){_ne.textContent='name already in use';return;}
+  _name=r.name;localStorage.setItem('beat_chat_name',_name);_ne.textContent='';
+  _ns.style.display='none';
+  if(_ready){_inp.disabled=false;_inp.placeholder='say something...';_inp.focus();
+    if(_uid){_db.ref('onlineUsers/'+_uid).set({name:_name,uid:_uid,lastActive:window.firebase.database.ServerValue.TIMESTAMP,_source:'beat'});_db.ref('onlineUsers/'+_uid).onDisconnect().remove();}
+  }
+}
+document.getElementById('cn-ok').addEventListener('click',_setName);
+document.getElementById('cn-field').addEventListener('keydown',e=>{if(e.key==='Enter')_setName();});
+
+function openChat(){
+  _open=true;_panel.style.display='flex';_chev.textContent='▼';
+  if(!_ready)initChat();
+  if(_name){_ns.style.display='none';if(_ready){_inp.disabled=false;_inp.placeholder='say something...';}}
+  else{_ns.style.display='flex';_inp.disabled=true;setTimeout(()=>_nf.focus(),200);}
+  setTimeout(()=>_scrollBot(),150);
+}
+function closeChat(){_open=false;_panel.style.display='none';_chev.textContent='▲';}
+_bar.addEventListener('click',()=>_open?closeChat():openChat());
+document.getElementById('chat-close-btn').addEventListener('click',closeChat);
+document.addEventListener('pointerdown',e=>{if(_open&&!document.getElementById('beat-chat').contains(e.target))closeChat();},{passive:true});
+</script>
+</body>
+</html>

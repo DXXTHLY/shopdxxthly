@@ -210,7 +210,7 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
       <span class="badge">Gamer</span>
       <span class="badge surf" onclick="showSurfGame()" title="click me...">CS:GO Surfer</span>
       <span class="badge weed">420 Friendly</span>
-      <a class="badge quiet" href="https://dxxthly.github.io/shopdxxthly/beat.html" target="_blank" style="text-decoration:none;cursor:pointer;" title="◆ beat game">Quiet</a>
+      <span class="badge quiet">Quiet</span>
       <span class="badge pundit">Gaming Pundit</span>
     </div>
   </div>
@@ -351,19 +351,69 @@ document.addEventListener('keydown',function(e){
 });
 function closeSecret(){document.getElementById('secretOverlay').classList.remove('show');}
 
-/* ── Drink counter ── */
+/* ── Drink counter (Firebase global) ── */
 var drinks=0;
-var drinkMsgs=['🍺 cheers!','🍺🍺 another one!','🍺🍺🍺 lets gooo','🔥 chokk would approve','💀 okay slow down lmao','👑 built different'];
+var _cheersDb=null;
+var drinkMsgs=['🍺 cheers!','🍺🍺 another one!','🍺🍺🍺 lets gooo','🔥 chokk would approve','💀 okay slow down lmao','👑 built different','🍻 absolute legend','🌊 the bar is gone','🚑 someone call 999','👑 chokk is speechless'];
+
+function _loadCheersDb(cb){
+  if(_cheersDb){cb(_cheersDb);return;}
+  function loadSrc(src,next){
+    if(document.querySelector('script[src="'+src+'"]')){next();return;}
+    var s=document.createElement('script');s.src=src;s.onload=next;document.head.appendChild(s);
+  }
+  loadSrc('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',function(){
+    loadSrc('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js',function(){
+      try{window.firebase.app('chokka-cheers');}
+      catch(e){window.firebase.initializeApp({
+        apiKey:'AIzaSyDrd2hzQOFQI6zDQ29ZG5lFZqir0ZUL4A4',
+        authDomain:'beat-game-4a776.firebaseapp.com',
+        projectId:'beat-game-4a776',
+        storageBucket:'beat-game-4a776.firebasestorage.app',
+        messagingSenderId:'15648857835',
+        appId:'1:15648857835:web:4eff8dc6cbf159aa5d68ae'
+      },'chokka-cheers');}
+      _cheersDb=window.firebase.firestore(window.firebase.app('chokka-cheers'));
+      cb(_cheersDb);
+    });
+  });
+}
+
+/* load global count on page load */
+function _initCheers(){
+  _loadCheersDb(function(db){
+    db.collection('cheers').doc('chokka').get().then(function(doc){
+      if(doc.exists){
+        drinks=doc.data().count||0;
+        var el=document.getElementById('drinkCount');
+        el.textContent=drinks>=1000?(drinks/1000).toFixed(1)+'k':drinks;
+      }
+    }).catch(function(){});
+    /* live listener so multiple tabs/users stay in sync */
+    db.collection('cheers').doc('chokka').onSnapshot(function(doc){
+      if(doc.exists){
+        drinks=doc.data().count||0;
+        var el=document.getElementById('drinkCount');
+        el.textContent=drinks>=1000?(drinks/1000).toFixed(1)+'k':drinks;
+      }
+    });
+  });
+}
+_initCheers();
+
 function drinkClick(){
-  drinks++;
   var el=document.getElementById('drinkCount');
-  el.textContent=drinks;
-  el.classList.remove('bump');
-  void el.offsetWidth;
-  el.classList.add('bump');
-  var msg=drinkMsgs[Math.min(drinks-1,drinkMsgs.length-1)];
+  el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');
+  var msg=drinkMsgs[Math.min(drinks,drinkMsgs.length-1)];
   showToastMsg(msg);
   if(drinks===10){document.getElementById('drinkBar').querySelector('.drink-label').textContent='Chokk is proud of you';}
+  /* increment in Firestore */
+  _loadCheersDb(function(db){
+    db.collection('cheers').doc('chokka').set(
+      {count:window.firebase.firestore.FieldValue.increment(1)},
+      {merge:true}
+    ).catch(function(){});
+  });
 }
 
 /* ── CS:GO Surfer badge opens game ── */

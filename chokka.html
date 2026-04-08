@@ -65,7 +65,11 @@ canvas#bg { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events
   cursor:default;transition:transform 0.15s,border-color 0.15s,color 0.15s;
 }
 .badge:hover { transform:translateY(-2px); }
-.badge.live { background:rgba(17,237,52,0.12);border-color:rgba(17,237,52,0.35);color:#11ED34;display:flex;align-items:center;gap:5px; }
+.badge.live { background:rgba(17,237,52,0.12);border-color:rgba(17,237,52,0.35);color:#11ED34;display:flex;align-items:center;gap:5px;transition:background 0.5s,border-color 0.5s,color 0.5s; }
+.badge.live.is-live { background:rgba(201,6,18,0.18);border-color:rgba(201,6,18,0.6);color:#ff3347; }
+.badge.live.is-live .dot { background:#ff3347;box-shadow:0 0 8px #ff3347; }
+.plink.streaming-live { border-color:color-mix(in srgb,var(--ac) 55%,transparent) !important;box-shadow:0 0 22px var(--gl),0 0 0 1px color-mix(in srgb,var(--ac) 20%,transparent) !important;animation:live-pulse 2.5s ease-in-out infinite; }
+@keyframes live-pulse{0%,100%{box-shadow:0 0 22px var(--gl),0 0 0 1px color-mix(in srgb,var(--ac) 20%,transparent)}50%{box-shadow:0 0 40px var(--gl),0 0 0 1px color-mix(in srgb,var(--ac) 40%,transparent)}}
 .badge.surf:hover { color:#00FFFF;border-color:rgba(0,255,255,0.4); }
 .badge.weed:hover { color:#11ED34;border-color:rgba(17,237,52,0.5); }
 .badge.quiet:hover { color:#8407E6;border-color:rgba(132,7,230,0.4); }
@@ -521,6 +525,36 @@ function surfLoop(){
 
   surfRAF=requestAnimationFrame(surfLoop);
 }
+
+
+/* ── Live detection (Kick API) ── */
+var _isLive=false;
+function _setLiveUI(live){
+  if(_isLive===live) return;
+  _isLive=live;
+  // LIVE badge
+  var badge=document.querySelector('.badge.live');
+  if(badge) badge.classList.toggle('is-live',live);
+  // glow the streaming cards
+  var streamCards=document.querySelectorAll('.plink.kick,.plink.tw,.plink.rb');
+  streamCards.forEach(function(c){c.classList.toggle('streaming-live',live);});
+  // toast on transition to live
+  if(live) showToastMsg('🔴 chokk is live right now!');
+}
+function _checkLive(){
+  // Check Kick (most permissive CORS)
+  fetch('https://kick.com/api/v2/channels/chokkatsuchi',{method:'GET',headers:{'Accept':'application/json'}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var live=!!(d&&d.livestream);
+      _setLiveUI(live);
+    })
+    .catch(function(){
+      // Kick blocked — silently fail, keep current state
+    });
+}
+_checkLive();
+setInterval(_checkLive, 120000); // recheck every 2 minutes
 
 /* ── Particle BG ── */
 (function(){

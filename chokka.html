@@ -6,372 +6,480 @@
 <title>Chokkatsuchi</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0a0a0f;
-    --card: #13131a;
-    --card2: #1c1c26;
-    --border: rgba(255,255,255,0.07);
-    --border-h: rgba(255,255,255,0.15);
-    --text: #f0eef8;
-    --muted: rgba(240,238,248,0.45);
-    --r: 14px;
-    --rs: 9px;
-  }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 2rem 1rem 3rem;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 60% 40% at 15% 15%, rgba(132,7,230,0.09) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 50% at 85% 85%, rgba(201,6,18,0.07) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-  }
-  .wrap {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 480px;
-    display: flex;
-    flex-direction: column;
-    gap: 1.1rem;
-  }
-  .header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 2rem 1rem 1.25rem;
-  }
-  .avatar-ring {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    padding: 3px;
-    background: linear-gradient(135deg, #8407E6, #C90612, #11ED34);
-    margin-bottom: 1rem;
-  }
-  .avatar-ring img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    display: block;
-    border: 2px solid var(--bg);
-    border-radius: 50%;
-  }
-  .name {
-    font-family: 'Press Start 2P', monospace;
-    font-size: clamp(12px, 3.5vw, 17px);
-    letter-spacing: -1px;
-    background: linear-gradient(90deg, #9b59e8 0%, #f0eef8 45%, #C90612 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1.4;
-    margin-bottom: 0.5rem;
-  }
-  .tagline {
-    font-size: 12px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-  }
-  .badges { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
-  .badge {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 99px;
-    background: var(--card2);
-    border: 0.5px solid var(--border);
-    color: var(--muted);
-  }
-  .label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--muted);
-    padding: 0 2px;
-    margin-top: 0.25rem;
-  }
-  .platforms { display: flex; flex-direction: column; gap: 8px; }
-  .plink {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 13px 16px;
-    background: var(--card);
-    border: 0.5px solid var(--border);
-    border-radius: var(--r);
-    text-decoration: none;
-    color: var(--text);
-    transition: border-color 0.18s, transform 0.15s, box-shadow 0.18s;
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
-  }
-  .plink:hover { transform: translateY(-2px); border-color: var(--border-h); }
-  .plink .bar {
-    position: absolute;
-    left: 0; top: 18%; bottom: 18%;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    background: var(--ac);
-    opacity: 0;
-    transition: opacity 0.18s, top 0.18s, bottom 0.18s;
-  }
-  .plink:hover .bar { opacity: 1; top: 12%; bottom: 12%; }
-  .plink.yt  { --ac:#C90612; --gl:rgba(201,6,18,0.18); }
-  .plink.kick{ --ac:#11ED34; --gl:rgba(17,237,52,0.15); }
-  .plink.tw  { --ac:#8407E6; --gl:rgba(132,7,230,0.18); }
-  .plink.xt  { --ac:#e0ddf5; --gl:rgba(224,221,245,0.1); }
-  .plink.rb  { --ac:#0CEB07; --gl:rgba(12,235,7,0.15); }
-  .plink:hover { box-shadow: 0 4px 24px var(--gl); border-color: color-mix(in srgb, var(--ac) 35%, transparent); }
-  .picon {
-    width: 42px; height: 42px;
-    border-radius: var(--rs);
-    background: var(--card2);
-    border: 0.5px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    transition: box-shadow 0.18s;
-  }
-  .plink:hover .picon { box-shadow: 0 0 14px color-mix(in srgb, var(--ac) 45%, transparent); }
-  .picon svg { width: 20px; height: 20px; }
-  .pinfo { flex: 1; min-width: 0; }
-  .pname { font-size: 14px; font-weight: 600; line-height: 1.2; }
-  .psub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .parr { color: var(--muted); flex-shrink: 0; transition: transform 0.18s, color 0.18s; }
-  .plink:hover .parr { transform: translateX(3px); color: var(--text); }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0a0f; --card: #13131a; --card2: #1c1c26;
+  --border: rgba(255,255,255,0.07); --border-h: rgba(255,255,255,0.18);
+  --text: #f0eef8; --muted: rgba(240,238,248,0.45);
+  --r: 14px; --rs: 9px;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Inter', sans-serif; min-height: 100vh;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 2rem 1rem 3rem; overflow-x: hidden;
+}
+canvas#bg { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: 0.55; }
+.wrap { position: relative; z-index: 1; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 1.1rem; }
 
-  .embed-panel {
-    background: var(--card);
-    border: 0.5px solid var(--border);
-    border-radius: var(--r);
-    overflow: hidden;
-    display: none;
-  }
-  .embed-panel.open { display: block; }
-  .embed-tabs {
-    display: flex;
-    border-bottom: 0.5px solid var(--border);
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .embed-tabs::-webkit-scrollbar { display: none; }
-  .etab {
-    flex-shrink: 0;
-    padding: 10px 16px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--muted);
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
-    white-space: nowrap;
-    font-family: 'Inter', sans-serif;
-  }
-  .etab:hover { color: var(--text); }
-  .etab.t-yt.active   { color:#C90612; border-bottom-color:#C90612; }
-  .etab.t-kick.active { color:#11ED34; border-bottom-color:#11ED34; }
-  .etab.t-tw.active   { color:#8407E6; border-bottom-color:#8407E6; }
-  .etab.t-rb.active   { color:#0CEB07; border-bottom-color:#0CEB07; }
-  .embed-body { width:100%; aspect-ratio:16/9; background:#000; }
-  .embed-body iframe { width:100%; height:100%; border:none; display:block; }
-  .embed-note {
-    padding: 10px 14px;
-    font-size: 11px;
-    color: var(--muted);
-    border-top: 0.5px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .embed-note a { color: var(--muted); text-decoration: underline; }
-  .embed-note a:hover { color: var(--text); }
-  .close-btn {
-    background: none;
-    border: 0.5px solid var(--border);
-    border-radius: 6px;
-    color: var(--muted);
-    font-size: 11px;
-    padding: 3px 8px;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    transition: color 0.15s, border-color 0.15s;
-    flex-shrink: 0;
-  }
-  .close-btn:hover { color: var(--text); border-color: var(--border-h); }
+.header { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2rem 1rem 1.25rem; }
+.avatar-ring {
+  width: 96px; height: 96px; border-radius: 50%; padding: 3px;
+  background: linear-gradient(135deg, #8407E6, #C90612, #11ED34);
+  margin-bottom: 1rem; cursor: pointer;
+  animation: spin-ring 4s linear infinite;
+  transition: transform 0.2s;
+}
+.avatar-ring:hover { transform: scale(1.08); }
+.avatar-ring:active { transform: scale(0.95); }
+@keyframes spin-ring {
+  0%{background:linear-gradient(135deg,#8407E6,#C90612,#11ED34)}
+  33%{background:linear-gradient(225deg,#C90612,#11ED34,#8407E6)}
+  66%{background:linear-gradient(315deg,#11ED34,#8407E6,#C90612)}
+  100%{background:linear-gradient(135deg,#8407E6,#C90612,#11ED34)}
+}
+.avatar-ring img { width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;border:3px solid var(--bg); }
+.avatar-ring.glitch { animation: glitch 0.3s steps(2) infinite; }
+@keyframes glitch {
+  0%{transform:translate(2px,-2px) scale(1.05)}
+  25%{transform:translate(-2px,2px) scale(1.05)}
+  50%{transform:translate(2px,2px) scale(1.05)}
+  75%{transform:translate(-2px,-2px) scale(1.05)}
+  100%{transform:translate(0,0) scale(1.05)}
+}
 
-  .steam-btn {
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    padding: 14px 20px;
-    background: var(--card2);
-    border: 0.5px solid var(--border);
-    border-radius: var(--r);
-    text-decoration: none;
-    color: var(--text);
-    font-size: 14px;
-    font-weight: 600;
-    transition: background 0.18s, border-color 0.18s, transform 0.15s;
-  }
-  .steam-btn:hover { background: var(--card); border-color: var(--border-h); transform: translateY(-1px); }
-  .steam-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
-  .footer { text-align: center; font-size: 11px; color: rgba(240,238,248,0.18); padding-top: 0.25rem; }
+.name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(12px,3.5vw,17px); letter-spacing: -1px;
+  background: linear-gradient(90deg,#9b59e8 0%,#f0eef8 45%,#C90612 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  line-height:1.4; margin-bottom:0.5rem; cursor: pointer;
+  transition: letter-spacing 0.3s;
+}
+.name:hover { letter-spacing: 2px; }
+.tagline { font-size:12px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:0.75rem; }
+.badges { display:flex;gap:6px;justify-content:center;flex-wrap:wrap; }
+.badge {
+  font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;
+  background:var(--card2);border:0.5px solid var(--border);color:var(--muted);
+  cursor:default;transition:transform 0.15s,border-color 0.15s,color 0.15s;
+}
+.badge:hover { transform:translateY(-2px); }
+.badge.live { background:rgba(17,237,52,0.12);border-color:rgba(17,237,52,0.35);color:#11ED34;display:flex;align-items:center;gap:5px; }
+.badge.surf:hover { color:#00FFFF;border-color:rgba(0,255,255,0.4); }
+.badge.weed:hover { color:#11ED34;border-color:rgba(17,237,52,0.5); }
+.badge.quiet:hover { color:#8407E6;border-color:rgba(132,7,230,0.4); }
+.badge.pundit:hover { color:#FFD700;border-color:rgba(255,215,0,0.4); }
+.dot { width:6px;height:6px;border-radius:50%;background:#11ED34;animation:pulse 1.4s ease-in-out infinite; }
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.65)}}
+
+.label { font-size:10px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);padding:0 2px;margin-top:0.25rem; }
+.platforms { display:flex;flex-direction:column;gap:8px; }
+.plink {
+  display:flex;align-items:center;gap:14px;padding:13px 16px;
+  background:var(--card);border:0.5px solid var(--border);border-radius:var(--r);
+  text-decoration:none;color:var(--text);
+  transition:border-color 0.18s,transform 0.15s,box-shadow 0.18s;
+  position:relative;overflow:hidden;cursor:pointer;user-select:none;
+}
+.plink:hover{transform:translateY(-2px);border-color:var(--border-h);}
+.plink:active{transform:scale(0.98);}
+.plink .bar{position:absolute;left:0;top:18%;bottom:18%;width:3px;border-radius:0 3px 3px 0;background:var(--ac);opacity:0;transition:opacity 0.18s,top 0.18s,bottom 0.18s;}
+.plink:hover .bar{opacity:1;top:10%;bottom:10%;}
+.plink.yt{--ac:#C90612;--gl:rgba(201,6,18,0.2);}
+.plink.kick{--ac:#11ED34;--gl:rgba(17,237,52,0.16);}
+.plink.tw{--ac:#8407E6;--gl:rgba(132,7,230,0.2);}
+.plink.xt{--ac:#e0ddf5;--gl:rgba(224,221,245,0.1);}
+.plink.rb{--ac:#0CEB07;--gl:rgba(12,235,7,0.16);}
+.plink:hover{box-shadow:0 4px 28px var(--gl);border-color:color-mix(in srgb,var(--ac) 35%,transparent);}
+.plink:hover .picon{box-shadow:0 0 16px color-mix(in srgb,var(--ac) 50%,transparent);}
+.picon{width:42px;height:42px;border-radius:var(--rs);background:var(--card2);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:box-shadow 0.18s;}
+.picon svg{width:20px;height:20px;}
+.pinfo{flex:1;min-width:0;}
+.pname{font-size:14px;font-weight:600;line-height:1.2;}
+.psub{font-size:12px;color:var(--muted);margin-top:2px;}
+.pright{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.parr{color:var(--muted);transition:transform 0.18s,color 0.18s;}
+.plink:hover .parr{transform:translateX(3px);color:var(--text);}
+.copy-btn{background:var(--card2);border:0.5px solid var(--border);border-radius:6px;color:var(--muted);font-size:10px;font-weight:600;padding:3px 7px;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0.04em;transition:color 0.15s,border-color 0.15s;white-space:nowrap;}
+.copy-btn:hover{color:var(--text);border-color:var(--border-h);}
+.copy-btn.copied{color:#11ED34;border-color:rgba(17,237,52,0.4);}
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.08);transform:scale(0);animation:ripple-anim 0.5s linear;pointer-events:none;}
+@keyframes ripple-anim{to{transform:scale(4);opacity:0;}}
+
+.embed-panel{background:var(--card);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;display:none;animation:slide-in 0.2s ease;}
+@keyframes slide-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.embed-panel.open{display:block;}
+.embed-tabs{display:flex;border-bottom:0.5px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+.embed-tabs::-webkit-scrollbar{display:none;}
+.etab{flex-shrink:0;padding:10px 16px;font-size:12px;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:color 0.15s,border-color 0.15s;white-space:nowrap;font-family:'Inter',sans-serif;}
+.etab:hover{color:var(--text);}
+.etab.t-yt.active{color:#C90612;border-bottom-color:#C90612;}
+.etab.t-kick.active{color:#11ED34;border-bottom-color:#11ED34;}
+.etab.t-tw.active{color:#8407E6;border-bottom-color:#8407E6;}
+.etab.t-rb.active{color:#0CEB07;border-bottom-color:#0CEB07;}
+.embed-body{width:100%;aspect-ratio:16/9;background:#000;}
+.embed-body iframe{width:100%;height:100%;border:none;display:block;}
+.embed-note{padding:10px 14px;font-size:11px;color:var(--muted);border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.embed-note a{color:var(--muted);text-decoration:underline;}
+.embed-note a:hover{color:var(--text);}
+.close-btn{background:none;border:0.5px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;padding:3px 8px;cursor:pointer;font-family:'Inter',sans-serif;transition:color 0.15s,border-color 0.15s;flex-shrink:0;}
+.close-btn:hover{color:var(--text);border-color:var(--border-h);}
+
+.steam-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 20px;background:var(--card2);border:0.5px solid var(--border);border-radius:var(--r);text-decoration:none;color:var(--text);font-size:14px;font-weight:600;transition:background 0.18s,border-color 0.18s,transform 0.15s;}
+.steam-btn:hover{background:var(--card);border-color:var(--border-h);transform:translateY(-1px);}
+.steam-btn:active{transform:scale(0.98);}
+.steam-btn svg{width:20px;height:20px;flex-shrink:0;}
+
+.footer{text-align:center;font-size:11px;color:rgba(240,238,248,0.3);padding-top:0.25rem;}
+.footer a{font-weight:600;text-decoration:none;background:linear-gradient(90deg,#9b59e8,#C90612);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(10px);background:var(--card2);border:0.5px solid rgba(17,237,52,0.4);color:#11ED34;font-size:12px;font-weight:600;padding:8px 18px;border-radius:99px;opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:999;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── Easter egg hint ── */
+.egg-hint{text-align:center;font-size:10px;color:rgba(240,238,248,0.12);margin-top:-0.25rem;letter-spacing:0.05em;cursor:default;}
+
+/* ── Konami / secret overlay ── */
+.secret-overlay{
+  display:none;position:fixed;inset:0;z-index:9998;
+  background:rgba(0,0,0,0.92);
+  align-items:center;justify-content:center;flex-direction:column;gap:1rem;
+}
+.secret-overlay.show{display:flex;}
+.secret-overlay h2{font-family:'Press Start 2P',monospace;font-size:clamp(10px,3vw,18px);color:#11ED34;text-align:center;line-height:1.6;}
+.secret-overlay p{font-size:13px;color:var(--muted);text-align:center;max-width:320px;line-height:1.7;}
+.secret-close{margin-top:0.5rem;background:none;border:0.5px solid rgba(17,237,52,0.4);border-radius:8px;color:#11ED34;font-size:12px;font-weight:600;padding:8px 20px;cursor:pointer;font-family:'Inter',sans-serif;transition:background 0.15s;}
+.secret-close:hover{background:rgba(17,237,52,0.1);}
+
+/* ── Surf Mini Game ── */
+.game-wrapper{background:var(--card);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;display:none;}
+.game-wrapper.open{display:block;}
+.game-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:0.5px solid var(--border);}
+.game-title{font-family:'Press Start 2P',monospace;font-size:9px;color:#00FFFF;letter-spacing:1px;}
+.game-score{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--muted);}
+.game-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;transition:color 0.15s;}
+.game-close:hover{color:var(--text);}
+canvas#surf{display:block;width:100%;height:180px;background:#0a0a1a;cursor:none;}
+.game-footer{padding:8px 14px;font-size:11px;color:var(--muted);border-top:0.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.game-btn{background:rgba(0,255,255,0.1);border:0.5px solid rgba(0,255,255,0.3);border-radius:6px;color:#00FFFF;font-size:10px;font-weight:600;padding:3px 10px;cursor:pointer;font-family:'Inter',sans-serif;transition:background 0.15s;}
+.game-btn:hover{background:rgba(0,255,255,0.2);}
+
+/* ── Drink counter easter egg ── */
+.drink-bar{background:var(--card);border:0.5px solid var(--border);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:border-color 0.18s,transform 0.15s;}
+.drink-bar:hover{border-color:rgba(255,180,0,0.35);transform:translateY(-1px);box-shadow:0 4px 20px rgba(255,150,0,0.1);}
+.drink-left{display:flex;align-items:center;gap:10px;}
+.drink-icon{font-size:20px;}
+.drink-info{}
+.drink-label{font-size:13px;font-weight:600;color:var(--text);}
+.drink-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.drink-count{font-family:'Press Start 2P',monospace;font-size:14px;color:#FFD700;min-width:40px;text-align:right;}
+.drink-count.bump{animation:bump 0.3s ease;}
+@keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.4)}100%{transform:scale(1)}}
+
+/* ── Hidden secret ── */
+.logo-clicks{display:none;}
+
+/* rainbow mode */
+body.rainbow .plink{animation:rbg 1s linear infinite;}
+@keyframes rbg{0%{border-color:#ff0000}16%{border-color:#ff9900}33%{border-color:#ffff00}50%{border-color:#00ff00}66%{border-color:#0099ff}83%{border-color:#8407E6}100%{border-color:#ff0000}}
 </style>
 </head>
 <body>
+<canvas id="bg"></canvas>
+<div class="toast" id="toast">Link copied!</div>
+
+<div class="secret-overlay" id="secretOverlay">
+  <h2>🎮 YOU FOUND IT 🎮</h2>
+  <p>Chokkatsuchi is a CS:GO surf legend, League grinder, and the chillest guy in the lobby. Met on the surf servers. Real one.</p>
+  <p style="color:#11ED34;font-size:12px;margin-top:0.5rem;">↑↑↓↓←→←→ — you know what it is</p>
+  <button class="secret-close" onclick="closeSecret()">close [esc]</button>
+</div>
+
 <div class="wrap">
 
   <div class="header">
-    <div class="avatar-ring">
-      <img src="https://static-cdn.jtvnw.net/jtv_user_pictures/chokkatsuchi-profile_image-0596bfb5c9f6ef24-150x150.png" alt="Chokkatsuchi profile picture">
+    <div class="avatar-ring" id="avatarRing" onclick="avatarClick()">
+      <img src="https://static-cdn.jtvnw.net/jtv_user_pictures/chokkatsuchi-profile_image-0596bfb5c9f6ef24-150x150.png" alt="Chokkatsuchi">
     </div>
-    <div class="name">CHOKKATSUCHI</div>
+    <div class="name" onclick="nameClic()">CHOKKATSUCHI</div>
     <div class="tagline">Live Streams</div>
     <div class="badges">
+      <span class="badge live"><span class="dot"></span> LIVE</span>
       <span class="badge">Streamer</span>
       <span class="badge">Gamer</span>
+      <span class="badge surf" onclick="showSurfGame()" title="click me...">CS:GO Surfer</span>
+      <span class="badge weed">420 Friendly</span>
+      <span class="badge quiet">Quiet</span>
+      <span class="badge pundit">Gaming Pundit</span>
+    </div>
+  </div>
+
+  <div class="egg-hint">psst... try clicking things 👀</div>
+
+  <!-- Surf mini game -->
+  <div class="game-wrapper" id="gameWrapper">
+    <div class="game-header">
+      <span class="game-title">SURF SIMULATOR</span>
+      <span class="game-score">SCORE: <span id="scoreDisplay">0</span></span>
+      <button class="game-close" onclick="closeSurfGame()">✕</button>
+    </div>
+    <canvas id="surf" width="480" height="180"></canvas>
+    <div class="game-footer">
+      <span>move mouse to surf · dodge the walls</span>
+      <button class="game-btn" onclick="resetGame()">RESTART</button>
     </div>
   </div>
 
   <div class="label">Watch live</div>
 
   <div class="platforms">
-
-    <div class="plink yt" onclick="openEmbed('yt')">
+    <div class="plink yt" onclick="openEmbed('yt',event)">
       <div class="bar"></div>
-      <div class="picon">
-        <svg viewBox="0 0 40 40" fill="none"><path d="M37.6 27.1s-.3 2.4-1.4 3.5c-1.4 1.4-2.9 1.4-3.6 1.5C27.6 32.5 20.2 32.5 20.2 32.5s-9.2-.1-12.1-.4c-.8-.1-2.6-.1-3.9-1.5-1.1-1.1-1.4-3.5-1.4-3.5S2.4 24.2 2.4 21.4v-2.7c0-2.9.4-5.7.4-5.7s.3-2.4 1.4-3.5C5.5 8 7 8 7.7 7.9c5-.4 12.4-.4 12.4-.4h0s7.5 0 12.4.4c.8.1 2.3.1 3.7 1.5 1.1 1.1 1.4 3.5 1.4 3.5s.4 2.9.4 5.7v2.7c-.4 2.8-.4 5.7-.4 5.7zM16.5 14.6l0 9.9 9.6-5-9.6-4.9z" fill="#C90612"/></svg>
-      </div>
-      <div class="pinfo">
-        <div class="pname">YouTube</div>
-        <div class="psub">@chokkatsuchi/streams</div>
-      </div>
-      <svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="picon"><svg viewBox="0 0 40 40" fill="none"><path d="M37.6 27.1s-.3 2.4-1.4 3.5c-1.4 1.4-2.9 1.4-3.6 1.5C27.6 32.5 20.2 32.5 20.2 32.5s-9.2-.1-12.1-.4c-.8-.1-2.6-.1-3.9-1.5-1.1-1.1-1.4-3.5-1.4-3.5S2.4 24.2 2.4 21.4v-2.7c0-2.9.4-5.7.4-5.7s.3-2.4 1.4-3.5C5.5 8 7 8 7.7 7.9c5-.4 12.4-.4 12.4-.4h0s7.5 0 12.4.4c.8.1 2.3.1 3.7 1.5 1.1 1.1 1.4 3.5 1.4 3.5s.4 2.9.4 5.7v2.7c-.4 2.8-.4 5.7-.4 5.7zM16.5 14.6l0 9.9 9.6-5-9.6-4.9z" fill="#C90612"/></svg></div>
+      <div class="pinfo"><div class="pname">YouTube</div><div class="psub">@chokkatsuchi/streams</div></div>
+      <div class="pright"><button class="copy-btn" onclick="copyLink(event,'https://m.youtube.com/@chokkatsuchi/streams')">COPY</button><svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
-
-    <div class="plink kick" onclick="openEmbed('kick')">
+    <div class="plink kick" onclick="openEmbed('kick',event)">
       <div class="bar"></div>
-      <div class="picon">
-        <svg viewBox="0 0 40 40" fill="none"><path d="M6 4.23h10.13v7.01h3.38V7.73h3.37V4.23H33v10.52h-3.37v3.51h-3.37v3.51h3.37v3.51H33v10.52H22.88v-3.51H19.5v-3.51h-3.38v7.01H6V4.23z" fill="#11ED34"/></svg>
-      </div>
-      <div class="pinfo">
-        <div class="pname">Kick</div>
-        <div class="psub">kick.com/Chokkatsuchi</div>
-      </div>
-      <svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="picon"><svg viewBox="0 0 40 40" fill="none"><path d="M6 4.23h10.13v7.01h3.38V7.73h3.37V4.23H33v10.52h-3.37v3.51h-3.37v3.51h3.37v3.51H33v10.52H22.88v-3.51H19.5v-3.51h-3.38v7.01H6V4.23z" fill="#11ED34"/></svg></div>
+      <div class="pinfo"><div class="pname">Kick</div><div class="psub">kick.com/Chokkatsuchi</div></div>
+      <div class="pright"><button class="copy-btn" onclick="copyLink(event,'https://kick.com/Chokkatsuchi')">COPY</button><svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
-
-    <div class="plink tw" onclick="openEmbed('tw')">
+    <div class="plink tw" onclick="openEmbed('tw',event)">
       <div class="bar"></div>
-      <div class="picon">
-        <svg viewBox="0 0 40 40" fill="none"><path d="M23.9 33.6h-5.2l-6.5 6.5v-6.5H4.5V10.4L11 3.9h24.5V22L23.9 33.6zM32.9 6.5H12.2v19.4h5.2V31l5.2-5.2h5.2l5.2-5.2V6.5zM26.5 11.7H29v7.7h-2.6V11.7zM20 11.7h2.6v7.7H20V11.7z" fill="#8407E6"/></svg>
-      </div>
-      <div class="pinfo">
-        <div class="pname">Twitch</div>
-        <div class="psub">twitch.tv/chokkatsuchi</div>
-      </div>
-      <svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="picon"><svg viewBox="0 0 40 40" fill="none"><path d="M23.9 33.6h-5.2l-6.5 6.5v-6.5H4.5V10.4L11 3.9h24.5V22L23.9 33.6zM32.9 6.5H12.2v19.4h5.2V31l5.2-5.2h5.2l5.2-5.2V6.5zM26.5 11.7H29v7.7h-2.6V11.7zM20 11.7h2.6v7.7H20V11.7z" fill="#8407E6"/></svg></div>
+      <div class="pinfo"><div class="pname">Twitch</div><div class="psub">twitch.tv/chokkatsuchi</div></div>
+      <div class="pright"><button class="copy-btn" onclick="copyLink(event,'https://twitch.tv/chokkatsuchi')">COPY</button><svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
-
     <a href="https://x.com/Chokkatsuchi" class="plink xt">
       <div class="bar"></div>
-      <div class="picon">
-        <svg viewBox="0 0 40 40" fill="none"><path d="M36 36l-12.4-18.3 11.6-13.7h-4l-9.4 11-7.5-11H4.2l12 17.7-12.2 14.3h4l9.9-11.7 7.9 11.7H36zM13 6.6l18.2 26.9h-4L9 6.6h4z" fill="#e0ddf5"/></svg>
-      </div>
-      <div class="pinfo">
-        <div class="pname">X (Twitter)</div>
-        <div class="psub">x.com/Chokkatsuchi</div>
-      </div>
-      <svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="picon"><svg viewBox="0 0 40 40" fill="none"><path d="M36 36l-12.4-18.3 11.6-13.7h-4l-9.4 11-7.5-11H4.2l12 17.7-12.2 14.3h4l9.9-11.7 7.9 11.7H36zM13 6.6l18.2 26.9h-4L9 6.6h4z" fill="#e0ddf5"/></svg></div>
+      <div class="pinfo"><div class="pname">X (Twitter)</div><div class="psub">x.com/Chokkatsuchi</div></div>
+      <div class="pright"><button class="copy-btn" onclick="copyLink(event,'https://x.com/Chokkatsuchi')">COPY</button><svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </a>
-
-    <div class="plink rb" onclick="openEmbed('rb')">
+    <div class="plink rb" onclick="openEmbed('rb',event)">
       <div class="bar"></div>
-      <div class="picon">
-        <svg viewBox="0 0 40 40" fill="none"><path d="M25.6 22.2c1.4-1 1.4-3.1 0-4.2-1.9-1.6-4.1-2.9-6.3-4-1.6-.7-3.3.3-3.6 2-.4 2.6-.5 5.3-.2 7.9.2 1.8 1.9 2.8 3.5 2.1 2-.9 4.2-2.2 6.6-3.8zM35.8 14.5c3 3.2 3 8.1 0 11.2-5.1 5.5-11.8 9.4-19.2 11.2-3.9 1-7.9-1.3-9-5.1C5.3 24.4 5.6 16 7.8 8.5c1.1-3.9 4.9-6.4 8.8-5.5 7.2 1.7 14 6 19.2 11.5z" fill="#0CEB07"/></svg>
-      </div>
-      <div class="pinfo">
-        <div class="pname">Rumble</div>
-        <div class="psub">rumble.com/chokkatsuchi_Live</div>
-      </div>
-      <svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="picon"><svg viewBox="0 0 40 40" fill="none"><path d="M25.6 22.2c1.4-1 1.4-3.1 0-4.2-1.9-1.6-4.1-2.9-6.3-4-1.6-.7-3.3.3-3.6 2-.4 2.6-.5 5.3-.2 7.9.2 1.8 1.9 2.8 3.5 2.1 2-.9 4.2-2.2 6.6-3.8zM35.8 14.5c3 3.2 3 8.1 0 11.2-5.1 5.5-11.8 9.4-19.2 11.2-3.9 1-7.9-1.3-9-5.1C5.3 24.4 5.6 16 7.8 8.5c1.1-3.9 4.9-6.4 8.8-5.5 7.2 1.7 14 6 19.2 11.5z" fill="#0CEB07"/></svg></div>
+      <div class="pinfo"><div class="pname">Rumble</div><div class="psub">rumble.com/chokkatsuchi_Live</div></div>
+      <div class="pright"><button class="copy-btn" onclick="copyLink(event,'https://rumble.com/user/chokkatsuchi_Live')">COPY</button><svg class="parr" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     </div>
-
   </div>
 
   <div class="embed-panel" id="embedPanel">
     <div class="embed-tabs">
-      <button class="etab t-yt"   data-id="yt"   onclick="switchTab('yt')">YouTube</button>
+      <button class="etab t-yt" data-id="yt" onclick="switchTab('yt')">YouTube</button>
       <button class="etab t-kick" data-id="kick" onclick="switchTab('kick')">Kick</button>
-      <button class="etab t-tw"   data-id="tw"   onclick="switchTab('tw')">Twitch</button>
-      <button class="etab t-rb"   data-id="rb"   onclick="switchTab('rb')">Rumble</button>
+      <button class="etab t-tw" data-id="tw" onclick="switchTab('tw')">Twitch</button>
+      <button class="etab t-rb" data-id="rb" onclick="switchTab('rb')">Rumble</button>
     </div>
     <div class="embed-body" id="embedBody"></div>
-    <div class="embed-note">
-      <span id="embedHint"></span>
-      <button class="close-btn" onclick="closeEmbed()">Close</button>
+    <div class="embed-note"><span id="embedHint"></span><button class="close-btn" onclick="closeEmbed()">Close</button></div>
+  </div>
+
+  <!-- Drink counter easter egg -->
+  <div class="drink-bar" id="drinkBar" onclick="drinkClick()" title="click to cheers">
+    <div class="drink-left">
+      <span class="drink-icon">🍺</span>
+      <div class="drink-info">
+        <div class="drink-label">Cheers with Chokk</div>
+        <div class="drink-sub">he's always down to talk — click to raise a glass</div>
+      </div>
     </div>
+    <div class="drink-count" id="drinkCount">0</div>
   </div>
 
   <div class="label" style="margin-top:0.25rem;">Also find me on</div>
-
   <a href="https://steamcommunity.com/id/Chokkatsuchi/" class="steam-btn">
     <svg viewBox="0 0 40 40" fill="none"><path d="M31 15.2c0 2.7-2.2 4.8-4.8 4.8-2.7 0-4.8-2.2-4.8-4.8 0-2.7 2.2-4.8 4.8-4.8C28.9 10.4 31 12.5 31 15.2zM22.6 15.2c0 2 1.6 3.6 3.6 3.6 2 0 3.6-1.6 3.6-3.6 0-2-1.6-3.6-3.6-3.6-2 0-3.6 1.6-3.6 3.6zM12.6 31.2c-.9-.4-1.7-1.1-2.1-2l2.4 1c1.5.6 3.3-.1 3.9-1.6.6-1.5-.1-3.3-1.6-3.9l-2.4-1c.9-.4 2-.4 3 0 1 .4 1.8 1.2 2.2 2.2.4 1 .4 2.1 0 3.1-1 2.1-3.4 3.1-5.4 2.2zM20 39.1c-8.6 0-15.8-5.7-18.2-13.5l7.2 3c.4 1.6 1.5 3.1 3.1 3.7 2.7 1.1 5.8-.2 6.9-2.9.3-.7.4-1.4.4-2.2l6.7-4.8.2 0c4 0 7.2-3.3 7.2-7.3S30.2 8 26.2 7.9c-4 0-7.2 3.3-7.2 7.3l0 .1-4.7 6.8c-.8 0-1.5.1-2.2.4-.3.1-.6.3-.9.5L1 18.7c.7-9.9 8.9-17.8 19-17.8 10.5 0 19 8.6 19 19.1S30.5 39.1 20 39.1z" fill="rgba(240,238,248,0.45)"/></svg>
     Steam Profile
   </a>
 
-  <div class="footer">chokkatsuchi.carrd.co</div>
+  <div class="footer">developed by <a href="https://dxxthly.github.io/shopdxxthly/" target="_blank">DXXTHLY</a></div>
 </div>
 
 <script>
-var cfg = {
-  yt:   { src: 'https://www.youtube.com/embed?listType=user_uploads&list=chokkatsuchi', hint: 'Showing latest YouTube uploads. <a href="https://m.youtube.com/@chokkatsuchi/streams" target="_blank">Open channel</a>' },
-  kick: { src: 'https://player.kick.com/chokkatsuchi', hint: 'Kick live player — shows live stream if online. <a href="https://kick.com/Chokkatsuchi" target="_blank">Open Kick</a>' },
-  tw:   { src: 'https://player.twitch.tv/?channel=chokkatsuchi&parent=' + (location.hostname || 'localhost') + '&autoplay=false', hint: 'Twitch live embed — best on the actual site. <a href="https://twitch.tv/chokkatsuchi" target="_blank">Open Twitch</a>' },
-  rb:   { src: 'https://rumble.com/embed/user/chokkatsuchi_Live/', hint: 'Rumble channel embed. <a href="https://rumble.com/user/chokkatsuchi_Live" target="_blank">Open Rumble</a>' }
+/* ── Embeds ── */
+var cfg={
+  yt:{src:'https://www.youtube.com/embed?listType=user_uploads&list=chokkatsuchi',hint:'Latest uploads. <a href="https://m.youtube.com/@chokkatsuchi/streams" target="_blank">Open channel</a>'},
+  kick:{src:'https://player.kick.com/chokkatsuchi',hint:'Kick live player. <a href="https://kick.com/Chokkatsuchi" target="_blank">Open Kick</a>'},
+  tw:{src:'https://player.twitch.tv/?channel=chokkatsuchi&parent='+(location.hostname||'localhost')+'&autoplay=false',hint:'Twitch embed. <a href="https://twitch.tv/chokkatsuchi" target="_blank">Open Twitch</a>'},
+  rb:{src:'https://rumble.com/embed/user/chokkatsuchi_Live/',hint:'Rumble channel. <a href="https://rumble.com/user/chokkatsuchi_Live" target="_blank">Open Rumble</a>'}
 };
+function openEmbed(id,e){addRipple(e);var p=document.getElementById('embedPanel');p.classList.add('open');switchTab(id);setTimeout(function(){p.scrollIntoView({behavior:'smooth',block:'nearest'});},50);}
+function switchTab(id){document.querySelectorAll('.etab').forEach(function(b){b.classList.toggle('active',b.dataset.id===id);});var c=cfg[id];document.getElementById('embedBody').innerHTML='<iframe src="'+c.src+'" allowfullscreen allow="autoplay; encrypted-media"></iframe>';document.getElementById('embedHint').innerHTML=c.hint;}
+function closeEmbed(){document.getElementById('embedPanel').classList.remove('open');document.getElementById('embedBody').innerHTML='';}
 
-function openEmbed(id) {
-  document.getElementById('embedPanel').classList.add('open');
-  switchTab(id);
-  setTimeout(function() {
-    document.getElementById('embedPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, 50);
+/* ── Ripple ── */
+function addRipple(e){var el=e.currentTarget;var r=document.createElement('span');var rect=el.getBoundingClientRect();var size=Math.max(rect.width,rect.height);r.className='ripple';r.style.cssText='width:'+size+'px;height:'+size+'px;left:'+(e.clientX-rect.left-size/2)+'px;top:'+(e.clientY-rect.top-size/2)+'px;';el.appendChild(r);setTimeout(function(){r.remove();},600);}
+
+/* ── Copy ── */
+var toastTimer;
+function copyLink(e,url){e.stopPropagation();var btn=e.currentTarget;navigator.clipboard.writeText(url).then(function(){btn.textContent='DONE';btn.classList.add('copied');var t=document.getElementById('toast');t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');btn.textContent='COPY';btn.classList.remove('copied');},2000);});}
+
+/* ── Avatar easter egg (click 5 times) ── */
+var avatarClicks=0,avatarTimer;
+function avatarClick(){
+  avatarClicks++;
+  clearTimeout(avatarTimer);
+  var ring=document.getElementById('avatarRing');
+  if(avatarClicks>=5){
+    ring.classList.add('glitch');
+    showToastMsg('🎮 CS:GO SURF LEGEND DETECTED');
+    document.body.classList.add('rainbow');
+    setTimeout(function(){ring.classList.remove('glitch');document.body.classList.remove('rainbow');},3000);
+    avatarClicks=0;
+  }
+  avatarTimer=setTimeout(function(){avatarClicks=0;},1500);
 }
 
-function switchTab(id) {
-  document.querySelectorAll('.etab').forEach(function(b) {
-    b.classList.toggle('active', b.dataset.id === id);
+/* ── Name click ── */
+var nameClicks=0;
+function nameClic(){
+  nameClicks++;
+  if(nameClicks===3){showToastMsg('real one 🤙');nameClicks=0;}
+}
+
+/* ── Toast with custom msg ── */
+function showToastMsg(msg){var t=document.getElementById('toast');t.textContent=msg;t.style.borderColor='rgba(132,7,230,0.5)';t.style.color='#9b59e8';t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');t.textContent='Link copied!';t.style.borderColor='rgba(17,237,52,0.4)';t.style.color='#11ED34';},2500);}
+
+/* ── Konami code ── */
+var konami=[38,38,40,40,37,39,37,39,66,65],kpos=0;
+document.addEventListener('keydown',function(e){
+  if(e.keyCode===konami[kpos]){kpos++;if(kpos===konami.length){document.getElementById('secretOverlay').classList.add('show');kpos=0;}}else{kpos=0;}
+  if(e.key==='Escape'){closeSecret();}
+});
+function closeSecret(){document.getElementById('secretOverlay').classList.remove('show');}
+
+/* ── Drink counter ── */
+var drinks=0;
+var drinkMsgs=['🍺 cheers!','🍺🍺 another one!','🍺🍺🍺 lets gooo','🔥 chokk would approve','💀 okay slow down lmao','👑 built different'];
+function drinkClick(){
+  drinks++;
+  var el=document.getElementById('drinkCount');
+  el.textContent=drinks;
+  el.classList.remove('bump');
+  void el.offsetWidth;
+  el.classList.add('bump');
+  var msg=drinkMsgs[Math.min(drinks-1,drinkMsgs.length-1)];
+  showToastMsg(msg);
+  if(drinks===10){document.getElementById('drinkBar').querySelector('.drink-label').textContent='Chokk is proud of you';}
+}
+
+/* ── CS:GO Surfer badge opens game ── */
+function showSurfGame(){
+  var g=document.getElementById('gameWrapper');
+  g.classList.add('open');
+  g.scrollIntoView({behavior:'smooth',block:'nearest'});
+  startSurfGame();
+}
+function closeSurfGame(){
+  document.getElementById('gameWrapper').classList.remove('open');
+  stopSurfGame();
+}
+
+/* ── Surf Game ── */
+var surfCanvas,surfCtx,surfRAF,surfRunning=false,surfScore=0;
+var player={x:60,y:90,vy:0,size:10};
+var walls=[],surfSpeed=2.5,surfFrame=0;
+
+function startSurfGame(){
+  surfCanvas=document.getElementById('surf');
+  surfCtx=surfCanvas.getContext('2d');
+  surfCanvas.width=surfCanvas.offsetWidth||480;
+  surfCanvas.height=180;
+  surfRunning=true;surfScore=0;walls=[];surfSpeed=2.5;surfFrame=0;
+  player.y=90;player.vy=0;
+  surfCanvas.addEventListener('mousemove',surfMouseMove);
+  surfCanvas.addEventListener('touchmove',surfTouchMove,{passive:false});
+  surfLoop();
+}
+function stopSurfGame(){surfRunning=false;cancelAnimationFrame(surfRAF);if(surfCanvas){surfCanvas.removeEventListener('mousemove',surfMouseMove);surfCanvas.removeEventListener('touchmove',surfTouchMove);}}
+function resetGame(){stopSurfGame();startSurfGame();}
+function surfMouseMove(e){var rect=surfCanvas.getBoundingClientRect();player.y=e.clientY-rect.top;}
+function surfTouchMove(e){e.preventDefault();var rect=surfCanvas.getBoundingClientRect();player.y=e.touches[0].clientY-rect.top;}
+
+function surfLoop(){
+  if(!surfRunning)return;
+  var W=surfCanvas.width,H=surfCanvas.height;
+  surfCtx.clearRect(0,0,W,H);
+
+  surfFrame++;
+  surfScore=Math.floor(surfFrame/6);
+  document.getElementById('scoreDisplay').textContent=surfScore;
+  surfSpeed=2.5+surfScore*0.012;
+
+  if(surfFrame%55===0){
+    var gap=70-Math.min(surfScore*0.3,30);
+    var top=20+Math.random()*(H-gap-40);
+    walls.push({x:W,topH:top,botY:top+gap});
+  }
+
+  surfCtx.fillStyle='#0a0a1a';
+  surfCtx.fillRect(0,0,W,H);
+
+  for(var i=0;i<8;i++){
+    surfCtx.strokeStyle='rgba(0,255,255,0.04)';
+    surfCtx.lineWidth=1;
+    surfCtx.beginPath();
+    var ly=20+i*(H/7);
+    surfCtx.moveTo(0,ly);surfCtx.lineTo(W,ly);surfCtx.stroke();
+  }
+
+  walls.forEach(function(w){w.x-=surfSpeed;});
+  walls=walls.filter(function(w){return w.x>-30;});
+
+  walls.forEach(function(w){
+    var grad=surfCtx.createLinearGradient(w.x,0,w.x+20,0);
+    grad.addColorStop(0,'rgba(132,7,230,0.9)');grad.addColorStop(1,'rgba(201,6,18,0.9)');
+    surfCtx.fillStyle=grad;
+    surfCtx.beginPath();surfCtx.roundRect(w.x,0,18,w.topH,4);surfCtx.fill();
+    surfCtx.beginPath();surfCtx.roundRect(w.x,w.botY,18,H-w.botY,4);surfCtx.fill();
+    surfCtx.strokeStyle='rgba(255,0,100,0.5)';surfCtx.lineWidth=1;
+    surfCtx.strokeRect(w.x,0,18,w.topH);
+    surfCtx.strokeRect(w.x,w.botY,18,H-w.botY);
   });
-  var c = cfg[id];
-  document.getElementById('embedBody').innerHTML = '<iframe src="' + c.src + '" allowfullscreen allow="autoplay; encrypted-media"></iframe>';
-  document.getElementById('embedHint').innerHTML = c.hint;
+
+  player.y=Math.max(player.size,Math.min(H-player.size,player.y));
+
+  var px=player.x,py=player.y,ps=player.size;
+  var trail=['rgba(0,255,255,0.05)','rgba(0,255,255,0.1)','rgba(0,255,255,0.2)'];
+  for(var t=0;t<3;t++){surfCtx.beginPath();surfCtx.arc(px-(t+1)*7,py,ps-t*2,0,Math.PI*2);surfCtx.fillStyle=trail[t];surfCtx.fill();}
+  surfCtx.beginPath();surfCtx.arc(px,py,ps,0,Math.PI*2);
+  var pg=surfCtx.createRadialGradient(px,py,0,px,py,ps);
+  pg.addColorStop(0,'#fff');pg.addColorStop(0.4,'#00FFFF');pg.addColorStop(1,'rgba(0,200,255,0.3)');
+  surfCtx.fillStyle=pg;surfCtx.fill();
+  surfCtx.strokeStyle='rgba(0,255,255,0.6)';surfCtx.lineWidth=1.5;surfCtx.stroke();
+
+  var hit=false;
+  walls.forEach(function(w){
+    if(px+ps>w.x&&px-ps<w.x+18){
+      if(py-ps<w.topH||py+ps>w.botY)hit=true;
+    }
+  });
+
+  if(hit){
+    surfCtx.fillStyle='rgba(255,0,50,0.3)';surfCtx.fillRect(0,0,W,H);
+    surfCtx.fillStyle='#fff';surfCtx.font='bold 16px Inter';surfCtx.textAlign='center';
+    surfCtx.fillText('WIPED OUT — SCORE: '+surfScore,W/2,H/2-10);
+    surfCtx.font='12px Inter';surfCtx.fillStyle='rgba(255,255,255,0.5)';
+    surfCtx.fillText('click RESTART to go again',W/2,H/2+14);
+    surfRunning=false;return;
+  }
+
+  surfRAF=requestAnimationFrame(surfLoop);
 }
 
-function closeEmbed() {
-  document.getElementById('embedPanel').classList.remove('open');
-  document.getElementById('embedBody').innerHTML = '';
-}
+/* ── Particle BG ── */
+(function(){
+  var canvas=document.getElementById('bg'),ctx=canvas.getContext('2d'),particles=[],W,H;
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  window.addEventListener('resize',resize);resize();
+  var colors=['#8407E6','#C90612','#11ED34','#0099ff','#ff69b4'];
+  for(var i=0;i<55;i++){particles.push({x:Math.random()*1920,y:Math.random()*1080,r:Math.random()*1.5+0.3,dx:(Math.random()-0.5)*0.35,dy:(Math.random()-0.5)*0.35,color:colors[Math.floor(Math.random()*colors.length)],alpha:Math.random()*0.6+0.2});}
+  function draw(){ctx.clearRect(0,0,W,H);particles.forEach(function(p){p.x+=p.dx;p.y+=p.dy;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.globalAlpha=p.alpha;ctx.fill();});ctx.globalAlpha=1;requestAnimationFrame(draw);}
+  draw();
+})();
 </script>
 </body>
 </html>

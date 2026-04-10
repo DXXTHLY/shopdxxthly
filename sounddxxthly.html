@@ -433,6 +433,40 @@ html,body{
 }
 .anim{animation:fadeUp .32s ease both}
 
+/* ── CHORD NOTE BUTTONS ── */
+.chord-note-btn{
+  padding:10px 4px;
+  background:var(--paper3);
+  border:1px solid var(--line2);
+  border-radius:var(--r-sm);
+  font-family:var(--mono);font-size:13px;
+  color:var(--ink2);cursor:pointer;
+  transition:background .12s,border-color .12s,color .12s,transform .1s;
+  text-align:center;
+}
+.chord-note-btn:active{transform:scale(.94)}
+.chord-note-btn.selected{
+  background:rgba(0,229,255,.12);
+  border-color:rgba(0,229,255,.5);
+  color:var(--g3);
+}
+.chord-qual-btn{
+  flex:1;height:48px;
+  background:var(--paper3);
+  border:1px solid var(--line2);
+  border-radius:var(--r-md);
+  font-family:var(--mono);font-size:12px;letter-spacing:1px;
+  color:var(--ink2);cursor:pointer;
+  transition:background .12s,border-color .12s,color .12s,transform .1s;
+  text-align:center;text-transform:uppercase;
+}
+.chord-qual-btn:active{transform:scale(.96)}
+.chord-qual-btn.selected{
+  background:rgba(224,64,251,.12);
+  border-color:rgba(224,64,251,.5);
+  color:var(--g2);
+}
+
 /* ── SCROLLBAR NONE ── */
 *{scrollbar-width:none}
 *::-webkit-scrollbar{display:none}
@@ -710,6 +744,13 @@ html,body{
           <div class="mc-name">practice</div>
           <div class="mc-desc">unlimited · no pressure</div>
         </button>
+        <button class="mode-card" id="btnChord" style="grid-column:1/-1;display:flex;flex-direction:row;align-items:center;gap:14px;padding:14px 16px">
+          <span class="mc-icon" style="margin-bottom:0;font-size:20px">♬</span>
+          <div>
+            <div class="mc-name">chord mode</div>
+            <div class="mc-desc">hear a chord · name the root &amp; quality · 5 rounds · ranked</div>
+          </div>
+        </button>
       </div>
       <button class="btn btn-ghost" id="btnShowLb" style="margin-top:2px;height:44px;font-size:13px;gap:6px">
         ◈ leaderboard
@@ -873,6 +914,83 @@ html,body{
     </div>
   </div>
 
+  <!-- ╔══════ CHORD GAME ══════╗ -->
+  <div class="scr" id="sch" style="justify-content:space-between">
+    <div class="sl-header">
+      <div class="pill" id="schPill">chord · round 1</div>
+      <div class="pill" id="schPhasePill" style="border-color:rgba(0,229,255,.25);color:var(--g3)">listen</div>
+    </div>
+
+    <div class="wave-wrap" id="schWaveWrap" style="min-height:110px">
+      <canvas class="wave-canvas" id="schWaveCanvas"></canvas>
+    </div>
+
+    <div id="schListenMsg" style="text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--ink3);text-transform:uppercase;padding:6px 0">
+      listen carefully...
+    </div>
+
+    <!-- ANSWER AREA (hidden during listen) -->
+    <div id="schAnswerArea" style="display:none;flex-direction:column;gap:12px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--ink3);text-transform:uppercase;text-align:center">root note</div>
+      <div id="schNoteGrid" style="display:grid;gap:6px"></div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--ink3);text-transform:uppercase;text-align:center;margin-top:4px">quality</div>
+      <div id="schQualGrid" style="display:flex;gap:6px"></div>
+    </div>
+
+    <div style="margin-top:auto;padding-top:10px">
+      <button class="btn btn-primary" id="btnChordLock" style="opacity:0.3;pointer-events:none">lock in →</button>
+    </div>
+  </div>
+
+  <!-- ╔══════ CHORD RESULT ══════╗ -->
+  <div class="scr" id="schr" style="justify-content:space-between">
+    <div class="sl-header">
+      <div class="pill" id="schrPill">chord · round 1</div>
+      <div class="pill" id="schrScorePill" style="color:var(--green)"></div>
+    </div>
+
+    <div class="score-hero" style="padding:14px 0 10px">
+      <div class="score-num" id="chordScoreNum">0</div>
+      <div class="score-label" id="chordScoreLbl">points</div>
+    </div>
+
+    <div style="background:var(--paper3);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;display:flex;flex-direction:column;gap:12px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--ink3);text-transform:uppercase;margin-bottom:4px">the chord was</div>
+      <div id="chordRevealChord" style="font-size:22px;font-weight:700;letter-spacing:-0.5px"></div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <div style="flex:1;padding:10px;background:var(--paper2);border-radius:10px;border:1px solid var(--line)">
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--ink3);text-transform:uppercase;margin-bottom:6px">your answer</div>
+          <div id="chordRevealAnswer" style="font-family:var(--mono);font-size:14px"></div>
+        </div>
+        <div style="flex:1;padding:10px;background:var(--paper2);border-radius:10px;border:1px solid var(--line)">
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--ink3);text-transform:uppercase;margin-bottom:6px">breakdown</div>
+          <div id="chordRevealBreakdown" style="font-family:var(--mono);font-size:11px;line-height:1.7"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="round-dots" id="chordRdots"></div>
+    <button class="btn btn-primary" id="btnChordNext" style="margin-top:10px">next round →</button>
+  </div>
+
+  <!-- ╔══════ CHORD TOTAL ══════╗ -->
+  <div class="scr" id="scht" style="justify-content:space-between">
+    <div class="total-header">
+      <div class="eyebrow">chord mode complete</div>
+      <div class="title" style="margin-top:4px">Here's how you did.</div>
+    </div>
+    <div class="total-score-wrap">
+      <div class="total-num" id="chordTotalNum">0 <span class="total-denom">/50</span></div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--ink3);letter-spacing:1px;margin-top:8px" id="chordTotalGrade"></div>
+    </div>
+    <div class="total-round-row" id="chordTotalRoundRow"></div>
+    <div class="total-actions">
+      <button class="btn btn-primary" id="btnChordAgain">play again</button>
+      <button class="btn btn-ghost" id="btnChordViewLb">◈ leaderboard</button>
+      <button class="btn btn-ghost" id="btnChordHome">← back to menu</button>
+    </div>
+  </div>
+
   <!-- ╔══════ LEADERBOARD ══════╗ -->
   <div class="scr" id="slb">
     <div class="lb-header">
@@ -883,13 +1001,24 @@ html,body{
       <button class="back-btn" id="btnLbBack" style="cursor:pointer;position:relative;z-index:30" onclick="(function(){var d=window._lbReturnTo||'si';document.querySelectorAll('.scr').forEach(function(s){s.classList.remove('on');s.style.pointerEvents='none';s.style.opacity='0';});var t=document.getElementById(d);if(t){t.classList.add('on');t.style.pointerEvents='all';t.style.opacity='1';}})()">← back</button>
     </div>
 
+    <!-- Mode tabs -->
+    <div class="tog-wrap" style="margin-bottom:8px" id="lbTabWrap">
+      <button class="tog-opt on" id="lbTabFreq" data-tab="freq">▶ frequency</button>
+      <button class="tog-opt" id="lbTabChord" data-tab="chord">♬ chord</button>
+    </div>
+    <!-- Difficulty filter -->
+    <div class="tog-wrap" style="margin-bottom:16px" id="lbDiffWrap">
+      <button class="tog-opt on" id="lbDiffEasy">easy</button>
+      <button class="tog-opt" id="lbDiffHard">hard</button>
+    </div>
+
     <div class="lb-section">
-      <div class="lb-section-title">🏆 top 5 all-time</div>
+      <div class="lb-section-title" id="lbTopTitle">🏆 top 5 all-time</div>
       <div class="lb-list" id="lbTop"></div>
     </div>
 
     <div class="lb-section">
-      <div class="lb-section-title">🕐 5 most recent plays</div>
+      <div class="lb-section-title" id="lbRecentTitle">🕐 5 most recent plays</div>
       <div class="lb-list" id="lbRecent"></div>
     </div>
   </div>
@@ -1423,6 +1552,7 @@ document.querySelectorAll('.tog-opt').forEach(btn=>{
 function startGame(){
   ctx(); // prime
   game={round:0,targets:[],picks:[],scores:[],total:0};
+  _scoreSubmitted=false;
   for(let i=0;i<ROUNDS;i++)game.targets.push(.1+Math.random()*.8);
   nextRound();
 }
@@ -1814,28 +1944,37 @@ function validateName(raw){
 async function addLbEntry(name,scoreVal,mode,roundScores){
   try{
     await addDoc(collection(db,'scores'),{
-      name,
-      score:scoreVal,
-      mode,
-      roundScores:roundScores||[],
-      ts:serverTimestamp()
+      name,score:scoreVal,mode,roundScores:roundScores||[],ts:serverTimestamp()
     });
   }catch(e){console.warn('Score save failed:',e);}
 }
 
-async function loadTopFive(){
+async function addChordEntry(name,scoreVal,mode,roundScores){
   try{
-    const q=query(collection(db,'scores'),orderBy('score','desc'),limit(5));
+    await addDoc(collection(db,'chord_scores'),{
+      name,score:scoreVal,mode,roundScores:roundScores||[],ts:serverTimestamp()
+    });
+  }catch(e){console.warn('Chord score save failed:',e);}
+}
+
+async function loadTopFive(collName='scores',diff='easy'){
+  try{
+    // Load a larger set then filter client-side so old records (no mode field) show up under 'easy'
+    const q=query(collection(db,collName),orderBy('score','desc'),limit(50));
     const snap=await getDocs(q);
-    return snap.docs.map(d=>({id:d.id,...d.data(),ts:d.data().ts?.toMillis?.()||Date.now()}));
+    const all=snap.docs.map(d=>({id:d.id,...d.data(),ts:d.data().ts?.toMillis?.()||Date.now()}));
+    const filtered=all.filter(e=>(e.mode===diff)||(e.mode==null&&diff==='easy'));
+    return filtered.slice(0,5);
   }catch(e){console.warn('Load top failed:',e);return[];}
 }
 
-async function loadRecentFive(){
+async function loadRecentFive(collName='scores',diff='easy'){
   try{
-    const q=query(collection(db,'scores'),orderBy('ts','desc'),limit(5));
+    const q=query(collection(db,collName),orderBy('ts','desc'),limit(50));
     const snap=await getDocs(q);
-    return snap.docs.map(d=>({id:d.id,...d.data(),ts:d.data().ts?.toMillis?.()||Date.now()}));
+    const all=snap.docs.map(d=>({id:d.id,...d.data(),ts:d.data().ts?.toMillis?.()||Date.now()}));
+    const filtered=all.filter(e=>(e.mode===diff)||(e.mode==null&&diff==='easy'));
+    return filtered.slice(0,5);
   }catch(e){console.warn('Load recent failed:',e);return[];}
 }
 
@@ -1863,9 +2002,10 @@ function renderLbList(containerId,rows,showRank,currentName){
   el.innerHTML=rows.map((e,i)=>{
     const isMe=currentName&&e.name===currentName;
     const meClass=isMe?' me':'';
-    const sc=Number(e.score).toFixed(2);
+    const isChord=Number.isInteger(e.score)&&e.score<=50&&(e.roundScores||[]).every(s=>Number.isInteger(s));
+    const sc=isChord?String(e.score):Number(e.score).toFixed(2);
     const scCls=scoreClass(e.score);
-    const modeTag=e.mode==='hard'?'<span style="font-size:9px;color:var(--red);margin-left:4px">H</span>':'';
+    const modeTag='';
     if(showRank){
       const sym=rankSymbols[i]||`${i+1}`;
       const rcls=rankClasses[i]||'';
@@ -1889,22 +2029,61 @@ function showLbLoading(){
   document.getElementById('lbRecent').innerHTML='<div class="lb-empty">loading...</div>';
 }
 
-async function renderLeaderboard(highlightName){
+let _activeLbTab='freq';
+let _activeLbDifficulty='easy';
+
+async function renderLeaderboard(highlightName,tab,diff){
+  if(tab)_activeLbTab=tab;
+  if(diff)_activeLbDifficulty=diff;
+  // Sync tab UI
+  document.getElementById('lbTabFreq').classList.toggle('on',_activeLbTab==='freq');
+  document.getElementById('lbTabChord').classList.toggle('on',_activeLbTab==='chord');
+  // Sync difficulty UI
+  document.getElementById('lbDiffEasy').classList.toggle('on',_activeLbDifficulty==='easy');
+  document.getElementById('lbDiffHard').classList.toggle('on',_activeLbDifficulty==='hard');
   showLbLoading();
-  const[top,recent]=await Promise.all([loadTopFive(),loadRecentFive()]);
+  const coll=_activeLbTab==='chord'?'chord_scores':'scores';
+  const[top,recent]=await Promise.all([loadTopFive(coll,_activeLbDifficulty),loadRecentFive(coll,_activeLbDifficulty)]);
   renderLbList('lbTop',top,true,highlightName);
   renderLbList('lbRecent',recent,false,highlightName);
 }
+
+// Tab click handlers
+document.getElementById('lbTabFreq').addEventListener('click',()=>{
+  if(_activeLbTab==='freq')return;
+  blip(440,.06,.1);
+  renderLeaderboard(null,'freq');
+});
+document.getElementById('lbTabChord').addEventListener('click',()=>{
+  if(_activeLbTab==='chord')return;
+  blip(440,.06,.1);
+  renderLeaderboard(null,'chord');
+});
+// Difficulty filter handlers
+document.getElementById('lbDiffEasy').addEventListener('click',()=>{
+  if(_activeLbDifficulty==='easy')return;
+  blip(440,.06,.1);
+  renderLeaderboard(null,null,'easy');
+});
+document.getElementById('lbDiffHard').addEventListener('click',()=>{
+  if(_activeLbDifficulty==='hard')return;
+  blip(440,.06,.1);
+  renderLeaderboard(null,null,'hard');
+});
 
 // ── NAME ENTRY FLOW ──
 let _pendingScore=null;
 let _pendingMode=null;
 let _pendingRounds=null;
+let _pendingCollection='scores'; // 'scores' or 'chord_scores'
+let _scoreSubmitted=false;
+let _chordScoreSubmitted=false;
 window._lbReturnTo='si';
 let _lbReturnTo='si';
 
-function openNameEntry(scoreVal,mode,roundScores){
+function openNameEntry(scoreVal,mode,roundScores,coll){
   _pendingScore=scoreVal;_pendingMode=mode;_pendingRounds=roundScores;
+  _pendingCollection=coll||'scores';
   const savedName=localStorage.getItem('snd_playername')||'';
   document.getElementById('nameInput').value=savedName;
   document.getElementById('nameError').textContent='';
@@ -1924,19 +2103,26 @@ document.getElementById('btnNameSubmit').addEventListener('click',async()=>{
   btn.textContent='saving...';btn.disabled=true;
   closeNameEntry();
   localStorage.setItem('snd_playername',result.name);
-  await addLbEntry(result.name,_pendingScore,_pendingMode,_pendingRounds);
+  if(_pendingCollection==='chord_scores'){
+    await addChordEntry(result.name,_pendingScore,_pendingMode,_pendingRounds);
+    _chordScoreSubmitted=true;
+  }else{
+    await addLbEntry(result.name,_pendingScore,_pendingMode,_pendingRounds);
+    _scoreSubmitted=true;
+  }
   blip(660,.09,.15);
+  const lbTab=_pendingCollection==='chord_scores'?'chord':'freq';
   show('slb');
-  renderLeaderboard(result.name);
+  renderLeaderboard(result.name,lbTab,_pendingMode);
   btn.textContent='submit score →';btn.disabled=false;
-  // After a short delay, prompt for a motto
-  setTimeout(()=>openMottoEntry(_pendingScore,result.name),800);
+  if(lbTab==='freq')setTimeout(()=>openMottoEntry(_pendingScore,result.name),800);
 });
 
 document.getElementById('btnNameSkip').addEventListener('click',()=>{
   closeNameEntry();
+  const lbTab=_pendingCollection==='chord_scores'?'chord':'freq';
   show('slb');
-  renderLeaderboard(null);
+  renderLeaderboard(null,lbTab,_pendingMode);
 });
 
 document.getElementById('nameInput').addEventListener('keydown',e=>{
@@ -1999,11 +2185,23 @@ function stripLinks(text){
   return text.replace(LINK_RE,'[link removed]');
 }
 
+function isSpam(t){
+  // Single char repeated: "aaaaaaa"
+  if(/(.)\1{4,}/.test(t.replace(/\s/g,'')))return true;
+  // Same short token repeated: "abc abc abc abc"
+  if(/\b(\w{1,6})\b(?:\s+\1){3,}/.test(t))return true;
+  // Keyboard mash — ratio of unique chars to total is too low
+  const chars=t.replace(/\s/g,'');
+  if(chars.length>=8&&new Set(chars).size/chars.length<0.25)return true;
+  return false;
+}
+
 function validateMotto(raw){
   const t=raw.trim();
   console.log('[motto] validating:',JSON.stringify(t));
   if(t.length<5)return{ok:false,err:'Too short — say something worth reading.'};
   if(t.length>MOTTO_MAX)return{ok:false,err:`Max ${MOTTO_MAX} characters.`};
+  if(isSpam(t))return{ok:false,err:'Looks like spam — say something real.'};
   if(isMottoProfane(t)){console.log('[motto] blocked as profane');return{ok:false,err:'Keep it clean. No slurs or offensive language.'};}
   console.log('[motto] passed validation');
   return{ok:true,text:stripLinks(t)};
@@ -2093,20 +2291,358 @@ document.getElementById('btnMottoSkip').addEventListener('click',()=>{
   closeMottoEntry();
 });
 
+// ══ CHORD MODE ══════════════════════════════
+
+// Chord definitions
+const CHORD_NOTES_EASY=['C','D','E','F','G','A','B'];
+const CHORD_NOTES_HARD=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const CHORD_QUALITIES_EASY=['major','minor'];
+const CHORD_QUALITIES_HARD=['major','minor','dim','aug','maj7','min7','dom7'];
+
+// Verified semitone intervals per quality
+// major  = root + major 3rd (4) + perfect 5th (7)
+// minor  = root + minor 3rd (3) + perfect 5th (7)
+// dim    = root + minor 3rd (3) + diminished 5th (6)
+// aug    = root + major 3rd (4) + augmented 5th (8)
+// maj7   = root + major 3rd (4) + perfect 5th (7) + major 7th (11)
+// min7   = root + minor 3rd (3) + perfect 5th (7) + minor 7th (10)
+// dom7   = root + major 3rd (4) + perfect 5th (7) + minor 7th (10)
+const CHORD_INTERVALS={
+  major:[0,4,7],
+  minor:[0,3,7],
+  dim:  [0,3,6],
+  aug:  [0,4,8],
+  maj7: [0,4,7,11],
+  min7: [0,3,7,10],
+  dom7: [0,4,7,10]
+};
+
+// Short display names for reveal + buttons
+const QUAL_LABEL={
+  major:'maj', minor:'min', dim:'dim',
+  aug:'aug', maj7:'maj7', min7:'min7', dom7:'dom7'
+};
+
+// Root MIDI values (4th octave, C4=60)
+const NOTE_TO_MIDI={
+  'C':60,'C#':61,'D':62,'D#':63,'E':64,'F':65,
+  'F#':66,'G':67,'G#':68,'A':69,'A#':70,'B':71
+};
+
+let chordGame={round:0,questions:[],answers:[],scores:[],total:0};
+let _chordSelectedNote=null;
+let _chordSelectedQual=null;
+let _chordListenTimeout=null;
+let _chordVoices=[];
+let _chordVoiceMaster=null;
+
+function stopChordTones(slow){
+  if(_chordVoiceMaster){
+    try{
+      const c=ctx(),t=c.currentTime,d=slow?.8:.2;
+      _chordVoiceMaster.gain.linearRampToValueAtTime(0,t+d);
+      const vv=_chordVoices;
+      setTimeout(()=>vv.forEach(x=>{try{x.stop()}catch{}}),(d+.1)*1000);
+    }catch{}
+  }
+  _chordVoices=[];_chordVoiceMaster=null;
+}
+
+function playChordTones(rootNote,quality,octaveOffset){
+  stopChordTones();
+  const c=ctx(),t=c.currentTime;
+  _chordVoiceMaster=c.createGain();
+  _chordVoiceMaster.gain.setValueAtTime(0,t);
+  _chordVoiceMaster.gain.linearRampToValueAtTime(.18,t+.6);
+  const lp=c.createBiquadFilter();
+  lp.type='lowpass';lp.frequency.value=3500;lp.Q.value=.3;
+  _chordVoiceMaster.connect(lp);lp.connect(masterGain);
+
+  const rootMidi=NOTE_TO_MIDI[rootNote]+(octaveOffset||0);
+  const intervals=CHORD_INTERVALS[quality];
+  intervals.forEach((semis,idx)=>{
+    const freq=A4*Math.pow(2,(rootMidi-A4_MIDI+semis)/12);
+    // slight stagger for piano-like attack
+    const delay=idx*0.025;
+    [[1,.32,0],[2,.04,0],[.5,.04,0],[3,.015,0]].forEach(([mult,amp,det])=>{
+      const o=c.createOscillator(),g=c.createGain();
+      o.type='sine';
+      o.frequency.value=freq*mult;
+      o.detune.value=det;
+      g.gain.value=amp;
+      o.connect(g);g.connect(_chordVoiceMaster);
+      o.start(t+delay);
+      _chordVoices.push(o);
+    });
+  });
+}
+
+function chordScoreRound(answerNote,answerQual,targetNote,targetQual){
+  const rootOk=answerNote===targetNote;
+  const qualOk=answerQual===targetQual;
+  if(rootOk&&qualOk)return 10;
+  if(rootOk)return 5;
+  if(qualOk)return 2;
+  return 0;
+}
+
+function buildChordAnswerUI(){
+  const notes=hard?CHORD_NOTES_HARD:CHORD_NOTES_EASY;
+  const quals=hard?CHORD_QUALITIES_HARD:CHORD_QUALITIES_EASY;
+
+  // Note grid — 2 rows of 6 for hard (12 notes), 1 row of 7 for easy
+  const noteGrid=document.getElementById('schNoteGrid');
+  const cols=hard?6:notes.length;
+  noteGrid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  noteGrid.innerHTML=notes.map(n=>
+    `<button class="chord-note-btn" data-note="${n}">${n}</button>`
+  ).join('');
+
+  // Quality buttons — grid of 4 cols for hard (7 qualities), flex row for easy (2)
+  const qualGrid=document.getElementById('schQualGrid');
+  if(hard){
+    qualGrid.style.display='grid';
+    qualGrid.style.gridTemplateColumns='repeat(4,1fr)';
+    qualGrid.style.gap='6px';
+  }else{
+    qualGrid.style.display='flex';
+    qualGrid.style.gridTemplateColumns='';
+    qualGrid.style.gap='6px';
+  }
+  qualGrid.innerHTML=quals.map(q=>
+    `<button class="chord-qual-btn" data-qual="${q}">${QUAL_LABEL[q]||q}</button>`
+  ).join('');
+
+  // Wire clicks
+  noteGrid.querySelectorAll('.chord-note-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      noteGrid.querySelectorAll('.chord-note-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      _chordSelectedNote=btn.dataset.note;
+      blip(550,.05,.08);
+      _updateChordLockBtn();
+    });
+  });
+  qualGrid.querySelectorAll('.chord-qual-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      qualGrid.querySelectorAll('.chord-qual-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      _chordSelectedQual=btn.dataset.qual;
+      blip(440,.05,.08);
+      _updateChordLockBtn();
+    });
+  });
+}
+
+function _updateChordLockBtn(){
+  const canLock=_chordSelectedNote&&_chordSelectedQual;
+  const btn=document.getElementById('btnChordLock');
+  btn.style.opacity=canLock?'1':'0.3';
+  btn.style.pointerEvents=canLock?'':'none';
+}
+
+// Fisher-Yates shuffle
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+// Random octave offset so the chord never sounds identical each game.
+// Keeps the root between MIDI 48 (C3) and 72 (C5) so nothing gets too high or too low.
+function randomOctaveOffset(baseMidi){
+  const options=[-12,0,12].filter(o=>{
+    const r=baseMidi+o;
+    return r>=48&&r<=72;
+  });
+  return options[Math.floor(Math.random()*options.length)];
+}
+
+function startChordGame(){
+  ctx();
+  chordGame={round:0,questions:[],answers:[],scores:[],total:0};
+  _chordScoreSubmitted=false;
+  const notes=hard?CHORD_NOTES_HARD:CHORD_NOTES_EASY;
+  const quals=hard?CHORD_QUALITIES_HARD:CHORD_QUALITIES_EASY;
+
+  // Build full unique pool then shuffle — guarantees no duplicate chord in one game
+  const pool=[];
+  for(const note of notes){
+    for(const quality of quals){
+      pool.push({note,quality});
+    }
+  }
+  shuffle(pool);
+
+  // Take first ROUNDS chords and assign each a random octave
+  chordGame.questions=pool.slice(0,ROUNDS).map(({note,quality})=>({
+    note,quality,
+    octaveOffset:randomOctaveOffset(NOTE_TO_MIDI[note])
+  }));
+
+  nextChordRound();
+}
+
+function nextChordRound(){
+  chordGame.round++;
+  _chordSelectedNote=null;
+  _chordSelectedQual=null;
+  const q=chordGame.questions[chordGame.round-1];
+
+  document.getElementById('schPill').textContent=`chord · round ${chordGame.round}/${ROUNDS}`;
+  document.getElementById('schPhasePill').textContent='listen';
+  document.getElementById('schPhasePill').style.color='var(--g3)';
+  document.getElementById('schListenMsg').style.display='';
+  document.getElementById('schListenMsg').textContent='listen carefully...';
+  document.getElementById('schAnswerArea').style.display='none';
+
+  const lockBtn=document.getElementById('btnChordLock');
+  lockBtn.style.opacity='0.3';lockBtn.style.pointerEvents='none';
+
+  buildChordAnswerUI();
+  show('sch');
+  startWave('schWaveCanvas',()=>0.5);
+  playChordTones(q.note,q.quality,q.octaveOffset);
+
+  // After listen window, stop chord and reveal answer UI
+  const listenMs=hard?2200:3000;
+  if(_chordListenTimeout)clearTimeout(_chordListenTimeout);
+  _chordListenTimeout=setTimeout(()=>{
+    stopChordTones(true);
+    stopWave();
+    document.getElementById('schPhasePill').textContent='answer';
+    document.getElementById('schPhasePill').style.color='var(--amber)';
+    document.getElementById('schListenMsg').style.display='none';
+    document.getElementById('schAnswerArea').style.display='flex';
+  },listenMs);
+}
+
+document.getElementById('btnChordLock').addEventListener('click',()=>{
+  if(!_chordSelectedNote||!_chordSelectedQual)return;
+  const q=chordGame.questions[chordGame.round-1];
+  const sc=chordScoreRound(_chordSelectedNote,_chordSelectedQual,q.note,q.quality);
+  chordGame.answers.push({note:_chordSelectedNote,quality:_chordSelectedQual});
+  chordGame.scores.push(sc);
+  chordGame.total+=sc;
+  blip(sc===10?880:sc>=5?660:330,.09,.15);
+  showChordResult(q,_chordSelectedNote,_chordSelectedQual,sc);
+});
+
+function showChordResult(q,ansNote,ansQual,sc){
+  stopWave();stopChordTones(true);
+  document.getElementById('schrPill').textContent=`chord · round ${chordGame.round}/${ROUNDS}`;
+  const scPill=document.getElementById('schrScorePill');
+  scPill.textContent=`+${sc} pts`;
+  scPill.style.color=sc===10?'var(--green)':sc>=5?'var(--amber)':'var(--red)';
+
+  const scNum=document.getElementById('chordScoreNum');
+  scNum.textContent=sc;
+  scNum.className='score-num '+(sc===10?'hi':sc>=5?'mid':'lo');
+  document.getElementById('chordScoreLbl').textContent=
+    sc===10?'perfect!':sc>=5?'root correct':sc>=2?'quality correct':'no match';
+
+  // Chord name display
+  const qualName=QUAL_LABEL[q.quality]||q.quality;
+  document.getElementById('chordRevealChord').textContent=`${q.note} ${qualName}`;
+
+  // Answer display
+  const ansQualName=QUAL_LABEL[ansQual]||ansQual;
+  const ansEl=document.getElementById('chordRevealAnswer');
+  const ansCorrect=ansNote===q.note&&ansQual===q.quality;
+  ansEl.style.color=ansCorrect?'var(--green)':ansNote!==q.note&&ansQual!==q.quality?'var(--red)':'var(--amber)';
+  ansEl.textContent=`${ansNote} ${ansQualName}`;
+
+  // Breakdown
+  document.getElementById('chordRevealBreakdown').innerHTML=
+    `${ansNote===q.note?'✓':'✗'} root (${ansNote})<br>${ansQual===q.quality?'✓':'✗'} quality (${ansQualName})`;
+
+  // Round dots
+  const rdots=document.getElementById('chordRdots');
+  rdots.innerHTML='';
+  for(let i=0;i<ROUNDS;i++){
+    const d=document.createElement('div');d.className='rdot'+(i<chordGame.round?' active':'');
+    const g=i<chordGame.scores.length?(chordGame.scores[i]===10?'hi':chordGame.scores[i]>=5?'mid':'lo'):'';
+    const sv=i<chordGame.scores.length?chordGame.scores[i]:'·';
+    d.innerHTML=`<div class="rd-n">${i+1}</div><div class="rd-s ${g}">${sv}</div>`;
+    rdots.appendChild(d);
+  }
+
+  // Play the correct chord again quietly for reference (same octave as original)
+  setTimeout(()=>{playChordTones(q.note,q.quality,q.octaveOffset);setTimeout(()=>stopChordTones(true),2500);},300);
+
+  show('schr');
+}
+
+document.getElementById('btnChordNext').addEventListener('click',()=>{
+  blip(440,.07,.1);
+  if(chordGame.round>=ROUNDS){showChordTotal();return;}
+  nextChordRound();
+});
+
+function showChordTotal(){
+  show('scht');
+  const t=chordGame.total;
+  // Save personal best
+  if(hard){
+    if(persist.bestChordHard==null||t>persist.bestChordHard)persist.bestChordHard=t;
+  }else{
+    if(persist.bestChordEasy==null||t>persist.bestChordEasy)persist.bestChordEasy=t;
+  }
+  savePersist();
+
+  document.getElementById('chordTotalNum').innerHTML=
+    t.toFixed(0)+' <span class="total-denom">/50</span>';
+  const pct=t/50;
+  document.getElementById('chordTotalGrade').textContent=
+    pct>=0.9?'◆ perfect ear':pct>=0.7?'◆ strong work':pct>=0.5?'◆ getting there':'◆ keep practicing';
+
+  const row=document.getElementById('chordTotalRoundRow');
+  row.innerHTML='';
+  chordGame.scores.forEach((sc,i)=>{
+    const g=sc===10?'hi':sc>=5?'mid':'lo';
+    const c=document.createElement('div');c.className='tr-card';
+    c.innerHTML=`<div class="trc-r">${i+1}</div><div class="trc-s ${g}">${sc}</div>`;
+    row.appendChild(c);
+  });
+}
+
+document.getElementById('btnChordAgain').addEventListener('click',()=>{blip(440,.08,.1);startChordGame()});
+document.getElementById('btnChordHome').addEventListener('click',()=>{
+  blip(300,.07,.1);stopChordTones();stopWave();refreshIntro();show('si');
+});
+document.getElementById('btnChordViewLb').addEventListener('click',()=>{
+  blip(440,.07,.1);
+  _lbReturnTo='scht';window._lbReturnTo='scht';
+  if(_chordScoreSubmitted){
+    show('slb');
+    renderLeaderboard(localStorage.getItem('snd_playername')||null,'chord',hard?'hard':'easy');
+  }else{
+    openNameEntry(chordGame.total,hard?'hard':'easy',chordGame.scores,'chord_scores');
+  }
+});
+
 // ══ MAIN BUTTONS ═════════════════════════════
 document.getElementById('btnPlay').addEventListener('click',()=>{blip(440,.08,.12);startGame()});
 document.getElementById('btnPractice').addEventListener('click',()=>{blip(330,.07,.1);startPractice()});
+document.getElementById('btnChord').addEventListener('click',()=>{blip(550,.08,.12);startChordGame()});
 
 // leaderboard nav
 document.getElementById('btnShowLb').addEventListener('click',()=>{
   blip(440,.07,.1);
   _lbReturnTo='si';window._lbReturnTo='si';
-  show('slb');renderLeaderboard(null);
+  show('slb');renderLeaderboard(null,'freq',hard?'hard':'easy');
 });
 document.getElementById('btnViewLb').addEventListener('click',()=>{
   blip(440,.07,.1);
-  _lbReturnTo='st';window._lbReturnTo='st'; // back → results screen
-  openNameEntry(game.total,hard?'hard':'easy',game.scores);
+  _lbReturnTo='st';window._lbReturnTo='st';
+  if(_scoreSubmitted){
+    show('slb');
+    renderLeaderboard(localStorage.getItem('snd_playername')||null,'freq',hard?'hard':'easy');
+  }else{
+    openNameEntry(game.total,hard?'hard':'easy',game.scores,'scores');
+  }
 });
 document.getElementById('btnLbBack').addEventListener('click',()=>{
   blip(300,.07,.1);

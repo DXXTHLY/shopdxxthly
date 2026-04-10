@@ -690,13 +690,12 @@ const RARITY_COL = { COMMON:'#88cc44', UNCOMMON:'#00FFEE', RARE:'#CC44FF', EPIC:
 
 const G = {
   playerId: null,
-  db: null,
-  data: null,          // live player doc data
+  data: null,
   selectedSeed: null,
   renderRAF: null,
   now: Date.now(),
-  digCooldownMs: 4 * 60 * 1000,       // 4 min between digs
-  passiveDropIntervalMs: 3 * 60 * 1000, // check every 3 min
+  digCooldownMs: 4 * 60 * 1000,
+  passiveDropIntervalMs: 3 * 60 * 1000,
   passiveDropChance: 0.55,
   digCooldownTimer: null,
   passiveTimer: null,
@@ -724,53 +723,45 @@ function defaultData() {
   };
 }
 
-async function saveData() {
-  if (!G.db || !G.data) return;
-  const doc = {
-    seeds: G.data.seeds || {},
-    plot0: G.data.plot0 || null,
-    plot1: G.data.plot1 || null,
-    plot2: G.data.plot2 || null,
-    harvested: G.data.harvested || 0,
-    totalFound: G.data.totalFound || 0,
-    lastDig: G.data.lastDig || 0,
-    discoveries: G.data.discoveries || ['common'],
-  };
+/* ── SAVE / LOAD via localStorage — instant, reliable, persists across refreshes ── */
+function saveData() {
+  if (!G.data) return;
   try {
-    await G.db.collection('garden_players').doc(G.playerId).set(doc);
+    localStorage.setItem('chokka-garden-save', JSON.stringify(G.data));
   } catch(e) { console.warn('Garden save failed:', e); }
 }
 
+function loadSavedData() {
+  try {
+    const raw = localStorage.getItem('chokka-garden-save');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
 /* ── INIT ── */
-async function initGarden() {
+function initGarden() {
   G.playerId = getPlayerId();
-  G.db = await getDb(); // shared Firebase instance
 
-  // Live listener — keeps UI in sync across tabs/refreshes
-  G.db.collection('garden_players').doc(G.playerId).onSnapshot(snap => {
-    if (snap.exists) {
-      G.data = snap.data();
-      // Backfill any missing fields
-      if (!G.data.seeds) G.data.seeds = defaultData().seeds;
-      if (!('plot0' in G.data)) G.data.plot0 = null;
-      if (!('plot1' in G.data)) G.data.plot1 = null;
-      if (!('plot2' in G.data)) G.data.plot2 = null;
-      if (!G.data.discoveries) G.data.discoveries = ['common'];
-    } else {
-      G.data = defaultData();
-      saveData();
-    }
-    renderInventory();
-    renderStats();
-    updatePlot2Lock();
-    updateDigCooldownUI();
-  }, (err) => {
-    console.warn('Garden onSnapshot error:', err);
-    if (!G.data) { G.data = defaultData(); }
-    renderInventory();
-    renderStats();
-  });
+  const saved = loadSavedData();
+  if (saved) {
+    G.data = saved;
+    // Backfill missing fields for old saves
+    if (!G.data.seeds) G.data.seeds = defaultData().seeds;
+    if (!('plot0' in G.data)) G.data.plot0 = null;
+    if (!('plot1' in G.data)) G.data.plot1 = null;
+    if (!('plot2' in G.data)) G.data.plot2 = null;
+    if (!G.data.discoveries) G.data.discoveries = ['common'];
+    if (!G.data.totalFound) G.data.totalFound = 4;
+  } else {
+    G.data = defaultData();
+    saveData();
+  }
 
+  renderInventory();
+  renderStats();
+  updatePlot2Lock();
+  updateDigCooldownUI();
   startRenderLoop();
   startPassiveDrops();
 }

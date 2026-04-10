@@ -560,21 +560,69 @@ var konami=[38,38,40,40,37,39,37,39,66,65],kpos=0;
 document.addEventListener('keydown',function(e){if(e.keyCode===konami[kpos]){kpos++;if(kpos===konami.length){document.getElementById('secretOverlay').classList.add('show');kpos=0;}}else{kpos=0;}if(e.key==='Escape')closeSecret();});
 function closeSecret(){document.getElementById('secretOverlay').classList.remove('show');}
 
-/* Cheers (Firebase) */
-var drinks=0,_cheersDb=null;
-var drinkMsgs=['🍺 cheers!','🍺🍺 another one!','🍺🍺🍺 lets gooo','🔥 chokk would approve','💀 okay slow down lmao','👑 built different','🍻 absolute legend','🌊 the bar is gone','🚑 someone call 999','👑 chokk is speechless'];
-function _loadCheersDb(cb){
-  if(_cheersDb){cb(_cheersDb);return;}
-  function loadSrc(src,next){if(document.querySelector('script[src="'+src+'"]')){next();return;}var s=document.createElement('script');s.src=src;s.onload=next;document.head.appendChild(s);}
-  loadSrc('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',function(){
-    loadSrc('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js',function(){
-      try{window.firebase.app('chokka-cheers');}catch(e){window.firebase.initializeApp({apiKey:'AIzaSyDrd2hzQOFQI6zDQ29ZG5lFZqir0ZUL4A4',authDomain:'beat-game-4a776.firebaseapp.com',projectId:'beat-game-4a776',storageBucket:'beat-game-4a776.firebasestorage.app',messagingSenderId:'15648857835',appId:'1:15648857835:web:4eff8dc6cbf159aa5d68ae'},'chokka-cheers');}
-      _cheersDb=window.firebase.firestore(window.firebase.app('chokka-cheers'));cb(_cheersDb);
+/* ── SHARED FIREBASE (single instance, used by cheers + garden) ── */
+var _fbReady = null;
+function getDb() {
+  if (_fbReady) return _fbReady;
+  _fbReady = new Promise(function(resolve) {
+    var FB_CFG = {
+      apiKey:'AIzaSyDrd2hzQOFQI6zDQ29ZG5lFZqir0ZUL4A4',
+      authDomain:'beat-game-4a776.firebaseapp.com',
+      projectId:'beat-game-4a776',
+      storageBucket:'beat-game-4a776.firebasestorage.app',
+      messagingSenderId:'15648857835',
+      appId:'1:15648857835:web:4eff8dc6cbf159aa5d68ae'
+    };
+    // Load a script tag only once; wait for it properly
+    function loadScript(src, cb) {
+      var existing = document.querySelector('script[src="'+src+'"]');
+      if (existing) {
+        // Tag exists — may or may not be loaded yet
+        if (existing.dataset.loaded) { cb(); return; }
+        existing.addEventListener('load', cb);
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = src;
+      s.onload = function() { s.dataset.loaded = '1'; cb(); };
+      document.head.appendChild(s);
+    }
+    loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js', function() {
+      loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js', function() {
+        var app;
+        try { app = window.firebase.app('chokka-main'); }
+        catch(e) { app = window.firebase.initializeApp(FB_CFG, 'chokka-main'); }
+        var db = window.firebase.firestore(app);
+        resolve(db);
+      });
     });
   });
+  return _fbReady;
 }
-(function initCheers(){_loadCheersDb(function(db){db.collection('cheers').doc('chokka').onSnapshot(function(doc){if(doc.exists){drinks=doc.data().count||0;var el=document.getElementById('drinkCount');el.textContent=drinks>=1000?(drinks/1000).toFixed(1)+'k':drinks;}});});})();
-function drinkClick(){var el=document.getElementById('drinkCount');el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');showToastMsg(drinkMsgs[Math.min(drinks,drinkMsgs.length-1)]);_loadCheersDb(function(db){db.collection('cheers').doc('chokka').set({count:window.firebase.firestore.FieldValue.increment(1)},{merge:true}).catch(function(){});});}
+
+/* Cheers */
+var drinks = 0;
+var drinkMsgs=['🍺 cheers!','🍺🍺 another one!','🍺🍺🍺 lets gooo','🔥 chokk would approve','💀 okay slow down lmao','👑 built different','🍻 absolute legend','🌊 the bar is gone','🚑 someone call 999','👑 chokk is speechless'];
+getDb().then(function(db) {
+  db.collection('cheers').doc('chokka').onSnapshot(function(doc) {
+    if (doc.exists) {
+      drinks = doc.data().count || 0;
+      var el = document.getElementById('drinkCount');
+      if (el) el.textContent = drinks >= 1000 ? (drinks/1000).toFixed(1)+'k' : drinks;
+    }
+  });
+});
+function drinkClick() {
+  var el = document.getElementById('drinkCount');
+  el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  showToastMsg(drinkMsgs[Math.min(drinks, drinkMsgs.length-1)]);
+  getDb().then(function(db) {
+    db.collection('cheers').doc('chokka').set(
+      { count: window.firebase.firestore.FieldValue.increment(1) },
+      { merge: true }
+    ).catch(function(){});
+  });
+}
 
 /* Achievement */
 var _achIdx=0;
@@ -665,9 +713,10 @@ function getPlayerId() {
 }
 
 function defaultData() {
+  // Flat plot fields — no null-in-array Firestore issues
   return {
     seeds: { common:3, uncommon:1, rare:0, epic:0, legendary:0 },
-    plots: [null, null, null],
+    plot0: null, plot1: null, plot2: null,
     harvested: 0,
     totalFound: 4,
     lastDig: 0,
@@ -675,56 +724,37 @@ function defaultData() {
   };
 }
 
-/* ── Firebase loader (reuses existing compat SDK) ── */
-function loadGardenDb() {
-  return new Promise(resolve => {
-    if (window._gardenDb) { resolve(window._gardenDb); return; }
-    function loadSrc(src, cb) {
-      if (document.querySelector('script[src="'+src+'"]')) { cb(); return; }
-      const s = document.createElement('script');
-      s.src = src; s.onload = cb; document.head.appendChild(s);
-    }
-    loadSrc('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js', () => {
-      loadSrc('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js', () => {
-        let app;
-        try { app = window.firebase.app('garden'); }
-        catch(e) {
-          app = window.firebase.initializeApp({
-            apiKey:'AIzaSyDrd2hzQOFQI6zDQ29ZG5lFZqir0ZUL4A4',
-            authDomain:'beat-game-4a776.firebaseapp.com',
-            projectId:'beat-game-4a776',
-            storageBucket:'beat-game-4a776.firebasestorage.app',
-            messagingSenderId:'15648857835',
-            appId:'1:15648857835:web:4eff8dc6cbf159aa5d68ae'
-          }, 'garden');
-        }
-        window._gardenDb = window.firebase.firestore(app);
-        resolve(window._gardenDb);
-      });
-    });
-  });
-}
-
 async function saveData() {
   if (!G.db || !G.data) return;
+  const doc = {
+    seeds: G.data.seeds || {},
+    plot0: G.data.plot0 || null,
+    plot1: G.data.plot1 || null,
+    plot2: G.data.plot2 || null,
+    harvested: G.data.harvested || 0,
+    totalFound: G.data.totalFound || 0,
+    lastDig: G.data.lastDig || 0,
+    discoveries: G.data.discoveries || ['common'],
+  };
   try {
-    await G.db.collection('garden_players').doc(G.playerId).set(G.data);
-  } catch(e) { /* silent fail */ }
+    await G.db.collection('garden_players').doc(G.playerId).set(doc);
+  } catch(e) { console.warn('Garden save failed:', e); }
 }
 
 /* ── INIT ── */
 async function initGarden() {
   G.playerId = getPlayerId();
-  G.db = await loadGardenDb();
+  G.db = await getDb(); // shared Firebase instance
 
-  // Live listener — keeps UI in sync across tabs
+  // Live listener — keeps UI in sync across tabs/refreshes
   G.db.collection('garden_players').doc(G.playerId).onSnapshot(snap => {
     if (snap.exists) {
       G.data = snap.data();
-      // backfill missing fields
+      // Backfill any missing fields
       if (!G.data.seeds) G.data.seeds = defaultData().seeds;
-      if (!G.data.plots || G.data.plots.length < 3) G.data.plots = G.data.plots || [null,null,null];
-      while (G.data.plots.length < 3) G.data.plots.push(null);
+      if (!('plot0' in G.data)) G.data.plot0 = null;
+      if (!('plot1' in G.data)) G.data.plot1 = null;
+      if (!('plot2' in G.data)) G.data.plot2 = null;
       if (!G.data.discoveries) G.data.discoveries = ['common'];
     } else {
       G.data = defaultData();
@@ -734,8 +764,8 @@ async function initGarden() {
     renderStats();
     updatePlot2Lock();
     updateDigCooldownUI();
-  }, () => {
-    // Offline fallback
+  }, (err) => {
+    console.warn('Garden onSnapshot error:', err);
     if (!G.data) { G.data = defaultData(); }
     renderInventory();
     renderStats();
@@ -785,6 +815,7 @@ function fmtMs(ms) {
 /* ── CLICK A PLOT ── */
 function clickPlot(idx) {
   if (!G.data) return;
+  const key = 'plot'+idx;
 
   // plot 2 locked?
   if (idx === 2 && (G.data.harvested||0) < 1) {
@@ -792,10 +823,9 @@ function clickPlot(idx) {
     return;
   }
 
-  const plot = G.data.plots[idx];
+  const plot = G.data[key];
 
   if (!plot) {
-    // Need a seed selected
     if (!G.selectedSeed) {
       showGardenMsg('👆 pick a seed from your bag first, then tap a plot');
       return;
@@ -805,9 +835,8 @@ function clickPlot(idx) {
       showGardenMsg('😅 no '+SEEDS[G.selectedSeed].name+'s left — dig for more!');
       return;
     }
-    // Plant it
     G.data.seeds[G.selectedSeed]--;
-    G.data.plots[idx] = { type: G.selectedSeed, plantedAt: Date.now() };
+    G.data[key] = { type: G.selectedSeed, plantedAt: Date.now() };
     const s = SEEDS[G.selectedSeed];
     showGardenMsg(s.emoji+' planted! <span style="color:'+s.color+'">'+s.plant+'</span> will be ready in '+fmtMs(s.growMs));
     renderInventory();
@@ -816,14 +845,12 @@ function clickPlot(idx) {
   }
 
   if (isReady(plot)) {
-    // HARVEST
     const s = SEEDS[plot.type];
-    G.data.plots[idx] = null;
+    G.data[key] = null;
     G.data.harvested = (G.data.harvested||0) + 1;
-    // Bonus seed drop on harvest
     const bonus = rollSeed();
     addSeed(bonus, true);
-    showGardenMsg('✨ <span style="color:'+s.color+'">'+s.plant+'</span> harvested! found bonus <span>'+SEEDS[bonus].emoji+' '+SEEDS[bonus].name+'</span>~');
+    showGardenMsg('✨ <span style="color:'+s.color+'">'+s.plant+'</span> harvested! found bonus '+SEEDS[bonus].emoji+' '+SEEDS[bonus].name+'~');
     spawnHarvestParticles(idx);
     updatePlot2Lock();
     renderStats();
@@ -831,7 +858,6 @@ function clickPlot(idx) {
     return;
   }
 
-  // Growing — show info
   const rem = SEEDS[plot.type].growMs - (Date.now() - plot.plantedAt);
   const pct = Math.floor(getGrowPct(plot)*100);
   const s = SEEDS[plot.type];
@@ -1002,7 +1028,7 @@ function startRenderLoop() {
 
 /* ── DRAW ONE PLOT ── */
 function drawPlot(ctx, W, H, idx) {
-  const plot = G.data ? G.data.plots[idx] : null;
+  const plot = G.data ? (G.data['plot'+idx] || null) : null;
   const cx = W/2;
   const potW = Math.min(W*0.6, 68);
   const potH = potW * 0.65;

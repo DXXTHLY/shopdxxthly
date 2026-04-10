@@ -2345,6 +2345,7 @@ let chordGame={round:0,questions:[],answers:[],scores:[],total:0};
 let _chordSelectedNote=null;
 let _chordSelectedQual=null;
 let _chordListenTimeout=null;
+let _chordRevealTimeout=null;
 let _chordAnswerStartTime=null;
 let _chordVoices=[];
 let _chordVoiceMaster=null;
@@ -2366,7 +2367,7 @@ function playChordTones(rootNote,quality,octaveOffset){
   const c=ctx(),t=c.currentTime;
   _chordVoiceMaster=c.createGain();
   _chordVoiceMaster.gain.setValueAtTime(0,t);
-  _chordVoiceMaster.gain.linearRampToValueAtTime(.18,t+.6);
+  _chordVoiceMaster.gain.linearRampToValueAtTime(.18,t+.15);
   const lp=c.createBiquadFilter();
   lp.type='lowpass';lp.frequency.value=3500;lp.Q.value=.3;
   _chordVoiceMaster.connect(lp);lp.connect(masterGain);
@@ -2564,6 +2565,9 @@ function nextChordRound(){
   chordGame.round++;
   _chordSelectedNote=null;
   _chordSelectedQual=null;
+  _chordAnswerStartTime=null;
+  if(_chordListenTimeout){clearTimeout(_chordListenTimeout);_chordListenTimeout=null;}
+  if(_chordRevealTimeout){clearTimeout(_chordRevealTimeout);_chordRevealTimeout=null;stopChordTones();}
   const q=chordGame.questions[chordGame.round-1];
 
   document.getElementById('schPill').textContent=`chord · round ${chordGame.round}/${ROUNDS}`;
@@ -2581,17 +2585,17 @@ function nextChordRound(){
   startWave('schWaveCanvas',()=>0.5);
   playChordTones(q.note,q.quality,q.octaveOffset);
 
-  // After listen window, stop chord and reveal answer UI
+  // After listen window, stop chord cleanly then reveal answer UI
   const listenMs=hard?2200:3000;
   if(_chordListenTimeout)clearTimeout(_chordListenTimeout);
   _chordListenTimeout=setTimeout(()=>{
-    stopChordTones(true);
+    stopChordTones(false);
     stopWave();
     document.getElementById('schPhasePill').textContent='answer';
     document.getElementById('schPhasePill').style.color='var(--amber)';
     document.getElementById('schListenMsg').style.display='none';
     document.getElementById('schAnswerArea').style.display='flex';
-    _chordAnswerStartTime=Date.now(); // start timing from when answer UI appears
+    _chordAnswerStartTime=Date.now();
   },listenMs);
 }
 
@@ -2656,7 +2660,11 @@ function showChordResult(q,ansNote,ansQual,sc,rootOk,qualOk,elapsed){
   }
 
   // Play the correct chord again quietly for reference (same octave as original)
-  setTimeout(()=>{playChordTones(q.note,q.quality,q.octaveOffset);setTimeout(()=>stopChordTones(true),2500);},300);
+  _chordRevealTimeout=setTimeout(()=>{
+    _chordRevealTimeout=null;
+    playChordTones(q.note,q.quality,q.octaveOffset);
+    setTimeout(()=>stopChordTones(true),2500);
+  },300);
 
   show('schr');
 }

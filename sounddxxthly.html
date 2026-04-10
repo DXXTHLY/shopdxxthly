@@ -450,6 +450,12 @@ html,body{
   border-color:rgba(0,229,255,.5);
   color:var(--g3);
 }
+.chord-note-btn.playing{
+  background:rgba(0,229,255,.2);
+  border-color:rgba(0,229,255,.8);
+  color:var(--g3);
+  box-shadow:0 0 10px rgba(0,229,255,.25);
+}
 .chord-qual-btn{
   flex:1;height:48px;
   background:var(--paper3);
@@ -465,6 +471,12 @@ html,body{
   background:rgba(224,64,251,.12);
   border-color:rgba(224,64,251,.5);
   color:var(--g2);
+}
+.chord-qual-btn.playing{
+  background:rgba(224,64,251,.22);
+  border-color:rgba(224,64,251,.8);
+  color:var(--g2);
+  box-shadow:0 0 10px rgba(224,64,251,.25);
 }
 
 /* ── SCROLLBAR NONE ── */
@@ -2333,6 +2345,7 @@ let chordGame={round:0,questions:[],answers:[],scores:[],total:0};
 let _chordSelectedNote=null;
 let _chordSelectedQual=null;
 let _chordListenTimeout=null;
+let _chordAnswerStartTime=null;
 let _chordVoices=[];
 let _chordVoiceMaster=null;
 
@@ -2377,13 +2390,57 @@ function playChordTones(rootNote,quality,octaveOffset){
   });
 }
 
-function chordScoreRound(answerNote,answerQual,targetNote,targetQual){
-  const rootOk=answerNote===targetNote;
-  const qualOk=answerQual===targetQual;
-  if(rootOk&&qualOk)return 10;
-  if(rootOk)return 5;
-  if(qualOk)return 2;
-  return 0;
+// ── CHORD PREVIEW AUDIO ──
+// Play a single note briefly (for root button tap)
+function previewNote(midi,dur=1400){
+  try{
+    const c=ctx(),t=c.currentTime;
+    const freq=A4*Math.pow(2,(midi-A4_MIDI)/12);
+    const master=c.createGain();
+    master.gain.setValueAtTime(0,t);
+    master.gain.linearRampToValueAtTime(.14,t+.04);
+    master.gain.setValueAtTime(.14,t+dur/1000-.25);
+    master.gain.linearRampToValueAtTime(0,t+dur/1000);
+    master.connect(masterGain);
+    [[1,.5,0],[2,.12,0],[.5,.1,0],[3,.04,0]].forEach(([mult,amp])=>{
+      const o=c.createOscillator(),g=c.createGain();
+      o.type='sine';o.frequency.value=freq*mult;
+      g.gain.value=amp;
+      o.connect(g);g.connect(master);
+      o.start(t);o.stop(t+dur/1000+.1);
+    });
+  }catch{}
+}
+
+// Play a full chord preview briefly (for quality button tap)
+function previewChord(note,quality,octaveOffset,dur=2200){
+  playChordTones(note,quality,octaveOffset);
+  setTimeout(()=>stopChordTones(true),dur);
+}
+
+// Briefly flash a button as "playing"
+function flashPlaying(btn,dur=1400){
+  btn.classList.add('playing');
+  setTimeout(()=>btn.classList.remove('playing'),dur);
+}
+
+function chordScoreRound(ansNote,ansQual,targetNote,targetQual,elapsedSecs){
+  const rootOk=ansNote===targetNote;
+  const qualOk=ansQual===targetQual;
+  let score;
+  if(rootOk&&qualOk){
+    // Both correct: 10 instant, -0.5 per second, floor 4
+    score=Math.max(4,Math.round(10-elapsedSecs*0.5));
+  }else if(rootOk){
+    // Root only: 5 instant, -0.25 per second, floor 2
+    score=Math.max(2,Math.round(5-elapsedSecs*0.25));
+  }else if(qualOk){
+    // Quality only: small flat reward
+    score=1;
+  }else{
+    score=0;
+  }
+  return{score,rootOk,qualOk};
 }
 
 function buildChordAnswerUI(){
@@ -2413,22 +2470,40 @@ function buildChordAnswerUI(){
     `<button class="chord-qual-btn" data-qual="${q}">${QUAL_LABEL[q]||q}</button>`
   ).join('');
 
-  // Wire clicks
+  // Wire clicks — note plays the pitch, quality plays the full chord if note is selected
+  const currentQ=chordGame.questions[chordGame.round-1];
+  const qOctave=currentQ?currentQ.octaveOffset:0;
+
   noteGrid.querySelectorAll('.chord-note-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
-      noteGrid.querySelectorAll('.chord-note-btn').forEach(b=>b.classList.remove('selected'));
+      noteGrid.querySelectorAll('.chord-note-btn').forEach(b=>b.classList.remove('selected','playing'));
       btn.classList.add('selected');
       _chordSelectedNote=btn.dataset.note;
-      blip(550,.05,.08);
+      // Play just this note so the player can compare against the root they heard
+      const midi=NOTE_TO_MIDI[btn.dataset.note]+(qOctave||0);
+      previewNote(midi,1200);
+      flashPlaying(btn,1200);
       _updateChordLockBtn();
+      // If quality already chosen, also replay the full chord
+      if(_chordSelectedQual){
+        setTimeout(()=>{
+          const qb=qualGrid.querySelector('.chord-qual-btn.selected');
+          if(qb){flashPlaying(qb,2000);}
+          previewChord(btn.dataset.note,_chordSelectedQual,qOctave,2000);
+        },400);
+      }
     });
   });
   qualGrid.querySelectorAll('.chord-qual-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
-      qualGrid.querySelectorAll('.chord-qual-btn').forEach(b=>b.classList.remove('selected'));
+      qualGrid.querySelectorAll('.chord-qual-btn').forEach(b=>b.classList.remove('selected','playing'));
       btn.classList.add('selected');
       _chordSelectedQual=btn.dataset.qual;
-      blip(440,.05,.08);
+      // If note is already selected, play the full chord so player can compare
+      if(_chordSelectedNote){
+        flashPlaying(btn,2000);
+        previewChord(_chordSelectedNote,btn.dataset.qual,qOctave,2000);
+      }
       _updateChordLockBtn();
     });
   });
@@ -2516,32 +2591,39 @@ function nextChordRound(){
     document.getElementById('schPhasePill').style.color='var(--amber)';
     document.getElementById('schListenMsg').style.display='none';
     document.getElementById('schAnswerArea').style.display='flex';
+    _chordAnswerStartTime=Date.now(); // start timing from when answer UI appears
   },listenMs);
 }
 
 document.getElementById('btnChordLock').addEventListener('click',()=>{
   if(!_chordSelectedNote||!_chordSelectedQual)return;
+  const elapsed=_chordAnswerStartTime?(Date.now()-_chordAnswerStartTime)/1000:30;
   const q=chordGame.questions[chordGame.round-1];
-  const sc=chordScoreRound(_chordSelectedNote,_chordSelectedQual,q.note,q.quality);
-  chordGame.answers.push({note:_chordSelectedNote,quality:_chordSelectedQual});
+  const{score:sc,rootOk,qualOk}=chordScoreRound(_chordSelectedNote,_chordSelectedQual,q.note,q.quality,elapsed);
+  chordGame.answers.push({note:_chordSelectedNote,quality:_chordSelectedQual,rootOk,qualOk,elapsed,score:sc});
   chordGame.scores.push(sc);
   chordGame.total+=sc;
-  blip(sc===10?880:sc>=5?660:330,.09,.15);
-  showChordResult(q,_chordSelectedNote,_chordSelectedQual,sc);
+  blip(rootOk&&qualOk?880:rootOk||qualOk?660:330,.09,.15);
+  showChordResult(q,_chordSelectedNote,_chordSelectedQual,sc,rootOk,qualOk,elapsed);
 });
 
-function showChordResult(q,ansNote,ansQual,sc){
+function showChordResult(q,ansNote,ansQual,sc,rootOk,qualOk,elapsed){
   stopWave();stopChordTones(true);
   document.getElementById('schrPill').textContent=`chord · round ${chordGame.round}/${ROUNDS}`;
   const scPill=document.getElementById('schrScorePill');
   scPill.textContent=`+${sc} pts`;
-  scPill.style.color=sc===10?'var(--green)':sc>=5?'var(--amber)':'var(--red)';
+  scPill.style.color=(rootOk&&qualOk)?'var(--green)':rootOk||qualOk?'var(--amber)':'var(--red)';
 
   const scNum=document.getElementById('chordScoreNum');
   scNum.textContent=sc;
-  scNum.className='score-num '+(sc===10?'hi':sc>=5?'mid':'lo');
-  document.getElementById('chordScoreLbl').textContent=
-    sc===10?'perfect!':sc>=5?'root correct':sc>=2?'quality correct':'no match';
+  scNum.className='score-num '+((rootOk&&qualOk)?'hi':rootOk||qualOk?'mid':'lo');
+
+  let lbl='';
+  if(rootOk&&qualOk) lbl=`perfect! · ${elapsed.toFixed(1)}s`;
+  else if(rootOk) lbl=`root correct · ${elapsed.toFixed(1)}s`;
+  else if(qualOk) lbl='quality correct';
+  else lbl='no match';
+  document.getElementById('chordScoreLbl').textContent=lbl;
 
   // Chord name display
   const qualName=QUAL_LABEL[q.quality]||q.quality;
@@ -2550,21 +2632,25 @@ function showChordResult(q,ansNote,ansQual,sc){
   // Answer display
   const ansQualName=QUAL_LABEL[ansQual]||ansQual;
   const ansEl=document.getElementById('chordRevealAnswer');
-  const ansCorrect=ansNote===q.note&&ansQual===q.quality;
-  ansEl.style.color=ansCorrect?'var(--green)':ansNote!==q.note&&ansQual!==q.quality?'var(--red)':'var(--amber)';
+  ansEl.style.color=(rootOk&&qualOk)?'var(--green)':(!rootOk&&!qualOk)?'var(--red)':'var(--amber)';
   ansEl.textContent=`${ansNote} ${ansQualName}`;
 
-  // Breakdown
+  // Breakdown — show what was right/wrong and how fast
+  const timeStr=elapsed!=null?`<br><span style="color:var(--ink3)">answered in ${elapsed.toFixed(1)}s</span>`:'';
   document.getElementById('chordRevealBreakdown').innerHTML=
-    `${ansNote===q.note?'✓':'✗'} root (${ansNote})<br>${ansQual===q.quality?'✓':'✗'} quality (${ansQualName})`;
+    `${rootOk?'✓':'✗'} root (${ansNote})<br>${qualOk?'✓':'✗'} quality (${ansQualName})${timeStr}`;
 
-  // Round dots
+  // Round dots — grade by correctness not score value
   const rdots=document.getElementById('chordRdots');
   rdots.innerHTML='';
   for(let i=0;i<ROUNDS;i++){
     const d=document.createElement('div');d.className='rdot'+(i<chordGame.round?' active':'');
-    const g=i<chordGame.scores.length?(chordGame.scores[i]===10?'hi':chordGame.scores[i]>=5?'mid':'lo'):'';
-    const sv=i<chordGame.scores.length?chordGame.scores[i]:'·';
+    let g='',sv='·';
+    if(i<chordGame.answers.length){
+      const a=chordGame.answers[i];
+      g=(a.rootOk&&a.qualOk)?'hi':(a.rootOk||a.qualOk)?'mid':'lo';
+      sv=chordGame.scores[i];
+    }
     d.innerHTML=`<div class="rd-n">${i+1}</div><div class="rd-s ${g}">${sv}</div>`;
     rdots.appendChild(d);
   }

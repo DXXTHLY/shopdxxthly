@@ -175,7 +175,7 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 .footer a{font-weight:600;text-decoration:none;background:linear-gradient(90deg,#9b59e8,#C90612);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 
 /* ═══════════════════════════════════════
-   GARDEN GAME
+   GARDEN GAME v2 — MEGA UPGRADE
 ═══════════════════════════════════════ */
 .garden-card {
   background: var(--card);
@@ -184,49 +184,87 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
   overflow: hidden;
   box-shadow: 0 0 30px rgba(17,237,52,0.04);
 }
-
+.garden-header-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px 6px;
+  border-bottom: 0.5px solid var(--border);
+  background: rgba(17,237,52,0.03);
+}
+.garden-title-txt {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px; color: #11ED34; letter-spacing: 0.1em;
+}
+.garden-season-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 99px; background: rgba(255,255,255,0.06);
+  border: 0.5px solid rgba(255,255,255,0.1); color: var(--muted);
+  cursor: default;
+}
 /* plots row */
 .plots-row {
-  display: flex;
-  gap: 0;
+  display: flex; gap: 0;
   border-bottom: 0.5px solid var(--border);
 }
 .plot-wrap {
-  flex: 1;
-  position: relative;
-  cursor: pointer;
+  flex: 1; position: relative; cursor: pointer;
   border-right: 0.5px solid var(--border);
   transition: background 0.2s;
-  overflow: hidden;
+  overflow: visible; /* FIX: was hidden, plants were clipping */
 }
 .plot-wrap:last-child { border-right: none; }
 .plot-wrap:hover { background: rgba(255,255,255,0.02); }
 .plot-canvas {
-  display: block;
-  width: 100%;
-  height: 185px;
+  display: block; width: 100%;
+  height: 220px; /* taller so tall plants don't clip */
 }
+/* water btn on each plot */
+.water-btn-wrap {
+  position: absolute; top: 5px; right: 5px; z-index: 4;
+}
+.water-btn {
+  background: rgba(0,180,255,0.15); border: 0.5px solid rgba(0,180,255,0.4);
+  border-radius: 6px; color: #00c8ff; font-size: 13px;
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s, transform 0.12s;
+  padding: 0; line-height: 1;
+}
+.water-btn:hover:not(:disabled) { background: rgba(0,180,255,0.3); transform: scale(1.1); }
+.water-btn:disabled { opacity: 0.25; cursor: not-allowed; }
 /* locked plot overlay */
 .plot-locked {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 4px;
-  background: rgba(10,10,15,0.8);
-  backdrop-filter: blur(2px);
-  pointer-events: none;
+  background: rgba(10,10,15,0.85);
+  backdrop-filter: blur(3px);
+  pointer-events: none; border-radius: 0;
 }
 .plot-locked .lock-icon { font-size: 22px; opacity: 0.5; }
 .plot-locked .lock-txt { font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--muted); text-align: center; line-height: 1.6; }
 
 /* garden message */
 .garden-msg-bar {
-  padding: 9px 14px;
-  min-height: 36px;
+  padding: 9px 14px; min-height: 36px;
   display: flex; align-items: center;
   border-bottom: 0.5px solid var(--border);
   font-size: 12px; font-weight: 600; color: var(--text);
 }
 #gardenMsg { transition: opacity 0.35s; }
+
+/* tabs */
+.garden-tabs {
+  display: flex; border-bottom: 0.5px solid var(--border);
+}
+.gtab {
+  flex: 1; padding: 8px 4px; font-size: 9px; font-weight: 700;
+  font-family: 'Press Start 2P', monospace; color: var(--muted);
+  background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: color 0.15s, border-color 0.15s;
+  letter-spacing: 0.05em;
+}
+.gtab.active { color: #11ED34; border-bottom-color: #11ED34; }
+.gtab-panel { display: none; }
+.gtab-panel.active { display: block; }
 
 /* inventory */
 .inv-section {
@@ -273,13 +311,13 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 
 /* actions row */
 .garden-actions {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; flex-wrap: wrap;
 }
 .dig-btn {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   background: rgba(132,7,230,0.1); border: 0.5px solid rgba(132,7,230,0.35);
-  border-radius: 10px; padding: 10px 16px;
+  border-radius: 10px; padding: 10px 14px;
   cursor: pointer; transition: background 0.2s, box-shadow 0.2s, transform 0.12s;
   color: #a855f7;
 }
@@ -290,8 +328,32 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 .dig-icon { font-size: 18px; }
 .dig-label { font-family: 'Press Start 2P', monospace; font-size: 7px; letter-spacing: 0.08em; }
 
+/* Water action btn */
+.water-action-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: rgba(0,160,255,0.1); border: 0.5px solid rgba(0,160,255,0.35);
+  border-radius: 10px; padding: 10px 14px;
+  cursor: pointer; transition: background 0.2s, box-shadow 0.2s, transform 0.12s;
+  color: #00c8ff;
+}
+.water-action-btn:hover:not(:disabled) { background: rgba(0,160,255,0.22); box-shadow: 0 0 16px rgba(0,160,255,0.25); }
+.water-action-btn:active:not(:disabled) { transform: scale(0.93); }
+.water-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.water-action-btn.cooling { border-color: rgba(255,255,255,0.12); color: var(--muted); }
+
+/* Compost bin */
+.compost-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: rgba(180,120,0,0.1); border: 0.5px solid rgba(180,120,0,0.35);
+  border-radius: 10px; padding: 10px 14px;
+  cursor: pointer; transition: background 0.2s, box-shadow 0.2s, transform 0.12s;
+  color: #c8843a;
+}
+.compost-btn:hover:not(:disabled) { background: rgba(180,120,0,0.2); box-shadow: 0 0 16px rgba(180,120,0,0.2); }
+.compost-btn:active:not(:disabled) { transform: scale(0.93); }
+
 .garden-stats {
-  display: flex; flex-direction: column; gap: 4px; flex: 1;
+  display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 90px;
 }
 .stat-item { font-size: 11px; color: var(--muted); font-weight: 600; }
 
@@ -308,6 +370,49 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 .seed-info-name { font-weight: 700; color: var(--text); }
 .seed-info-time { font-family: 'Press Start 2P', monospace; font-size: 8px; }
 .seed-info-hint { color: rgba(255,255,255,0.25); }
+
+/* Leaderboard tab */
+.leaderboard-section { padding: 10px 14px; }
+.lb-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: 8px; margin-bottom: 4px;
+  background: var(--card2); font-size: 12px;
+}
+.lb-row.me { background: rgba(17,237,52,0.08); border: 0.5px solid rgba(17,237,52,0.2); }
+.lb-rank { font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--muted); min-width: 22px; }
+.lb-rank.gold { color: #FFD700; }
+.lb-rank.silver { color: #c0c0c0; }
+.lb-rank.bronze { color: #cd7f32; }
+.lb-name { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-score { font-family: 'Press Start 2P', monospace; font-size: 8px; color: #11ED34; }
+.lb-title { font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.1em; }
+.lb-me-name-row { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 0.5px solid var(--border); }
+.lb-name-input { flex: 1; background: var(--card2); border: 0.5px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; font-family: 'Inter', sans-serif; padding: 5px 9px; outline: none; }
+.lb-name-input:focus { border-color: rgba(17,237,52,0.4); }
+.lb-save-btn { background: rgba(17,237,52,0.1); border: 0.5px solid rgba(17,237,52,0.3); border-radius: 6px; color: #11ED34; font-size: 10px; font-weight: 700; padding: 5px 10px; cursor: pointer; font-family: 'Inter', sans-serif; }
+.lb-save-btn:hover { background: rgba(17,237,52,0.2); }
+
+/* water drop rain animation overlay */
+.rain-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
+.raindrop { position: absolute; width: 2px; border-radius: 1px; background: rgba(0,200,255,0.7); animation: rain-fall linear forwards; }
+@keyframes rain-fall {
+  0% { transform: translateY(-10px); opacity: 0.9; }
+  100% { transform: translateY(240px); opacity: 0; }
+}
+
+/* Seed codex grid */
+.codex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px 14px; }
+.codex-card {
+  background: var(--card2); border: 0.5px solid var(--border); border-radius: 9px;
+  padding: 8px 10px; display: flex; flex-direction: column; gap: 3px;
+}
+.codex-card.discovered { border-color: rgba(255,255,255,0.15); }
+.codex-emo { font-size: 20px; }
+.codex-name { font-size: 10px; font-weight: 700; }
+.codex-rarity { font-family: 'Press Start 2P', monospace; font-size: 6px; }
+.codex-time { font-size: 10px; color: var(--muted); }
+.codex-desc { font-size: 9px; color: var(--muted); line-height: 1.4; margin-top: 2px; }
+.codex-lock { opacity: 0.3; filter: grayscale(1); }
 
 /* rarity colors */
 .rc-COMMON    { color: #88cc44; }
@@ -442,23 +547,41 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
     <div class="embed-note"><span id="embedHint"></span><button class="close-btn" onclick="closeEmbed()">Close</button></div>
   </div>
 
-  <!-- ═══════════ GARDEN ═══════════ -->
+  <!-- ═══════════ GARDEN v2 ═══════════ -->
   <div class="label" style="margin-top:0.25rem;">🌱 Garden</div>
   <div class="garden-card">
 
-    <!-- 3 plots -->
-    <div class="plots-row">
-      <div class="plot-wrap" onclick="clickPlot(0)">
+    <!-- Header -->
+    <div class="garden-header-bar">
+      <span class="garden-title-txt">🌿 GARDEN</span>
+      <span class="garden-season-badge" id="seasonBadge">🌸 Spring</span>
+      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#FFD700;" id="gardenLevelBadge">LVL 1</span>
+    </div>
+
+    <!-- 3 plots (up to 5 unlockable) -->
+    <div class="plots-row" id="plotsRow">
+      <div class="plot-wrap" onclick="clickPlot(0)" id="plotwrap0">
         <canvas class="plot-canvas" id="plot0"></canvas>
+        <div class="water-btn-wrap"><button class="water-btn" id="waterBtn0" onclick="waterPlot(event,0)" title="Water this plant">💧</button></div>
       </div>
-      <div class="plot-wrap" onclick="clickPlot(1)">
+      <div class="plot-wrap" onclick="clickPlot(1)" id="plotwrap1">
         <canvas class="plot-canvas" id="plot1"></canvas>
+        <div class="water-btn-wrap"><button class="water-btn" id="waterBtn1" onclick="waterPlot(event,1)" title="Water this plant">💧</button></div>
       </div>
-      <div class="plot-wrap" id="plot2wrap" onclick="clickPlot(2)">
+      <div class="plot-wrap" id="plotwrap2" onclick="clickPlot(2)">
         <canvas class="plot-canvas" id="plot2"></canvas>
+        <div class="water-btn-wrap"><button class="water-btn" id="waterBtn2" onclick="waterPlot(event,2)" title="Water this plant">💧</button></div>
         <div class="plot-locked" id="plot2lock">
           <div class="lock-icon">🔒</div>
-          <div class="lock-txt">harvest once<br>to unlock</div>
+          <div class="lock-txt">harvest 1<br>to unlock</div>
+        </div>
+      </div>
+      <div class="plot-wrap" id="plotwrap3" onclick="clickPlot(3)">
+        <canvas class="plot-canvas" id="plot3"></canvas>
+        <div class="water-btn-wrap"><button class="water-btn" id="waterBtn3" onclick="waterPlot(event,3)" title="Water this plant">💧</button></div>
+        <div class="plot-locked" id="plot3lock">
+          <div class="lock-icon">🔒</div>
+          <div class="lock-txt">harvest 5<br>to unlock</div>
         </div>
       </div>
     </div>
@@ -468,32 +591,68 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
       <span id="gardenMsg" style="opacity:0;transition:opacity 0.35s;font-size:12px;font-weight:600;">—</span>
     </div>
 
-    <!-- Inventory (bag) -->
-    <div class="inv-section">
-      <div class="inv-label">🎒 BAG — tap a seed to select, then tap a plot to plant</div>
-      <div class="seed-row" id="gardenInventory">
-        <span style="font-size:11px;color:var(--muted);">loading garden...</span>
+    <!-- TABS -->
+    <div class="garden-tabs">
+      <button class="gtab active" onclick="switchGardenTab('bag')">🎒 BAG</button>
+      <button class="gtab" onclick="switchGardenTab('codex')">📖 CODEX</button>
+      <button class="gtab" onclick="switchGardenTab('board')">🏆 BOARD</button>
+    </div>
+
+    <!-- BAG TAB -->
+    <div class="gtab-panel active" id="gtab-bag">
+      <div class="inv-section">
+        <div class="inv-label" style="margin-bottom:6px;">tap a seed to select, then tap a plot to plant</div>
+        <div class="seed-row" id="gardenInventory">
+          <span style="font-size:11px;color:var(--muted);">loading garden...</span>
+        </div>
+      </div>
+      <!-- Selected seed info bar -->
+      <div class="seed-info-bar" id="seedInfoBar">
+        <span class="seed-info-name" id="seedInfoName">Seedling</span>
+        <span class="seed-info-time" id="seedInfoTime">5m grow</span>
+        <span class="seed-info-hint">→ tap an empty plot to plant</span>
+      </div>
+      <!-- Actions -->
+      <div class="garden-actions">
+        <button id="digBtn" class="dig-btn" onclick="digAction()">
+          <span class="dig-icon">⛏️</span>
+          <span class="dig-label">DIG</span>
+        </button>
+        <button id="waterAllBtn" class="water-action-btn" onclick="waterAllAction()">
+          <span style="font-size:18px;">🚿</span>
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:0.08em;" id="waterAllLabel">WATER</span>
+        </button>
+        <button id="compostBtn" class="compost-btn" onclick="compostAction()" title="Convert seeds you have 5+ of into a rare chance">
+          <span style="font-size:18px;">♻️</span>
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:0.08em;">COMPOST</span>
+        </button>
+        <div class="garden-stats">
+          <span class="stat-item" id="harvestStat">🌾 0 harvested</span>
+          <span class="stat-item" id="totalFoundStat">🌱 finding seeds...</span>
+          <span class="stat-item" id="waterStat" style="color:rgba(0,200,255,0.7);">💧 3 water left</span>
+        </div>
       </div>
     </div>
 
-    <!-- Selected seed info bar -->
-    <div class="seed-info-bar" id="seedInfoBar">
-      <span class="seed-info-name" id="seedInfoName">Seedling</span>
-      <span class="seed-info-time" id="seedInfoTime">5m grow</span>
-      <span class="seed-info-hint">→ tap an empty plot to plant</span>
-    </div>
-
-    <!-- Actions -->
-    <div class="garden-actions">
-      <button id="digBtn" class="dig-btn" onclick="digAction()">
-        <span class="dig-icon">⛏️</span>
-        <span class="dig-label">DIG</span>
-      </button>
-      <div class="garden-stats">
-        <span class="stat-item" id="harvestStat">🌾 0 harvested</span>
-        <span class="stat-item" id="totalFoundStat">🌱 finding seeds...</span>
+    <!-- CODEX TAB -->
+    <div class="gtab-panel" id="gtab-codex">
+      <div class="codex-grid" id="codexGrid">
+        <span style="padding:14px;font-size:11px;color:var(--muted);">discover plants to fill the codex!</span>
       </div>
     </div>
+
+    <!-- LEADERBOARD TAB -->
+    <div class="gtab-panel" id="gtab-board">
+      <div class="lb-me-name-row">
+        <input class="lb-name-input" id="lbNameInput" maxlength="16" placeholder="your name..." />
+        <button class="lb-save-btn" onclick="saveLbName()">SET</button>
+      </div>
+      <div class="leaderboard-section">
+        <div class="lb-title">🏆 TOP HARVESTERS</div>
+        <div id="leaderboardList"><span style="font-size:11px;color:var(--muted);">loading...</span></div>
+      </div>
+    </div>
+
   </div>
   <!-- ═══════════ END GARDEN ═══════════ -->
 
@@ -675,18 +834,34 @@ _checkLive();setInterval(_checkLive,120000);
 
 
 /* ══════════════════════════════════════════
-   GARDEN GAME — PERSISTENT w/ FIREBASE
+   GARDEN GAME v2 — MEGA UPGRADE
+   - Fixed plant clipping (taller canvas, clampTop)
+   - 10 plant types with unique visuals
+   - Water mechanic (speeds growth by 40%)
+   - 4 unlockable plots
+   - Seasons (affect drop rates & visuals)
+   - Leaderboard (Firebase)
+   - Codex / discovery system
+   - Compost mechanic
+   - Level system
 ══════════════════════════════════════════ */
 
 const SEEDS = {
-  common:    { name:'Seedling',    plant:'Sproutling',    emoji:'🌱', color:'#88cc44', growMs: 8*60*1000,    rarity:'COMMON',    weight:55, hint:'grows in 8 min' },
-  uncommon:  { name:'Surf Leaf',   plant:'Surf Plant',    emoji:'🌿', color:'#00FFEE', growMs: 25*60*1000,   rarity:'UNCOMMON',  weight:27, hint:'grows in 25 min' },
-  rare:      { name:'Neon Petal',  plant:'Neon Bloom',    emoji:'🌸', color:'#CC44FF', growMs: 90*60*1000,   rarity:'RARE',      weight:13, hint:'grows in 1.5 hr' },
-  epic:      { name:'Void Spore',  plant:'Void Fern',     emoji:'💜', color:'#FF6600', growMs: 5*3600*1000,  rarity:'EPIC',      weight:4,  hint:'grows in 5 hrs' },
-  legendary: { name:'Wave Seed',   plant:'Waveplant',     emoji:'🌊', color:'#FFD700', growMs: 12*3600*1000, rarity:'LEGENDARY', weight:1,  hint:'grows in 12 hrs' },
+  common:    { name:'Seedling',     plant:'Sproutling',     emoji:'🌱', color:'#88cc44', growMs:8*60*1000,      rarity:'COMMON',    weight:50, hint:'grows in 8 min',   desc:'A humble green sprout. The start of every great garden.' },
+  uncommon:  { name:'Surf Leaf',    plant:'Surf Plant',     emoji:'🌿', color:'#00FFEE', growMs:25*60*1000,     rarity:'UNCOMMON',  weight:24, hint:'grows in 25 min',  desc:'Thrives near water. Smells faintly of the ocean.' },
+  rare:      { name:'Neon Petal',   plant:'Neon Bloom',     emoji:'🌸', color:'#CC44FF', growMs:90*60*1000,     rarity:'RARE',      weight:11, hint:'grows in 1.5 hr',  desc:'Glows in the dark. Attracts rare insects.' },
+  epic:      { name:'Void Spore',   plant:'Void Fern',      emoji:'💜', color:'#FF6600', growMs:5*3600*1000,    rarity:'EPIC',      weight:5,  hint:'grows in 5 hrs',   desc:'From another dimension. Very hard to find.' },
+  legendary: { name:'Wave Seed',    plant:'Waveplant',      emoji:'🌊', color:'#FFD700', growMs:12*3600*1000,   rarity:'LEGENDARY', weight:1,  hint:'grows in 12 hrs',  desc:'The rarest of all. Legends say it blooms once a year.' },
+  crystal:   { name:'Crystal Bud',  plant:'Crystal Bloom',  emoji:'💎', color:'#00e5ff', growMs:45*60*1000,     rarity:'RARE',      weight:7,  hint:'grows in 45 min',  desc:'Translucent petals that shimmer like glass.' },
+  shadow:    { name:'Shadow Sprig', plant:'Shadow Lily',    emoji:'🖤', color:'#9b2aff', growMs:3*3600*1000,    rarity:'EPIC',      weight:3,  hint:'grows in 3 hrs',   desc:'Only blooms at night. Very mysterious.' },
+  fire:      { name:'Ember Seed',   plant:'Blazeflower',    emoji:'🔥', color:'#ff4400', growMs:60*60*1000,     rarity:'RARE',      weight:9,  hint:'grows in 1 hr',    desc:'Warm to the touch. Grows fast with enough water.' },
+  ice:       { name:'Frost Pip',    plant:'Glacial Fern',   emoji:'❄️', color:'#aaddff', growMs:2*3600*1000,    rarity:'EPIC',      weight:4,  hint:'grows in 2 hrs',   desc:'Ice-cold to touch. Grows best in cool seasons.' },
+  mushroom:  { name:'Spore Cap',    plant:'Glowshroom',     emoji:'🍄', color:'#ff88cc', growMs:20*60*1000,     rarity:'UNCOMMON',  weight:16, hint:'grows in 20 min',  desc:'Bioluminescent cap. Grows surprisingly fast!' },
 };
 
 const RARITY_COL = { COMMON:'#88cc44', UNCOMMON:'#00FFEE', RARE:'#CC44FF', EPIC:'#FF6600', LEGENDARY:'#FFD700' };
+const SEASONS = ['🌸 Spring','☀️ Summer','🍂 Autumn','❄️ Winter'];
+const SEASON_BOOSTS = { '🌸 Spring': {uncommon:1.3,crystal:1.4}, '☀️ Summer': {fire:1.6,common:1.2}, '🍂 Autumn': {mushroom:1.5,shadow:1.3}, '❄️ Winter': {ice:1.6,legendary:1.2} };
 
 const G = {
   playerId: null,
@@ -699,90 +874,129 @@ const G = {
   passiveDropChance: 0.55,
   digCooldownTimer: null,
   passiveTimer: null,
+  waterCooldownMs: 10 * 60 * 1000,   // water refills every 10 min
+  maxWater: 5,
+  waterEffectMs: 60 * 1000,          // watering cuts remaining time by 1 min flat
+  waterPct: 0.20,                     // watering also gives 20% instant progress boost
+  season: SEASONS[Math.floor((Date.now() / (1000*60*60*24*7)) % 4)], // changes weekly
+  waterDrops: {},  // plotIdx -> [{x,y,life}]
 };
 
-/* ── Player ID (localStorage key only) ── */
+/* ── Player ID ── */
 function getPlayerId() {
-  let id = localStorage.getItem('chokka-garden-v2');
+  let id = localStorage.getItem('chokka-garden-v3');
   if (!id) {
     id = 'p_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-5);
-    localStorage.setItem('chokka-garden-v2', id);
+    localStorage.setItem('chokka-garden-v3', id);
   }
   return id;
 }
 
 function defaultData() {
-  // Flat plot fields — no null-in-array Firestore issues
   return {
-    seeds: { common:3, uncommon:1, rare:0, epic:0, legendary:0 },
-    plot0: null, plot1: null, plot2: null,
+    seeds: { common:3, uncommon:1, rare:0, epic:0, legendary:0, crystal:0, shadow:0, fire:0, ice:0, mushroom:0 },
+    plot0: null, plot1: null, plot2: null, plot3: null,
     harvested: 0,
     totalFound: 4,
     lastDig: 0,
     discoveries: ['common','uncommon'],
+    waterCharges: 5,
+    lastWaterRefill: Date.now(),
+    compostCount: 0,
+    lbName: '',
+    xp: 0,
   };
 }
 
-/* ── SAVE / LOAD via localStorage — instant, reliable, persists across refreshes ── */
 function saveData() {
   if (!G.data) return;
-  try {
-    localStorage.setItem('chokka-garden-save', JSON.stringify(G.data));
-  } catch(e) { console.warn('Garden save failed:', e); }
+  try { localStorage.setItem('chokka-garden-save-v3', JSON.stringify(G.data)); } catch(e) {}
 }
-
 function loadSavedData() {
   try {
-    const raw = localStorage.getItem('chokka-garden-save');
+    const raw = localStorage.getItem('chokka-garden-save-v3');
     if (raw) return JSON.parse(raw);
+    // migrate v2
+    const old = localStorage.getItem('chokka-garden-save');
+    if (old) {
+      const d = JSON.parse(old);
+      return { ...defaultData(), ...d, waterCharges:5, lastWaterRefill:Date.now(), xp:0 };
+    }
   } catch(e) {}
   return null;
+}
+
+/* ── Season ── */
+function getCurrentSeason() {
+  return SEASONS[Math.floor((Date.now() / (1000*60*60*24*7)) % 4)];
 }
 
 /* ── INIT ── */
 function initGarden() {
   G.playerId = getPlayerId();
-
   const saved = loadSavedData();
-  if (saved) {
-    G.data = saved;
-    // Backfill missing fields for old saves
-    if (!G.data.seeds) G.data.seeds = defaultData().seeds;
-    if (!('plot0' in G.data)) G.data.plot0 = null;
-    if (!('plot1' in G.data)) G.data.plot1 = null;
-    if (!('plot2' in G.data)) G.data.plot2 = null;
-    if (!G.data.discoveries) G.data.discoveries = ['common'];
-    if (!G.data.totalFound) G.data.totalFound = 4;
-  } else {
-    G.data = defaultData();
-    saveData();
-  }
+  G.data = saved || defaultData();
+  // backfill
+  if (!G.data.seeds) G.data.seeds = defaultData().seeds;
+  Object.keys(SEEDS).forEach(k => { if (!(k in G.data.seeds)) G.data.seeds[k] = 0; });
+  for (let i=0;i<4;i++) { if (!('plot'+i in G.data)) G.data['plot'+i] = null; }
+  if (!G.data.discoveries) G.data.discoveries = ['common'];
+  if (!('waterCharges' in G.data)) { G.data.waterCharges = 5; G.data.lastWaterRefill = Date.now(); }
+  if (!G.data.xp) G.data.xp = 0;
+  if (!G.data.lbName) G.data.lbName = '';
+
+  G.season = getCurrentSeason();
+  document.getElementById('seasonBadge').textContent = G.season;
+
+  // Restore lb name input
+  if (G.data.lbName) document.getElementById('lbNameInput').value = G.data.lbName;
 
   renderInventory();
   renderStats();
-  updatePlot2Lock();
+  renderCodex();
+  updatePlotLocks();
   updateDigCooldownUI();
+  updateWaterUI();
   startRenderLoop();
   startPassiveDrops();
+  startWaterRefill();
+  loadLeaderboard();
+}
+
+/* ── Levels ── */
+const LEVEL_XP = [0,10,25,50,100,200,350,600,1000,1800,3000];
+function getLevel() {
+  let lvl = 1;
+  for (let i=1;i<LEVEL_XP.length;i++) { if ((G.data.xp||0) >= LEVEL_XP[i]) lvl = i+1; else break; }
+  return lvl;
+}
+function addXP(amt) {
+  const prev = getLevel();
+  G.data.xp = (G.data.xp||0) + amt;
+  const next = getLevel();
+  document.getElementById('gardenLevelBadge').textContent = 'LVL '+next;
+  if (next > prev) showGardenMsg('⬆️ <span style="color:#FFD700">LEVEL UP! You\'re now level '+next+'!</span>');
+  saveData();
 }
 
 /* ── SEED ROLL ── */
 function rollSeed() {
+  const boost = SEASON_BOOSTS[G.season] || {};
   const keys = Object.keys(SEEDS);
-  const weights = keys.map(k => SEEDS[k].weight);
+  const weights = keys.map(k => SEEDS[k].weight * (boost[k] || 1));
   const total = weights.reduce((a,b)=>a+b,0);
   let r = Math.random() * total;
   for (let i=0;i<keys.length;i++) { r -= weights[i]; if (r<=0) return keys[i]; }
   return 'common';
 }
 
-/* ── ADD SEED TO INVENTORY ── */
 function addSeed(type, silent=false) {
   if (!G.data) return;
   G.data.seeds[type] = (G.data.seeds[type]||0) + 1;
   G.data.totalFound = (G.data.totalFound||0) + 1;
   if (!G.data.discoveries) G.data.discoveries = [];
-  if (!G.data.discoveries.includes(type)) G.data.discoveries.push(type);
+  const isNew = !G.data.discoveries.includes(type);
+  if (isNew) { G.data.discoveries.push(type); renderCodex(); }
   renderInventory();
   renderStats();
   if (!silent) showSeedFoundToast(type);
@@ -792,7 +1006,9 @@ function addSeed(type, silent=false) {
 /* ── GROW HELPERS ── */
 function getGrowPct(plot) {
   if (!plot || !plot.plantedAt) return 0;
-  return Math.min((Date.now() - plot.plantedAt) / SEEDS[plot.type].growMs, 1);
+  const effective = plot.plantedAt + (plot.waterBonus||0)*(-1); // waterBonus reduces remaining
+  const baseMs = SEEDS[plot.type].growMs - (plot.waterBonus||0);
+  return Math.min((Date.now() - plot.plantedAt) / Math.max(baseMs, 1000), 1);
 }
 function isReady(plot) { return plot && getGrowPct(plot) >= 1; }
 function fmtMs(ms) {
@@ -807,29 +1023,19 @@ function fmtMs(ms) {
 function clickPlot(idx) {
   if (!G.data) return;
   const key = 'plot'+idx;
-
-  // plot 2 locked?
-  if (idx === 2 && (G.data.harvested||0) < 1) {
-    showGardenMsg('🔒 harvest your first plant to unlock the third plot!');
-    return;
-  }
+  if (idx === 2 && (G.data.harvested||0) < 1) { showGardenMsg('🔒 harvest your first plant to unlock plot 3!'); return; }
+  if (idx === 3 && (G.data.harvested||0) < 5) { showGardenMsg('🔒 harvest 5 plants to unlock plot 4!'); return; }
 
   const plot = G.data[key];
-
   if (!plot) {
-    if (!G.selectedSeed) {
-      showGardenMsg('👆 pick a seed from your bag first, then tap a plot');
-      return;
-    }
+    if (!G.selectedSeed) { showGardenMsg('👆 pick a seed from your bag first, then tap a plot'); return; }
     const have = (G.data.seeds[G.selectedSeed]||0);
-    if (have <= 0) {
-      showGardenMsg('😅 no '+SEEDS[G.selectedSeed].name+'s left — dig for more!');
-      return;
-    }
+    if (have <= 0) { showGardenMsg('😅 no '+SEEDS[G.selectedSeed].name+'s left — dig for more!'); return; }
     G.data.seeds[G.selectedSeed]--;
-    G.data[key] = { type: G.selectedSeed, plantedAt: Date.now() };
+    G.data[key] = { type: G.selectedSeed, plantedAt: Date.now(), waterBonus: 0, waterCount: 0 };
     const s = SEEDS[G.selectedSeed];
-    showGardenMsg(s.emoji+' planted! <span style="color:'+s.color+'">'+s.plant+'</span> will be ready in '+fmtMs(s.growMs));
+    showGardenMsg(s.emoji+' planted! <span style="color:'+s.color+'">'+s.plant+'</span> grows in '+fmtMs(s.growMs));
+    addXP(2);
     renderInventory();
     saveData();
     return;
@@ -841,31 +1047,145 @@ function clickPlot(idx) {
     G.data.harvested = (G.data.harvested||0) + 1;
     const bonus = rollSeed();
     addSeed(bonus, true);
+    // XP by rarity
+    const xpMap = {COMMON:5,UNCOMMON:12,RARE:30,EPIC:75,LEGENDARY:200};
+    addXP(xpMap[s.rarity]||5);
     showGardenMsg('✨ <span style="color:'+s.color+'">'+s.plant+'</span> harvested! found bonus '+SEEDS[bonus].emoji+' '+SEEDS[bonus].name+'~');
     spawnHarvestParticles(idx);
-    updatePlot2Lock();
+    updatePlotLocks();
     renderStats();
+    updateLeaderboard();
     saveData();
     return;
   }
 
-  const rem = SEEDS[plot.type].growMs - (Date.now() - plot.plantedAt);
+  const rem = (SEEDS[plot.type].growMs - (plot.waterBonus||0)) - (Date.now() - plot.plantedAt);
   const pct = Math.floor(getGrowPct(plot)*100);
   const s = SEEDS[plot.type];
-  showGardenMsg('<span style="color:'+s.color+'">'+s.plant+'</span> is at '+pct+'% — ready in '+fmtMs(rem));
+  showGardenMsg('<span style="color:'+s.color+'">'+s.plant+'</span> is at '+pct+'% — ready in '+fmtMs(rem)+' 💧 tap 💧 to water!');
+}
+
+/* ── WATER MECHANIC ── */
+function waterPlot(e, idx) {
+  e.stopPropagation();
+  if (!G.data) return;
+  const plot = G.data['plot'+idx];
+  if (!plot) { showGardenMsg('💧 plant something first before watering!'); return; }
+  if (isReady(plot)) { showGardenMsg('✅ already ready to harvest!'); return; }
+  if ((G.data.waterCharges||0) <= 0) { showGardenMsg('💧 no water left! refills every 10 min'); return; }
+
+  // Reduce remaining grow time
+  const boostMs = SEEDS[plot.type].growMs * G.waterPct; // 20% of grow time
+  plot.waterBonus = (plot.waterBonus||0) + boostMs;
+  plot.waterCount = (plot.waterCount||0) + 1;
+  G.data.waterCharges--;
+  G.data.lastWaterRefill = G.data.lastWaterRefill || Date.now();
+
+  showGardenMsg('💧 watered! <span style="color:#00c8ff">growth sped up!</span> ('+G.data.waterCharges+' water left)');
+  spawnRainDrops(idx);
+  updateWaterUI();
+  saveData();
+}
+
+function waterAllAction() {
+  if (!G.data) return;
+  let watered = 0;
+  for (let i=0;i<4;i++) {
+    const plot = G.data['plot'+i];
+    if (!plot || isReady(plot) || (G.data.waterCharges||0) <= 0) continue;
+    const boostMs = SEEDS[plot.type].growMs * G.waterPct;
+    plot.waterBonus = (plot.waterBonus||0) + boostMs;
+    plot.waterCount = (plot.waterCount||0) + 1;
+    G.data.waterCharges--;
+    spawnRainDrops(i);
+    watered++;
+  }
+  if (watered === 0) showGardenMsg('💧 no plants to water or no water left!');
+  else showGardenMsg('🚿 watered '+watered+' plant'+(watered>1?'s':'')+'! ('+G.data.waterCharges+' water left)');
+  updateWaterUI();
+  saveData();
+}
+
+function spawnRainDrops(idx) {
+  // visual rain drops on plot canvas
+  const wrap = document.getElementById('plotwrap'+idx);
+  if (!wrap) return;
+  let rain = wrap.querySelector('.rain-overlay');
+  if (!rain) {
+    rain = document.createElement('div');
+    rain.className = 'rain-overlay';
+    wrap.appendChild(rain);
+  }
+  for (let i=0;i<12;i++) {
+    setTimeout(() => {
+      const d = document.createElement('div');
+      d.className = 'raindrop';
+      d.style.left = (10+Math.random()*80)+'%';
+      d.style.height = (8+Math.random()*14)+'px';
+      d.style.animationDuration = (0.4+Math.random()*0.4)+'s';
+      rain.appendChild(d);
+      setTimeout(() => d.remove(), 900);
+    }, i * 60);
+  }
+}
+
+function startWaterRefill() {
+  setInterval(() => {
+    if (!G.data) return;
+    const now = Date.now();
+    const since = now - (G.data.lastWaterRefill || now);
+    const refills = Math.floor(since / G.waterCooldownMs);
+    if (refills > 0 && (G.data.waterCharges||0) < G.maxWater) {
+      G.data.waterCharges = Math.min((G.data.waterCharges||0) + refills, G.maxWater);
+      G.data.lastWaterRefill = now;
+      updateWaterUI();
+      if ((G.data.waterCharges||0) === G.maxWater) showGardenMsg('💧 water fully refilled!');
+      saveData();
+    }
+  }, 30000);
+}
+
+function updateWaterUI() {
+  const charges = G.data ? (G.data.waterCharges||0) : 0;
+  document.getElementById('waterStat').textContent = '💧 '+charges+'/'+G.maxWater+' water';
+  for (let i=0;i<4;i++) {
+    const btn = document.getElementById('waterBtn'+i);
+    if (btn) btn.disabled = charges <= 0;
+  }
+  const allBtn = document.getElementById('waterAllBtn');
+  if (allBtn) allBtn.disabled = charges <= 0;
+}
+
+/* ── COMPOST ── */
+function compostAction() {
+  if (!G.data) return;
+  // Find a seed type with 5+ to compost
+  const keys = Object.keys(SEEDS).filter(k => k !== 'legendary' && (G.data.seeds[k]||0) >= 5);
+  if (keys.length === 0) { showGardenMsg('♻️ need 5+ of any one seed to compost!'); return; }
+  // Take 5 of cheapest rarity
+  const order = ['common','uncommon','mushroom','rare','crystal','fire','ice','shadow','epic','legendary'];
+  const pick = order.find(k => keys.includes(k)) || keys[0];
+  G.data.seeds[pick] -= 5;
+  G.data.compostCount = (G.data.compostCount||0) + 1;
+  // Better seed roll (weighted toward rare+)
+  const weights = {common:2,uncommon:5,mushroom:5,crystal:8,fire:8,ice:5,rare:14,shadow:6,epic:9,legendary:2};
+  const wkeys = Object.keys(weights);
+  const total = wkeys.reduce((a,b)=>a+weights[b],0);
+  let r = Math.random()*total;
+  let result = 'rare';
+  for (let k of wkeys) { r -= weights[k]; if (r<=0){result=k;break;} }
+  addSeed(result);
+  showGardenMsg('♻️ composted 5 '+SEEDS[pick].name+'s → got '+SEEDS[result].emoji+' '+SEEDS[result].name+'!');
+  addXP(8);
+  renderInventory();
 }
 
 /* ── SELECT SEED ── */
 function selectSeed(type) {
   if (!G.data) return;
-  if ((G.data.seeds[type]||0) <= 0) {
-    showGardenMsg('no '+SEEDS[type].name+'s in your bag');
-    return;
-  }
+  if ((G.data.seeds[type]||0) <= 0) { showGardenMsg('no '+SEEDS[type].name+'s in your bag'); return; }
   G.selectedSeed = G.selectedSeed === type ? null : type;
   renderInventory();
-
-  // Show/hide info bar
   const bar = document.getElementById('seedInfoBar');
   if (G.selectedSeed) {
     const s = SEEDS[G.selectedSeed];
@@ -883,14 +1203,11 @@ function digAction() {
   if (!G.data) return;
   const now = Date.now();
   const elapsed = now - (G.data.lastDig||0);
-  if (elapsed < G.digCooldownMs) {
-    const rem = G.digCooldownMs - elapsed;
-    showGardenMsg('⏳ dig again in '+fmtMs(rem));
-    return;
-  }
+  if (elapsed < G.digCooldownMs) { showGardenMsg('⏳ dig again in '+fmtMs(G.digCooldownMs - elapsed)); return; }
   G.data.lastDig = now;
   const type = rollSeed();
   addSeed(type);
+  addXP(3);
   updateDigCooldownUI();
 }
 
@@ -901,13 +1218,11 @@ function updateDigCooldownUI() {
   const rem = G.digCooldownMs - elapsed;
   clearTimeout(G.digCooldownTimer);
   if (rem > 0) {
-    btn.disabled = true;
-    btn.classList.add('cooling');
+    btn.disabled = true; btn.classList.add('cooling');
     btn.querySelector('.dig-label').textContent = fmtMs(rem);
     G.digCooldownTimer = setTimeout(updateDigCooldownUI, Math.min(rem, 5000));
   } else {
-    btn.disabled = false;
-    btn.classList.remove('cooling');
+    btn.disabled = false; btn.classList.remove('cooling');
     btn.querySelector('.dig-label').textContent = 'DIG';
   }
 }
@@ -917,11 +1232,17 @@ function startPassiveDrops() {
   if (G.passiveTimer) clearInterval(G.passiveTimer);
   G.passiveTimer = setInterval(() => {
     if (!G.data) return;
-    if (Math.random() < G.passiveDropChance) {
-      const type = rollSeed();
-      addSeed(type);
-    }
+    if (Math.random() < G.passiveDropChance) { addSeed(rollSeed()); }
   }, G.passiveDropIntervalMs);
+}
+
+/* ── GARDEN TABS ── */
+function switchGardenTab(name) {
+  document.querySelectorAll('.gtab').forEach((t,i) => t.classList.toggle('active', ['bag','codex','board'][i] === name));
+  document.querySelectorAll('.gtab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('gtab-'+name).classList.add('active');
+  if (name === 'board') loadLeaderboard();
+  if (name === 'codex') renderCodex();
 }
 
 /* ── RENDER INVENTORY ── */
@@ -948,19 +1269,84 @@ function renderInventory() {
   el.innerHTML = html;
 }
 
+/* ── CODEX ── */
+function renderCodex() {
+  const el = document.getElementById('codexGrid');
+  if (!el || !G.data) return;
+  const disc = G.data.discoveries || [];
+  let html = '';
+  Object.keys(SEEDS).forEach(key => {
+    const s = SEEDS[key];
+    const found = disc.includes(key);
+    html += `<div class="codex-card${found?' discovered':' codex-lock'}">
+      <div class="codex-emo">${found ? s.emoji : '❓'}</div>
+      <div class="codex-name" style="color:${found ? RARITY_COL[s.rarity] : 'var(--muted)'}">${found ? s.name : '???'}</div>
+      <div class="codex-rarity" style="color:${found ? RARITY_COL[s.rarity] : 'var(--muted)'}">${found ? s.rarity : '???'}</div>
+      <div class="codex-time">${found ? s.hint : ''}</div>
+      ${found ? '<div class="codex-desc">'+s.desc+'</div>' : '<div class="codex-desc" style="color:var(--muted)">not yet discovered</div>'}
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
 function renderStats() {
   if (!G.data) return;
   const h = document.getElementById('harvestStat');
   const t = document.getElementById('totalFoundStat');
-  if (h) h.textContent = '🌾 '+( G.data.harvested||0)+' harvested';
+  if (h) h.textContent = '🌾 '+(G.data.harvested||0)+' harvested';
   if (t) t.textContent = '🌱 '+(G.data.totalFound||0)+' seeds found';
+  document.getElementById('gardenLevelBadge').textContent = 'LVL '+getLevel();
 }
 
-function updatePlot2Lock() {
-  const lock = document.getElementById('plot2lock');
-  if (!lock || !G.data) return;
-  const unlocked = (G.data.harvested||0) >= 1;
-  lock.style.display = unlocked ? 'none' : '';
+function updatePlotLocks() {
+  const harv = G.data ? (G.data.harvested||0) : 0;
+  const lock2 = document.getElementById('plot2lock');
+  const lock3 = document.getElementById('plot3lock');
+  if (lock2) lock2.style.display = harv >= 1 ? 'none' : '';
+  if (lock3) lock3.style.display = harv >= 5 ? 'none' : '';
+}
+
+/* ── LEADERBOARD ── */
+function saveLbName() {
+  if (!G.data) return;
+  const inp = document.getElementById('lbNameInput');
+  G.data.lbName = inp.value.trim().slice(0,16) || G.playerId.slice(0,8);
+  saveData();
+  updateLeaderboard();
+  showGardenMsg('👤 name set to: '+G.data.lbName);
+}
+
+function updateLeaderboard() {
+  if (!G.data) return;
+  const name = G.data.lbName || G.playerId.slice(0,8);
+  getDb().then(db => {
+    db.collection('garden_lb').doc(G.playerId).set({
+      name, harvested: G.data.harvested||0, xp: G.data.xp||0, ts: Date.now()
+    }, {merge:true}).then(loadLeaderboard).catch(()=>{});
+  }).catch(()=>{});
+}
+
+function loadLeaderboard() {
+  const el = document.getElementById('leaderboardList');
+  if (!el) return;
+  getDb().then(db => {
+    db.collection('garden_lb').orderBy('harvested','desc').limit(10).get().then(snap => {
+      if (snap.empty) { el.innerHTML='<span style="font-size:11px;color:var(--muted)">no entries yet — be first!</span>'; return; }
+      const rankEmoji = ['🥇','🥈','🥉'];
+      let html = '';
+      snap.docs.forEach((doc,i) => {
+        const d = doc.data();
+        const isMe = doc.id === G.playerId;
+        const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+        html += `<div class="lb-row${isMe?' me':''}">
+          <span class="lb-rank ${rankClass}">${rankEmoji[i]||('#'+(i+1))}</span>
+          <span class="lb-name">${d.name||'Gardener'} ${isMe?'(you)':''}</span>
+          <span class="lb-score">${d.harvested||0} 🌾</span>
+        </div>`;
+      });
+      el.innerHTML = html;
+    }).catch(()=>{ el.innerHTML='<span style="font-size:11px;color:var(--muted)">leaderboard offline</span>'; });
+  }).catch(()=>{ el.innerHTML='<span style="font-size:11px;color:var(--muted)">leaderboard offline</span>'; });
 }
 
 /* ── GARDEN MESSAGE ── */
@@ -968,10 +1354,9 @@ let gMsgTimer;
 function showGardenMsg(html) {
   const el = document.getElementById('gardenMsg');
   if (!el) return;
-  el.innerHTML = html;
-  el.style.opacity = 1;
+  el.innerHTML = html; el.style.opacity = 1;
   clearTimeout(gMsgTimer);
-  gMsgTimer = setTimeout(() => { el.style.opacity = 0; }, 5000);
+  gMsgTimer = setTimeout(() => { el.style.opacity = 0; }, 5500);
 }
 
 /* ── SEED FOUND TOAST ── */
@@ -994,51 +1379,81 @@ function spawnHarvestParticles(plotIdx) {
   const cvs = document.querySelectorAll('.plot-canvas');
   if (!cvs[plotIdx]) return;
   const rect = cvs[plotIdx].getBoundingClientRect();
-  const cx = rect.left + rect.width/2, cy = rect.top + rect.height*0.35;
-  for (let i=0;i<22;i++) {
-    const a = Math.random()*Math.PI*2, sp = 2+Math.random()*7;
-    harvestParts.push({ x:cx, y:cy, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 2, life:1, col:'#FFD700', size:2+Math.random()*4 });
+  const cx = rect.left + rect.width/2, cy = rect.top + rect.height*0.3;
+  for (let i=0;i<28;i++) {
+    const a = Math.random()*Math.PI*2, sp = 2+Math.random()*9;
+    const col = ['#FFD700','#11ED34','#00FFCC','#CC44FF','#FF6600'][Math.floor(Math.random()*5)];
+    harvestParts.push({ x:cx, y:cy, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-3, life:1, col, size:2+Math.random()*5 });
   }
 }
 
-/* ── RENDER LOOP ── */
+/* ═══════════════════════════════════════
+   RENDER LOOP + PLANT DRAWING
+   KEY FIX: plants now clamp to canvas top
+   and canvas is taller (220px)
+═══════════════════════════════════════ */
 function startRenderLoop() {
-  const canvases = ['plot0','plot1','plot2'].map(id => document.getElementById(id));
+  const ids = ['plot0','plot1','plot2','plot3'];
+  const canvases = ids.map(id => document.getElementById(id));
   function loop() {
     G.renderRAF = requestAnimationFrame(loop);
     G.now = Date.now();
     canvases.forEach((cv, idx) => {
       if (!cv) return;
-      const W = cv.width = cv.offsetWidth || 140;
-      const H = cv.height = cv.offsetHeight || 185;
+      const W = cv.width = cv.offsetWidth || 120;
+      const H = cv.height = cv.offsetHeight || 220;
       drawPlot(cv.getContext('2d'), W, H, idx);
     });
+    // Harvest particles (fixed overlay)
+    for (let i=harvestParts.length-1;i>=0;i--) {
+      const p = harvestParts[i];
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.18; p.life-=0.022;
+      if(p.life<=0){harvestParts.splice(i,1);}
+    }
   }
   loop();
 }
 
-/* ── DRAW ONE PLOT ── */
 function drawPlot(ctx, W, H, idx) {
   const plot = G.data ? (G.data['plot'+idx] || null) : null;
   const cx = W/2;
-  const potW = Math.min(W*0.6, 68);
-  const potH = potW * 0.65;
-  const potY = H * 0.56;
+  const potW = Math.min(W*0.62, 68);
+  const potH = potW * 0.62;
+  // FIX: pot lower on canvas so plants can grow up without clipping
+  const potY = H * 0.68;
 
   // BG
   ctx.fillStyle = '#07070e';
   ctx.fillRect(0,0,W,H);
   // Subtle grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.022)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.018)';
   ctx.lineWidth = 1;
   for(let x=0;x<W;x+=22){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
   for(let y=0;y<H;y+=22){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
 
+  // Season ambient tint
+  if (G.season === '🌸 Spring') {
+    const g = ctx.createLinearGradient(0,0,0,potY);
+    g.addColorStop(0,'rgba(255,150,200,0.04)'); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,potY);
+  } else if (G.season === '☀️ Summer') {
+    const g = ctx.createLinearGradient(0,0,0,potY);
+    g.addColorStop(0,'rgba(255,200,0,0.05)'); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,potY);
+  } else if (G.season === '🍂 Autumn') {
+    const g = ctx.createLinearGradient(0,0,0,potY);
+    g.addColorStop(0,'rgba(200,80,0,0.05)'); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,potY);
+  } else if (G.season === '❄️ Winter') {
+    const g = ctx.createLinearGradient(0,0,0,potY);
+    g.addColorStop(0,'rgba(150,200,255,0.05)'); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,potY);
+  }
+
   // Pot shadow
   ctx.beginPath();
   ctx.ellipse(cx, potY+potH+5, potW*0.38, 5, 0, 0, Math.PI*2);
-  ctx.fillStyle = 'rgba(0,0,0,0.45)';
-  ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill();
 
   // Pot body
   ctx.beginPath();
@@ -1047,198 +1462,348 @@ function drawPlot(ctx, W, H, idx) {
   ctx.lineTo(cx+potW/2-potW*0.1, potY+potH);
   ctx.lineTo(cx-potW/2+potW*0.1, potY+potH);
   ctx.closePath();
-  ctx.fillStyle = plot ? '#1d120a' : '#131008';
-  ctx.fill();
+  ctx.fillStyle = plot ? '#1d120a' : '#131008'; ctx.fill();
   // Pot stripe
   ctx.beginPath();
   ctx.moveTo(cx-potW/2+potW*0.1+5, potY+potH*0.7);
   ctx.lineTo(cx+potW/2-potW*0.1-5, potY+potH*0.7);
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1; ctx.stroke();
 
   // Rim
   const rimCol = plot ? SEEDS[plot.type].color : 'rgba(255,255,255,0.1)';
   ctx.beginPath();
   ctx.ellipse(cx, potY, potW/2+3, potH*0.13, 0, 0, Math.PI*2);
-  ctx.fillStyle = plot ? '#261608' : '#181208';
-  ctx.fill();
-  ctx.strokeStyle = rimCol;
-  ctx.lineWidth = plot ? 1.8 : 0.5;
+  ctx.fillStyle = plot ? '#261608' : '#181208'; ctx.fill();
+  ctx.strokeStyle = rimCol; ctx.lineWidth = plot ? 1.8 : 0.5;
   if (plot) { ctx.shadowColor = rimCol; ctx.shadowBlur = 10; }
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+  ctx.stroke(); ctx.shadowBlur = 0;
 
   // Soil
   ctx.beginPath();
   ctx.ellipse(cx, potY, potW/2-5, potH*0.09, 0, 0, Math.PI*2);
-  ctx.fillStyle = plot ? '#3d2208' : '#1c1008';
-  ctx.fill();
+  ctx.fillStyle = plot ? '#3d2208' : '#1c1008'; ctx.fill();
 
   if (plot) {
     const pct = getGrowPct(plot);
     const s = SEEDS[plot.type];
 
-    // Growth arc around rim
+    // Growth arc
     if (pct < 1) {
       ctx.beginPath();
-      ctx.arc(cx, potY, potW/2+8, -Math.PI/2, -Math.PI/2+pct*Math.PI*2);
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = s.color;
-      ctx.shadowBlur = 8;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+      ctx.arc(cx, potY, potW/2+9, -Math.PI/2, -Math.PI/2+pct*Math.PI*2);
+      ctx.strokeStyle = s.color; ctx.lineWidth = 2.5;
+      ctx.shadowColor = s.color; ctx.shadowBlur = 8; ctx.stroke(); ctx.shadowBlur = 0;
     }
 
-    drawPlantVisual(ctx, cx, potY, potH, W, H, plot.type, pct, s);
+    drawPlantVisual(ctx, cx, potY, potH, W, H, plot.type, pct, s, plot.waterCount||0);
 
-    // Ready glow + text
+    // Ready glow
     if (pct >= 1) {
       const pulse = 0.55 + 0.45*Math.sin(G.now*0.004);
-      ctx.shadowColor = '#FFD700';
-      ctx.shadowBlur = 14*pulse;
+      ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 14*pulse;
       ctx.fillStyle = `rgba(255,215,0,${0.85+0.15*pulse})`;
-      ctx.font = `bold 9px "Press Start 2P"`;
-      ctx.textAlign = 'center';
-      ctx.fillText('HARVEST', cx, H-10);
-      ctx.shadowBlur = 0;
+      ctx.font = `bold 9px "Press Start 2P"`; ctx.textAlign = 'center';
+      ctx.fillText('HARVEST', cx, H-10); ctx.shadowBlur = 0;
     } else {
-      // Timer
-      const remMs = s.growMs - (G.now - plot.plantedAt);
+      const remMs = (SEEDS[plot.type].growMs - (plot.waterBonus||0)) - (G.now - plot.plantedAt);
       ctx.fillStyle = 'rgba(255,255,255,0.22)';
-      ctx.font = '7px "Press Start 2P"';
-      ctx.textAlign = 'center';
+      ctx.font = '7px "Press Start 2P"'; ctx.textAlign = 'center';
       ctx.fillText(fmtMs(remMs), cx, H-10);
     }
   } else {
-    // Empty
     ctx.fillStyle = 'rgba(255,255,255,0.08)';
-    ctx.font = '9px Inter';
-    ctx.textAlign = 'center';
-    ctx.fillText('tap to plant', cx, H-12);
+    ctx.font = '9px Inter'; ctx.textAlign = 'center';
+    ctx.fillText('tap to plant', cx, H-14);
     ctx.fillStyle = 'rgba(255,255,255,0.06)';
     ctx.font = '22px Inter';
-    ctx.fillText('+', cx, potY-22);
+    ctx.fillText('+', cx, potY-26);
   }
 
   ctx.fillStyle = 'rgba(255,255,255,0.13)';
-  ctx.font = '7px "Press Start 2P"';
-  ctx.textAlign = 'left';
+  ctx.font = '7px "Press Start 2P"'; ctx.textAlign = 'left';
   ctx.fillText('#'+(idx+1), 5, 13);
 }
 
-/* ── DRAW PLANT ── */
-function drawPlantVisual(ctx, cx, potY, potH, W, H, type, pct, s) {
+/* ── DRAW PLANT (fixed clipping) ── */
+function drawPlantVisual(ctx, cx, potY, potH, W, H, type, pct, s, waterCount) {
   const t = G.now * 0.001;
-  const maxH = Math.min(H * 0.52, 105);
+  // FIX: maxH now capped to leave padding at top (at least 14px from top)
+  const maxH = Math.min(potY - 18, H * 0.64);
   const stemH = pct * maxH;
-  const stemTop = potY - stemH;
-  const sway = Math.sin(t*0.9 + cx*0.01) * 2.5 * Math.min(pct, 0.7);
+  // FIX: stemTop is clamped so it never goes above 14px from top
+  const stemTop = Math.max(12, potY - stemH);
+  const actualStemH = potY - stemTop;
+  const sway = Math.sin(t*0.9 + cx*0.01) * 2.8 * Math.min(pct, 0.7);
 
   if (pct < 0.04) {
     ctx.fillStyle = '#33aa44';
     ctx.beginPath();
-    ctx.arc(cx, potY-4, 2.5, 0, Math.PI*2);
+    ctx.arc(cx, potY-5, 2.5, 0, Math.PI*2);
     ctx.fill();
     return;
   }
 
-  // Stem
+  // Water sparkle on stem if recently watered
+  if (waterCount > 0 && pct < 1) {
+    for (let i=0;i<waterCount;i++) {
+      const wy = potY - actualStemH*(0.3+i*0.2+Math.sin(t+i)*0.05);
+      ctx.save();
+      ctx.globalAlpha = 0.5+0.3*Math.sin(t*2+i);
+      ctx.fillStyle = '#00c8ff';
+      ctx.font = '8px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText('💧', cx+sway+10+i*3, wy);
+      ctx.restore();
+    }
+  }
+
+  // Draw by plant type
+  switch(type) {
+    case 'fire': drawFirePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'ice': drawIcePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'crystal': drawCrystalPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'shadow': drawShadowPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'mushroom': drawMushroomPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    default: drawDefaultPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+  }
+}
+
+function drawStem(ctx, cx, potY, stemH, stemTop, sway, col, width) {
   ctx.beginPath();
   ctx.moveTo(cx, potY-3);
-  ctx.bezierCurveTo(
-    cx + sway*1.5, potY - stemH*0.4,
-    cx + sway*0.8, potY - stemH*0.7,
-    cx + sway,     stemTop
-  );
-  ctx.strokeStyle = '#2d9e3a';
-  ctx.lineWidth = Math.max(1.5, pct*3.2);
-  ctx.lineCap = 'round';
-  ctx.shadowColor = '#22aa33';
-  ctx.shadowBlur = 5;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+  ctx.bezierCurveTo(cx+sway*1.5, potY-stemH*0.4, cx+sway*0.8, potY-stemH*0.7, cx+sway, stemTop);
+  ctx.strokeStyle = col; ctx.lineWidth = Math.max(1.5, width);
+  ctx.lineCap = 'round'; ctx.shadowColor = col; ctx.shadowBlur = 5;
+  ctx.stroke(); ctx.shadowBlur = 0;
+}
 
-  // Leaves (threshold, stem position fraction, direction)
-  const leafDefs = [
-    {thr:0.18, pos:0.32, dir:-1},
-    {thr:0.34, pos:0.52, dir: 1},
-    {thr:0.52, pos:0.70, dir:-1},
-    {thr:0.68, pos:0.85, dir: 1},
-  ];
+function drawDefaultPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  drawStem(ctx,cx,potY,stemH,stemTop,sway,'#2d9e3a',pct*3.2);
+  const leafDefs = [{thr:0.18,pos:0.32,dir:-1},{thr:0.34,pos:0.52,dir:1},{thr:0.52,pos:0.70,dir:-1},{thr:0.68,pos:0.85,dir:1}];
   leafDefs.forEach(ld => {
     if (pct < ld.thr) return;
-    const lp = Math.min((pct-ld.thr)/0.2, 1);
-    const lx = cx + sway * ld.pos;
-    const ly = potY - stemH * ld.pos;
-    const sz = lp * Math.min(W*0.22, 26);
-    drawLeafShape(ctx, lx, ly, ld.dir, sz, s.color, pct);
+    const lp = Math.min((pct-ld.thr)/0.2,1);
+    const lx = cx+sway*ld.pos, ly = potY-stemH*ld.pos;
+    const sz = lp*Math.min(W*0.22||26,26);
+    drawLeafShape(ctx,lx,ly,ld.dir,sz,s.color,pct);
   });
+  if (pct>0.76) { const bp=Math.min((pct-0.76)/0.24,1); drawBloomShape(ctx,cx+sway,stemTop,bp,s,t); }
+}
 
-  // Bloom
-  if (pct > 0.76) {
-    const bp = Math.min((pct-0.76)/0.24, 1);
-    drawBloomShape(ctx, cx+sway, stemTop, bp, s, t);
+function drawFirePlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  // Orange-red glowing stem
+  const grad = ctx.createLinearGradient(cx, potY, cx+sway, stemTop);
+  grad.addColorStop(0,'#882200'); grad.addColorStop(1,'#ff6600');
+  ctx.beginPath(); ctx.moveTo(cx,potY-3);
+  ctx.bezierCurveTo(cx+sway*1.5,potY-stemH*0.4,cx+sway*0.8,potY-stemH*0.7,cx+sway,stemTop);
+  ctx.strokeStyle=grad; ctx.lineWidth=Math.max(2,pct*3.5); ctx.lineCap='round';
+  ctx.shadowColor='#ff4400'; ctx.shadowBlur=8; ctx.stroke(); ctx.shadowBlur=0;
+  // Flame leaves
+  if (pct>0.2) {
+    for (let i=0;i<3;i++) {
+      if (pct<0.2+i*0.2) continue;
+      const ly=potY-stemH*(0.3+i*0.25), dir=i%2?1:-1;
+      ctx.save(); ctx.translate(cx+sway*0.5,ly); ctx.rotate(dir*0.7);
+      ctx.beginPath();
+      ctx.moveTo(0,0); ctx.quadraticCurveTo(dir*16,-8,dir*8,-22+Math.sin(t+i)*4);
+      ctx.quadraticCurveTo(dir*4,-12,0,0);
+      ctx.fillStyle='#ff6600'; ctx.shadowColor='#ff4400'; ctx.shadowBlur=10;
+      ctx.globalAlpha=0.85; ctx.fill();
+      ctx.fillStyle='#ffcc00'; ctx.globalAlpha=0.5;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(dir*9,-5,dir*4,-14+Math.sin(t+i)*3); ctx.quadraticCurveTo(dir*2,-8,0,0);
+      ctx.fill(); ctx.globalAlpha=1; ctx.shadowBlur=0; ctx.restore();
+    }
+  }
+  if (pct>0.8) {
+    const bp=Math.min((pct-0.8)/0.2,1);
+    ctx.save(); ctx.translate(cx+sway,stemTop);
+    ctx.shadowColor='#ff4400'; ctx.shadowBlur=20*bp;
+    for(let i=0;i<6;i++){
+      const a=(i/6)*Math.PI*2+t*0.5, r=10*bp;
+      ctx.beginPath(); ctx.arc(Math.cos(a)*r,-Math.sin(a)*r*0.5,4*bp,0,Math.PI*2);
+      ctx.fillStyle=`hsl(${20+i*10},100%,60%)`; ctx.globalAlpha=0.9*bp; ctx.fill();
+    }
+    ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+  }
+}
+
+function drawIcePlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  drawStem(ctx,cx,potY,stemH,stemTop,sway,'#88ccff',pct*2.5);
+  // Crystal facet leaves
+  if (pct>0.15) {
+    for (let i=0;i<4;i++) {
+      if (pct<0.15+i*0.18) continue;
+      const ly=potY-stemH*(0.25+i*0.2), dir=i%2?1:-1;
+      const lp=Math.min((pct-0.15-i*0.18)/0.2,1);
+      ctx.save(); ctx.translate(cx+sway*0.4,ly);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dir*18*lp,-6*lp); ctx.lineTo(dir*14*lp,-16*lp);
+      ctx.lineTo(dir*5*lp,-20*lp); ctx.lineTo(0,-4); ctx.closePath();
+      ctx.fillStyle='rgba(160,220,255,0.55)'; ctx.strokeStyle='#aaddff';
+      ctx.lineWidth=0.8; ctx.shadowColor='#00aaff'; ctx.shadowBlur=8*lp;
+      ctx.fill(); ctx.stroke(); ctx.shadowBlur=0; ctx.restore();
+    }
+  }
+  if (pct>0.78) {
+    const bp=Math.min((pct-0.78)/0.22,1);
+    ctx.save(); ctx.translate(cx+sway,stemTop);
+    ctx.shadowColor='#00ccff'; ctx.shadowBlur=18*bp;
+    for(let i=0;i<8;i++){
+      const a=(i/8)*Math.PI*2; const r=12*bp;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+      ctx.strokeStyle='rgba(180,230,255,0.8)'; ctx.lineWidth=1.5*bp; ctx.stroke();
+    }
+    ctx.beginPath(); ctx.arc(0,0,5*bp,0,Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.globalAlpha=bp; ctx.fill(); ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+  }
+}
+
+function drawCrystalPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  // Glassy transparent stem
+  ctx.save();
+  ctx.globalAlpha=0.7;
+  drawStem(ctx,cx,potY,stemH,stemTop,sway,'#00e5ff',pct*2);
+  ctx.globalAlpha=1; ctx.restore();
+  if (pct>0.2) {
+    for (let i=0;i<4;i++) {
+      if (pct<0.2+i*0.18) continue;
+      const ly=potY-stemH*(0.3+i*0.2), dir=i%2?1:-1;
+      const lp=Math.min((pct-0.2-i*0.18)/0.18,1);
+      ctx.save(); ctx.translate(cx+sway*0.5,ly); ctx.rotate(dir*0.5);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dir*6*lp,-3); ctx.lineTo(dir*14*lp,-14*lp);
+      ctx.lineTo(dir*8*lp,-22*lp); ctx.lineTo(0,-8*lp); ctx.closePath();
+      const g=ctx.createLinearGradient(0,0,dir*14*lp,-22*lp);
+      g.addColorStop(0,'rgba(0,229,255,0.4)'); g.addColorStop(1,'rgba(180,255,255,0.8)');
+      ctx.fillStyle=g; ctx.shadowColor='#00e5ff'; ctx.shadowBlur=12*lp;
+      ctx.fill(); ctx.shadowBlur=0; ctx.restore();
+    }
+  }
+  if (pct>0.75) {
+    const bp=Math.min((pct-0.75)/0.25,1);
+    ctx.save(); ctx.translate(cx+sway,stemTop); ctx.rotate(t*0.3);
+    for(let i=0;i<6;i++){
+      const a=(i/6)*Math.PI*2;
+      ctx.beginPath(); ctx.moveTo(Math.cos(a)*4*bp,Math.sin(a)*4*bp);
+      ctx.lineTo(Math.cos(a)*16*bp,Math.sin(a)*16*bp);
+      ctx.lineTo(Math.cos(a+0.3)*12*bp,Math.sin(a+0.3)*12*bp); ctx.closePath();
+      const cg=ctx.createLinearGradient(0,0,Math.cos(a)*16*bp,Math.sin(a)*16*bp);
+      cg.addColorStop(0,'rgba(0,229,255,0.9)'); cg.addColorStop(1,'rgba(255,255,255,0.4)');
+      ctx.fillStyle=cg; ctx.shadowColor='#00e5ff'; ctx.shadowBlur=14*bp; ctx.globalAlpha=bp;
+      ctx.fill();
+    }
+    ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+  }
+}
+
+function drawShadowPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  // Dark purple wispy stem
+  ctx.save(); ctx.globalAlpha=0.85;
+  drawStem(ctx,cx,potY,stemH,stemTop,sway,'#6600cc',pct*2.5);
+  ctx.globalAlpha=1; ctx.restore();
+  // Wispy tendrils
+  if (pct>0.15) {
+    for (let i=0;i<4;i++) {
+      if (pct<0.15+i*0.2) continue;
+      const ly=potY-stemH*(0.25+i*0.22), dir=i%2?1:-1;
+      const lp=Math.min((pct-0.15-i*0.2)/0.2,1);
+      const wave=Math.sin(t*1.2+i)*8*lp;
+      ctx.beginPath(); ctx.moveTo(cx+sway,ly);
+      ctx.bezierCurveTo(cx+sway+dir*15*lp,ly-5,cx+sway+dir*22*lp+wave,ly-14*lp,cx+sway+dir*16*lp,ly-22*lp);
+      ctx.strokeStyle='#9b2aff'; ctx.lineWidth=2*lp; ctx.shadowColor='#9b2aff'; ctx.shadowBlur=10*lp;
+      ctx.globalAlpha=0.75; ctx.stroke(); ctx.shadowBlur=0; ctx.globalAlpha=1;
+    }
+  }
+  if (pct>0.75) {
+    const bp=Math.min((pct-0.75)/0.25,1);
+    ctx.save(); ctx.translate(cx+sway,stemTop);
+    ctx.shadowColor='#9b2aff'; ctx.shadowBlur=22*bp;
+    ctx.beginPath(); ctx.arc(0,0,10*bp,0,Math.PI*2);
+    ctx.fillStyle='#220044'; ctx.globalAlpha=0.9*bp; ctx.fill();
+    for(let i=0;i<5;i++){
+      const a=(i/5)*Math.PI*2+t*0.4;
+      ctx.beginPath(); ctx.arc(Math.cos(a)*10*bp,Math.sin(a)*10*bp,3*bp,0,Math.PI*2);
+      ctx.fillStyle='#cc44ff'; ctx.globalAlpha=0.8*bp; ctx.fill();
+    }
+    ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+  }
+}
+
+function drawMushroomPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  // Short stubby stem
+  const shortStem = stemH * 0.6;
+  const mTop = potY - shortStem;
+  drawStem(ctx,cx,potY,shortStem,mTop,sway,'#ccaacc',pct*2.5);
+  // Spots on stem
+  if (pct>0.3) {
+    for(let i=0;i<3;i++){
+      ctx.beginPath(); ctx.arc(cx+sway*0.5+i*4,potY-shortStem*(0.3+i*0.25),2,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,180,220,0.5)'; ctx.fill();
+    }
+  }
+  // Cap
+  if (pct>0.25) {
+    const capPct=Math.min((pct-0.25)/0.75,1);
+    const capW=30*capPct, capH=16*capPct;
+    ctx.save(); ctx.translate(cx+sway,mTop);
+    ctx.beginPath(); ctx.ellipse(0,-capH*0.3,capW,capH,0,Math.PI,0);
+    const cg=ctx.createRadialGradient(-5,-capH,0,0,0,capW);
+    cg.addColorStop(0,'#ff88cc'); cg.addColorStop(0.6,'#cc3366'); cg.addColorStop(1,'#881144');
+    ctx.fillStyle=cg; ctx.shadowColor='#ff88cc'; ctx.shadowBlur=14*capPct; ctx.fill(); ctx.shadowBlur=0;
+    // Spots on cap
+    const spots=[{x:-10,y:-capH*0.6},{x:2,y:-capH*0.85},{x:10,y:-capH*0.65},{x:-4,y:-capH*0.5}];
+    spots.forEach(sp=>{
+      if (capPct<0.5) return;
+      ctx.beginPath(); ctx.arc(sp.x*capPct,sp.y,3*capPct,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,230,240,0.75)'; ctx.fill();
+    });
+    // Gills
+    ctx.beginPath(); ctx.ellipse(0,0,capW*0.9,3*capPct,0,0,Math.PI);
+    ctx.fillStyle='rgba(255,200,220,0.4)'; ctx.fill();
+    ctx.restore();
+    // Glow spores
+    if (pct>0.8) {
+      const sp2=Math.min((pct-0.8)/0.2,1);
+      for(let i=0;i<6;i++){
+        const a=t*0.5+i*Math.PI/3, r=capW*0.6;
+        ctx.beginPath(); ctx.arc(cx+sway+Math.cos(a)*r*sp2,mTop+Math.sin(a)*4*sp2,1.5*sp2,0,Math.PI*2);
+        ctx.fillStyle='rgba(255,180,220,0.8)'; ctx.shadowColor='#ff88cc'; ctx.shadowBlur=6*sp2; ctx.fill(); ctx.shadowBlur=0;
+      }
+    }
   }
 }
 
 function drawLeafShape(ctx, x, y, dir, sz, col, pct) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(dir * 0.55);
-  ctx.beginPath();
-  ctx.moveTo(0,0);
-  ctx.bezierCurveTo(dir*sz*0.85, -sz*0.28, dir*sz*1.05, sz*0.42, dir*sz*0.48, sz*0.52);
-  ctx.bezierCurveTo(dir*sz*0.22, sz*0.62, 0, sz*0.28, 0, 0);
-  ctx.fillStyle = lerpCol('#2d9e3a', col, Math.min(pct*1.4, 1)*0.32);
-  ctx.shadowColor = '#22aa33';
-  ctx.shadowBlur = 4;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(0,0);
-  ctx.lineTo(dir*sz*0.48, sz*0.32);
-  ctx.strokeStyle = 'rgba(180,255,180,0.22)';
-  ctx.lineWidth = 0.8;
-  ctx.shadowBlur = 0;
-  ctx.stroke();
+  ctx.save(); ctx.translate(x,y); ctx.rotate(dir*0.55);
+  ctx.beginPath(); ctx.moveTo(0,0);
+  ctx.bezierCurveTo(dir*sz*0.85,-sz*0.28,dir*sz*1.05,sz*0.42,dir*sz*0.48,sz*0.52);
+  ctx.bezierCurveTo(dir*sz*0.22,sz*0.62,0,sz*0.28,0,0);
+  ctx.fillStyle=lerpCol('#2d9e3a',col,Math.min(pct*1.4,1)*0.32);
+  ctx.shadowColor='#22aa33'; ctx.shadowBlur=4; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dir*sz*0.48,sz*0.32);
+  ctx.strokeStyle='rgba(180,255,180,0.22)'; ctx.lineWidth=0.8; ctx.shadowBlur=0; ctx.stroke();
   ctx.restore();
 }
 
 function drawBloomShape(ctx, x, y, bp, s, t) {
   const petals = s.rarity==='LEGENDARY'?8 : s.rarity==='EPIC'?7 : s.rarity==='RARE'?6 : 5;
-  const sz = bp * 15;
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(t * 0.25);
-  ctx.shadowColor = s.color;
-  ctx.shadowBlur = 16*bp;
-  for(let i=0;i<petals;i++) {
-    const a = (i/petals)*Math.PI*2;
-    ctx.save();
-    ctx.rotate(a);
-    ctx.beginPath();
-    ctx.ellipse(0, -sz, sz*0.36, sz*0.7, 0, 0, Math.PI*2);
-    ctx.fillStyle = s.color;
-    ctx.globalAlpha = 0.88*bp;
-    ctx.fill();
-    ctx.restore();
+  const sz = bp*15;
+  ctx.save(); ctx.translate(x,y); ctx.rotate(t*0.25);
+  ctx.shadowColor=s.color; ctx.shadowBlur=16*bp;
+  for(let i=0;i<petals;i++){
+    const a=(i/petals)*Math.PI*2; ctx.save(); ctx.rotate(a);
+    ctx.beginPath(); ctx.ellipse(0,-sz,sz*0.36,sz*0.7,0,0,Math.PI*2);
+    ctx.fillStyle=s.color; ctx.globalAlpha=0.88*bp; ctx.fill(); ctx.restore();
   }
-  ctx.beginPath();
-  ctx.arc(0,0,sz*0.32,0,Math.PI*2);
-  ctx.fillStyle = '#fff';
-  ctx.globalAlpha = bp;
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.restore();
+  ctx.beginPath(); ctx.arc(0,0,sz*0.32,0,Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.globalAlpha=bp; ctx.fill();
+  ctx.shadowBlur=0; ctx.restore();
 }
 
-function lerpCol(a, b, t) {
-  const ah=a.replace('#',''), bh=b.replace('#','');
+function lerpCol(a,b,t) {
+  const ah=a.replace('#',''),bh=b.replace('#','');
   const r=(v)=>parseInt(v,16);
   const ar=r(ah.slice(0,2)),ag=r(ah.slice(2,4)),ab=r(ah.slice(4,6));
   const br=r(bh.slice(0,2)),bg=r(bh.slice(2,4)),bb=r(bh.slice(4,6));
-  return '#'+[ar+(br-ar)*t, ag+(bg-ag)*t, ab+(bb-ab)*t].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+  return '#'+[ar+(br-ar)*t,ag+(bg-ag)*t,ab+(bb-ab)*t].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
 }
 
 // Start!

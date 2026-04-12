@@ -1006,7 +1006,6 @@ function addSeed(type, silent=false) {
 /* ── GROW HELPERS ── */
 function getGrowPct(plot) {
   if (!plot || !plot.plantedAt) return 0;
-  const effective = plot.plantedAt + (plot.waterBonus||0)*(-1); // waterBonus reduces remaining
   const baseMs = SEEDS[plot.type].growMs - (plot.waterBonus||0);
   return Math.min((Date.now() - plot.plantedAt) / Math.max(baseMs, 1000), 1);
 }
@@ -1400,9 +1399,20 @@ function startRenderLoop() {
     G.now = Date.now();
     canvases.forEach((cv, idx) => {
       if (!cv) return;
-      const W = cv.width = cv.offsetWidth || 120;
-      const H = cv.height = cv.offsetHeight || 220;
-      drawPlot(cv.getContext('2d'), W, H, idx);
+      const dpr = window.devicePixelRatio || 1;
+      const cssW = cv.offsetWidth || 120;
+      const cssH = cv.offsetHeight || 220;
+      // Only reset canvas buffer when size actually changes (avoids unnecessary clears)
+      if (cv.width !== Math.round(cssW * dpr) || cv.height !== Math.round(cssH * dpr)) {
+        cv.width = Math.round(cssW * dpr);
+        cv.height = Math.round(cssH * dpr);
+      }
+      const ctx = cv.getContext('2d');
+      ctx.save();
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.scale(dpr, dpr);
+      drawPlot(ctx, cssW, cssH, idx);
+      ctx.restore();
     });
     // Harvest particles (fixed overlay)
     for (let i=harvestParts.length-1;i>=0;i--) {
@@ -1415,7 +1425,14 @@ function startRenderLoop() {
 }
 
 function drawPlot(ctx, W, H, idx) {
-  const plot = G.data ? (G.data['plot'+idx] || null) : null;
+  let plot = G.data ? (G.data['plot'+idx] || null) : null;
+  // Guard: if saved plant has an unknown type, clear it so the canvas doesn't crash
+  if (plot && !SEEDS[plot.type]) {
+    console.warn('chokka-garden: unknown plant type "'+plot.type+'" in plot'+idx+' — clearing');
+    G.data['plot'+idx] = null;
+    plot = null;
+    saveData();
+  }
   const cx = W/2;
   const potW = Math.min(W*0.62, 68);
   const potH = potW * 0.62;
@@ -1564,7 +1581,7 @@ function drawPlantVisual(ctx, cx, potY, potH, W, H, type, pct, s, waterCount) {
     case 'crystal': drawCrystalPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     case 'shadow': drawShadowPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     case 'mushroom': drawMushroomPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
-    default: drawDefaultPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    default: drawDefaultPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t,W); break;
   }
 }
 
@@ -1577,7 +1594,8 @@ function drawStem(ctx, cx, potY, stemH, stemTop, sway, col, width) {
   ctx.stroke(); ctx.shadowBlur = 0;
 }
 
-function drawDefaultPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+function drawDefaultPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t, W) {
+  W = W || 120; // fallback if not provided
   drawStem(ctx,cx,potY,stemH,stemTop,sway,'#2d9e3a',pct*3.2);
   const leafDefs = [{thr:0.18,pos:0.32,dir:-1},{thr:0.34,pos:0.52,dir:1},{thr:0.52,pos:0.70,dir:-1},{thr:0.68,pos:0.85,dir:1}];
   leafDefs.forEach(ld => {

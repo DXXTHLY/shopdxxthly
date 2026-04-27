@@ -402,6 +402,7 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 
 /* Seed codex grid */
 .codex-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px 14px; }
+.codex-grid.list-view { grid-template-columns: 1fr; }
 .codex-card {
   background: var(--card2); border: 0.5px solid var(--border); border-radius: 9px;
   padding: 8px 10px; display: flex; flex-direction: column; gap: 3px;
@@ -413,6 +414,28 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 .codex-time { font-size: 10px; color: var(--muted); }
 .codex-desc { font-size: 9px; color: var(--muted); line-height: 1.4; margin-top: 2px; }
 .codex-lock { opacity: 0.3; filter: grayscale(1); }
+.codex-best-size { font-family:'Press Start 2P',monospace;font-size:6px;color:#FFD700;margin-top:2px; }
+.codex-harvest-count { font-size:9px;color:rgba(17,237,52,0.7);margin-top:1px; }
+
+/* LB season tabs */
+.lb-season-tab {
+  flex: 1; padding: 7px 4px; font-size: 9px; font-weight: 700;
+  color: var(--muted); background: none; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer;
+  transition: color 0.15s, border-color 0.15s; font-family: 'Inter', sans-serif;
+}
+.lb-season-tab.active { color: #FFD700; border-bottom-color: #FFD700; }
+.lb-season-tab:hover { color: var(--text); }
+
+/* LB row with size/prestige */
+.lb-prestige { font-size: 12px; }
+.lb-size-bar { height: 4px; border-radius: 2px; background: rgba(255,215,0,0.25); margin-top: 3px; overflow: hidden; }
+.lb-size-fill { height: 100%; background: linear-gradient(90deg,#44ff88,#FFD700); border-radius: 2px; }
+
+/* Help Panel */
+.help-section { margin-bottom: 9px; }
+.help-head { font-size: 10px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.help-body { font-size: 10px; color: var(--muted); line-height: 1.55; }
 
 /* rarity colors */
 .rc-COMMON    { color: #88cc44; }
@@ -555,10 +578,21 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
     <div class="garden-header-bar">
       <span class="garden-title-txt">🌿 GARDEN</span>
       <span class="garden-season-badge" id="seasonBadge">🌸 Spring</span>
-      <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#FFD700;" id="gardenLevelBadge">LVL 1</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#ff88ff;" id="prestigeBadge" title="Prestige rank"></span>
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#FFD700;" id="gardenLevelBadge">LVL 1</span>
+      </div>
     </div>
 
-    <!-- 3 plots (up to 5 unlockable) -->
+    <!-- XP Bar -->
+    <div style="padding:0 14px;background:rgba(0,0,0,0.2);border-bottom:0.5px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;">
+        <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;">
+          <div id="xpBar" style="height:100%;width:0%;background:linear-gradient(90deg,#8407E6,#FFD700);border-radius:99px;transition:width 0.5s ease;"></div>
+        </div>
+        <span id="xpBarTxt" style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--muted);white-space:nowrap;">0 XP</span>
+      </div>
+    </div>
     <div class="plots-row" id="plotsRow">
       <div class="plot-wrap" onclick="clickPlot(0)" id="plotwrap0">
         <canvas class="plot-canvas" id="plot0"></canvas>
@@ -636,6 +670,13 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 
     <!-- CODEX TAB -->
     <div class="gtab-panel" id="gtab-codex">
+      <div style="padding:8px 14px;border-bottom:0.5px solid var(--border);display:flex;gap:6px;align-items:center;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);">📖</span>
+        <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--muted);" id="codexCount">0 / 0 discovered</span>
+        <span style="flex:1;"></span>
+        <button onclick="switchCodexView('list')" id="cViewList" style="font-size:9px;padding:2px 7px;border-radius:5px;border:0.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:var(--muted);cursor:pointer;">List</button>
+        <button onclick="switchCodexView('grid')" id="cViewGrid" style="font-size:9px;padding:2px 7px;border-radius:5px;border:0.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:var(--muted);cursor:pointer;">Grid</button>
+      </div>
       <div class="codex-grid" id="codexGrid">
         <span style="padding:14px;font-size:11px;color:var(--muted);">discover plants to fill the codex!</span>
       </div>
@@ -644,17 +685,73 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
     <!-- LEADERBOARD TAB -->
     <div class="gtab-panel" id="gtab-board">
       <div class="lb-me-name-row">
-        <input class="lb-name-input" id="lbNameInput" maxlength="16" placeholder="your name..." />
+        <input class="lb-name-input" id="lbNameInput" maxlength="16" placeholder="your gardener name..." />
         <button class="lb-save-btn" onclick="saveLbName()">SET</button>
       </div>
+      <!-- Season tabs -->
+      <div style="display:flex;border-bottom:0.5px solid var(--border);">
+        <button class="lb-season-tab active" id="lbTabSize" onclick="switchLbTab('size')">📏 Tallest Plant</button>
+        <button class="lb-season-tab" id="lbTabHarvest" onclick="switchLbTab('harvest')">🌾 Most Harvested</button>
+        <button class="lb-season-tab" id="lbTabXP" onclick="switchLbTab('xp')">⭐ Top XP</button>
+      </div>
+      <div style="padding:6px 14px 4px;font-family:'Press Start 2P',monospace;font-size:6px;color:var(--muted);" id="lbSeasonLabel">CURRENT SEASON</div>
       <div class="leaderboard-section">
-        <div class="lb-title">🏆 TOP HARVESTERS</div>
         <div id="leaderboardList"><span style="font-size:11px;color:var(--muted);">loading...</span></div>
+      </div>
+      <!-- Prestige info -->
+      <div style="padding:8px 14px;border-top:0.5px solid var(--border);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:18px;">✨</span>
+        <div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:#ff88ff;margin-bottom:2px;">PRESTIGE</div>
+          <div style="font-size:10px;color:var(--muted);" id="prestigeInfo">Reach Level 50 to prestige — resets to LVL 1 but keeps your codex &amp; earns a ✨ star by your name</div>
+        </div>
+        <button id="prestigeBtn" onclick="doPrestige()" style="display:none;background:rgba(255,136,255,0.15);border:0.5px solid rgba(255,136,255,0.4);border-radius:8px;color:#ff88ff;font-size:9px;font-weight:700;padding:6px 10px;cursor:pointer;white-space:nowrap;">PRESTIGE!</button>
       </div>
     </div>
 
   </div>
   <!-- ═══════════ END GARDEN ═══════════ -->
+
+  <!-- Help Panel (bottom right fixed) -->
+  <div id="helpPanel" style="position:fixed;bottom:20px;right:16px;z-index:9000;">
+    <button id="helpBtn" onclick="toggleHelp()" style="width:44px;height:44px;border-radius:50%;background:rgba(17,237,52,0.15);border:1px solid rgba(17,237,52,0.4);color:#11ED34;font-size:18px;cursor:pointer;box-shadow:0 0 18px rgba(17,237,52,0.2);transition:transform 0.2s,box-shadow 0.2s;" title="How to play">❓</button>
+    <div id="helpDrawer" style="display:none;position:absolute;bottom:52px;right:0;width:280px;background:rgba(10,10,20,0.97);border:1px solid rgba(17,237,52,0.25);border-radius:14px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,0.7);backdrop-filter:blur(16px);">
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#11ED34;margin-bottom:10px;letter-spacing:0.1em;">🌿 HOW TO PLAY</div>
+      <div class="help-section">
+        <div class="help-head">⛏️ Digging</div>
+        <div class="help-body">Tap DIG to find random seeds. Cooldown starts at 4 min but shrinks as you level up. Seeds also drop passively every ~3 min!</div>
+      </div>
+      <div class="help-section">
+        <div class="help-head">🌱 Planting</div>
+        <div class="help-body">Tap a seed in your bag to select it, then tap an empty plot to plant. Each plant has a grow timer — check the timer below the pot.</div>
+      </div>
+      <div class="help-section">
+        <div class="help-head">💧 Watering</div>
+        <div class="help-body">Use water to speed up growth by 20% per watering. Water refills over time. Higher levels unlock more max water!</div>
+      </div>
+      <div class="help-section">
+        <div class="help-head">♻️ Compost</div>
+        <div class="help-body">Compost 10 seeds of the same type to get a rare+ seed. Rare seeds need 10, Epic need 20, Legendary needs 40! Quality in = quality out.</div>
+      </div>
+      <div class="help-section">
+        <div class="help-head">📏 Plant Size</div>
+        <div class="help-body">Every plant grows to a random height! Your biggest harvest of each species shows in the Codex. The tallest plant each season wins the leaderboard!</div>
+      </div>
+      <div class="help-section">
+        <div class="help-head">⭐ Levels & Prestige</div>
+        <div class="help-body">Earn XP by digging, planting and harvesting. Higher levels unlock more plots, faster digging and more water. Hit Level 50 to Prestige — resets your level but earns a ✨ star next to your name on the board!</div>
+      </div>
+      <div class="help-section">
+        <div class="help-head">🌸 Seasons</div>
+        <div class="help-body">Seasons change weekly. Some plants grow faster and drop more often in their season. The leaderboard resets each season — new champion every week!</div>
+      </div>
+      <div class="help-section">
+        <div class="help-head">🏆 Leaderboard</div>
+        <div class="help-body">Set your name in the Board tab. You're scored on: biggest plant, total harvests, or total XP. Check back each season!</div>
+      </div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.2);margin-top:8px;text-align:center;">made for chokk 🌿</div>
+    </div>
+  </div>
 
   <div class="drink-bar" id="drinkBar" onclick="drinkClick()" title="click to cheers">
     <div class="drink-left">
@@ -847,63 +944,92 @@ _checkLive();setInterval(_checkLive,120000);
 ══════════════════════════════════════════ */
 
 const SEEDS = {
-  // ── COMMON (weight 40-60) ──
-  common:      { name:'Seedling',      plant:'Sproutling',      emoji:'🌱', color:'#88cc44', growMs:8*60*1000,      rarity:'COMMON',    weight:55, hint:'8 min',   desc:'A humble green sprout. The start of every great garden.' },
-  clover:      { name:'Lucky Clover',  plant:'Clover Patch',    emoji:'🍀', color:'#44dd66', growMs:6*60*1000,      rarity:'COMMON',    weight:50, hint:'6 min',   desc:'Three leaves means lucky. Four means legendary.' },
-  daisy:       { name:'Daisy Seed',    plant:'Daisy Field',     emoji:'🌼', color:'#ffee55', growMs:10*60*1000,     rarity:'COMMON',    weight:48, hint:'10 min',  desc:'Cheerful little flower that brightens any garden.' },
-  cactus:      { name:'Cactus Nub',    plant:'Desert Spike',    emoji:'🌵', color:'#44bb44', growMs:12*60*1000,     rarity:'COMMON',    weight:44, hint:'12 min',  desc:'Spiky but loveable. Barely needs watering.' },
-  bean:        { name:'Magic Bean',    plant:'Beanstalk',       emoji:'🫘', color:'#66aa44', growMs:15*60*1000,     rarity:'COMMON',    weight:40, hint:'15 min',  desc:'Rumoured to reach the clouds if grown under a full moon.' },
-  fern:        { name:'Fern Frond',    plant:'Curly Fern',      emoji:'🌿', color:'#33bb55', growMs:9*60*1000,      rarity:'COMMON',    weight:46, hint:'9 min',   desc:'Prehistoric plant that survived the dinosaurs.' },
-  tulip:       { name:'Tulip Bulb',    plant:'Red Tulip',       emoji:'🌷', color:'#ff6688', growMs:14*60*1000,     rarity:'COMMON',    weight:42, hint:'14 min',  desc:'Classic spring flower. Perfect gift for anyone.' },
-  sunflower:   { name:'Sun Seed',      plant:'Sunflower',       emoji:'🌻', color:'#ffcc00', growMs:18*60*1000,     rarity:'COMMON',    weight:38, hint:'18 min',  desc:'Always faces the sun. Tall, bright, and full of seeds.' },
+  // ── COMMON PLANTS (weight 40-55) ──
+  common:      { name:'Seedling',      plant:'Sproutling',      emoji:'🌱', color:'#88cc44', growMs:8*60*1000,      rarity:'COMMON',    weight:55, hint:'8 min',   desc:'A humble green sprout. The start of every great garden.', minSize:12, maxSize:28 },
+  clover:      { name:'Lucky Clover',  plant:'Clover Patch',    emoji:'🍀', color:'#44dd66', growMs:6*60*1000,      rarity:'COMMON',    weight:50, hint:'6 min',   desc:'Three leaves means lucky. Four means legendary.', minSize:8, maxSize:20 },
+  daisy:       { name:'Daisy Seed',    plant:'Daisy Field',     emoji:'🌼', color:'#ffee55', growMs:10*60*1000,     rarity:'COMMON',    weight:48, hint:'10 min',  desc:'Cheerful little flower that brightens any garden.', minSize:14, maxSize:30 },
+  cactus:      { name:'Cactus Nub',    plant:'Desert Spike',    emoji:'🌵', color:'#44bb44', growMs:12*60*1000,     rarity:'COMMON',    weight:44, hint:'12 min',  desc:'Spiky but loveable. Barely needs watering.', minSize:20, maxSize:50 },
+  bean:        { name:'Magic Bean',    plant:'Beanstalk',       emoji:'🫘', color:'#66aa44', growMs:15*60*1000,     rarity:'COMMON',    weight:40, hint:'15 min',  desc:'Rumoured to reach the clouds if grown under a full moon.', minSize:18, maxSize:55 },
+  fern:        { name:'Fern Frond',    plant:'Curly Fern',      emoji:'🌿', color:'#33bb55', growMs:9*60*1000,      rarity:'COMMON',    weight:46, hint:'9 min',   desc:'Prehistoric plant that survived the dinosaurs.', minSize:15, maxSize:35 },
+  tulip:       { name:'Tulip Bulb',    plant:'Red Tulip',       emoji:'🌷', color:'#ff6688', growMs:14*60*1000,     rarity:'COMMON',    weight:42, hint:'14 min',  desc:'Classic spring flower. Perfect gift for anyone.', minSize:22, maxSize:42 },
+  sunflower:   { name:'Sun Seed',      plant:'Sunflower',       emoji:'🌻', color:'#ffcc00', growMs:18*60*1000,     rarity:'COMMON',    weight:38, hint:'18 min',  desc:'Always faces the sun. Tall, bright, and full of seeds.', minSize:35, maxSize:70 },
 
-  // ── UNCOMMON (weight 14-26) ──
-  uncommon:    { name:'Surf Leaf',     plant:'Surf Plant',      emoji:'🌿', color:'#00FFEE', growMs:25*60*1000,     rarity:'UNCOMMON',  weight:24, hint:'25 min',  desc:'Thrives near water. Smells faintly of the ocean.' },
-  mushroom:    { name:'Spore Cap',     plant:'Glowshroom',      emoji:'🍄', color:'#ff88cc', growMs:20*60*1000,     rarity:'UNCOMMON',  weight:22, hint:'20 min',  desc:'Bioluminescent cap. Grows surprisingly fast!' },
-  bamboo:      { name:'Bamboo Shoot',  plant:'Bamboo Grove',    emoji:'🎋', color:'#55cc66', growMs:30*60*1000,     rarity:'UNCOMMON',  weight:20, hint:'30 min',  desc:'Grows incredibly fast. Pandas dream of this garden.' },
-  lavender:    { name:'Lavender Bud',  plant:'Lavender Bush',   emoji:'💜', color:'#aa66ff', growMs:28*60*1000,     rarity:'UNCOMMON',  weight:20, hint:'28 min',  desc:'Calming scent drifts through the garden at dusk.' },
-  rose:        { name:'Rose Hip',      plant:'Velvet Rose',     emoji:'🌹', color:'#cc2244', growMs:35*60*1000,     rarity:'UNCOMMON',  weight:18, hint:'35 min',  desc:'Elegant and thorny. Worth the effort.' },
-  herb:        { name:'Herb Sprig',    plant:'Herb Garden',     emoji:'🌿', color:'#66bb44', growMs:22*60*1000,     rarity:'UNCOMMON',  weight:18, hint:'22 min',  desc:'Basil, rosemary, thyme — smells amazing.' },
-  ginger:      { name:'Ginger Root',   plant:'Ginger Plant',    emoji:'🫚', color:'#cc8833', growMs:40*60*1000,     rarity:'UNCOMMON',  weight:16, hint:'40 min',  desc:'Spicy underground root with a fiery kick.' },
-  lily:        { name:'Lily Seed',     plant:'Water Lily',      emoji:'🏵️', color:'#ffaacc', growMs:32*60*1000,     rarity:'UNCOMMON',  weight:16, hint:'32 min',  desc:'Floats peacefully on still water.' },
-  vine:        { name:'Creeper Vine',  plant:'Climbing Vine',   emoji:'🍃', color:'#22aa44', growMs:26*60*1000,     rarity:'UNCOMMON',  weight:14, hint:'26 min',  desc:'Crawls up walls and wraps around everything.' },
+  // ── COMMON VEGGIES (weight 35-45) ──
+  carrot:      { name:'Carrot Top',    plant:'Carrot Patch',    emoji:'🥕', color:'#ff8822', growMs:11*60*1000,     rarity:'COMMON',    weight:42, hint:'11 min',  desc:'Crunchy and orange. Bunnies would love your garden.', minSize:10, maxSize:25 },
+  lettuce:     { name:'Lettuce Leaf',  plant:'Lettuce Head',    emoji:'🥬', color:'#44cc44', growMs:8*60*1000,      rarity:'COMMON',    weight:40, hint:'8 min',   desc:'Crispy and fresh. The base of every good salad.', minSize:12, maxSize:28 },
+  tomato:      { name:'Tomato Seed',   plant:'Tomato Vine',     emoji:'🍅', color:'#ff4433', growMs:16*60*1000,     rarity:'COMMON',    weight:38, hint:'16 min',  desc:'Technically a fruit. Nobody wins this argument.', minSize:16, maxSize:38 },
+  corn:        { name:'Corn Kernel',   plant:'Corn Stalk',      emoji:'🌽', color:'#ffdd33', growMs:20*60*1000,     rarity:'COMMON',    weight:36, hint:'20 min',  desc:'Grows tall and proud in the summer sun.', minSize:40, maxSize:75 },
+  pumpkin:     { name:'Pumpkin Seed',  plant:'Pumpkin Vine',    emoji:'🎃', color:'#ff8800', growMs:22*60*1000,     rarity:'COMMON',    weight:35, hint:'22 min',  desc:'Great for autumn. Even better for pie.', minSize:15, maxSize:35 },
+  potato:      { name:'Potato Eye',    plant:'Potato Mound',    emoji:'🥔', color:'#cc9966', growMs:13*60*1000,     rarity:'COMMON',    weight:40, hint:'13 min',  desc:'Versatile. Boiled, mashed, or in a stew.', minSize:8, maxSize:18 },
 
-  // ── RARE (weight 5-14) ──
-  rare:        { name:'Neon Petal',    plant:'Neon Bloom',      emoji:'🌸', color:'#CC44FF', growMs:90*60*1000,     rarity:'RARE',      weight:12, hint:'1.5 hr',  desc:'Glows in the dark. Attracts rare insects.' },
-  crystal:     { name:'Crystal Bud',   plant:'Crystal Bloom',   emoji:'💎', color:'#00e5ff', growMs:45*60*1000,     rarity:'RARE',      weight:10, hint:'45 min',  desc:'Translucent petals that shimmer like glass.' },
-  fire:        { name:'Ember Seed',    plant:'Blazeflower',     emoji:'🔥', color:'#ff4400', growMs:60*60*1000,     rarity:'RARE',      weight:10, hint:'1 hr',    desc:'Warm to the touch. Grows fast with enough water.' },
-  orchid:      { name:'Orchid Pod',    plant:'Phantom Orchid',  emoji:'🌺', color:'#ff55aa', growMs:75*60*1000,     rarity:'RARE',      weight:9,  hint:'1.25 hr', desc:'Rare and beautiful. Blooms only once per season.' },
-  tropic:      { name:'Tropic Seed',   plant:'Bird of Paradise',emoji:'🦜', color:'#ff8800', growMs:80*60*1000,     rarity:'RARE',      weight:8,  hint:'1.3 hr',  desc:'Exotic bloom shaped like a tropical bird mid-flight.' },
-  bonsai:      { name:'Bonsai Nub',    plant:'Ancient Bonsai',  emoji:'🌳', color:'#885533', growMs:70*60*1000,     rarity:'RARE',      weight:8,  hint:'1.1 hr',  desc:'Miniature ancient tree. Grown with patience and care.' },
-  carnivore:   { name:'Fly Trap Seed', plant:'Venus Snap',      emoji:'🪲', color:'#aa2233', growMs:65*60*1000,     rarity:'RARE',      weight:7,  hint:'65 min',  desc:'Snaps shut on anything that lands inside. Do not pet.' },
-  luminara:    { name:'Lumi Spore',    plant:'Luminara',        emoji:'✨', color:'#ffff88', growMs:85*60*1000,     rarity:'RARE',      weight:7,  hint:'1.4 hr',  desc:'Bioluminescent flower that lights up at night like a lantern.' },
-  sakura:      { name:'Sakura Pip',    plant:'Cherry Blossom',  emoji:'🌸', color:'#ffaabb', growMs:55*60*1000,     rarity:'RARE',      weight:6,  hint:'55 min',  desc:'Petals fall like pink snow. Beautiful but fleeting.' },
-  seaweed:     { name:'Tide Seed',     plant:'Sea Garden',      emoji:'🌊', color:'#00bbcc', growMs:50*60*1000,     rarity:'RARE',      weight:6,  hint:'50 min',  desc:'Underwater plant that grows on the shore. Ocean-scented.' },
-  aurora:      { name:'Aurora Bud',    plant:'Aurora Bloom',    emoji:'🌌', color:'#44ffcc', growMs:100*60*1000,    rarity:'RARE',      weight:5,  hint:'1.6 hr',  desc:'Colours shift like the northern lights as it blooms.' },
+  // ── COMMON FRUIT (weight 35-42) ──
+  strawberry:  { name:'Berry Seed',    plant:'Strawberry Bush', emoji:'🍓', color:'#ff4466', growMs:12*60*1000,     rarity:'COMMON',    weight:40, hint:'12 min',  desc:'Sweet little berry that takes over the whole garden.', minSize:10, maxSize:22 },
+  apple:       { name:'Apple Core',    plant:'Apple Tree',      emoji:'🍎', color:'#dd2233', growMs:25*60*1000,     rarity:'COMMON',    weight:36, hint:'25 min',  desc:'An apple a day keeps the healer away.', minSize:30, maxSize:60 },
+
+  // ── UNCOMMON (weight 14-24) ──
+  uncommon:    { name:'Surf Leaf',     plant:'Surf Plant',      emoji:'🌿', color:'#00FFEE', growMs:25*60*1000,     rarity:'UNCOMMON',  weight:22, hint:'25 min',  desc:'Thrives near water. Smells faintly of the ocean.', minSize:20, maxSize:48 },
+  mushroom:    { name:'Spore Cap',     plant:'Glowshroom',      emoji:'🍄', color:'#ff88cc', growMs:20*60*1000,     rarity:'UNCOMMON',  weight:20, hint:'20 min',  desc:'Bioluminescent cap. Grows surprisingly fast!', minSize:18, maxSize:40 },
+  bamboo:      { name:'Bamboo Shoot',  plant:'Bamboo Grove',    emoji:'🎋', color:'#55cc66', growMs:30*60*1000,     rarity:'UNCOMMON',  weight:18, hint:'30 min',  desc:'Grows incredibly fast. Pandas dream of this garden.', minSize:50, maxSize:90 },
+  lavender:    { name:'Lavender Bud',  plant:'Lavender Bush',   emoji:'💜', color:'#aa66ff', growMs:28*60*1000,     rarity:'UNCOMMON',  weight:18, hint:'28 min',  desc:'Calming scent drifts through the garden at dusk.', minSize:22, maxSize:44 },
+  rose:        { name:'Rose Hip',      plant:'Velvet Rose',     emoji:'🌹', color:'#cc2244', growMs:35*60*1000,     rarity:'UNCOMMON',  weight:16, hint:'35 min',  desc:'Elegant and thorny. Worth the effort.', minSize:24, maxSize:50 },
+  herb:        { name:'Herb Sprig',    plant:'Herb Garden',     emoji:'🌿', color:'#66bb44', growMs:22*60*1000,     rarity:'UNCOMMON',  weight:16, hint:'22 min',  desc:'Basil, rosemary, thyme — smells amazing.', minSize:12, maxSize:30 },
+  ginger:      { name:'Ginger Root',   plant:'Ginger Plant',    emoji:'🫚', color:'#cc8833', growMs:40*60*1000,     rarity:'UNCOMMON',  weight:14, hint:'40 min',  desc:'Spicy underground root with a fiery kick.', minSize:10, maxSize:24 },
+  lily:        { name:'Lily Seed',     plant:'Water Lily',      emoji:'🏵️', color:'#ffaacc', growMs:32*60*1000,     rarity:'UNCOMMON',  weight:14, hint:'32 min',  desc:'Floats peacefully on still water.', minSize:18, maxSize:38 },
+  vine:        { name:'Creeper Vine',  plant:'Climbing Vine',   emoji:'🍃', color:'#22aa44', growMs:26*60*1000,     rarity:'UNCOMMON',  weight:14, hint:'26 min',  desc:'Crawls up walls and wraps around everything.', minSize:28, maxSize:60 },
+
+  // ── UNCOMMON FRUIT/VEG ──
+  grape:       { name:'Grape Seed',    plant:'Grape Vine',      emoji:'🍇', color:'#9944cc', growMs:30*60*1000,     rarity:'UNCOMMON',  weight:16, hint:'30 min',  desc:'Clusters of juicy grapes for the connoisseur.', minSize:20, maxSize:45 },
+  lemon:       { name:'Lemon Pip',     plant:'Lemon Tree',      emoji:'🍋', color:'#ffee44', growMs:35*60*1000,     rarity:'UNCOMMON',  weight:14, hint:'35 min',  desc:'When life gives you lemons, plant more lemons.', minSize:28, maxSize:55 },
+  chilli:      { name:'Chilli Seed',   plant:'Chilli Bush',     emoji:'🌶️', color:'#ff3300', growMs:24*60*1000,     rarity:'UNCOMMON',  weight:16, hint:'24 min',  desc:'Handle with care. This one bites back.', minSize:16, maxSize:36 },
+  eggplant:    { name:'Aubergine Pip', plant:'Aubergine Plant', emoji:'🍆', color:'#6622aa', growMs:28*60*1000,     rarity:'UNCOMMON',  weight:14, hint:'28 min',  desc:'Glossy purple and surprisingly heavy.', minSize:18, maxSize:38 },
+
+  // ── RARE (weight 5-12) ──
+  rare:        { name:'Neon Petal',    plant:'Neon Bloom',      emoji:'🌸', color:'#CC44FF', growMs:90*60*1000,     rarity:'RARE',      weight:10, hint:'1.5 hr',  desc:'Glows in the dark. Attracts rare insects.', minSize:28, maxSize:55 },
+  crystal:     { name:'Crystal Bud',   plant:'Crystal Bloom',   emoji:'💎', color:'#00e5ff', growMs:45*60*1000,     rarity:'RARE',      weight:9,  hint:'45 min',  desc:'Translucent petals that shimmer like glass.', minSize:22, maxSize:50 },
+  fire:        { name:'Ember Seed',    plant:'Blazeflower',     emoji:'🔥', color:'#ff4400', growMs:60*60*1000,     rarity:'RARE',      weight:9,  hint:'1 hr',    desc:'Warm to the touch. Grows fast with enough water.', minSize:26, maxSize:55 },
+  orchid:      { name:'Orchid Pod',    plant:'Phantom Orchid',  emoji:'🌺', color:'#ff55aa', growMs:75*60*1000,     rarity:'RARE',      weight:8,  hint:'1.25 hr', desc:'Rare and beautiful. Blooms only once per season.', minSize:20, maxSize:45 },
+  tropic:      { name:'Tropic Seed',   plant:'Bird of Paradise',emoji:'🦜', color:'#ff8800', growMs:80*60*1000,     rarity:'RARE',      weight:7,  hint:'1.3 hr',  desc:'Exotic bloom shaped like a tropical bird mid-flight.', minSize:32, maxSize:62 },
+  bonsai:      { name:'Bonsai Nub',    plant:'Ancient Bonsai',  emoji:'🌳', color:'#885533', growMs:70*60*1000,     rarity:'RARE',      weight:7,  hint:'1.1 hr',  desc:'Miniature ancient tree. Grown with patience and care.', minSize:25, maxSize:50 },
+  carnivore:   { name:'Fly Trap Seed', plant:'Venus Snap',      emoji:'🪲', color:'#aa2233', growMs:65*60*1000,     rarity:'RARE',      weight:6,  hint:'65 min',  desc:'Snaps shut on anything that lands inside. Do not pet.', minSize:18, maxSize:40 },
+  luminara:    { name:'Lumi Spore',    plant:'Luminara',        emoji:'✨', color:'#ffff88', growMs:85*60*1000,     rarity:'RARE',      weight:6,  hint:'1.4 hr',  desc:'Bioluminescent flower that lights up at night like a lantern.', minSize:24, maxSize:52 },
+  sakura:      { name:'Sakura Pip',    plant:'Cherry Blossom',  emoji:'🌸', color:'#ffaabb', growMs:55*60*1000,     rarity:'RARE',      weight:6,  hint:'55 min',  desc:'Petals fall like pink snow. Beautiful but fleeting.', minSize:30, maxSize:60 },
+  seaweed:     { name:'Tide Seed',     plant:'Sea Garden',      emoji:'🌊', color:'#00bbcc', growMs:50*60*1000,     rarity:'RARE',      weight:6,  hint:'50 min',  desc:'Underwater plant that grows on the shore. Ocean-scented.', minSize:22, maxSize:48 },
+  aurora:      { name:'Aurora Bud',    plant:'Aurora Bloom',    emoji:'🌌', color:'#44ffcc', growMs:100*60*1000,    rarity:'RARE',      weight:5,  hint:'1.6 hr',  desc:'Colours shift like the northern lights as it blooms.', minSize:28, maxSize:58 },
+
+  // ── RARE FRUIT/VEG ──
+  mango:       { name:'Mango Stone',   plant:'Mango Tree',      emoji:'🥭', color:'#ffaa00', growMs:60*60*1000,     rarity:'RARE',      weight:7,  hint:'1 hr',    desc:'Lush tropical fruit. Hot climates only — mostly.', minSize:35, maxSize:65 },
+  coconut:     { name:'Coconut Palm',  plant:'Palm Tree',       emoji:'🥥', color:'#aa8833', growMs:90*60*1000,     rarity:'RARE',      weight:6,  hint:'1.5 hr',  desc:'Swaying palms and tropical vibes. Hard to crack.', minSize:45, maxSize:80 },
+  pineapple:   { name:'Crown Slip',    plant:'Pineapple Plant', emoji:'🍍', color:'#ddcc22', growMs:75*60*1000,     rarity:'RARE',      weight:6,  hint:'1.25 hr', desc:'Grows a crown, not a tree. Spikey and sweet.', minSize:20, maxSize:42 },
+  kiwi:        { name:'Kiwi Seed',     plant:'Kiwi Vine',       emoji:'🥝', color:'#88cc44', growMs:65*60*1000,     rarity:'RARE',      weight:5,  hint:'65 min',  desc:'Fuzzy on the outside, bright green inside.', minSize:18, maxSize:40 },
 
   // ── EPIC (weight 2-6) ──
-  epic:        { name:'Void Spore',    plant:'Void Fern',       emoji:'🌀', color:'#FF6600', growMs:5*3600*1000,    rarity:'EPIC',      weight:6,  hint:'5 hrs',   desc:'From another dimension. Very hard to find.' },
-  shadow:      { name:'Shadow Sprig',  plant:'Shadow Lily',     emoji:'🖤', color:'#9b2aff', growMs:3*3600*1000,    rarity:'EPIC',      weight:5,  hint:'3 hrs',   desc:'Only blooms at night. Very mysterious.' },
-  ice:         { name:'Frost Pip',     plant:'Glacial Fern',    emoji:'❄️', color:'#aaddff', growMs:2*3600*1000,    rarity:'EPIC',      weight:5,  hint:'2 hrs',   desc:'Ice-cold to touch. Grows best in cool seasons.' },
-  dragonfruit: { name:'Dragon Pip',    plant:'Dragonbloom',     emoji:'🐉', color:'#ff2244', growMs:4*3600*1000,    rarity:'EPIC',      weight:4,  hint:'4 hrs',   desc:'Scales like a dragon. Breathes a tiny spark at dawn.' },
-  galaxy:      { name:'Galaxy Seed',   plant:'Galaxy Blossom',  emoji:'🌠', color:'#8844ff', growMs:6*3600*1000,    rarity:'EPIC',      weight:4,  hint:'6 hrs',   desc:'Petals hold a swirling cosmos inside. Stare too long and get lost.' },
-  venom:       { name:'Venom Pod',     plant:'Venomcap',        emoji:'☠️', color:'#66ff44', growMs:3.5*3600*1000,  rarity:'EPIC',      weight:3,  hint:'3.5 hrs', desc:'Toxic but gorgeous. Do not eat the berries.' },
-  magma:       { name:'Magma Nub',     plant:'Magma Flower',    emoji:'🌋', color:'#ff6600', growMs:4.5*3600*1000,  rarity:'EPIC',      weight:3,  hint:'4.5 hrs', desc:'Grows from volcanic rock. Leaves crackle with heat.' },
-  storm:       { name:'Storm Seed',    plant:'Storm Lily',      emoji:'⚡', color:'#ddddff', growMs:2.5*3600*1000,  rarity:'EPIC',      weight:4,  hint:'2.5 hrs', desc:'Charges the air with static electricity.' },
-  haunted:     { name:'Ghost Spore',   plant:'Hauntbloom',      emoji:'👻', color:'#ccccff', growMs:4*3600*1000,    rarity:'EPIC',      weight:3,  hint:'4 hrs',   desc:'Disappears at dawn and reappears at dusk. Spooky.' },
-  neon:        { name:'Neon Tuber',    plant:'Neon Cactus',     emoji:'🟣', color:'#ff00ff', growMs:3*3600*1000,    rarity:'EPIC',      weight:3,  hint:'3 hrs',   desc:'Glows acid-bright in the dark. Very 80s.' },
-  prism:       { name:'Prism Seed',    plant:'Prism Flower',    emoji:'🌈', color:'#ffffff', growMs:5.5*3600*1000,  rarity:'EPIC',      weight:2,  hint:'5.5 hrs', desc:'Splits light into a spectrum of colours when it blooms.' },
+  epic:        { name:'Void Spore',    plant:'Void Fern',       emoji:'🌀', color:'#FF6600', growMs:5*3600*1000,    rarity:'EPIC',      weight:5,  hint:'5 hrs',   desc:'From another dimension. Very hard to find.', minSize:40, maxSize:80 },
+  shadow:      { name:'Shadow Sprig',  plant:'Shadow Lily',     emoji:'🖤', color:'#9b2aff', growMs:3*3600*1000,    rarity:'EPIC',      weight:4,  hint:'3 hrs',   desc:'Only blooms at night. Very mysterious.', minSize:35, maxSize:70 },
+  ice:         { name:'Frost Pip',     plant:'Glacial Fern',    emoji:'❄️', color:'#aaddff', growMs:2*3600*1000,    rarity:'EPIC',      weight:4,  hint:'2 hrs',   desc:'Ice-cold to touch. Grows best in cool seasons.', minSize:30, maxSize:65 },
+  dragonfruit: { name:'Dragon Pip',    plant:'Dragonbloom',     emoji:'🐉', color:'#ff2244', growMs:4*3600*1000,    rarity:'EPIC',      weight:3,  hint:'4 hrs',   desc:'Scales like a dragon. Breathes a tiny spark at dawn.', minSize:45, maxSize:85 },
+  galaxy:      { name:'Galaxy Seed',   plant:'Galaxy Blossom',  emoji:'🌠', color:'#8844ff', growMs:6*3600*1000,    rarity:'EPIC',      weight:3,  hint:'6 hrs',   desc:'Petals hold a swirling cosmos inside. Stare too long and get lost.', minSize:38, maxSize:75 },
+  venom:       { name:'Venom Pod',     plant:'Venomcap',        emoji:'☠️', color:'#66ff44', growMs:3.5*3600*1000,  rarity:'EPIC',      weight:3,  hint:'3.5 hrs', desc:'Toxic but gorgeous. Do not eat the berries.', minSize:32, maxSize:68 },
+  magma:       { name:'Magma Nub',     plant:'Magma Flower',    emoji:'🌋', color:'#ff6600', growMs:4.5*3600*1000,  rarity:'EPIC',      weight:3,  hint:'4.5 hrs', desc:'Grows from volcanic rock. Leaves crackle with heat.', minSize:35, maxSize:72 },
+  storm:       { name:'Storm Seed',    plant:'Storm Lily',      emoji:'⚡', color:'#ddddff', growMs:2.5*3600*1000,  rarity:'EPIC',      weight:4,  hint:'2.5 hrs', desc:'Charges the air with static electricity.', minSize:30, maxSize:62 },
+  haunted:     { name:'Ghost Spore',   plant:'Hauntbloom',      emoji:'👻', color:'#ccccff', growMs:4*3600*1000,    rarity:'EPIC',      weight:3,  hint:'4 hrs',   desc:'Disappears at dawn and reappears at dusk. Spooky.', minSize:28, maxSize:58 },
+  neon:        { name:'Neon Tuber',    plant:'Neon Cactus',     emoji:'🟣', color:'#ff00ff', growMs:3*3600*1000,    rarity:'EPIC',      weight:3,  hint:'3 hrs',   desc:'Glows acid-bright in the dark. Very 80s.', minSize:35, maxSize:65 },
+  prism:       { name:'Prism Seed',    plant:'Prism Flower',    emoji:'🌈', color:'#ffffff', growMs:5.5*3600*1000,  rarity:'EPIC',      weight:2,  hint:'5.5 hrs', desc:'Splits light into a spectrum of colours when it blooms.', minSize:32, maxSize:70 },
 
-  // ── LEGENDARY (weight 0.5-1.5) ──
-  legendary:   { name:'Wave Seed',     plant:'Waveplant',       emoji:'🌊', color:'#FFD700', growMs:12*3600*1000,   rarity:'LEGENDARY', weight:1.5,hint:'12 hrs',  desc:'The rarest of all. Legends say it blooms once a year.' },
-  phoenix:     { name:'Phoenix Ash',   plant:'Phoenix Bloom',   emoji:'🔥', color:'#ff8800', growMs:10*3600*1000,   rarity:'LEGENDARY', weight:1.2,hint:'10 hrs',  desc:'Burns to ash and regrows. The cycle of life made visible.' },
-  cosmos:      { name:'Cosmos Seed',   plant:'Cosmic Tree',     emoji:'🌌', color:'#aa44ff', growMs:14*3600*1000,   rarity:'LEGENDARY', weight:0.8,hint:'14 hrs',  desc:'A tree that contains an entire galaxy within its canopy.' },
-  timeless:    { name:'Time Spore',    plant:'Timeless Bloom',  emoji:'⏳', color:'#ffffaa', growMs:8*3600*1000,    rarity:'LEGENDARY', weight:1.0,hint:'8 hrs',   desc:'Grows backwards and forwards through time simultaneously.' },
-  sovereign:   { name:'Royal Bulb',    plant:'Sovereign Rose',  emoji:'👑', color:'#FFD700', growMs:16*3600*1000,   rarity:'LEGENDARY', weight:0.6,hint:'16 hrs',  desc:'Only one blooms in any garden at a time. Crown of all plants.' },
-  nebula:      { name:'Nebula Dust',   plant:'Nebula Bloom',    emoji:'💫', color:'#cc88ff', growMs:20*3600*1000,   rarity:'LEGENDARY', weight:0.5,hint:'20 hrs',  desc:'Born from a supernova. Radiates cosmic energy.' },
-  worldtree:   { name:'World Seed',    plant:'World Tree',      emoji:'🌍', color:'#44ff88', growMs:24*3600*1000,   rarity:'LEGENDARY', weight:0.4,hint:'24 hrs',  desc:'A seed said to contain all other plants within it.' },
-  rainbow:     { name:'Rainbow Pip',   plant:'Rainbow Garden',  emoji:'🌈', color:'#ff88cc', growMs:18*3600*1000,   rarity:'LEGENDARY', weight:0.7,hint:'18 hrs',  desc:'Every petal is a different colour. No two are ever alike.' },
-  void:        { name:'Void Lotus',    plant:'Void Lotus',      emoji:'⚫', color:'#6600ff', growMs:15*3600*1000,   rarity:'LEGENDARY', weight:0.6,hint:'15 hrs',  desc:'A flower that absorbs all light. Dark as the void itself.' },
+  // ── EPIC FRUIT ──
+  durian:      { name:'Durian Core',   plant:'Durian Tree',     emoji:'🌵', color:'#886633', growMs:5*3600*1000,    rarity:'EPIC',      weight:3,  hint:'5 hrs',   desc:'The king of fruits. The smell is legendary. Do not bring indoors.', minSize:40, maxSize:72 },
+  dragonfr:    { name:'Dragon Fruit',  plant:'Dragon Fruit Vine',emoji:'🍉', color:'#ff44aa', growMs:4*3600*1000,   rarity:'EPIC',      weight:3,  hint:'4 hrs',   desc:'Bright pink skin, speckled white inside. Grown on a cactus vine.', minSize:22, maxSize:48 },
+  starfruit:   { name:'Starfruit Seed',plant:'Carambola Tree',  emoji:'⭐', color:'#ffee44', growMs:3.5*3600*1000,  rarity:'EPIC',      weight:3,  hint:'3.5 hrs', desc:'Slice it and you get a star. Nature is showing off.', minSize:28, maxSize:58 },
+
+  // ── LEGENDARY (weight 0.3-1.5) ──
+  legendary:   { name:'Wave Seed',     plant:'Waveplant',       emoji:'🌊', color:'#FFD700', growMs:12*3600*1000,   rarity:'LEGENDARY', weight:1.5,hint:'12 hrs',  desc:'The rarest of all. Legends say it blooms once a year.', minSize:55, maxSize:110 },
+  phoenix:     { name:'Phoenix Ash',   plant:'Phoenix Bloom',   emoji:'🔥', color:'#ff8800', growMs:10*3600*1000,   rarity:'LEGENDARY', weight:1.2,hint:'10 hrs',  desc:'Burns to ash and regrows. The cycle of life made visible.', minSize:50, maxSize:100 },
+  cosmos:      { name:'Cosmos Seed',   plant:'Cosmic Tree',     emoji:'🌌', color:'#aa44ff', growMs:14*3600*1000,   rarity:'LEGENDARY', weight:0.8,hint:'14 hrs',  desc:'A tree that contains an entire galaxy within its canopy.', minSize:60, maxSize:120 },
+  timeless:    { name:'Time Spore',    plant:'Timeless Bloom',  emoji:'⏳', color:'#ffffaa', growMs:8*3600*1000,    rarity:'LEGENDARY', weight:1.0,hint:'8 hrs',   desc:'Grows backwards and forwards through time simultaneously.', minSize:45, maxSize:95 },
+  sovereign:   { name:'Royal Bulb',    plant:'Sovereign Rose',  emoji:'👑', color:'#FFD700', growMs:16*3600*1000,   rarity:'LEGENDARY', weight:0.6,hint:'16 hrs',  desc:'Only one blooms in any garden at a time. Crown of all plants.', minSize:55, maxSize:105 },
+  nebula:      { name:'Nebula Dust',   plant:'Nebula Bloom',    emoji:'💫', color:'#cc88ff', growMs:20*3600*1000,   rarity:'LEGENDARY', weight:0.5,hint:'20 hrs',  desc:'Born from a supernova. Radiates cosmic energy.', minSize:60, maxSize:115 },
+  worldtree:   { name:'World Seed',    plant:'World Tree',      emoji:'🌍', color:'#44ff88', growMs:24*3600*1000,   rarity:'LEGENDARY', weight:0.4,hint:'24 hrs',  desc:'A seed said to contain all other plants within it.', minSize:70, maxSize:130 },
+  rainbow:     { name:'Rainbow Pip',   plant:'Rainbow Garden',  emoji:'🌈', color:'#ff88cc', growMs:18*3600*1000,   rarity:'LEGENDARY', weight:0.7,hint:'18 hrs',  desc:'Every petal is a different colour. No two are ever alike.', minSize:50, maxSize:100 },
+  void:        { name:'Void Lotus',    plant:'Void Lotus',      emoji:'⚫', color:'#6600ff', growMs:15*3600*1000,   rarity:'LEGENDARY', weight:0.6,hint:'15 hrs',  desc:'A flower that absorbs all light. Dark as the void itself.', minSize:55, maxSize:108 },
 };
 
 const RARITY_COL = { COMMON:'#88cc44', UNCOMMON:'#00FFEE', RARE:'#CC44FF', EPIC:'#FF6600', LEGENDARY:'#FFD700' };
@@ -926,12 +1052,13 @@ const G = {
   passiveDropChance: 0.55,
   digCooldownTimer: null,
   passiveTimer: null,
-  waterCooldownMs: 10 * 60 * 1000,   // water refills every 10 min
+  waterCooldownMs: 10 * 60 * 1000,
   maxWater: 5,
-  waterEffectMs: 60 * 1000,          // watering cuts remaining time by 1 min flat
-  waterPct: 0.20,                     // watering also gives 20% instant progress boost
-  season: SEASONS[Math.floor((Date.now() / (1000*60*60*24*7)) % 4)], // changes weekly
-  waterDrops: {},  // plotIdx -> [{x,y,life}]
+  waterPct: 0.20,
+  season: SEASONS[Math.floor((Date.now() / (1000*60*60*24*7)) % 4)],
+  waterDrops: {},
+  unlockedPlots: 4,   // grows with level
+  godMode: false,     // level 50 reward
 };
 
 /* ── Player ID ── */
@@ -951,16 +1078,22 @@ function defaultData() {
   return {
     seeds,
     plot0: null, plot1: null, plot2: null, plot3: null,
-    harvested: 0,
-    totalFound: 6,
-    lastDig: 0,
+    harvested: 0, totalFound: 6, lastDig: 0,
     discoveries: ['common','clover','fern','uncommon'],
-    waterCharges: 5,
-    lastWaterRefill: Date.now(),
-    compostCount: 0,
-    lbName: '',
-    xp: 0,
+    waterCharges: 5, lastWaterRefill: Date.now(),
+    compostCount: 0, lbName: '', xp: 0,
+    prestige: 0,          // number of prestiges
+    bestSizes: {},        // type -> best cm
+    harvestCounts: {},    // type -> total harvested
+    seasonBest: {},       // seasonKey -> {type,size,name,emoji}
   };
+}
+
+// Season key = "Season-WeekNumber" so it resets weekly per season
+function getCurrentSeasonKey() {
+  const week = Math.floor(Date.now() / (1000*60*60*24*7));
+  const seasonIdx = week % 4;
+  return SEASONS[seasonIdx].replace(/\s/g,'') + '-' + week;
 }
 
 function saveData() {
@@ -994,44 +1127,232 @@ function initGarden() {
   // backfill
   if (!G.data.seeds) G.data.seeds = defaultData().seeds;
   Object.keys(SEEDS).forEach(k => { if (!(k in G.data.seeds)) G.data.seeds[k] = 0; });
-  for (let i=0;i<4;i++) { if (!('plot'+i in G.data)) G.data['plot'+i] = null; }
+  for (let i=0;i<9;i++) { if (!('plot'+i in G.data)) G.data['plot'+i] = null; }
   if (!G.data.discoveries) G.data.discoveries = ['common'];
   if (!('waterCharges' in G.data)) { G.data.waterCharges = 5; G.data.lastWaterRefill = Date.now(); }
   if (!G.data.xp) G.data.xp = 0;
   if (!G.data.lbName) G.data.lbName = '';
+  if (!G.data.prestige) G.data.prestige = 0;
+  if (!G.data.bestSizes) G.data.bestSizes = {};
+  if (!G.data.harvestCounts) G.data.harvestCounts = {};
+  if (!G.data.seasonBest) G.data.seasonBest = {};
+
+  // Re-apply all level rewards from their level
+  reapplyAllLevelRewards();
 
   G.season = getCurrentSeason();
   document.getElementById('seasonBadge').textContent = G.season;
 
-  // Restore lb name input
   if (G.data.lbName) document.getElementById('lbNameInput').value = G.data.lbName;
 
+  rebuildPlots();
   renderInventory();
   renderStats();
   renderCodex();
   updatePlotLocks();
   updateDigCooldownUI();
   updateWaterUI();
+  updateXPBar();
   startRenderLoop();
   startPassiveDrops();
   startWaterRefill();
   loadLeaderboard();
+  initHelpPanel();
 }
 
-/* ── Levels ── */
-const LEVEL_XP = [0,10,25,50,100,200,350,600,1000,1800,3000];
+/* ══════════════════════════════════════
+   DEEP LEVEL SYSTEM — 50 levels
+   XP thresholds scale gradually so early
+   levels feel rewarding and later ones are
+   a genuine long-term goal.
+══════════════════════════════════════ */
+const LEVEL_XP = [
+  0,      // 1
+  20,     // 2
+  55,     // 3
+  110,    // 4
+  200,    // 5
+  340,    // 6
+  530,    // 7
+  780,    // 8
+  1100,   // 9
+  1500,   // 10  — Gardener
+  2000,   // 11
+  2650,   // 12
+  3400,   // 13
+  4300,   // 14
+  5400,   // 15  — Green Thumb
+  6700,   // 16
+  8200,   // 17
+  9900,   // 18
+  11800,  // 19
+  14000,  // 20  — Botanist
+  16500,  // 21
+  19500,  // 22
+  22900,  // 23
+  26900,  // 24
+  31500,  // 25  — Master Gardener
+  37000,  // 26
+  43500,  // 27
+  51000,  // 28
+  59500,  // 29
+  69000,  // 30  — Horticulturist
+  80000,  // 31
+  92500,  // 32
+  106500, // 33
+  122000, // 34
+  139000, // 35  — Plant Whisperer
+  158000, // 36
+  179000, // 37
+  202000, // 38
+  227500, // 39
+  255500, // 40  — Garden Lord
+  286500, // 41
+  320500, // 42
+  358000, // 43
+  399000, // 44
+  444000, // 45  — Legendary Cultivar
+  493500, // 46
+  548000, // 47
+  608000, // 48
+  674000, // 49
+  747000, // 50  — Garden God
+];
+
+const LEVEL_TITLES = [
+  '','Sprout','Seedling','Gardener','Green Thumb','Plant Pal',
+  'Leaf Lover','Bud Tender','Bloom Keeper','Soil Sage','Botanist',
+  'Cultivar','Root Walker','Petal Mage','Herb Lord','Garden Master',
+  'Flora Sage','Vine Weaver','Spore Knight','Harvest King','Horticulturist',
+  'Bloom Baron','Crystal Grower','Echo Gardener','Rift Tender','Plant Whisperer',
+  'Rare Finder','Shadow Keeper','Storm Grower','Void Tamer','Garden Lord',
+  'Relic Tender','Blossom Sage','Aura Grower','Nebula Farmer','Plant Ascendant',
+  'Cosmos Seeker','Time Cultivar','Phantom Farmer','Sovereign Grower','Legendary Cultivar',
+  'World Tender','Rainbow Keeper','Void Walker','Eclipse Grower','Garden Legend',
+  'Ancient Keeper','Bloom Eternal','Seed of All','Garden Deity','Garden God'
+];
+
+// Per-level rewards — unlocks + bonuses
+const LEVEL_REWARDS = {
+  3:  { type:'dig_speed',  val:0.85,  msg:'⛏️ Dig cooldown reduced to 3.4 min!' },
+  5:  { type:'plot',       val:4,     msg:'🌱 Plot 5 unlocked!' },
+  7:  { type:'water',      val:7,     msg:'💧 Max water increased to 7!' },
+  10: { type:'dig_speed',  val:0.70,  msg:'⛏️ Dig cooldown reduced to 2.8 min!' },
+  12: { type:'rare_boost', val:1.15,  msg:'✨ Rare seed drop chance +15%!' },
+  15: { type:'plot',       val:5,     msg:'🌱 Plot 6 unlocked!' },
+  18: { type:'water',      val:9,     msg:'💧 Max water increased to 9!' },
+  20: { type:'dig_speed',  val:0.55,  msg:'⛏️ Dig cooldown reduced to 2.2 min!' },
+  22: { type:'rare_boost', val:1.30,  msg:'✨ Rare seed drop chance +30%!' },
+  25: { type:'plot',       val:6,     msg:'🌱 Plot 7 unlocked!' },
+  28: { type:'water',      val:12,    msg:'💧 Max water increased to 12!' },
+  30: { type:'dig_speed',  val:0.42,  msg:'⛏️ Dig cooldown reduced to 1.7 min!' },
+  33: { type:'rare_boost', val:1.50,  msg:'✨ Rare seed drop chance +50%!' },
+  35: { type:'plot',       val:7,     msg:'🌱 Plot 8 unlocked!' },
+  38: { type:'water',      val:15,    msg:'💧 Max water increased to 15!' },
+  40: { type:'dig_speed',  val:0.30,  msg:'⛏️ Dig cooldown reduced to 1.2 min!' },
+  42: { type:'rare_boost', val:1.75,  msg:'✨ Rare seed drop chance +75%!' },
+  45: { type:'plot',       val:8,     msg:'🌱 Final plot (#9) unlocked!' },
+  48: { type:'water',      val:20,    msg:'💧 Max water increased to 20!' },
+  50: { type:'god_mode',   val:1,     msg:'👑 GARDEN GOD achieved! Epic drop rate doubled!' },
+};
+
 function getLevel() {
+  const xp = (G.data && G.data.xp) || 0;
   let lvl = 1;
-  for (let i=1;i<LEVEL_XP.length;i++) { if ((G.data.xp||0) >= LEVEL_XP[i]) lvl = i+1; else break; }
-  return lvl;
+  for (let i = 1; i < LEVEL_XP.length; i++) { if (xp >= LEVEL_XP[i]) lvl = i + 1; else break; }
+  return Math.min(lvl, 50);
 }
+
+function getLevelTitle(lvl) {
+  return LEVEL_TITLES[lvl] || 'Garden God';
+}
+
+function getXpForLevel(lvl) {
+  return LEVEL_XP[Math.min(lvl - 1, LEVEL_XP.length - 1)] || 0;
+}
+
+function getXpToNextLevel(lvl) {
+  if (lvl >= 50) return 0;
+  return LEVEL_XP[lvl] || 0;
+}
+
+function applyLevelRewards(lvl) {
+  const reward = LEVEL_REWARDS[lvl];
+  if (!reward) return;
+  if (reward.type === 'dig_speed') {
+    G.digCooldownMs = Math.round(4 * 60 * 1000 * reward.val);
+  } else if (reward.type === 'plot') {
+    G.unlockedPlots = reward.val;
+    rebuildPlots();
+  } else if (reward.type === 'water') {
+    G.maxWater = reward.val;
+    G.data.waterCharges = Math.min((G.data.waterCharges||0) + 2, G.maxWater);
+    updateWaterUI();
+  } else if (reward.type === 'god_mode') {
+    G.godMode = true;
+  }
+}
+
+function reapplyAllLevelRewards() {
+  // Re-apply all earned rewards on load
+  const lvl = getLevel();
+  G.digCooldownMs = 4 * 60 * 1000;
+  G.maxWater = 5;
+  G.unlockedPlots = 4;
+  G.godMode = false;
+  for (let i = 1; i <= lvl; i++) {
+    const r = LEVEL_REWARDS[i];
+    if (!r) continue;
+    if (r.type === 'dig_speed')  G.digCooldownMs = Math.round(4 * 60 * 1000 * r.val);
+    if (r.type === 'water')      G.maxWater = r.val;
+    if (r.type === 'plot')       G.unlockedPlots = r.val;
+    if (r.type === 'god_mode')   G.godMode = true;
+  }
+}
+
 function addXP(amt) {
+  if (!G.data) return;
   const prev = getLevel();
-  G.data.xp = (G.data.xp||0) + amt;
+  G.data.xp = (G.data.xp || 0) + amt;
   const next = getLevel();
-  document.getElementById('gardenLevelBadge').textContent = 'LVL '+next;
-  if (next > prev) showGardenMsg('⬆️ <span style="color:#FFD700">LEVEL UP! You\'re now level '+next+'!</span>');
+  document.getElementById('gardenLevelBadge').textContent = 'LVL ' + next;
+  updateXPBar();
+  if (next > prev) {
+    applyLevelRewards(next);
+    const title = getLevelTitle(next);
+    const reward = LEVEL_REWARDS[next];
+    const rewardMsg = reward ? ' ' + reward.msg : '';
+    showGardenMsg('⬆️ <span style="color:#FFD700">LEVEL UP! LVL '+next+' — '+title+'!</span>'+rewardMsg);
+    // Big achievement for milestone levels
+    if ([10,20,30,40,50].includes(next)) {
+      const el = document.getElementById('achievement');
+      document.getElementById('achIcon').textContent = ['🌱','🌿','🌸','💎','👑'][Math.floor(next/10)-1];
+      document.getElementById('achName').textContent = title + ' (Level '+next+')';
+      document.getElementById('achPts').textContent = '+'+amt+'XP this action';
+      el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 5000);
+    }
+    rebuildPlots();
+  }
   saveData();
+}
+
+function updateXPBar() {
+  if (!G.data) return;
+  const lvl = getLevel();
+  const bar = document.getElementById('xpBar');
+  const txt = document.getElementById('xpBarTxt');
+  if (!bar) return;
+  if (lvl >= 50) {
+    bar.style.width = '100%';
+    if (txt) txt.textContent = 'MAX LEVEL';
+    return;
+  }
+  const prevXp = getXpForLevel(lvl);
+  const nextXp = getXpToNextLevel(lvl);
+  const pct = Math.min(((G.data.xp - prevXp) / (nextXp - prevXp)) * 100, 100);
+  bar.style.width = pct + '%';
+  if (txt) txt.textContent = (G.data.xp - prevXp) + ' / ' + (nextXp - prevXp) + ' XP';
 }
 
 /* ── SEED ROLL ── */
@@ -1077,8 +1398,10 @@ function fmtMs(ms) {
 function clickPlot(idx) {
   if (!G.data) return;
   const key = 'plot'+idx;
-  if (idx === 2 && (G.data.harvested||0) < 1) { showGardenMsg('🔒 harvest your first plant to unlock plot 3!'); return; }
-  if (idx === 3 && (G.data.harvested||0) < 5) { showGardenMsg('🔒 harvest 5 plants to unlock plot 4!'); return; }
+  // Early harvest requirement for plots 2 & 3 (before level unlocks)
+  if (idx === 2 && G.unlockedPlots <= 2 && (G.data.harvested||0) < 1) { showGardenMsg('🔒 harvest your first plant to unlock plot 3!'); return; }
+  if (idx === 3 && G.unlockedPlots <= 3 && (G.data.harvested||0) < 5) { showGardenMsg('🔒 harvest 5 plants to unlock plot 4!'); return; }
+  if (idx >= G.unlockedPlots) { showGardenMsg('🔒 reach a higher level to unlock this plot!'); return; }
 
   const plot = G.data[key];
   if (!plot) {
@@ -1099,15 +1422,37 @@ function clickPlot(idx) {
     const s = SEEDS[plot.type];
     G.data[key] = null;
     G.data.harvested = (G.data.harvested||0) + 1;
+
+    // ── PLANT SIZE ── Random within species range, slightly boosted by water
+    const waterBonus = Math.min((plot.waterCount||0) * 2, 15); // +2cm per water, max 15
+    const sMin = s.minSize || 10, sMax = s.maxSize || 40;
+    const rawSize = sMin + Math.random() * (sMax - sMin);
+    const finalSize = Math.round(Math.min(rawSize + waterBonus, sMax * 1.05)); // slight oversize possible with water
+    // Track best size per species
+    if (!G.data.bestSizes) G.data.bestSizes = {};
+    if (!G.data.harvestCounts) G.data.harvestCounts = {};
+    G.data.harvestCounts[plot.type] = (G.data.harvestCounts[plot.type]||0) + 1;
+    const prevBest = G.data.bestSizes[plot.type] || 0;
+    const isRecord = finalSize > prevBest;
+    if (isRecord) G.data.bestSizes[plot.type] = finalSize;
+    // Track season best (for leaderboard)
+    const seasonKey = getCurrentSeasonKey();
+    if (!G.data.seasonBest) G.data.seasonBest = {};
+    if (!G.data.seasonBest[seasonKey]) G.data.seasonBest[seasonKey] = { type:null, size:0 };
+    if (finalSize > (G.data.seasonBest[seasonKey].size||0)) {
+      G.data.seasonBest[seasonKey] = { type: plot.type, size: finalSize, name: s.plant, emoji: s.emoji };
+    }
+
     const bonus = rollSeed();
     addSeed(bonus, true);
-    // XP by rarity
     const xpMap = {COMMON:5,UNCOMMON:12,RARE:30,EPIC:75,LEGENDARY:200};
     addXP(xpMap[s.rarity]||5);
-    showGardenMsg('✨ <span style="color:'+s.color+'">'+s.plant+'</span> harvested! found bonus '+SEEDS[bonus].emoji+' '+SEEDS[bonus].name+'~');
+    const sizeMsg = isRecord ? ` <span style="color:#FFD700">🏆 NEW RECORD: ${finalSize}cm!</span>` : ` (${finalSize}cm)`;
+    showGardenMsg(`✨ <span style="color:${s.color}">${s.plant}</span> harvested!${sizeMsg} Bonus: ${SEEDS[bonus].emoji} ${SEEDS[bonus].name}`);
     spawnHarvestParticles(idx);
     updatePlotLocks();
     renderStats();
+    renderCodex();
     updateLeaderboard();
     saveData();
     return;
@@ -1210,32 +1555,55 @@ function updateWaterUI() {
   if (allBtn) allBtn.disabled = charges <= 0;
 }
 
-/* ── COMPOST ── */
+/* ── COMPOST (NERFED: need 10/15/20 based on rarity, get rare+ back) ── */
 function compostAction() {
   if (!G.data) return;
-  // Find a seed type with 5+ to compost
-  const keys = Object.keys(SEEDS).filter(k => k !== 'legendary' && (G.data.seeds[k]||0) >= 5);
-  if (keys.length === 0) { showGardenMsg('♻️ need 5+ of any one seed to compost!'); return; }
-  // Take 5 of cheapest rarity
-  const order = ['common','uncommon','mushroom','rare','crystal','fire','ice','shadow','epic','legendary'];
-  const pick = order.find(k => keys.includes(k)) || keys[0];
-  G.data.seeds[pick] -= 5;
+  // Find seed types with enough quantity — min depends on rarity
+  const compostCost = { COMMON:10, UNCOMMON:15, RARE:20, EPIC:30, LEGENDARY:40 };
+  const candidates = Object.keys(SEEDS).filter(k => {
+    const cost = compostCost[SEEDS[k].rarity] || 10;
+    return (G.data.seeds[k]||0) >= cost;
+  });
+  if (candidates.length === 0) {
+    showGardenMsg('♻️ need 10+ COMMON, 15+ UNCOMMON, or 20+ RARE to compost!'); return;
+  }
+  // Take cheapest (lowest rarity) to compost
+  const order = Object.keys(SEEDS).filter(k=>SEEDS[k].rarity==='COMMON')
+    .concat(Object.keys(SEEDS).filter(k=>SEEDS[k].rarity==='UNCOMMON'))
+    .concat(Object.keys(SEEDS).filter(k=>SEEDS[k].rarity==='RARE'))
+    .concat(Object.keys(SEEDS).filter(k=>SEEDS[k].rarity==='EPIC'));
+  const pick = order.find(k => candidates.includes(k)) || candidates[0];
+  const cost = compostCost[SEEDS[pick].rarity] || 10;
+  G.data.seeds[pick] -= cost;
   G.data.compostCount = (G.data.compostCount||0) + 1;
-  // Better seed roll (weighted toward rare+) — all new seeds included
-  const weights = {
-    common:2,clover:2,daisy:2,cactus:2,bean:2,fern:2,tulip:2,sunflower:2,
-    uncommon:4,mushroom:4,bamboo:4,lavender:4,rose:3,herb:3,ginger:3,lily:3,vine:3,
-    crystal:8,fire:7,rare:7,orchid:6,tropic:6,bonsai:6,carnivore:5,luminara:5,sakura:5,seaweed:5,aurora:4,
-    epic:4,shadow:3,ice:3,dragonfruit:3,galaxy:3,venom:2,magma:2,storm:3,haunted:2,neon:2,prism:2,
-    legendary:1,phoenix:1,cosmos:0.5,timeless:1,sovereign:0.4,nebula:0.3,worldtree:0.3,rainbow:0.6,void:0.5
-  };
-  const wkeys = Object.keys(weights);
-  const total = wkeys.reduce((a,b)=>a+weights[b],0);
-  let r = Math.random()*total;
-  let result = 'rare';
-  for (let k of wkeys) { r -= weights[k]; if (r<=0){result=k;break;} }
+
+  // Output quality scales with input rarity
+  const inputRarity = SEEDS[pick].rarity;
+  const outputPool = {
+    COMMON:   { rare:50,epic:12,legendary:2 },
+    UNCOMMON: { rare:60,epic:20,legendary:4 },
+    RARE:     { epic:55,legendary:15 },
+    EPIC:     { epic:30,legendary:70 },
+  }[inputRarity] || { rare:50,epic:12,legendary:2 };
+
+  // Build weighted pool from output
+  const wkeys = Object.keys(SEEDS).filter(k => {
+    const r = SEEDS[k].rarity;
+    if (inputRarity==='EPIC')   return r==='EPIC'||r==='LEGENDARY';
+    if (inputRarity==='RARE')   return r==='EPIC'||r==='LEGENDARY';
+    return r==='RARE'||r==='EPIC'||r==='LEGENDARY';
+  });
+  const wpool = wkeys.map(k => {
+    const r = SEEDS[k].rarity;
+    return { k, w: r==='LEGENDARY'?outputPool.legendary||2 : r==='EPIC'?outputPool.epic||15 : outputPool.rare||40 };
+  });
+  const total = wpool.reduce((a,b)=>a+b.w, 0);
+  let rand = Math.random()*total;
+  let result = wpool[0].k;
+  for (const e of wpool) { rand -= e.w; if (rand<=0){result=e.k;break;} }
+
   addSeed(result);
-  showGardenMsg('♻️ composted 5 '+SEEDS[pick].name+'s → got '+SEEDS[result].emoji+' '+SEEDS[result].name+'!');
+  showGardenMsg(`♻️ composted ${cost}× ${SEEDS[pick].emoji}${SEEDS[pick].name} → got ${SEEDS[result].emoji} ${SEEDS[result].name}!`);
   addXP(8);
   renderInventory();
 }
@@ -1330,22 +1698,63 @@ function renderInventory() {
 }
 
 /* ── CODEX ── */
+let codexView = 'grid';
+function switchCodexView(v) {
+  codexView = v;
+  document.getElementById('cViewGrid').style.color = v==='grid' ? 'var(--text)' : 'var(--muted)';
+  document.getElementById('cViewList').style.color = v==='list' ? 'var(--text)' : 'var(--muted)';
+  renderCodex();
+}
+
 function renderCodex() {
   const el = document.getElementById('codexGrid');
   if (!el || !G.data) return;
   const disc = G.data.discoveries || [];
+  const bestSizes = G.data.bestSizes || {};
+  const counts = G.data.harvestCounts || {};
+  el.className = codexView === 'list' ? 'codex-grid list-view' : 'codex-grid';
   let html = '';
-  Object.keys(SEEDS).forEach(key => {
+  const discovered = Object.keys(SEEDS).filter(k=>disc.includes(k));
+  const undiscovered = Object.keys(SEEDS).filter(k=>!disc.includes(k));
+  const counterEl = document.getElementById('codexCount');
+  if (counterEl) counterEl.textContent = discovered.length + ' / ' + Object.keys(SEEDS).length + ' discovered';
+  // Discovered first, sorted by rarity then name
+  const rarityOrder = {COMMON:0,UNCOMMON:1,RARE:2,EPIC:3,LEGENDARY:4};
+  discovered.sort((a,b) => (rarityOrder[SEEDS[a].rarity]||0)-(rarityOrder[SEEDS[b].rarity]||0));
+  discovered.forEach(key => {
     const s = SEEDS[key];
-    const found = disc.includes(key);
-    html += `<div class="codex-card${found?' discovered':' codex-lock'}">
-      <div class="codex-emo">${found ? s.emoji : '❓'}</div>
-      <div class="codex-name" style="color:${found ? RARITY_COL[s.rarity] : 'var(--muted)'}">${found ? s.name : '???'}</div>
-      <div class="codex-rarity" style="color:${found ? RARITY_COL[s.rarity] : 'var(--muted)'}">${found ? s.rarity : '???'}</div>
-      <div class="codex-time">${found ? s.hint : ''}</div>
-      ${found ? '<div class="codex-desc">'+s.desc+'</div>' : '<div class="codex-desc" style="color:var(--muted)">not yet discovered</div>'}
+    const best = bestSizes[key] || 0;
+    const count = counts[key] || 0;
+    const bestStr = best > 0 ? `📏 Record: <span style="color:#FFD700">${best}cm</span>` : '📏 Not yet grown';
+    const countStr = count > 0 ? `🌾 Harvested: ${count}` : '';
+    html += `<div class="codex-card discovered" style="border-color:${RARITY_COL[s.rarity]}33">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div class="codex-emo">${s.emoji}</div>
+        <div>
+          <div class="codex-name" style="color:${RARITY_COL[s.rarity]}">${s.name}</div>
+          <div class="codex-rarity" style="color:${RARITY_COL[s.rarity]}">${s.rarity}</div>
+        </div>
+      </div>
+      <div class="codex-time">→ ${s.plant} · ${s.hint}</div>
+      <div class="codex-desc">${s.desc}</div>
+      <div class="codex-best-size">${bestStr}</div>
+      ${countStr ? `<div class="codex-harvest-count">${countStr}x</div>` : ''}
     </div>`;
   });
+  // Undiscovered locked cards
+  undiscovered.slice(0, 8).forEach(() => {
+    html += `<div class="codex-card codex-lock">
+      <div class="codex-emo">❓</div>
+      <div class="codex-name" style="color:var(--muted)">???</div>
+      <div class="codex-rarity" style="color:var(--muted)">???</div>
+      <div class="codex-desc" style="color:var(--muted)">not yet discovered</div>
+    </div>`;
+  });
+  if (undiscovered.length > 8) {
+    html += `<div class="codex-card codex-lock" style="align-items:center;justify-content:center;">
+      <div style="font-size:11px;color:var(--muted);text-align:center;">+${undiscovered.length-8} more to find...</div>
+    </div>`;
+  }
   el.innerHTML = html;
 }
 
@@ -1356,17 +1765,108 @@ function renderStats() {
   if (h) h.textContent = '🌾 '+(G.data.harvested||0)+' harvested';
   if (t) t.textContent = '🌱 '+(G.data.totalFound||0)+' seeds found';
   document.getElementById('gardenLevelBadge').textContent = 'LVL '+getLevel();
+  // Prestige badge
+  const pBadge = document.getElementById('prestigeBadge');
+  const prestige = G.data.prestige || 0;
+  if (pBadge) pBadge.textContent = prestige > 0 ? '✨'.repeat(Math.min(prestige,5)) : '';
+  // Prestige button
+  const pBtn = document.getElementById('prestigeBtn');
+  const pInfo = document.getElementById('prestigeInfo');
+  if (pBtn && pInfo) {
+    if (getLevel() >= 50) {
+      pBtn.style.display = '';
+      pInfo.textContent = `You've reached LVL 50! Prestige to earn ✨ and reset your level. Your codex, name and prestige count are kept.`;
+    } else {
+      pBtn.style.display = 'none';
+      const xpNeeded = getXpToNextLevel(getLevel()) - (G.data.xp||0);
+      const nextPrestLevel = prestige >= 1 ? `Prestige ${prestige+1} available at LVL 50` : 'Reach LVL 50 to prestige — earns ✨ next to your leaderboard name!';
+      pInfo.textContent = nextPrestLevel;
+    }
+  }
 }
 
 function updatePlotLocks() {
   const harv = G.data ? (G.data.harvested||0) : 0;
+  const numPlots = G.unlockedPlots;
+  for (let i = 0; i < 9; i++) {
+    const wrap = document.getElementById('plotwrap'+i);
+    if (!wrap) continue;
+    const lock = document.getElementById('plot'+i+'lock');
+    if (i < numPlots) {
+      if (lock) lock.style.display = 'none';
+      wrap.style.display = '';
+    } else {
+      wrap.style.display = 'none';
+    }
+  }
+  // First-unlock hints for plots 2 & 3 (before level rewards kick in)
   const lock2 = document.getElementById('plot2lock');
   const lock3 = document.getElementById('plot3lock');
-  if (lock2) lock2.style.display = harv >= 1 ? 'none' : '';
-  if (lock3) lock3.style.display = harv >= 5 ? 'none' : '';
+  if (lock2 && numPlots <= 2) lock2.style.display = harv >= 1 ? 'none' : '';
+  if (lock3 && numPlots <= 3) lock3.style.display = harv >= 5 ? 'none' : '';
+}
+
+function rebuildPlots() {
+  const row = document.getElementById('plotsRow');
+  if (!row) return;
+  const numPlots = G.unlockedPlots;
+  // Add any missing plot wrappers up to 9
+  for (let i = 0; i < 9; i++) {
+    let wrap = document.getElementById('plotwrap'+i);
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'plot-wrap';
+      wrap.id = 'plotwrap'+i;
+      wrap.setAttribute('onclick','clickPlot('+i+')');
+      wrap.innerHTML = `<canvas class="plot-canvas" id="plot${i}"></canvas>
+        <div class="water-btn-wrap"><button class="water-btn" id="waterBtn${i}" onclick="waterPlot(event,${i})" title="Water">💧</button></div>`;
+      if (i >= 4) {
+        const lk = document.createElement('div');
+        lk.className = 'plot-locked'; lk.id = 'plot'+i+'lock';
+        lk.innerHTML = '<div class="lock-icon">🔒</div><div class="lock-txt">LVL '+
+          Object.entries(LEVEL_REWARDS).find(([,r])=>r.type==='plot'&&r.val===i+1)?.[0]
+          +'<br>to unlock</div>';
+        wrap.appendChild(lk);
+      }
+      row.appendChild(wrap);
+    }
+    wrap.style.display = i < numPlots ? '' : 'none';
+  }
+  // Update lock overlays
+  updatePlotLocks();
+  // Re-init the canvas IDs for render loop
+  startRenderLoop();
+}
+
+/* ── PRESTIGE ── */
+function doPrestige() {
+  if (!G.data || getLevel() < 50) return;
+  if (!confirm('Are you sure? Your level resets to 1 but you keep your Codex, seeds and earn a ✨ star!')) return;
+  G.data.prestige = (G.data.prestige||0) + 1;
+  G.data.xp = 0;
+  // Give some starting seeds as reward
+  G.data.seeds.rare = (G.data.seeds.rare||0) + G.data.prestige * 2;
+  reapplyAllLevelRewards();
+  renderStats();
+  updateXPBar();
+  showGardenMsg(`✨ PRESTIGE ${G.data.prestige}! Welcome back, legend. Here's some rare seeds!`);
+  updateLeaderboard();
+  saveData();
 }
 
 /* ── LEADERBOARD ── */
+let lbTab = 'size';
+function switchLbTab(tab) {
+  lbTab = tab;
+  ['size','harvest','xp'].forEach(t => {
+    document.getElementById('lbTab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t===tab);
+  });
+  const labels = { size:'📏 BIGGEST PLANT THIS SEASON', harvest:'🌾 TOTAL HARVESTS ALL TIME', xp:'⭐ TOTAL XP ALL TIME' };
+  const lbLabel = document.getElementById('lbSeasonLabel');
+  if (lbLabel) lbLabel.textContent = labels[tab] || '';
+  loadLeaderboard();
+}
+
 function saveLbName() {
   if (!G.data) return;
   const inp = document.getElementById('lbNameInput');
@@ -1378,10 +1878,24 @@ function saveLbName() {
 
 function updateLeaderboard() {
   if (!G.data) return;
-  const name = G.data.lbName || G.playerId.slice(0,8);
+  const name = G.data.lbName || ('Gardener #'+G.playerId.slice(2,6));
+  const seasonKey = getCurrentSeasonKey();
+  const seasonBestEntry = (G.data.seasonBest && G.data.seasonBest[seasonKey]) || { size:0, name:'-', emoji:'🌱' };
+  const prestige = G.data.prestige || 0;
+  const prestigeStr = '✨'.repeat(Math.min(prestige,5));
+
   getDb().then(db => {
-    db.collection('garden_lb').doc(G.playerId).set({
-      name, harvested: G.data.harvested||0, xp: G.data.xp||0, ts: Date.now()
+    db.collection('garden_lb_v2').doc(G.playerId).set({
+      name,
+      prestigeStr,
+      prestige,
+      harvested: G.data.harvested || 0,
+      xp: G.data.xp || 0,
+      level: getLevel(),
+      seasonKey,
+      seasonBestSize: seasonBestEntry.size || 0,
+      seasonBestPlant: (seasonBestEntry.emoji||'🌱') + ' ' + (seasonBestEntry.name||'none'),
+      ts: Date.now()
     }, {merge:true}).then(loadLeaderboard).catch(()=>{});
   }).catch(()=>{});
 }
@@ -1389,24 +1903,74 @@ function updateLeaderboard() {
 function loadLeaderboard() {
   const el = document.getElementById('leaderboardList');
   if (!el) return;
+  el.innerHTML = '<span style="font-size:11px;color:var(--muted);">loading...</span>';
+
+  // Sort field and display based on tab
+  const seasonKey = getCurrentSeasonKey();
+  const orderField = lbTab==='size' ? 'seasonBestSize' : lbTab==='harvest' ? 'harvested' : 'xp';
+
   getDb().then(db => {
-    db.collection('garden_lb').orderBy('harvested','desc').limit(10).get().then(snap => {
-      if (snap.empty) { el.innerHTML='<span style="font-size:11px;color:var(--muted)">no entries yet — be first!</span>'; return; }
+    db.collection('garden_lb_v2').orderBy(orderField,'desc').limit(15).get().then(snap => {
+      if (snap.empty) {
+        el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">🌱 no entries yet — be the first!</div>';
+        return;
+      }
       const rankEmoji = ['🥇','🥈','🥉'];
       let html = '';
-      snap.docs.forEach((doc,i) => {
+      snap.docs.forEach((doc, i) => {
         const d = doc.data();
         const isMe = doc.id === G.playerId;
         const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-        html += `<div class="lb-row${isMe?' me':''}">
+        const pStr = d.prestigeStr || '';
+        let scoreHtml = '';
+        if (lbTab === 'size') {
+          const sz = d.seasonBestSize || 0;
+          const plant = d.seasonBestPlant || '🌱 —';
+          const pct = Math.min(sz / 130 * 100, 100);
+          scoreHtml = `<div style="text-align:right;">
+            <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:#FFD700;">${sz}cm</div>
+            <div style="font-size:9px;color:var(--muted);">${plant}</div>
+            <div class="lb-size-bar" style="width:60px;margin-top:3px;"><div class="lb-size-fill" style="width:${pct}%"></div></div>
+          </div>`;
+        } else if (lbTab === 'harvest') {
+          scoreHtml = `<span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#11ED34;">${d.harvested||0} 🌾</span>`;
+        } else {
+          scoreHtml = `<span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#FFD700;">${d.xp||0} ⭐</span>`;
+        }
+        html += `<div class="lb-row${isMe?' me':''}" style="align-items:flex-start;">
           <span class="lb-rank ${rankClass}">${rankEmoji[i]||('#'+(i+1))}</span>
-          <span class="lb-name">${d.name||'Gardener'} ${isMe?'(you)':''}</span>
-          <span class="lb-score">${d.harvested||0} 🌾</span>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:4px;">
+              ${pStr ? `<span style="font-size:10px;">${pStr}</span>` : ''}
+              <span class="lb-name">${d.name||'Gardener'}${isMe?' <span style="color:var(--muted);font-size:10px;">(you)</span>':''}</span>
+            </div>
+            <div style="font-size:9px;color:var(--muted);">LVL ${d.level||1} · ${d.prestige||0>0?d.prestige+'× prestige':''}</div>
+          </div>
+          ${scoreHtml}
         </div>`;
       });
       el.innerHTML = html;
-    }).catch(()=>{ el.innerHTML='<span style="font-size:11px;color:var(--muted)">leaderboard offline</span>'; });
-  }).catch(()=>{ el.innerHTML='<span style="font-size:11px;color:var(--muted)">leaderboard offline</span>'; });
+    }).catch(err => {
+      el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">leaderboard offline — scores save locally</div>';
+    });
+  }).catch(() => {
+    el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">leaderboard offline — scores save locally</div>';
+  });
+}
+
+/* ── HELP PANEL ── */
+function initHelpPanel() {
+  // Close help when clicking outside
+  document.addEventListener('click', e => {
+    const panel = document.getElementById('helpPanel');
+    if (panel && !panel.contains(e.target)) {
+      document.getElementById('helpDrawer').style.display = 'none';
+    }
+  });
+}
+function toggleHelp() {
+  const d = document.getElementById('helpDrawer');
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
 }
 
 /* ── GARDEN MESSAGE ── */

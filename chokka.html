@@ -847,21 +847,73 @@ _checkLive();setInterval(_checkLive,120000);
 ══════════════════════════════════════════ */
 
 const SEEDS = {
-  common:    { name:'Seedling',     plant:'Sproutling',     emoji:'🌱', color:'#88cc44', growMs:8*60*1000,      rarity:'COMMON',    weight:50, hint:'grows in 8 min',   desc:'A humble green sprout. The start of every great garden.' },
-  uncommon:  { name:'Surf Leaf',    plant:'Surf Plant',     emoji:'🌿', color:'#00FFEE', growMs:25*60*1000,     rarity:'UNCOMMON',  weight:24, hint:'grows in 25 min',  desc:'Thrives near water. Smells faintly of the ocean.' },
-  rare:      { name:'Neon Petal',   plant:'Neon Bloom',     emoji:'🌸', color:'#CC44FF', growMs:90*60*1000,     rarity:'RARE',      weight:11, hint:'grows in 1.5 hr',  desc:'Glows in the dark. Attracts rare insects.' },
-  epic:      { name:'Void Spore',   plant:'Void Fern',      emoji:'💜', color:'#FF6600', growMs:5*3600*1000,    rarity:'EPIC',      weight:5,  hint:'grows in 5 hrs',   desc:'From another dimension. Very hard to find.' },
-  legendary: { name:'Wave Seed',    plant:'Waveplant',      emoji:'🌊', color:'#FFD700', growMs:12*3600*1000,   rarity:'LEGENDARY', weight:1,  hint:'grows in 12 hrs',  desc:'The rarest of all. Legends say it blooms once a year.' },
-  crystal:   { name:'Crystal Bud',  plant:'Crystal Bloom',  emoji:'💎', color:'#00e5ff', growMs:45*60*1000,     rarity:'RARE',      weight:7,  hint:'grows in 45 min',  desc:'Translucent petals that shimmer like glass.' },
-  shadow:    { name:'Shadow Sprig', plant:'Shadow Lily',    emoji:'🖤', color:'#9b2aff', growMs:3*3600*1000,    rarity:'EPIC',      weight:3,  hint:'grows in 3 hrs',   desc:'Only blooms at night. Very mysterious.' },
-  fire:      { name:'Ember Seed',   plant:'Blazeflower',    emoji:'🔥', color:'#ff4400', growMs:60*60*1000,     rarity:'RARE',      weight:9,  hint:'grows in 1 hr',    desc:'Warm to the touch. Grows fast with enough water.' },
-  ice:       { name:'Frost Pip',    plant:'Glacial Fern',   emoji:'❄️', color:'#aaddff', growMs:2*3600*1000,    rarity:'EPIC',      weight:4,  hint:'grows in 2 hrs',   desc:'Ice-cold to touch. Grows best in cool seasons.' },
-  mushroom:  { name:'Spore Cap',    plant:'Glowshroom',     emoji:'🍄', color:'#ff88cc', growMs:20*60*1000,     rarity:'UNCOMMON',  weight:16, hint:'grows in 20 min',  desc:'Bioluminescent cap. Grows surprisingly fast!' },
+  // ── COMMON (weight 40-60) ──
+  common:      { name:'Seedling',      plant:'Sproutling',      emoji:'🌱', color:'#88cc44', growMs:8*60*1000,      rarity:'COMMON',    weight:55, hint:'8 min',   desc:'A humble green sprout. The start of every great garden.' },
+  clover:      { name:'Lucky Clover',  plant:'Clover Patch',    emoji:'🍀', color:'#44dd66', growMs:6*60*1000,      rarity:'COMMON',    weight:50, hint:'6 min',   desc:'Three leaves means lucky. Four means legendary.' },
+  daisy:       { name:'Daisy Seed',    plant:'Daisy Field',     emoji:'🌼', color:'#ffee55', growMs:10*60*1000,     rarity:'COMMON',    weight:48, hint:'10 min',  desc:'Cheerful little flower that brightens any garden.' },
+  cactus:      { name:'Cactus Nub',    plant:'Desert Spike',    emoji:'🌵', color:'#44bb44', growMs:12*60*1000,     rarity:'COMMON',    weight:44, hint:'12 min',  desc:'Spiky but loveable. Barely needs watering.' },
+  bean:        { name:'Magic Bean',    plant:'Beanstalk',       emoji:'🫘', color:'#66aa44', growMs:15*60*1000,     rarity:'COMMON',    weight:40, hint:'15 min',  desc:'Rumoured to reach the clouds if grown under a full moon.' },
+  fern:        { name:'Fern Frond',    plant:'Curly Fern',      emoji:'🌿', color:'#33bb55', growMs:9*60*1000,      rarity:'COMMON',    weight:46, hint:'9 min',   desc:'Prehistoric plant that survived the dinosaurs.' },
+  tulip:       { name:'Tulip Bulb',    plant:'Red Tulip',       emoji:'🌷', color:'#ff6688', growMs:14*60*1000,     rarity:'COMMON',    weight:42, hint:'14 min',  desc:'Classic spring flower. Perfect gift for anyone.' },
+  sunflower:   { name:'Sun Seed',      plant:'Sunflower',       emoji:'🌻', color:'#ffcc00', growMs:18*60*1000,     rarity:'COMMON',    weight:38, hint:'18 min',  desc:'Always faces the sun. Tall, bright, and full of seeds.' },
+
+  // ── UNCOMMON (weight 14-26) ──
+  uncommon:    { name:'Surf Leaf',     plant:'Surf Plant',      emoji:'🌿', color:'#00FFEE', growMs:25*60*1000,     rarity:'UNCOMMON',  weight:24, hint:'25 min',  desc:'Thrives near water. Smells faintly of the ocean.' },
+  mushroom:    { name:'Spore Cap',     plant:'Glowshroom',      emoji:'🍄', color:'#ff88cc', growMs:20*60*1000,     rarity:'UNCOMMON',  weight:22, hint:'20 min',  desc:'Bioluminescent cap. Grows surprisingly fast!' },
+  bamboo:      { name:'Bamboo Shoot',  plant:'Bamboo Grove',    emoji:'🎋', color:'#55cc66', growMs:30*60*1000,     rarity:'UNCOMMON',  weight:20, hint:'30 min',  desc:'Grows incredibly fast. Pandas dream of this garden.' },
+  lavender:    { name:'Lavender Bud',  plant:'Lavender Bush',   emoji:'💜', color:'#aa66ff', growMs:28*60*1000,     rarity:'UNCOMMON',  weight:20, hint:'28 min',  desc:'Calming scent drifts through the garden at dusk.' },
+  rose:        { name:'Rose Hip',      plant:'Velvet Rose',     emoji:'🌹', color:'#cc2244', growMs:35*60*1000,     rarity:'UNCOMMON',  weight:18, hint:'35 min',  desc:'Elegant and thorny. Worth the effort.' },
+  herb:        { name:'Herb Sprig',    plant:'Herb Garden',     emoji:'🌿', color:'#66bb44', growMs:22*60*1000,     rarity:'UNCOMMON',  weight:18, hint:'22 min',  desc:'Basil, rosemary, thyme — smells amazing.' },
+  ginger:      { name:'Ginger Root',   plant:'Ginger Plant',    emoji:'🫚', color:'#cc8833', growMs:40*60*1000,     rarity:'UNCOMMON',  weight:16, hint:'40 min',  desc:'Spicy underground root with a fiery kick.' },
+  lily:        { name:'Lily Seed',     plant:'Water Lily',      emoji:'🏵️', color:'#ffaacc', growMs:32*60*1000,     rarity:'UNCOMMON',  weight:16, hint:'32 min',  desc:'Floats peacefully on still water.' },
+  vine:        { name:'Creeper Vine',  plant:'Climbing Vine',   emoji:'🍃', color:'#22aa44', growMs:26*60*1000,     rarity:'UNCOMMON',  weight:14, hint:'26 min',  desc:'Crawls up walls and wraps around everything.' },
+
+  // ── RARE (weight 5-14) ──
+  rare:        { name:'Neon Petal',    plant:'Neon Bloom',      emoji:'🌸', color:'#CC44FF', growMs:90*60*1000,     rarity:'RARE',      weight:12, hint:'1.5 hr',  desc:'Glows in the dark. Attracts rare insects.' },
+  crystal:     { name:'Crystal Bud',   plant:'Crystal Bloom',   emoji:'💎', color:'#00e5ff', growMs:45*60*1000,     rarity:'RARE',      weight:10, hint:'45 min',  desc:'Translucent petals that shimmer like glass.' },
+  fire:        { name:'Ember Seed',    plant:'Blazeflower',     emoji:'🔥', color:'#ff4400', growMs:60*60*1000,     rarity:'RARE',      weight:10, hint:'1 hr',    desc:'Warm to the touch. Grows fast with enough water.' },
+  orchid:      { name:'Orchid Pod',    plant:'Phantom Orchid',  emoji:'🌺', color:'#ff55aa', growMs:75*60*1000,     rarity:'RARE',      weight:9,  hint:'1.25 hr', desc:'Rare and beautiful. Blooms only once per season.' },
+  tropic:      { name:'Tropic Seed',   plant:'Bird of Paradise',emoji:'🦜', color:'#ff8800', growMs:80*60*1000,     rarity:'RARE',      weight:8,  hint:'1.3 hr',  desc:'Exotic bloom shaped like a tropical bird mid-flight.' },
+  bonsai:      { name:'Bonsai Nub',    plant:'Ancient Bonsai',  emoji:'🌳', color:'#885533', growMs:70*60*1000,     rarity:'RARE',      weight:8,  hint:'1.1 hr',  desc:'Miniature ancient tree. Grown with patience and care.' },
+  carnivore:   { name:'Fly Trap Seed', plant:'Venus Snap',      emoji:'🪲', color:'#aa2233', growMs:65*60*1000,     rarity:'RARE',      weight:7,  hint:'65 min',  desc:'Snaps shut on anything that lands inside. Do not pet.' },
+  luminara:    { name:'Lumi Spore',    plant:'Luminara',        emoji:'✨', color:'#ffff88', growMs:85*60*1000,     rarity:'RARE',      weight:7,  hint:'1.4 hr',  desc:'Bioluminescent flower that lights up at night like a lantern.' },
+  sakura:      { name:'Sakura Pip',    plant:'Cherry Blossom',  emoji:'🌸', color:'#ffaabb', growMs:55*60*1000,     rarity:'RARE',      weight:6,  hint:'55 min',  desc:'Petals fall like pink snow. Beautiful but fleeting.' },
+  seaweed:     { name:'Tide Seed',     plant:'Sea Garden',      emoji:'🌊', color:'#00bbcc', growMs:50*60*1000,     rarity:'RARE',      weight:6,  hint:'50 min',  desc:'Underwater plant that grows on the shore. Ocean-scented.' },
+  aurora:      { name:'Aurora Bud',    plant:'Aurora Bloom',    emoji:'🌌', color:'#44ffcc', growMs:100*60*1000,    rarity:'RARE',      weight:5,  hint:'1.6 hr',  desc:'Colours shift like the northern lights as it blooms.' },
+
+  // ── EPIC (weight 2-6) ──
+  epic:        { name:'Void Spore',    plant:'Void Fern',       emoji:'🌀', color:'#FF6600', growMs:5*3600*1000,    rarity:'EPIC',      weight:6,  hint:'5 hrs',   desc:'From another dimension. Very hard to find.' },
+  shadow:      { name:'Shadow Sprig',  plant:'Shadow Lily',     emoji:'🖤', color:'#9b2aff', growMs:3*3600*1000,    rarity:'EPIC',      weight:5,  hint:'3 hrs',   desc:'Only blooms at night. Very mysterious.' },
+  ice:         { name:'Frost Pip',     plant:'Glacial Fern',    emoji:'❄️', color:'#aaddff', growMs:2*3600*1000,    rarity:'EPIC',      weight:5,  hint:'2 hrs',   desc:'Ice-cold to touch. Grows best in cool seasons.' },
+  dragonfruit: { name:'Dragon Pip',    plant:'Dragonbloom',     emoji:'🐉', color:'#ff2244', growMs:4*3600*1000,    rarity:'EPIC',      weight:4,  hint:'4 hrs',   desc:'Scales like a dragon. Breathes a tiny spark at dawn.' },
+  galaxy:      { name:'Galaxy Seed',   plant:'Galaxy Blossom',  emoji:'🌠', color:'#8844ff', growMs:6*3600*1000,    rarity:'EPIC',      weight:4,  hint:'6 hrs',   desc:'Petals hold a swirling cosmos inside. Stare too long and get lost.' },
+  venom:       { name:'Venom Pod',     plant:'Venomcap',        emoji:'☠️', color:'#66ff44', growMs:3.5*3600*1000,  rarity:'EPIC',      weight:3,  hint:'3.5 hrs', desc:'Toxic but gorgeous. Do not eat the berries.' },
+  magma:       { name:'Magma Nub',     plant:'Magma Flower',    emoji:'🌋', color:'#ff6600', growMs:4.5*3600*1000,  rarity:'EPIC',      weight:3,  hint:'4.5 hrs', desc:'Grows from volcanic rock. Leaves crackle with heat.' },
+  storm:       { name:'Storm Seed',    plant:'Storm Lily',      emoji:'⚡', color:'#ddddff', growMs:2.5*3600*1000,  rarity:'EPIC',      weight:4,  hint:'2.5 hrs', desc:'Charges the air with static electricity.' },
+  haunted:     { name:'Ghost Spore',   plant:'Hauntbloom',      emoji:'👻', color:'#ccccff', growMs:4*3600*1000,    rarity:'EPIC',      weight:3,  hint:'4 hrs',   desc:'Disappears at dawn and reappears at dusk. Spooky.' },
+  neon:        { name:'Neon Tuber',    plant:'Neon Cactus',     emoji:'🟣', color:'#ff00ff', growMs:3*3600*1000,    rarity:'EPIC',      weight:3,  hint:'3 hrs',   desc:'Glows acid-bright in the dark. Very 80s.' },
+  prism:       { name:'Prism Seed',    plant:'Prism Flower',    emoji:'🌈', color:'#ffffff', growMs:5.5*3600*1000,  rarity:'EPIC',      weight:2,  hint:'5.5 hrs', desc:'Splits light into a spectrum of colours when it blooms.' },
+
+  // ── LEGENDARY (weight 0.5-1.5) ──
+  legendary:   { name:'Wave Seed',     plant:'Waveplant',       emoji:'🌊', color:'#FFD700', growMs:12*3600*1000,   rarity:'LEGENDARY', weight:1.5,hint:'12 hrs',  desc:'The rarest of all. Legends say it blooms once a year.' },
+  phoenix:     { name:'Phoenix Ash',   plant:'Phoenix Bloom',   emoji:'🔥', color:'#ff8800', growMs:10*3600*1000,   rarity:'LEGENDARY', weight:1.2,hint:'10 hrs',  desc:'Burns to ash and regrows. The cycle of life made visible.' },
+  cosmos:      { name:'Cosmos Seed',   plant:'Cosmic Tree',     emoji:'🌌', color:'#aa44ff', growMs:14*3600*1000,   rarity:'LEGENDARY', weight:0.8,hint:'14 hrs',  desc:'A tree that contains an entire galaxy within its canopy.' },
+  timeless:    { name:'Time Spore',    plant:'Timeless Bloom',  emoji:'⏳', color:'#ffffaa', growMs:8*3600*1000,    rarity:'LEGENDARY', weight:1.0,hint:'8 hrs',   desc:'Grows backwards and forwards through time simultaneously.' },
+  sovereign:   { name:'Royal Bulb',    plant:'Sovereign Rose',  emoji:'👑', color:'#FFD700', growMs:16*3600*1000,   rarity:'LEGENDARY', weight:0.6,hint:'16 hrs',  desc:'Only one blooms in any garden at a time. Crown of all plants.' },
+  nebula:      { name:'Nebula Dust',   plant:'Nebula Bloom',    emoji:'💫', color:'#cc88ff', growMs:20*3600*1000,   rarity:'LEGENDARY', weight:0.5,hint:'20 hrs',  desc:'Born from a supernova. Radiates cosmic energy.' },
+  worldtree:   { name:'World Seed',    plant:'World Tree',      emoji:'🌍', color:'#44ff88', growMs:24*3600*1000,   rarity:'LEGENDARY', weight:0.4,hint:'24 hrs',  desc:'A seed said to contain all other plants within it.' },
+  rainbow:     { name:'Rainbow Pip',   plant:'Rainbow Garden',  emoji:'🌈', color:'#ff88cc', growMs:18*3600*1000,   rarity:'LEGENDARY', weight:0.7,hint:'18 hrs',  desc:'Every petal is a different colour. No two are ever alike.' },
+  void:        { name:'Void Lotus',    plant:'Void Lotus',      emoji:'⚫', color:'#6600ff', growMs:15*3600*1000,   rarity:'LEGENDARY', weight:0.6,hint:'15 hrs',  desc:'A flower that absorbs all light. Dark as the void itself.' },
 };
 
 const RARITY_COL = { COMMON:'#88cc44', UNCOMMON:'#00FFEE', RARE:'#CC44FF', EPIC:'#FF6600', LEGENDARY:'#FFD700' };
 const SEASONS = ['🌸 Spring','☀️ Summer','🍂 Autumn','❄️ Winter'];
-const SEASON_BOOSTS = { '🌸 Spring': {uncommon:1.3,crystal:1.4}, '☀️ Summer': {fire:1.6,common:1.2}, '🍂 Autumn': {mushroom:1.5,shadow:1.3}, '❄️ Winter': {ice:1.6,legendary:1.2} };
+const SEASON_BOOSTS = {
+  '🌸 Spring':  { uncommon:1.4, sakura:2.0, tulip:1.6, rose:1.4, lavender:1.3, daisy:1.5, lily:1.4, orchid:1.3 },
+  '☀️ Summer':  { fire:1.8, tropic:2.0, sunflower:2.0, cactus:1.6, common:1.3, ginger:1.5, magma:1.4, seaweed:1.3 },
+  '🍂 Autumn':  { mushroom:1.8, shadow:1.5, vine:1.4, bonsai:1.5, haunted:1.8, venom:1.3, fern:1.4, herb:1.3 },
+  '❄️ Winter':  { ice:2.0, crystal:1.6, legendary:1.3, aurora:1.6, storm:1.4, frost:1.5, clover:0.7, daisy:0.6 }
+};
 
 const G = {
   playerId: null,
@@ -893,13 +945,16 @@ function getPlayerId() {
 }
 
 function defaultData() {
+  const seeds = {};
+  Object.keys(SEEDS).forEach(k => seeds[k] = 0);
+  seeds.common = 3; seeds.clover = 1; seeds.fern = 1; seeds.uncommon = 1;
   return {
-    seeds: { common:3, uncommon:1, rare:0, epic:0, legendary:0, crystal:0, shadow:0, fire:0, ice:0, mushroom:0 },
+    seeds,
     plot0: null, plot1: null, plot2: null, plot3: null,
     harvested: 0,
-    totalFound: 4,
+    totalFound: 6,
     lastDig: 0,
-    discoveries: ['common','uncommon'],
+    discoveries: ['common','clover','fern','uncommon'],
     waterCharges: 5,
     lastWaterRefill: Date.now(),
     compostCount: 0,
@@ -1166,8 +1221,14 @@ function compostAction() {
   const pick = order.find(k => keys.includes(k)) || keys[0];
   G.data.seeds[pick] -= 5;
   G.data.compostCount = (G.data.compostCount||0) + 1;
-  // Better seed roll (weighted toward rare+)
-  const weights = {common:2,uncommon:5,mushroom:5,crystal:8,fire:8,ice:5,rare:14,shadow:6,epic:9,legendary:2};
+  // Better seed roll (weighted toward rare+) — all new seeds included
+  const weights = {
+    common:2,clover:2,daisy:2,cactus:2,bean:2,fern:2,tulip:2,sunflower:2,
+    uncommon:4,mushroom:4,bamboo:4,lavender:4,rose:3,herb:3,ginger:3,lily:3,vine:3,
+    crystal:8,fire:7,rare:7,orchid:6,tropic:6,bonsai:6,carnivore:5,luminara:5,sakura:5,seaweed:5,aurora:4,
+    epic:4,shadow:3,ice:3,dragonfruit:3,galaxy:3,venom:2,magma:2,storm:3,haunted:2,neon:2,prism:2,
+    legendary:1,phoenix:1,cosmos:0.5,timeless:1,sovereign:0.4,nebula:0.3,worldtree:0.3,rainbow:0.6,void:0.5
+  };
   const wkeys = Object.keys(weights);
   const total = wkeys.reduce((a,b)=>a+weights[b],0);
   let r = Math.random()*total;
@@ -1576,11 +1637,20 @@ function drawPlantVisual(ctx, cx, potY, potH, W, H, type, pct, s, waterCount) {
 
   // Draw by plant type
   switch(type) {
-    case 'fire': drawFirePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
-    case 'ice': drawIcePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
-    case 'crystal': drawCrystalPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
-    case 'shadow': drawShadowPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
-    case 'mushroom': drawMushroomPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'fire': case 'magma': case 'phoenix': drawFirePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'ice': case 'aurora': drawIcePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'crystal': case 'prism': drawCrystalPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'shadow': case 'void': case 'haunted': drawShadowPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'mushroom': case 'venom': drawMushroomPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'cactus': drawCactusPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'bamboo': drawBambooPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'storm': case 'lightning': drawStormPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'galaxy': case 'cosmos': case 'nebula': drawGalaxyPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'legendary': case 'worldtree': drawWavePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'carnivore': drawCarnivorePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'bonsai': drawBonsaiPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'rainbow': drawRainbowPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'dragonfruit': drawDragonPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     default: drawDefaultPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t,W); break;
   }
 }
@@ -1786,6 +1856,313 @@ function drawMushroomPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
         ctx.fillStyle='rgba(255,180,220,0.8)'; ctx.shadowColor='#ff88cc'; ctx.shadowBlur=6*sp2; ctx.fill(); ctx.shadowBlur=0;
       }
     }
+  }
+}
+
+function drawWavePlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  // Wavy golden stem
+  ctx.beginPath(); ctx.moveTo(cx, potY-3);
+  for(let i=1;i<=20;i++){
+    const y=potY-stemH*(i/20), x=cx+sway+Math.sin(t+i*0.7)*5*pct;
+    ctx.lineTo(x,y);
+  }
+  ctx.strokeStyle='#FFD700'; ctx.lineWidth=Math.max(2,pct*3); ctx.lineCap='round';
+  ctx.shadowColor='#FFD700'; ctx.shadowBlur=12; ctx.stroke(); ctx.shadowBlur=0;
+  if (pct>0.2) {
+    for(let i=0;i<4;i++){
+      if(pct<0.2+i*0.2) continue;
+      const lp=Math.min((pct-0.2-i*0.2)/0.2,1);
+      const ly=potY-stemH*(0.3+i*0.18), dir=i%2?1:-1;
+      ctx.save(); ctx.translate(cx+sway,ly); ctx.rotate(dir*0.5);
+      ctx.beginPath(); ctx.ellipse(dir*14*lp,-8*lp,14*lp,6*lp,0,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,215,0,0.6)'; ctx.shadowColor='#FFD700'; ctx.shadowBlur=8*lp; ctx.fill(); ctx.shadowBlur=0; ctx.restore();
+    }
+  }
+  if(pct>0.75){
+    const bp=Math.min((pct-0.75)/0.25,1);
+    ctx.save(); ctx.translate(cx+sway,stemTop); ctx.rotate(t*0.2);
+    for(let i=0;i<10;i++){
+      const a=(i/10)*Math.PI*2, r=16*bp;
+      ctx.beginPath(); ctx.ellipse(Math.cos(a)*r,Math.sin(a)*r,5*bp,8*bp,a,0,Math.PI*2);
+      ctx.fillStyle=`hsl(${40+i*12},100%,60%)`; ctx.globalAlpha=0.9*bp;
+      ctx.shadowColor='#FFD700'; ctx.shadowBlur=10*bp; ctx.fill();
+    }
+    ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+  }
+}
+
+function drawCactusPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  // Chunky green barrel cactus
+  const bH=stemH*pct, bW=Math.min(18, stemH*0.35);
+  ctx.beginPath();
+  ctx.roundRect(cx-bW/2+sway, potY-bH, bW, bH, [bW*0.5,bW*0.5,2,2]);
+  const g=ctx.createLinearGradient(cx-bW/2,0,cx+bW/2,0);
+  g.addColorStop(0,'#226622'); g.addColorStop(0.4,'#44bb44'); g.addColorStop(1,'#226622');
+  ctx.fillStyle=g; ctx.shadowColor='#33aa33'; ctx.shadowBlur=6; ctx.fill(); ctx.shadowBlur=0;
+  // Ribs
+  for(let i=1;i<4;i++){
+    const rx=cx-bW/2+sway+i*(bW/4);
+    ctx.beginPath(); ctx.moveTo(rx,potY); ctx.lineTo(rx,potY-bH);
+    ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=1; ctx.stroke();
+  }
+  // Spines
+  if(pct>0.3){
+    for(let r=0;r<4;r++) for(let c=0;c<3;c++){
+      const sx=cx-bW/2+sway+c*bW/2+bW/4, sy=potY-bH*(0.2+r*0.25);
+      if(sy<potY-bH) continue;
+      ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+7,sy-4); ctx.lineTo(sx,sy+2); ctx.closePath();
+      ctx.fillStyle='rgba(240,230,180,0.7)'; ctx.fill();
+    }
+  }
+  // Arms
+  if(pct>0.5){
+    const ap=Math.min((pct-0.5)/0.5,1);
+    const armH=stemH*0.4*ap, armY=potY-bH*0.65;
+    ctx.beginPath(); ctx.moveTo(cx+sway+bW/2,armY);
+    ctx.bezierCurveTo(cx+sway+bW/2+16*ap,armY,cx+sway+bW/2+20*ap,armY-armH,cx+sway+bW/2+10*ap,armY-armH);
+    ctx.lineWidth=Math.max(5,bW*0.5*ap); ctx.strokeStyle='#44bb44'; ctx.lineCap='round'; ctx.stroke();
+  }
+  // Flower on top
+  if(pct>0.8){
+    const bp=Math.min((pct-0.8)/0.2,1);
+    for(let i=0;i<6;i++){
+      const a=(i/6)*Math.PI*2;
+      ctx.beginPath(); ctx.ellipse(cx+sway+Math.cos(a)*7*bp,potY-bH-Math.sin(a)*7*bp,4*bp,6*bp,a,0,Math.PI*2);
+      ctx.fillStyle='#ff88aa'; ctx.globalAlpha=0.9*bp; ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    ctx.beginPath(); ctx.arc(cx+sway,potY-bH,4*bp,0,Math.PI*2);
+    ctx.fillStyle='#ffee00'; ctx.fill();
+  }
+}
+
+function drawBambooPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  const segments=Math.max(2,Math.floor(pct*8));
+  const segH=stemH/8;
+  for(let i=0;i<segments;i++){
+    const sy=potY-i*segH, ey=Math.max(stemTop,sy-segH);
+    const w=Math.max(3,8-i*0.5);
+    ctx.beginPath(); ctx.rect(cx-w/2+sway*0.3,ey,w,sy-ey);
+    const g=ctx.createLinearGradient(cx-w/2,0,cx+w/2,0);
+    g.addColorStop(0,'#336633'); g.addColorStop(0.5,'#66cc55'); g.addColorStop(1,'#336633');
+    ctx.fillStyle=g; ctx.fill();
+    // Node ring
+    ctx.beginPath(); ctx.rect(cx-w/2-1+sway*0.3,sy-3,w+2,4);
+    ctx.fillStyle='#2d5a2d'; ctx.fill();
+  }
+  // Side leaves
+  if(pct>0.4){
+    for(let i=0;i<3;i++){
+      if(pct<0.4+i*0.2) continue;
+      const lp=Math.min((pct-0.4-i*0.2)/0.2,1);
+      const ly=potY-stemH*(0.3+i*0.25), dir=i%2?1:-1;
+      ctx.save(); ctx.translate(cx+sway,ly); ctx.rotate(dir*0.8+Math.sin(t+i)*0.1);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(dir*20*lp,-4,dir*28*lp,-2,dir*24*lp,6*lp);
+      ctx.bezierCurveTo(dir*16*lp,10*lp,0,4,0,0);
+      ctx.fillStyle='#55cc44'; ctx.globalAlpha=0.85; ctx.fill(); ctx.globalAlpha=1; ctx.restore();
+    }
+  }
+}
+
+function drawStormPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  // Electric crackling stem
+  ctx.beginPath(); ctx.moveTo(cx,potY-3);
+  let px=cx,py=potY-3;
+  const segs=Math.max(4,Math.floor(pct*16));
+  for(let i=0;i<segs;i++){
+    const nx=cx+sway+(Math.random()-0.5)*10*pct;
+    const ny=py-stemH/segs;
+    ctx.lineTo(nx,ny); px=nx; py=ny;
+  }
+  ctx.strokeStyle='#ccccff'; ctx.lineWidth=Math.max(1.5,pct*2.5); ctx.lineCap='round';
+  ctx.shadowColor='#8888ff'; ctx.shadowBlur=12; ctx.stroke(); ctx.shadowBlur=0;
+  // Lightning sparks
+  if(pct>0.3){
+    for(let i=0;i<3;i++){
+      if(pct<0.3+i*0.2) continue;
+      const lp=Math.min((pct-0.3-i*0.2)/0.2,1);
+      const ly=potY-stemH*(0.3+i*0.25), dir=i%2?1:-1;
+      ctx.save(); ctx.translate(cx+sway,ly);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dir*12*lp,-8*lp); ctx.lineTo(dir*6*lp,-12*lp); ctx.lineTo(dir*18*lp,-20*lp);
+      ctx.strokeStyle='#ffff88'; ctx.lineWidth=2*lp; ctx.shadowColor='#ffff00'; ctx.shadowBlur=10*lp; ctx.stroke(); ctx.shadowBlur=0; ctx.restore();
+    }
+  }
+  if(pct>0.8){
+    const bp=Math.min((pct-0.8)/0.2,1);
+    ctx.save(); ctx.translate(cx+sway,stemTop);
+    ctx.shadowColor='#8888ff'; ctx.shadowBlur=20*bp;
+    for(let i=0;i<6;i++){
+      const a=(i/6)*Math.PI*2+t*1.5;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*18*bp,Math.sin(a)*18*bp);
+      ctx.strokeStyle=`hsl(${220+i*15},100%,80%)`; ctx.lineWidth=2*bp; ctx.stroke();
+    }
+    ctx.shadowBlur=0; ctx.restore();
+  }
+}
+
+function drawGalaxyPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  // Deep purple swirling stem
+  drawStem(ctx,cx,potY,stemH,stemTop,sway,'#6622cc',pct*2.5);
+  if(pct>0.2){
+    for(let i=0;i<4;i++){
+      if(pct<0.2+i*0.18) continue;
+      const lp=Math.min((pct-0.2-i*0.18)/0.2,1);
+      const ly=potY-stemH*(0.25+i*0.2), dir=i%2?1:-1;
+      ctx.save(); ctx.translate(cx+sway,ly);
+      ctx.beginPath(); ctx.ellipse(dir*12*lp,-8*lp,14*lp,7*lp,dir*0.4,0,Math.PI*2);
+      ctx.fillStyle=`hsla(${240+i*30},80%,60%,0.5)`; ctx.shadowColor='#8844ff'; ctx.shadowBlur=12*lp; ctx.fill(); ctx.shadowBlur=0; ctx.restore();
+    }
+  }
+  if(pct>0.7){
+    const bp=Math.min((pct-0.7)/0.3,1);
+    ctx.save(); ctx.translate(cx+sway,stemTop);
+    // Swirling galaxy disc
+    for(let arm=0;arm<3;arm++){
+      const baseAngle=(arm/3)*Math.PI*2+t*0.3;
+      for(let j=0;j<12;j++){
+        const a=baseAngle+j*0.4, r=(2+j*1.6)*bp;
+        const sx=Math.cos(a)*r, sy=Math.sin(a)*r*0.5;
+        ctx.beginPath(); ctx.arc(sx,sy,Math.max(0.5,1.5*bp-j*0.1),0,Math.PI*2);
+        ctx.fillStyle=`hsla(${260+arm*40+j*8},90%,70%,${(0.8-j*0.06)*bp})`;
+        ctx.shadowColor='#8844ff'; ctx.shadowBlur=4; ctx.fill();
+      }
+    }
+    ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+  }
+}
+
+function drawCarnivorePlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  drawStem(ctx,cx,potY,stemH,stemTop,sway,'#884422',pct*2.5);
+  // Trap leaves
+  if(pct>0.25){
+    for(let i=0;i<2;i++){
+      if(pct<0.25+i*0.3) continue;
+      const lp=Math.min((pct-0.25-i*0.3)/0.25,1);
+      const ly=potY-stemH*(0.4+i*0.3), dir=i%2?1:-1;
+      const snap=Math.sin(t*3+i)*0.3*lp;
+      ctx.save(); ctx.translate(cx+sway,ly);
+      // Trap upper jaw
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(dir*8*lp,-snap*10,dir*20*lp,-5*lp-snap*8,dir*18*lp,-14*lp);
+      ctx.bezierCurveTo(dir*10*lp,-10*lp,dir*5*lp,-4,0,0);
+      ctx.fillStyle='#cc2233'; ctx.shadowColor='#ff2233'; ctx.shadowBlur=6*lp; ctx.fill(); ctx.shadowBlur=0;
+      // Trap lower jaw
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(dir*8*lp,snap*4,dir*20*lp,3*lp+snap*4,dir*18*lp,10*lp);
+      ctx.bezierCurveTo(dir*10*lp,8*lp,dir*5*lp,2,0,0);
+      ctx.fillStyle='#cc2233'; ctx.fill();
+      // Teeth
+      for(let t2=0;t2<4;t2++){
+        const tx=dir*4*lp+dir*t2*3*lp, ty=-1;
+        ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(tx+dir*1.5,ty-5*lp); ctx.lineTo(tx+dir*3,ty);
+        ctx.fillStyle='#ffeecc'; ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+  if(pct>0.8){
+    const bp=Math.min((pct-0.8)/0.2,1);
+    ctx.save(); ctx.translate(cx+sway,stemTop);
+    ctx.beginPath(); ctx.arc(0,0,8*bp,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,50,50,0.7)'; ctx.shadowColor='#ff2233'; ctx.shadowBlur=16*bp; ctx.fill(); ctx.shadowBlur=0; ctx.restore();
+  }
+}
+
+function drawBonsaiPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  // Gnarled trunk
+  ctx.beginPath(); ctx.moveTo(cx,potY-3);
+  ctx.bezierCurveTo(cx+sway+6,potY-stemH*0.4,cx+sway-4,potY-stemH*0.65,cx+sway,stemTop);
+  ctx.strokeStyle='#664422'; ctx.lineWidth=Math.max(3,pct*6); ctx.lineCap='round';
+  ctx.shadowColor='#442211'; ctx.shadowBlur=4; ctx.stroke(); ctx.shadowBlur=0;
+  // Branches with clouds of leaves
+  if(pct>0.3){
+    const branches=[{x:0.4,y:0.5,dir:-1},{x:0.6,y:0.7,dir:1},{x:0.8,y:0.85,dir:-1}];
+    branches.forEach((b,i)=>{
+      if(pct<0.3+i*0.2) return;
+      const bp2=Math.min((pct-0.3-i*0.2)/0.2,1);
+      const bx=cx+sway+b.dir*18*bp2, by=potY-stemH*b.x;
+      ctx.beginPath(); ctx.moveTo(cx+sway,potY-stemH*b.x);
+      ctx.lineTo(bx,by-8*bp2);
+      ctx.strokeStyle='#664422'; ctx.lineWidth=Math.max(1.5,3-i)*bp2; ctx.stroke();
+      // Leaf cloud
+      if(bp2>0.5){
+        for(let j=0;j<6;j++){
+          const a=j/6*Math.PI*2+t*0.1, r=10*bp2;
+          ctx.beginPath(); ctx.arc(bx+Math.cos(a)*r,by-8*bp2+Math.sin(a)*r*0.6,6*bp2,0,Math.PI*2);
+          ctx.fillStyle='rgba(34,160,60,0.6)'; ctx.fill();
+        }
+      }
+    });
+  }
+  // Top canopy
+  if(pct>0.6){
+    const bp=Math.min((pct-0.6)/0.4,1);
+    for(let j=0;j<10;j++){
+      const a=j/10*Math.PI*2+t*0.05, r=14*bp;
+      ctx.beginPath(); ctx.arc(cx+sway+Math.cos(a)*r,stemTop+Math.sin(a)*r*0.6,8*bp,0,Math.PI*2);
+      ctx.fillStyle=`rgba(34,${140+j*10},50,${0.65*bp})`; ctx.fill();
+    }
+  }
+}
+
+function drawRainbowPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  // White/rainbow swirling stem
+  const grad=ctx.createLinearGradient(cx,potY,cx+sway,stemTop);
+  const hue=(t*30)%360;
+  grad.addColorStop(0,`hsl(${hue},100%,70%)`); grad.addColorStop(0.5,`hsl(${hue+120},100%,70%)`); grad.addColorStop(1,`hsl(${hue+240},100%,70%)`);
+  ctx.beginPath(); ctx.moveTo(cx,potY-3);
+  ctx.bezierCurveTo(cx+sway*1.5,potY-stemH*0.4,cx+sway*0.8,potY-stemH*0.7,cx+sway,stemTop);
+  ctx.strokeStyle=grad; ctx.lineWidth=Math.max(2,pct*3); ctx.lineCap='round';
+  ctx.shadowColor='#ff88ff'; ctx.shadowBlur=10; ctx.stroke(); ctx.shadowBlur=0;
+  // Rainbow petal arcs at top
+  if(pct>0.5){
+    const bp=Math.min((pct-0.5)/0.5,1);
+    ctx.save(); ctx.translate(cx+sway,stemTop);
+    for(let i=0;i<7;i++){
+      const r=(6+i*3)*bp;
+      ctx.beginPath(); ctx.arc(0,0,r,-Math.PI,0);
+      ctx.strokeStyle=`hsl(${i*51},100%,65%)`; ctx.lineWidth=2.5*bp; ctx.globalAlpha=0.8*bp;
+      ctx.shadowColor=`hsl(${i*51},100%,65%)`; ctx.shadowBlur=6; ctx.stroke();
+    }
+    ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
+  }
+}
+
+function drawDragonPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
+  // Scaly red stem
+  const seg=Math.max(3,Math.floor(pct*12));
+  for(let i=0;i<seg;i++){
+    const y1=potY-stemH*(i/seg), y2=potY-stemH*((i+1)/seg);
+    const sw=(4-i*0.2)*pct;
+    ctx.beginPath(); ctx.moveTo(cx+sway*(i/seg),y1); ctx.lineTo(cx+sway*((i+1)/seg),y2);
+    ctx.strokeStyle=`hsl(${10+i*4},90%,${35+i*3}%)`; ctx.lineWidth=Math.max(2,sw); ctx.lineCap='round';
+    ctx.shadowColor='#ff2200'; ctx.shadowBlur=8; ctx.stroke(); ctx.shadowBlur=0;
+    // Scales
+    if(i%2===0 && i>0){
+      const sx=cx+sway*(i/seg), sy=y2;
+      ctx.save(); ctx.translate(sx,sy);
+      for(let d=-1;d<=1;d+=2){
+        ctx.beginPath(); ctx.ellipse(d*5,0,4,3,d*0.5,0,Math.PI*2);
+        ctx.fillStyle='rgba(220,60,0,0.4)'; ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+  // Dragon head bloom
+  if(pct>0.75){
+    const bp=Math.min((pct-0.75)/0.25,1);
+    ctx.save(); ctx.translate(cx+sway,stemTop);
+    // Horns
+    ctx.beginPath(); ctx.moveTo(-6*bp,-2); ctx.lineTo(-10*bp,-14*bp); ctx.lineTo(-3*bp,-8*bp);
+    ctx.fillStyle='#ff8800'; ctx.globalAlpha=bp; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(6*bp,-2); ctx.lineTo(10*bp,-14*bp); ctx.lineTo(3*bp,-8*bp);
+    ctx.fill();
+    // Fire burst
+    ctx.shadowColor='#ff4400'; ctx.shadowBlur=16*bp;
+    for(let i=0;i<8;i++){
+      const a=(i/8)*Math.PI*2+t*0.4, r=12*bp;
+      ctx.beginPath(); ctx.arc(Math.cos(a)*r,Math.sin(a)*r,3*bp,0,Math.PI*2);
+      ctx.fillStyle=`hsl(${20+i*10},100%,55%)`; ctx.fill();
+    }
+    ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
   }
 }
 

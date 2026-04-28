@@ -211,21 +211,50 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
   cursor: default;
 }
 /* plots row */
-.plots-row {
-  display: flex; gap: 0;
+/* ── PLOTS SLIDER ── */
+.plots-scroll-outer {
+  position: relative;
+  overflow: hidden; /* clips the scroll container */
   border-bottom: 0.5px solid var(--border);
 }
+.plots-row {
+  display: flex; flex-wrap: nowrap; gap: 0;
+  overflow-x: auto; overflow-y: visible;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* hide native scrollbar */
+}
+.plots-row::-webkit-scrollbar { display: none; }
 .plot-wrap {
-  flex: 1; position: relative; cursor: pointer;
+  /* exactly 25% of the outer container = 4 per viewport */
+  flex: 0 0 25%; width: 25%;
+  min-width: 0;
+  position: relative; cursor: pointer;
   border-right: 0.5px solid var(--border);
   transition: background 0.2s;
-  overflow: visible; /* FIX: was hidden, plants were clipping */
+  overflow: visible;
+  box-sizing: border-box;
+  scroll-snap-align: start;
 }
-.plot-wrap:last-child { border-right: none; }
-.plot-wrap:hover { background: rgba(255,255,255,0.02); }
+.plot-wrap:hover { background: rgba(255,255,255,0.03); }
 .plot-canvas {
-  display: block; width: 100%;
-  height: 220px; /* taller so tall plants don't clip */
+  display: block; width: 100%; height: 160px;
+}
+/* dot indicator below slider */
+.plots-dots {
+  display: flex; justify-content: center; align-items: center;
+  gap: 5px; padding: 6px 0 4px;
+  background: var(--card);
+}
+.plots-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  transition: background 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+.plots-dot.active {
+  background: #11ED34;
+  transform: scale(1.4);
 }
 /* water btn on each plot */
 .water-btn-wrap {
@@ -648,6 +677,18 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
   <button class="secret-close" onclick="closeSecret()">close [esc]</button>
 </div>
 
+<!-- Quiet easter egg overlay -->
+<div class="secret-overlay" id="quietOverlay" style="gap:0.75rem;">
+  <div style="font-size:48px;animation:spin-hue 3s linear infinite;">🎧</div>
+  <h2 style="color:#8407E6;">THE QUIET SIDE</h2>
+  <p style="color:rgba(240,238,248,0.6);font-size:12px;max-width:280px;text-align:center;line-height:1.8;">
+    when the lobbies go quiet...<br>chokk puts on the headphones<br>and disappears into the music.
+  </p>
+  <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#8407E6;letter-spacing:0.15em;margin-top:0.25rem;">you found the quiet corner.</p>
+  <p style="font-size:11px;color:rgba(240,238,248,0.3);margin-top:0.25rem;">🤫 not many people click this</p>
+  <button class="secret-close" style="border-color:rgba(132,7,230,0.5);color:#8407E6;" onclick="closeQuietEgg()">close [esc]</button>
+</div>
+
 <div class="wrap">
 
   <div class="header">
@@ -661,7 +702,7 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
       <span class="badge">Streamer</span>
       <span class="badge" onclick="gamerClick()" style="cursor:pointer;" title="click me...">Gamer</span>
       <span class="badge surf" onclick="showSurfGame()" title="click me...">CS:GO Surfer</span>
-      <a class="badge quiet" href="https://dxxthly.github.io/shopdxxthly/beat.html" target="_blank" style="text-decoration:none;cursor:pointer;">Quiet</a>
+      <span class="badge quiet" onclick="showQuietEgg()" style="cursor:pointer;" title="...">Quiet</span>
     </div>
   </div>
 
@@ -756,6 +797,7 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
         <span id="xpBarTxt" style="font-family:'Press Start 2P',monospace;font-size:6px;color:var(--muted);white-space:nowrap;">0 XP</span>
       </div>
     </div>
+    <div class="plots-scroll-outer" id="plotsScrollOuter">
     <div class="plots-row" id="plotsRow">
       <div class="plot-wrap" onclick="clickPlot(0)" id="plotwrap0">
         <canvas class="plot-canvas" id="plot0"></canvas>
@@ -765,22 +807,16 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
         <canvas class="plot-canvas" id="plot1"></canvas>
         <div class="water-btn-wrap"><button class="water-btn" id="waterBtn1" onclick="waterPlot(event,1)" title="Water this plant">💧</button></div>
       </div>
-      <div class="plot-wrap" id="plotwrap2" onclick="clickPlot(2)">
+      <div class="plot-wrap" id="plotwrap2" onclick="clickPlot(2)" style="display:none;">
         <canvas class="plot-canvas" id="plot2"></canvas>
         <div class="water-btn-wrap"><button class="water-btn" id="waterBtn2" onclick="waterPlot(event,2)" title="Water this plant">💧</button></div>
-        <div class="plot-locked" id="plot2lock">
-          <div class="lock-icon">🔒</div>
-          <div class="lock-txt">harvest 1<br>to unlock</div>
-        </div>
       </div>
-      <div class="plot-wrap" id="plotwrap3" onclick="clickPlot(3)">
+      <div class="plot-wrap" id="plotwrap3" onclick="clickPlot(3)" style="display:none;">
         <canvas class="plot-canvas" id="plot3"></canvas>
         <div class="water-btn-wrap"><button class="water-btn" id="waterBtn3" onclick="waterPlot(event,3)" title="Water this plant">💧</button></div>
-        <div class="plot-locked" id="plot3lock">
-          <div class="lock-icon">🔒</div>
-          <div class="lock-txt">harvest 5<br>to unlock</div>
-        </div>
       </div>
+    </div>
+    <div class="plots-dots" id="plotsDots"></div>
     </div>
 
     <!-- Status message -->
@@ -1036,8 +1072,10 @@ function nameClic(){nameClicks++;if(nameClicks===3){showToastMsg('real one 🤙'
 function showToastMsg(msg){var t=document.getElementById('toast');t.textContent=msg;t.style.borderColor='rgba(132,7,230,0.5)';t.style.color='#9b59e8';t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');t.textContent='Link copied!';t.style.borderColor='rgba(17,237,52,0.4)';t.style.color='#11ED34';},2500);}
 
 var konami=[38,38,40,40,37,39,37,39,66,65],kpos=0;
-document.addEventListener('keydown',function(e){if(e.keyCode===konami[kpos]){kpos++;if(kpos===konami.length){document.getElementById('secretOverlay').classList.add('show');kpos=0;}}else{kpos=0;}if(e.key==='Escape')closeSecret();});
+document.addEventListener('keydown',function(e){if(e.keyCode===konami[kpos]){kpos++;if(kpos===konami.length){document.getElementById('secretOverlay').classList.add('show');kpos=0;}}else{kpos=0;}if(e.key==='Escape'){closeSecret();closeQuietEgg();}});
 function closeSecret(){document.getElementById('secretOverlay').classList.remove('show');}
+function showQuietEgg(){document.getElementById('quietOverlay').classList.add('show');}
+function closeQuietEgg(){document.getElementById('quietOverlay').classList.remove('show');}
 
 /* ── SHARED FIREBASE (single instance, used by cheers + garden) ── */
 var _fbReady = null;
@@ -1294,13 +1332,17 @@ function getPlayerId() {
   return id;
 }
 
+const MAX_PLOTS = 25; // maximum purchasable plots
+
 function defaultData() {
   const seeds = {};
   Object.keys(SEEDS).forEach(k => seeds[k] = 0);
   seeds.common = 3; seeds.clover = 1; seeds.fern = 1; seeds.uncommon = 1;
+  const plotData = {};
+  for (let i = 0; i < MAX_PLOTS; i++) plotData['plot'+i] = null;
   return {
     seeds,
-    plot0: null, plot1: null, plot2: null, plot3: null,
+    ...plotData,
     harvested: 0, totalFound: 6, lastDig: 0,
     discoveries: ['common','clover','fern','uncommon'],
     waterCharges: 5, lastWaterRefill: Date.now(),
@@ -1350,7 +1392,7 @@ function initGarden() {
   // backfill
   if (!G.data.seeds) G.data.seeds = defaultData().seeds;
   Object.keys(SEEDS).forEach(k => { if (!(k in G.data.seeds)) G.data.seeds[k] = 0; });
-  for (let i=0;i<9;i++) { if (!('plot'+i in G.data)) G.data['plot'+i] = null; }
+  for (let i=0;i<MAX_PLOTS;i++) { if (!('plot'+i in G.data)) G.data['plot'+i] = null; }
   if (!G.data.discoveries) G.data.discoveries = ['common'];
   if (!('waterCharges' in G.data)) { G.data.waterCharges = 5; G.data.lastWaterRefill = Date.now(); }
   if (!G.data.xp) G.data.xp = 0;
@@ -1522,14 +1564,18 @@ function reapplyAllLevelRewards() {
   const lvl = getLevel();
   G.digCooldownMs = 4 * 60 * 1000;
   G.maxWater = 5;
-  G.unlockedPlots = 4;
+  G.unlockedPlots = 2; // everyone starts with 2
   G.godMode = false;
+  // Harvest-based early unlocks (plots 3 & 4, i.e. index 2 & 3)
+  const harv = (G.data && G.data.harvested) || 0;
+  if (harv >= 1) G.unlockedPlots = Math.max(G.unlockedPlots, 3);
+  if (harv >= 5) G.unlockedPlots = Math.max(G.unlockedPlots, 4);
   for (let i = 1; i <= lvl; i++) {
     const r = LEVEL_REWARDS[i];
     if (!r) continue;
     if (r.type === 'dig_speed')  G.digCooldownMs = Math.round(4 * 60 * 1000 * r.val);
     if (r.type === 'water')      G.maxWater = r.val;
-    if (r.type === 'plot')       G.unlockedPlots = r.val;
+    if (r.type === 'plot')       G.unlockedPlots = Math.max(G.unlockedPlots, r.val);
     if (r.type === 'god_mode')   G.godMode = true;
   }
   // Apply any extra pots bought from the shop (overrides level-based count)
@@ -1626,10 +1672,7 @@ function fmtMs(ms) {
 function clickPlot(idx) {
   if (!G.data) return;
   const key = 'plot'+idx;
-  // Early harvest requirement for plots 2 & 3 (before level unlocks)
-  if (idx === 2 && G.unlockedPlots <= 2 && (G.data.harvested||0) < 1) { showGardenMsg('🔒 harvest your first plant to unlock plot 3!'); return; }
-  if (idx === 3 && G.unlockedPlots <= 3 && (G.data.harvested||0) < 5) { showGardenMsg('🔒 harvest 5 plants to unlock plot 4!'); return; }
-  if (idx >= G.unlockedPlots) { showGardenMsg('🔒 reach a higher level to unlock this plot!'); return; }
+  if (idx >= G.unlockedPlots) { showGardenMsg('🔒 buy more planter slots in the 🛒 shop!'); return; }
 
   const plot = G.data[key];
   if (!plot) {
@@ -1658,6 +1701,22 @@ function clickPlot(idx) {
 
     G.data[key] = null;
     G.data.harvested = (G.data.harvested||0) + 1;
+
+    // Harvest-triggered plot unlocks (early game)
+    const harvNow = G.data.harvested;
+    if (harvNow === 1 && G.unlockedPlots < 3) {
+      G.unlockedPlots = 3;
+      G.data.boughtPlots = Math.max(G.data.boughtPlots||0, 3);
+      rebuildPlots();
+      setTimeout(function(){ scrollToPlot(2); }, 80);
+      showGardenMsg('🌱 plot 3 unlocked! keep harvesting...');
+    } else if (harvNow === 5 && G.unlockedPlots < 4) {
+      G.unlockedPlots = 4;
+      G.data.boughtPlots = Math.max(G.data.boughtPlots||0, 4);
+      rebuildPlots();
+      setTimeout(function(){ scrollToPlot(3); }, 80);
+      showGardenMsg('🌱 plot 4 unlocked! buy more in the 🛒 shop!');
+    }
 
     if (!G.data.bestSizes) G.data.bestSizes = {};
     if (!G.data.harvestCounts) G.data.harvestCounts = {};
@@ -1794,7 +1853,7 @@ function updateWaterUI() {
   const charges = G.data ? (G.data.waterCharges||0) : 0;
   const displayMax = Math.max(G.maxWater, charges);
   document.getElementById('waterStat').textContent = '💧 '+charges+'/'+G.maxWater+' water'+(charges > G.maxWater ? ' (+bonus)' : '');
-  for (let i=0;i<9;i++) {
+  for (let i=0;i<MAX_PLOTS;i++) {
     const btn = document.getElementById('waterBtn'+i);
     if (btn) btn.disabled = charges <= 0;
   }
@@ -1971,7 +2030,7 @@ function renderShop() {
   const coins = G.data.coins||0;
 
   // Compute time-skip cost based on current plots
-  const activePlots = [0,1,2,3,4,5,6,7,8].filter(i=>{
+  const activePlots = Array.from({length:MAX_PLOTS},(_,i)=>i).filter(i=>{
     return i < G.unlockedPlots && G.data['plot'+i] && !isReady(G.data['plot'+i]);
   });
 
@@ -2039,16 +2098,17 @@ function renderShop() {
   ];
 
   // Pot slot item — always shown, greys out if maxed
-  if (G.unlockedPlots < 9) {
+  if (G.unlockedPlots < MAX_PLOTS) {
+    const potCost = 60 + (G.unlockedPlots - 4) * 20; // scales up: 60, 80, 100…
     shopItems.push({
       id:'buyPot', icon:'\u{1FAB4}', name:'Extra Planter Slot',
-      desc:'Buy one more planter pot right now. You have ' + G.unlockedPlots + '/9. No level needed!',
-      cost:60, action:'shopBuyPot()'
+      desc:'Buy one more planter pot. You have ' + G.unlockedPlots + '/' + MAX_PLOTS + '. ' + (potCost > 60 ? ('Price scales with how many you own.') : 'No level needed!'),
+      cost: Math.max(60, potCost), action:'shopBuyPot()'
     });
   } else {
     shopItems.push({
       id:'buyPotMax', icon:'\u{1FAB4}', name:'All Planters Unlocked',
-      desc:'You have all 9 planter slots. Garden fully expanded!',
+      desc:'You have all ' + MAX_PLOTS + ' planter slots. Garden fully expanded!',
       cost:0, action:'', owned:true
     });
   }
@@ -2087,7 +2147,7 @@ function shopSkipTime(minutes) {
   const cost = minutes <= 15 ? 8 : minutes <= 60 ? 30 : minutes <= 360 ? 120 : 400;
   if (!spendCoins(cost)) { showGardenMsg('🪙 not enough coins!'); return; }
   let skipped = 0;
-  for (let i = 0; i < G.unlockedPlots; i++) {
+  for (let i = 0; i < Math.min(G.unlockedPlots, MAX_PLOTS); i++) {
     const plot = G.data['plot'+i];
     if (!plot || isReady(plot)) continue;
     plot.waterBonus = (plot.waterBonus||0) + ms;
@@ -2160,15 +2220,17 @@ function shopBuyXP(amount) {
   renderShop();
 }
 function shopBuyPot() {
-  if (G.unlockedPlots >= 9) { showGardenMsg('🪴 you already have all 9 planter slots!'); return; }
-  if (!spendCoins(60)) { showGardenMsg('🪙 not enough coins! need 60🪙'); return; }
+  if (G.unlockedPlots >= MAX_PLOTS) { showGardenMsg('🪴 you already have all ' + MAX_PLOTS + ' planter slots!'); return; }
+  const potCost = Math.max(60, 60 + (G.unlockedPlots - 4) * 20);
+  if (!spendCoins(potCost)) { showGardenMsg('🪙 not enough coins! need ' + potCost + '🪙'); return; }
   G.unlockedPlots++;
-  // Persist the purchase — stored separately so level rewards can't override it
   G.data.boughtPlots = G.unlockedPlots;
   rebuildPlots();
   updatePlotLocks();
-  updateWaterUI(); // refresh water buttons for new plots
-  showGardenMsg('🪴 new planter unlocked! you now have ' + G.unlockedPlots + '/9 plots!');
+  updateWaterUI();
+  // Scroll to the newly unlocked plot
+  setTimeout(function(){ scrollToPlot(G.unlockedPlots - 1); }, 80);
+  showGardenMsg('🪴 new planter unlocked! you now have ' + G.unlockedPlots + '/' + MAX_PLOTS + ' plots!');
   updateLeaderboard();
   renderShop();
   saveData();
@@ -2369,32 +2431,22 @@ function renderStats() {
 }
 
 function updatePlotLocks() {
-  const harv = G.data ? (G.data.harvested||0) : 0;
   const numPlots = G.unlockedPlots;
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < MAX_PLOTS; i++) {
     const wrap = document.getElementById('plotwrap'+i);
     if (!wrap) continue;
+    wrap.style.display = i < numPlots ? '' : 'none';
+    // Remove any leftover lock overlays
     const lock = document.getElementById('plot'+i+'lock');
-    if (i < numPlots) {
-      if (lock) lock.style.display = 'none';
-      wrap.style.display = '';
-    } else {
-      wrap.style.display = 'none';
-    }
+    if (lock) lock.remove();
   }
-  // First-unlock hints for plots 2 & 3 (before level rewards kick in)
-  const lock2 = document.getElementById('plot2lock');
-  const lock3 = document.getElementById('plot3lock');
-  if (lock2 && numPlots <= 2) lock2.style.display = harv >= 1 ? 'none' : '';
-  if (lock3 && numPlots <= 3) lock3.style.display = harv >= 5 ? 'none' : '';
 }
 
 function rebuildPlots() {
   const row = document.getElementById('plotsRow');
   if (!row) return;
   const numPlots = G.unlockedPlots;
-  // Add any missing plot wrappers up to 9
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < MAX_PLOTS; i++) {
     let wrap = document.getElementById('plotwrap'+i);
     if (!wrap) {
       wrap = document.createElement('div');
@@ -2403,22 +2455,62 @@ function rebuildPlots() {
       wrap.setAttribute('onclick','clickPlot('+i+')');
       wrap.innerHTML = `<canvas class="plot-canvas" id="plot${i}"></canvas>
         <div class="water-btn-wrap"><button class="water-btn" id="waterBtn${i}" onclick="waterPlot(event,${i})" title="Water">💧</button></div>`;
-      if (i >= 4) {
-        const lk = document.createElement('div');
-        lk.className = 'plot-locked'; lk.id = 'plot'+i+'lock';
-        lk.innerHTML = '<div class="lock-icon">🔒</div><div class="lock-txt">LVL '+
-          Object.entries(LEVEL_REWARDS).find(([,r])=>r.type==='plot'&&r.val===i+1)?.[0]
-          +'<br>to unlock</div>';
-        wrap.appendChild(lk);
-      }
       row.appendChild(wrap);
     }
     wrap.style.display = i < numPlots ? '' : 'none';
+    // Force canvas to fixed size immediately so render loop doesn't see 0×0
+    const cv = document.getElementById('plot'+i);
+    if (cv && i < numPlots) {
+      const dpr = window.devicePixelRatio || 1;
+      const fixedW = 110, fixedH = 160;
+      if (cv.width === 0 || cv.height === 0) {
+        cv.width = Math.round(fixedW * dpr);
+        cv.height = Math.round(fixedH * dpr);
+      }
+    }
   }
-  // Update lock overlays
   updatePlotLocks();
-  // Re-init the canvas IDs for render loop
+  rebuildPlotDots();
   startRenderLoop();
+}
+
+function rebuildPlotDots() {
+  const dotsEl = document.getElementById('plotsDots');
+  const row = document.getElementById('plotsRow');
+  if (!dotsEl || !row) return;
+  const n = G.unlockedPlots;
+  // Only show dots if more than 4 plots
+  if (n <= 4) { dotsEl.style.display = 'none'; return; }
+  dotsEl.style.display = 'flex';
+  // One dot per plot
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('div');
+    d.className = 'plots-dot' + (i === 0 ? ' active' : '');
+    d.id = 'pdot'+i;
+    d.onclick = (function(idx){ return function(){ scrollToPlot(idx); }; })(i);
+    dotsEl.appendChild(d);
+  }
+  // Sync dots on scroll
+  row.onscroll = syncPlotDots;
+}
+
+function scrollToPlot(idx) {
+  const row = document.getElementById('plotsRow');
+  const wrap = document.getElementById('plotwrap'+idx);
+  if (!row || !wrap) return;
+  row.scrollTo({ left: wrap.offsetLeft, behavior: 'smooth' });
+}
+
+function syncPlotDots() {
+  const row = document.getElementById('plotsRow');
+  if (!row) return;
+  const plotW = row.scrollWidth / G.unlockedPlots;
+  const activeIdx = Math.round(row.scrollLeft / plotW);
+  for (let i = 0; i < G.unlockedPlots; i++) {
+    const d = document.getElementById('pdot'+i);
+    if (d) d.classList.toggle('active', i === activeIdx);
+  }
 }
 
 /* ── PRESTIGE ── */
@@ -2707,16 +2799,16 @@ function spawnHarvestParticles(plotIdx) {
    and canvas is taller (220px)
 ═══════════════════════════════════════ */
 function startRenderLoop() {
-  const ids = ['plot0','plot1','plot2','plot3'];
-  const canvases = ids.map(id => document.getElementById(id));
+  if (G.renderRAF) cancelAnimationFrame(G.renderRAF);
   function loop() {
     G.renderRAF = requestAnimationFrame(loop);
     G.now = Date.now();
-    canvases.forEach((cv, idx) => {
-      if (!cv) return;
+    for (let idx = 0; idx < G.unlockedPlots; idx++) {
+      const cv = document.getElementById('plot'+idx);
+      if (!cv) continue;
       const dpr = window.devicePixelRatio || 1;
-      const cssW = cv.offsetWidth || 120;
-      const cssH = cv.offsetHeight || 220;
+      const cssW = cv.offsetWidth || 110;
+      const cssH = cv.offsetHeight || 160;
       // Only reset canvas buffer when size actually changes (avoids unnecessary clears)
       if (cv.width !== Math.round(cssW * dpr) || cv.height !== Math.round(cssH * dpr)) {
         cv.width = Math.round(cssW * dpr);
@@ -2728,7 +2820,7 @@ function startRenderLoop() {
       ctx.scale(dpr, dpr);
       drawPlot(ctx, cssW, cssH, idx);
       ctx.restore();
-    });
+    }
     // Harvest particles (fixed overlay)
     for (let i=harvestParts.length-1;i>=0;i--) {
       const p = harvestParts[i];

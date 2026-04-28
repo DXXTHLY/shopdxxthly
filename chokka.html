@@ -136,6 +136,16 @@ canvas#bg { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events
 @keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.4)}100%{transform:scale(1)}}
 
 /* ── TOAST ── */
+/* ── DARK SCROLLBAR (matches bg) ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+*::-webkit-scrollbar { width: 5px; height: 5px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
 .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(10px);background:var(--card2);border:0.5px solid rgba(17,237,52,0.4);color:#11ED34;font-size:12px;font-weight:600;padding:8px 18px;border-radius:99px;opacity:0;transition:opacity 0.2s,transform 0.2s;pointer-events:none;z-index:999;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
@@ -1293,7 +1303,7 @@ function defaultData() {
     harvested: 0, totalFound: 6, lastDig: 0,
     discoveries: ['common','clover','fern','uncommon'],
     waterCharges: 5, lastWaterRefill: Date.now(),
-    compostCount: 0, lbName: '', xp: 0,
+    coins: 0, compostCount: 0, lbName: '', xp: 0,
     prestige: 0,          // number of prestiges
     bestSizes: {},        // type -> best cm
     harvestCounts: {},    // type -> total harvested
@@ -1343,6 +1353,7 @@ function initGarden() {
   if (!G.data.discoveries) G.data.discoveries = ['common'];
   if (!('waterCharges' in G.data)) { G.data.waterCharges = 5; G.data.lastWaterRefill = Date.now(); }
   if (!G.data.xp) G.data.xp = 0;
+  if (G.data.coins === undefined) G.data.coins = 0;
   if (!G.data.lbName) G.data.lbName = '';
   if (!G.data.prestige) G.data.prestige = 0;
   if (!G.data.bestSizes) G.data.bestSizes = {};
@@ -1519,6 +1530,10 @@ function reapplyAllLevelRewards() {
     if (r.type === 'water')      G.maxWater = r.val;
     if (r.type === 'plot')       G.unlockedPlots = r.val;
     if (r.type === 'god_mode')   G.godMode = true;
+  }
+  // Apply any extra pots bought from the shop (overrides level-based count)
+  if (G.data && G.data.boughtPlots && G.data.boughtPlots > G.unlockedPlots) {
+    G.unlockedPlots = G.data.boughtPlots;
   }
 }
 
@@ -1712,9 +1727,10 @@ function waterPlot(e, idx) {
 function waterAllAction() {
   if (!G.data) return;
   let watered = 0;
-  for (let i=0;i<4;i++) {
+  for (let i=0;i<G.unlockedPlots;i++) {
+    if ((G.data.waterCharges||0) <= 0) break;
     const plot = G.data['plot'+i];
-    if (!plot || isReady(plot) || (G.data.waterCharges||0) <= 0) continue;
+    if (!plot || isReady(plot)) continue;
     const boostMs = SEEDS[plot.type].growMs * G.waterPct;
     plot.waterBonus = (plot.waterBonus||0) + boostMs;
     plot.waterCount = (plot.waterCount||0) + 1;
@@ -1752,25 +1768,32 @@ function spawnRainDrops(idx) {
 }
 
 function startWaterRefill() {
+  // Initialize lastWaterRefill if not set
+  if (G.data && !G.data.lastWaterRefill) G.data.lastWaterRefill = Date.now();
   setInterval(() => {
     if (!G.data) return;
     const now = Date.now();
     const since = now - (G.data.lastWaterRefill || now);
     const refills = Math.floor(since / G.waterCooldownMs);
-    if (refills > 0 && (G.data.waterCharges||0) < G.maxWater) {
-      G.data.waterCharges = Math.min((G.data.waterCharges||0) + refills, G.maxWater);
-      G.data.lastWaterRefill = now;
-      updateWaterUI();
-      if ((G.data.waterCharges||0) === G.maxWater) showGardenMsg('💧 water fully refilled!');
+    if (refills > 0) {
+      const wasBelow = (G.data.waterCharges||0) < G.maxWater;
+      if (wasBelow) {
+        G.data.waterCharges = Math.min((G.data.waterCharges||0) + refills, G.maxWater);
+        updateWaterUI();
+        if ((G.data.waterCharges||0) >= G.maxWater) showGardenMsg('💧 water fully refilled!');
+      }
+      // Always advance the timer so it doesn't stack up
+      G.data.lastWaterRefill = now - (since % G.waterCooldownMs);
       saveData();
     }
-  }, 30000);
+  }, 15000); // check every 15s for better responsiveness
 }
 
 function updateWaterUI() {
   const charges = G.data ? (G.data.waterCharges||0) : 0;
-  document.getElementById('waterStat').textContent = '💧 '+charges+'/'+G.maxWater+' water';
-  for (let i=0;i<4;i++) {
+  const displayMax = Math.max(G.maxWater, charges);
+  document.getElementById('waterStat').textContent = '💧 '+charges+'/'+G.maxWater+' water'+(charges > G.maxWater ? ' (+bonus)' : '');
+  for (let i=0;i<9;i++) {
     const btn = document.getElementById('waterBtn'+i);
     if (btn) btn.disabled = charges <= 0;
   }
@@ -2014,8 +2037,34 @@ function renderShop() {
     },
   ];
 
+  // Pot slot item — always shown, greys out if maxed
+  if (G.unlockedPlots < 9) {
+    shopItems.push({
+      id:'buyPot', icon:'\u{1FAB4}', name:'Extra Planter Slot',
+      desc:'Buy one more planter pot right now. You have ' + G.unlockedPlots + '/9. No level needed!',
+      cost:60, action:'shopBuyPot()'
+    });
+  } else {
+    shopItems.push({
+      id:'buyPotMax', icon:'\u{1FAB4}', name:'All Planters Unlocked',
+      desc:'You have all 9 planter slots. Garden fully expanded!',
+      cost:0, action:'', owned:true
+    });
+  }
+
   let html = '';
   shopItems.forEach(item => {
+    if (item.owned) {
+      html += `<div class="shop-item cant-afford" style="opacity:0.5;">
+        <div class="shop-icon">${item.icon}</div>
+        <div class="shop-info">
+          <div class="shop-name">${item.name}</div>
+          <div class="shop-desc">${item.desc}</div>
+        </div>
+        <div style="font-size:9px;color:var(--muted);padding:8px 4px;font-weight:700;">MAXED</div>
+      </div>`;
+      return;
+    }
     const canAfford = coins >= item.cost;
     html += `<div class="shop-item${canAfford?'':' cant-afford'}">
       <div class="shop-icon">${item.icon}</div>
@@ -2024,7 +2073,7 @@ function renderShop() {
         <div class="shop-desc">${item.desc}</div>
       </div>
       <button class="shop-buy-btn" onclick="${item.action}" ${canAfford?'':'disabled'}>
-        <div style="font-family:'Press Start 2P',monospace;font-size:7px;">${item.cost}🪙</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;">${item.cost}💴</div>
         <div style="font-size:9px;margin-top:2px;">BUY</div>
       </button>
     </div>`;
@@ -2051,8 +2100,24 @@ function shopSkipTime(minutes) {
 function shopBuyWater(amount) {
   const cost = amount >= 999 ? 15 : 5;
   if (!spendCoins(cost)) { showGardenMsg('🪙 not enough coins!'); return; }
-  if (amount >= 999) { G.data.waterCharges = G.maxWater; showGardenMsg('🪣 water fully refilled!'); }
-  else { G.data.waterCharges = Math.min((G.data.waterCharges||0)+amount, G.maxWater); showGardenMsg(`💧 +${amount} water charges!`); }
+  const before = G.data.waterCharges || 0;
+  if (amount >= 999) {
+    // Full refill — set to maxWater
+    G.data.waterCharges = G.maxWater;
+    showGardenMsg('🪣 water fully refilled! (' + G.maxWater + '/' + G.maxWater + ')');
+  } else {
+    // +3 water — allowed to go OVER maxWater as a bonus (cap at maxWater*2 so it's not infinite)
+    G.data.waterCharges = Math.min((G.data.waterCharges||0) + amount, G.maxWater * 2);
+    const gained = G.data.waterCharges - before;
+    if (gained <= 0) {
+      // Already at or above cap — refund and tell player
+      addCoins(cost, false);
+      showGardenMsg('💧 water already full! use some first before buying more');
+      updateWaterUI(); renderShop(); saveData();
+      return;
+    }
+    showGardenMsg('💧 +' + gained + ' water! (' + G.data.waterCharges + '/' + G.maxWater + ')');
+  }
   updateWaterUI(); renderShop(); saveData();
 }
 function shopResetDig() {
@@ -2093,6 +2158,21 @@ function shopBuyXP(amount) {
   showGardenMsg(`⭐ +${amount} XP!`);
   renderShop();
 }
+function shopBuyPot() {
+  if (G.unlockedPlots >= 9) { showGardenMsg('🪴 you already have all 9 planter slots!'); return; }
+  if (!spendCoins(60)) { showGardenMsg('🪙 not enough coins! need 60🪙'); return; }
+  G.unlockedPlots++;
+  // Persist the purchase — stored separately so level rewards can't override it
+  G.data.boughtPlots = G.unlockedPlots;
+  rebuildPlots();
+  updatePlotLocks();
+  updateWaterUI(); // refresh water buttons for new plots
+  showGardenMsg('🪴 new planter unlocked! you now have ' + G.unlockedPlots + '/9 plots!');
+  updateLeaderboard();
+  renderShop();
+  saveData();
+}
+
 function selectSeed(type) {
   if (!G.data) return;
   if ((G.data.seeds[type]||0) <= 0) { showGardenMsg('no '+SEEDS[type].name+'s in your bag'); return; }
@@ -2393,13 +2473,21 @@ function updateLeaderboard() {
       prestige,
       harvested: G.data.harvested || 0,
       xp: G.data.xp || 0,
+      coins: G.data.coins || 0,
       level: getLevel(),
       seasonKey,
       seasonBestSize: seasonBestEntry.size || 0,
       seasonBestPlant: (seasonBestEntry.emoji||'🌱') + ' ' + (seasonBestEntry.name||'none'),
       ts: Date.now()
-    }, {merge:true}).then(loadLeaderboard).catch(()=>{});
-  }).catch(()=>{});
+    }, {merge:true}).then(() => {
+      loadLeaderboard();
+    }).catch(err => {
+      console.warn('Leaderboard write failed:', err.code, err.message);
+      loadLeaderboard();
+    });
+  }).catch(err => {
+    console.warn('Firebase DB error:', err);
+  });
 }
 
 function loadLeaderboard() {
@@ -2410,15 +2498,20 @@ function loadLeaderboard() {
   const orderField = lbTab==='size' ? 'seasonBestSize' : lbTab==='harvest' ? 'harvested' : 'xp';
 
   getDb().then(db => {
-    db.collection('garden_lb_v2').orderBy(orderField,'desc').limit(15).get().then(snap => {
+    // Fetch all docs, sort client-side — avoids needing Firestore composite indexes
+    db.collection('garden_lb_v2').limit(200).get().then(snap => {
       if (snap.empty) {
         el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">🌱 no entries yet — set your name and harvest something!</div>';
         return;
       }
+      // Sort client-side by the active field
+      const allDocs = snap.docs.map(doc => ({ doc, d: doc.data() }));
+      allDocs.sort((a, b) => (b.d[orderField]||0) - (a.d[orderField]||0));
+      const top15 = allDocs.slice(0, 15);
+
       const rankEmoji = ['🥇','🥈','🥉'];
       let html = '';
-      snap.docs.forEach((doc, i) => {
-        const d = doc.data();
+      top15.forEach(({ doc, d }, i) => {
         const isMe = doc.id === G.playerId;
         const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
         const pStr = d.prestigeStr || '';
@@ -2453,10 +2546,16 @@ function loadLeaderboard() {
       });
       el.innerHTML = html;
     }).catch(() => {
-      el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">leaderboard offline — scores save locally</div>';
+      el.innerHTML = `<div style="padding:10px;font-size:11px;color:var(--muted);line-height:1.7;">
+        ⚠️ leaderboard error — check console (F12) for details<br>
+        <span style="font-size:10px;">Common fix: Firebase → Firestore → Rules → change <code style="color:#FFD700">allow read, write: if false</code> to <code style="color:#11ED34">allow read, write: if true</code></span>
+      </div>`;
     });
   }).catch(() => {
-    el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">leaderboard offline — scores save locally</div>';
+    el.innerHTML = `<div style="padding:10px;font-size:11px;color:var(--muted);line-height:1.7;">
+        ⚠️ Firebase connection error<br>
+        <span style="font-size:10px;">Check that Firestore is enabled and rules allow read/write.</span>
+      </div>`;
   });
 }
 

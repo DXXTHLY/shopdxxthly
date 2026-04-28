@@ -238,7 +238,7 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 }
 .plot-wrap:hover { background: rgba(255,255,255,0.03); }
 .plot-canvas {
-  display: block; width: 100%; height: 160px;
+  display: block; width: 100%; height: 240px;
 }
 /* dot indicator below slider */
 .plots-dots {
@@ -2462,7 +2462,7 @@ function rebuildPlots() {
     const cv = document.getElementById('plot'+i);
     if (cv && i < numPlots) {
       const dpr = window.devicePixelRatio || 1;
-      const fixedW = 110, fixedH = 160;
+      const fixedW = 110, fixedH = 240;
       if (cv.width === 0 || cv.height === 0) {
         cv.width = Math.round(fixedW * dpr);
         cv.height = Math.round(fixedH * dpr);
@@ -2808,7 +2808,7 @@ function startRenderLoop() {
       if (!cv) continue;
       const dpr = window.devicePixelRatio || 1;
       const cssW = cv.offsetWidth || 110;
-      const cssH = cv.offsetHeight || 160;
+      const cssH = cv.offsetHeight || 240;
       // Only reset canvas buffer when size actually changes (avoids unnecessary clears)
       if (cv.width !== Math.round(cssW * dpr) || cv.height !== Math.round(cssH * dpr)) {
         cv.width = Math.round(cssW * dpr);
@@ -2843,8 +2843,8 @@ function drawPlot(ctx, W, H, idx) {
   const cx = W/2;
   const potW = Math.min(W*0.62, 68);
   const potH = potW * 0.62;
-  // FIX: pot lower on canvas so plants can grow up without clipping
-  const potY = H * 0.68;
+  // Pot sits at 76% down — gives plants ~55% of canvas height to grow, with 24% headroom for blooms
+  const potY = H * 0.76;
 
   // BG
   ctx.fillStyle = '#07070e';
@@ -2959,11 +2959,11 @@ function drawPlot(ctx, W, H, idx) {
 /* ── DRAW PLANT (fixed clipping) ── */
 function drawPlantVisual(ctx, cx, potY, potH, W, H, type, pct, s, waterCount) {
   const t = G.now * 0.001;
-  // FIX: maxH now capped to leave padding at top (at least 14px from top)
-  const maxH = Math.min(potY - 18, H * 0.64);
+  // maxH: plant can use up to 55% of canvas height, leaving ≥28px at top for blooms/petals
+  const maxH = Math.min(potY - 28, H * 0.55);
   const stemH = pct * maxH;
-  // FIX: stemTop is clamped so it never goes above 14px from top
-  const stemTop = Math.max(12, potY - stemH);
+  // stemTop clamped so tip never goes above 28px from top
+  const stemTop = Math.max(28, potY - stemH);
   const actualStemH = potY - stemTop;
   const sway = Math.sin(t*0.9 + cx*0.01) * 2.8 * Math.min(pct, 0.7);
 

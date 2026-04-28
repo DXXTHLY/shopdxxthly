@@ -2441,8 +2441,10 @@ function doPrestige() {
 let lbTab = 'size';
 function switchLbTab(tab) {
   lbTab = tab;
+  const tabIds = { size:'lbTabSize', harvest:'lbTabHarvest', xp:'lbTabXP' };
   ['size','harvest','xp'].forEach(t => {
-    document.getElementById('lbTab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t===tab);
+    const el = document.getElementById(tabIds[t]);
+    if (el) el.classList.toggle('active', t===tab);
   });
   const labels = { size:'📏 BIGGEST PLANT THIS SEASON', harvest:'🌾 TOTAL HARVESTS ALL TIME', xp:'⭐ TOTAL XP ALL TIME' };
   const lbLabel = document.getElementById('lbSeasonLabel');

@@ -787,9 +787,14 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
     <!-- BAG TAB -->
     <div class="gtab-panel active" id="gtab-bag">
       <div class="inv-section">
-        <div class="inv-label" style="margin-bottom:6px;">tap a seed to select, then tap a plot to plant</div>
-        <div class="seed-row" id="gardenInventory">
-          <span style="font-size:11px;color:var(--muted);">loading garden...</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div class="inv-label" style="margin-bottom:0;">tap a seed to select, then tap a plot to plant</div>
+          <button id="invToggleBtn" onclick="toggleInventory()" title="expand/collapse bag" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.15);border-radius:6px;color:var(--muted);font-size:13px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.2s,background 0.15s;flex-shrink:0;">▼</button>
+        </div>
+        <div id="invCollapsible" style="max-height:120px;overflow:hidden;transition:max-height 0.3s ease;">
+          <div class="seed-row" id="gardenInventory">
+            <span style="font-size:11px;color:var(--muted);">loading garden...</span>
+          </div>
         </div>
       </div>
       <!-- Selected seed info bar -->
@@ -2152,6 +2157,25 @@ function switchGardenTab(name) {
   if (name === 'codex') renderCodex();
 }
 
+/* ── INVENTORY COLLAPSE TOGGLE ── */
+let invExpanded = false;
+function toggleInventory() {
+  invExpanded = !invExpanded;
+  const box = document.getElementById('invCollapsible');
+  const btn = document.getElementById('invToggleBtn');
+  if (invExpanded) {
+    box.style.maxHeight = '420px';
+    box.style.overflowY = 'auto';
+    btn.style.transform = 'rotate(180deg)';
+    btn.title = 'collapse bag';
+  } else {
+    box.style.maxHeight = '120px';
+    box.style.overflowY = 'hidden';
+    btn.style.transform = 'rotate(0deg)';
+    btn.title = 'expand bag';
+  }
+}
+
 /* ── RENDER INVENTORY ── */
 function renderInventory() {
   const el = document.getElementById('gardenInventory');
@@ -2163,10 +2187,9 @@ function renderInventory() {
     const s = SEEDS[key];
     const count = seeds[key]||0;
     const known = disc.includes(key);
-    if (!known && count === 0) return;
+    if (count === 0) return; // vanish from bag when empty
     const sel = G.selectedSeed === key;
-    const zero = count === 0;
-    html += `<div class="seed-chip${sel?' selected':''}${zero?' zero':''}" data-seed="${key}" onclick="selectSeed('${key}')" style="--sc:${s.color}">
+    html += `<div class="seed-chip${sel?' selected':''}" data-seed="${key}" onclick="selectSeed('${key}')" style="--sc:${s.color}">
       <span class="seed-emoji">${known ? s.emoji : '❓'}</span>
       <span class="seed-name" style="color:${known ? RARITY_COL[s.rarity] : 'var(--muted)'}">${known ? s.name : '???'}</span>
       <span class="seed-count">×${count}</span>
@@ -2377,64 +2400,6 @@ function updateLeaderboard() {
       ts: Date.now()
     }, {merge:true}).then(loadLeaderboard).catch(()=>{});
   }).catch(()=>{});
-}
-
-function loadLeaderboard() {
-  const el = document.getElementById('leaderboardList');
-  if (!el) return;
-  el.innerHTML = '<span style="font-size:11px;color:var(--muted);">loading...</span>';
-
-  // Sort field and display based on tab
-  const seasonKey = getCurrentSeasonKey();
-  const orderField = lbTab==='size' ? 'seasonBestSize' : lbTab==='harvest' ? 'harvested' : 'xp';
-
-  getDb().then(db => {
-    db.collection('garden_lb_v2').orderBy(orderField,'desc').limit(15).get().then(snap => {
-      if (snap.empty) {
-        el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">🌱 no entries yet — be the first!</div>';
-        return;
-      }
-      const rankEmoji = ['🥇','🥈','🥉'];
-      let html = '';
-      snap.docs.forEach((doc, i) => {
-        const d = doc.data();
-        const isMe = doc.id === G.playerId;
-        const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-        const pStr = d.prestigeStr || '';
-        let scoreHtml = '';
-        if (lbTab === 'size') {
-          const sz = d.seasonBestSize || 0;
-          const plant = d.seasonBestPlant || '🌱 —';
-          const pct = Math.min(sz / 130 * 100, 100);
-          scoreHtml = `<div style="text-align:right;">
-            <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:#FFD700;">${sz}cm</div>
-            <div style="font-size:9px;color:var(--muted);">${plant}</div>
-            <div class="lb-size-bar" style="width:60px;margin-top:3px;"><div class="lb-size-fill" style="width:${pct}%"></div></div>
-          </div>`;
-        } else if (lbTab === 'harvest') {
-          scoreHtml = `<span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#11ED34;">${d.harvested||0} 🌾</span>`;
-        } else {
-          scoreHtml = `<span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#FFD700;">${d.xp||0} ⭐</span>`;
-        }
-        html += `<div class="lb-row${isMe?' me':''}" style="align-items:flex-start;">
-          <span class="lb-rank ${rankClass}">${rankEmoji[i]||('#'+(i+1))}</span>
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:4px;">
-              ${pStr ? `<span style="font-size:10px;">${pStr}</span>` : ''}
-              <span class="lb-name">${d.name||'Gardener'}${isMe?' <span style="color:var(--muted);font-size:10px;">(you)</span>':''}</span>
-            </div>
-            <div style="font-size:9px;color:var(--muted);">LVL ${d.level||1} · ${d.prestige||0>0?d.prestige+'× prestige':''}</div>
-          </div>
-          ${scoreHtml}
-        </div>`;
-      });
-      el.innerHTML = html;
-    }).catch(err => {
-      el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">leaderboard offline — scores save locally</div>';
-    });
-  }).catch(() => {
-    el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">leaderboard offline — scores save locally</div>';
-  });
 }
 
 function loadLeaderboard() {

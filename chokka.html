@@ -437,12 +437,164 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 .help-head { font-size: 10px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
 .help-body { font-size: 10px; color: var(--muted); line-height: 1.55; }
 
-/* rarity colors */
-.rc-COMMON    { color: #88cc44; }
-.rc-UNCOMMON  { color: #00FFEE; }
-.rc-RARE      { color: #CC44FF; }
-.rc-EPIC      { color: #FF6600; }
-.rc-LEGENDARY { color: #FFD700; }
+/* ── COIN STAT ── */
+.stat-coins { color: #FFD700; font-family: 'Press Start 2P', monospace; font-size: 7px; }
+
+/* ── SELL / SHOP MODAL SHARED ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(8px); z-index: 9800;
+  display: none; align-items: flex-end; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+  background: #12121c; border: 0.5px solid rgba(255,255,255,0.1);
+  border-radius: 18px 18px 0 0; width: 100%; max-width: 480px;
+  max-height: 85vh; display: flex; flex-direction: column;
+  animation: sheet-up 0.28s cubic-bezier(0.34,1.2,0.64,1);
+}
+@keyframes sheet-up { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-handle {
+  width: 36px; height: 4px; background: rgba(255,255,255,0.15);
+  border-radius: 2px; margin: 10px auto 0;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px 10px; border-bottom: 0.5px solid rgba(255,255,255,0.07);
+}
+.modal-title {
+  font-family: 'Press Start 2P', monospace; font-size: 9px;
+  color: var(--text); letter-spacing: 0.08em;
+}
+.modal-close {
+  background: rgba(255,255,255,0.06); border: 0.5px solid rgba(255,255,255,0.12);
+  border-radius: 50%; width: 28px; height: 28px; color: var(--muted);
+  cursor: pointer; font-size: 13px; display:flex;align-items:center;justify-content:center;
+}
+.modal-scroll { overflow-y: auto; padding: 10px 14px 24px; flex: 1; }
+
+/* SELL MODAL */
+.sell-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 0.5px solid rgba(255,255,255,0.05);
+}
+.sell-emoji { font-size: 22px; flex-shrink: 0; width: 28px; text-align:center; }
+.sell-info { flex: 1; min-width: 0; }
+.sell-name { font-size: 11px; font-weight: 700; }
+.sell-count { font-size: 9px; color: var(--muted); margin-top: 1px; }
+.sell-btns { display: flex; gap: 5px; flex-shrink:0; }
+.sell-btn {
+  padding: 5px 8px; border-radius: 7px; font-size: 9px; font-weight: 700;
+  cursor: pointer; border: 0.5px solid rgba(255,215,0,0.3);
+  background: rgba(255,215,0,0.08); color: #FFD700;
+  transition: background 0.15s, transform 0.1s; line-height:1.3; text-align:center;
+}
+.sell-btn:hover { background: rgba(255,215,0,0.18); transform: scale(1.05); }
+.sell-all { border-color: rgba(255,100,0,0.4); background:rgba(255,100,0,0.1); color:#ff8844; }
+
+/* SHOP MODAL */
+.shop-coins-bar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding: 8px 14px; background: rgba(255,215,0,0.06);
+  border-bottom: 0.5px solid rgba(255,215,0,0.15); border-top: 0.5px solid rgba(255,215,0,0.15);
+}
+.shop-coins-label { font-size:10px; color:var(--muted); }
+.shop-coins-val { font-family:'Press Start 2P',monospace; font-size:9px; color:#FFD700; }
+.shop-section-head {
+  font-family:'Press Start 2P',monospace; font-size:7px; color:var(--muted);
+  letter-spacing:0.1em; margin: 12px 0 6px;
+}
+.shop-item {
+  display:flex; align-items:center; gap:10px;
+  padding: 10px; border-radius:10px; margin-bottom:6px;
+  background: rgba(255,255,255,0.03); border: 0.5px solid rgba(255,255,255,0.07);
+  transition: background 0.15s, border-color 0.15s;
+}
+.shop-item:hover:not(.cant-afford) { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.14); }
+.shop-item.cant-afford { opacity: 0.4; }
+.shop-item.seasonal { border-color:rgba(255,215,0,0.25); background:rgba(255,215,0,0.04); }
+.shop-icon { font-size:22px; flex-shrink:0; width:30px; text-align:center; }
+.shop-info { flex:1; min-width:0; }
+.shop-name { font-size:11px; font-weight:700; }
+.shop-desc { font-size:9px; color:var(--muted); margin-top:2px; line-height:1.4; }
+.shop-buy-btn {
+  flex-shrink:0; padding:7px 10px; border-radius:8px; cursor:pointer;
+  background:rgba(255,215,0,0.12); border:0.5px solid rgba(255,215,0,0.35);
+  color:#FFD700; transition:background 0.15s,transform 0.1s; text-align:center;
+  min-width:52px;
+}
+.shop-buy-btn:hover:not(:disabled) { background:rgba(255,215,0,0.22); transform:scale(1.04); }
+.shop-buy-btn:disabled { opacity:0.35; cursor:not-allowed; }
+
+/* PLAYER PROFILE MODAL */
+.profile-header {
+  display:flex; align-items:center; gap:14px;
+  padding: 14px 18px; border-bottom:0.5px solid rgba(255,255,255,0.07);
+}
+.profile-avatar { font-size:36px; }
+.profile-name { font-size:15px; font-weight:700; }
+.profile-title { font-size:10px; color:var(--muted); margin-top:2px; }
+.profile-prestige { font-size:14px; margin-top:3px; }
+.profile-grid {
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  padding:12px 14px;
+}
+.profile-stat {
+  background:rgba(255,255,255,0.03); border:0.5px solid rgba(255,255,255,0.07);
+  border-radius:10px; padding:10px 12px;
+}
+.profile-stat-val { font-family:'Press Start 2P',monospace; font-size:10px; color:var(--text); }
+.profile-stat-lbl { font-size:9px; color:var(--muted); margin-top:4px; }
+.profile-season-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:7px 14px; border-top:0.5px solid rgba(255,255,255,0.05);
+  font-size:10px;
+}
+.profile-season-badge {
+  font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px;
+  background:rgba(255,215,0,0.1); border:0.5px solid rgba(255,215,0,0.3); color:#FFD700;
+}
+
+/* SEASONAL LABEL */
+.seasonal-tag {
+  font-size:8px; font-weight:700; padding:1px 5px; border-radius:4px;
+  background:rgba(255,215,0,0.15); color:#FFD700; margin-left:4px; vertical-align:middle;
+}
+
+/* SIZE REVEAL animation on harvest */
+@keyframes size-pop {
+  0%{transform:scale(0.5);opacity:0} 60%{transform:scale(1.2);opacity:1} 100%{transform:scale(1);opacity:1}
+}
+.size-reveal {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:rgba(10,10,18,0.97); border:1px solid rgba(255,215,0,0.5);
+  border-radius:16px; padding:20px 28px; text-align:center;
+  z-index:9900; pointer-events:none;
+  animation:size-pop 0.45s cubic-bezier(0.34,1.4,0.64,1) forwards;
+  box-shadow: 0 0 40px rgba(255,215,0,0.2), 0 8px 40px rgba(0,0,0,0.8);
+}
+.size-reveal.record { border-color:rgba(255,215,0,0.9); box-shadow:0 0 60px rgba(255,215,0,0.4),0 8px 40px rgba(0,0,0,0.8); }
+
+/* SELL/SHOP BUTTONS in actions bar */
+.sell-action-btn {
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  background:rgba(255,215,0,0.08); border:0.5px solid rgba(255,215,0,0.3);
+  border-radius:10px; padding:10px 12px;
+  cursor:pointer; transition:background 0.2s,box-shadow 0.2s,transform 0.12s;
+  color:#FFD700;
+}
+.sell-action-btn:hover { background:rgba(255,215,0,0.16); box-shadow:0 0 14px rgba(255,215,0,0.2); }
+.sell-action-btn:active { transform:scale(0.93); }
+.shop-action-btn {
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  background:rgba(17,237,52,0.08); border:0.5px solid rgba(17,237,52,0.3);
+  border-radius:10px; padding:10px 12px;
+  cursor:pointer; transition:background 0.2s,box-shadow 0.2s,transform 0.12s;
+  color:#11ED34;
+}
+.shop-action-btn:hover { background:rgba(17,237,52,0.16); box-shadow:0 0 14px rgba(17,237,52,0.2); }
+.shop-action-btn:active { transform:scale(0.93); }
+
 
 /* find seed notification (big toast) */
 .seed-found-toast {
@@ -656,14 +808,23 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
           <span style="font-size:18px;">🚿</span>
           <span style="font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:0.08em;" id="waterAllLabel">WATER</span>
         </button>
-        <button id="compostBtn" class="compost-btn" onclick="compostAction()" title="Convert seeds you have 5+ of into a rare chance">
+        <button id="compostBtn" class="compost-btn" onclick="compostAction()">
           <span style="font-size:18px;">♻️</span>
           <span style="font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:0.08em;">COMPOST</span>
+        </button>
+        <button class="sell-action-btn" onclick="openSellModal()">
+          <span style="font-size:18px;">💰</span>
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:0.08em;">SELL</span>
+        </button>
+        <button class="shop-action-btn" onclick="openShop()">
+          <span style="font-size:18px;">🛒</span>
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:0.08em;">SHOP</span>
         </button>
         <div class="garden-stats">
           <span class="stat-item" id="harvestStat">🌾 0 harvested</span>
           <span class="stat-item" id="totalFoundStat">🌱 finding seeds...</span>
           <span class="stat-item" id="waterStat" style="color:rgba(0,200,255,0.7);">💧 3 water left</span>
+          <span class="stat-item" id="coinStat" style="color:#FFD700;font-family:'Press Start 2P',monospace;font-size:7px;">🪙 0</span>
         </div>
       </div>
     </div>
@@ -773,7 +934,53 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
   <div class="footer">developed by <a href="https://dxxthly.github.io/shopdxxthly/" target="_blank">DXXTHLY</a></div>
 </div>
 
-<!-- Achievement popup -->
+<!-- SELL MODAL -->
+<div class="modal-overlay" id="sellModal" onclick="if(event.target===this)closeSellModal()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">💰 SELL SEEDS</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#FFD700;" id="sellModalCoins">0🪙</span>
+        <button class="modal-close" onclick="closeSellModal()">✕</button>
+      </div>
+    </div>
+    <div style="padding:8px 14px;font-size:10px;color:var(--muted);border-bottom:0.5px solid var(--border);">
+      Sell seeds you don't need for 🪙 coins. Spend coins in the 🛒 SHOP.
+    </div>
+    <div class="modal-scroll" id="sellModalList"></div>
+  </div>
+</div>
+
+<!-- SHOP MODAL -->
+<div class="modal-overlay" id="shopModal" onclick="if(event.target===this)closeShop()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">🛒 SHOP</span>
+      <button class="modal-close" onclick="closeShop()">✕</button>
+    </div>
+    <div class="shop-coins-bar">
+      <span class="shop-coins-label">Your coins</span>
+      <span class="shop-coins-val" id="shopCoinsDisplay">0🪙</span>
+    </div>
+    <div class="modal-scroll" id="shopItemsList"></div>
+  </div>
+</div>
+
+<!-- PLAYER PROFILE MODAL -->
+<div class="modal-overlay" id="profileModal" onclick="if(event.target===this)closeProfile()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">👤 PROFILE</span>
+      <button class="modal-close" onclick="closeProfile()">✕</button>
+    </div>
+    <div id="profileContent" class="modal-scroll"></div>
+  </div>
+</div>
+
+<!-- SIZE REVEAL (spawned by JS) -->
 <div id="achievement">
   <div class="ach-icon" id="achIcon">🏆</div>
   <div>
@@ -1420,35 +1627,46 @@ function clickPlot(idx) {
 
   if (isReady(plot)) {
     const s = SEEDS[plot.type];
+
+    // ── TRUE RANDOM SIZE ROLL at harvest time ──
+    const sMin = s.minSize || 10, sMax = s.maxSize || 40;
+    const waterBonus = Math.min((plot.waterCount||0) * 2, 15);
+    const godRoll = Math.random() < 0.05; // 5% chance of god roll (top end)
+    const rollMin = godRoll ? sMin + (sMax - sMin) * 0.82 : sMin;
+    const finalSize = Math.round(rollMin + Math.random() * (sMax + waterBonus - rollMin));
+
     G.data[key] = null;
     G.data.harvested = (G.data.harvested||0) + 1;
 
-    // ── PLANT SIZE ── Random within species range, slightly boosted by water
-    const waterBonus = Math.min((plot.waterCount||0) * 2, 15); // +2cm per water, max 15
-    const sMin = s.minSize || 10, sMax = s.maxSize || 40;
-    const rawSize = sMin + Math.random() * (sMax - sMin);
-    const finalSize = Math.round(Math.min(rawSize + waterBonus, sMax * 1.05)); // slight oversize possible with water
-    // Track best size per species
     if (!G.data.bestSizes) G.data.bestSizes = {};
     if (!G.data.harvestCounts) G.data.harvestCounts = {};
     G.data.harvestCounts[plot.type] = (G.data.harvestCounts[plot.type]||0) + 1;
     const prevBest = G.data.bestSizes[plot.type] || 0;
     const isRecord = finalSize > prevBest;
     if (isRecord) G.data.bestSizes[plot.type] = finalSize;
-    // Track season best (for leaderboard)
+
     const seasonKey = getCurrentSeasonKey();
     if (!G.data.seasonBest) G.data.seasonBest = {};
-    if (!G.data.seasonBest[seasonKey]) G.data.seasonBest[seasonKey] = { type:null, size:0 };
+    if (!G.data.seasonBest[seasonKey]) G.data.seasonBest[seasonKey] = {type:null,size:0};
     if (finalSize > (G.data.seasonBest[seasonKey].size||0)) {
-      G.data.seasonBest[seasonKey] = { type: plot.type, size: finalSize, name: s.plant, emoji: s.emoji };
+      G.data.seasonBest[seasonKey] = {type:plot.type, size:finalSize, name:s.plant, emoji:s.emoji};
     }
+
+    // Coins: rarity base + size bonus
+    const coinMap = {COMMON:2,UNCOMMON:5,RARE:15,EPIC:40,LEGENDARY:120};
+    const coinsEarned = (coinMap[s.rarity]||2) + Math.floor(finalSize / 8);
+    if (!G.data.coins) G.data.coins = 0;
+    G.data.coins += coinsEarned;
+    updateCoinUI();
 
     const bonus = rollSeed();
     addSeed(bonus, true);
     const xpMap = {COMMON:5,UNCOMMON:12,RARE:30,EPIC:75,LEGENDARY:200};
     addXP(xpMap[s.rarity]||5);
-    const sizeMsg = isRecord ? ` <span style="color:#FFD700">🏆 NEW RECORD: ${finalSize}cm!</span>` : ` (${finalSize}cm)`;
-    showGardenMsg(`✨ <span style="color:${s.color}">${s.plant}</span> harvested!${sizeMsg} Bonus: ${SEEDS[bonus].emoji} ${SEEDS[bonus].name}`);
+
+    // Big reveal popup
+    showSizeReveal(s, finalSize, isRecord, godRoll, coinsEarned, SEEDS[bonus].emoji+' '+SEEDS[bonus].name);
+
     spawnHarvestParticles(idx);
     updatePlotLocks();
     renderStats();
@@ -1458,10 +1676,10 @@ function clickPlot(idx) {
     return;
   }
 
-  const rem = (SEEDS[plot.type].growMs - (plot.waterBonus||0)) - (Date.now() - plot.plantedAt);
-  const pct = Math.floor(getGrowPct(plot)*100);
-  const s = SEEDS[plot.type];
-  showGardenMsg('<span style="color:'+s.color+'">'+s.plant+'</span> is at '+pct+'% — ready in '+fmtMs(rem)+' 💧 tap 💧 to water!');
+  const rem = Math.max(0,(SEEDS[plot.type].growMs-(plot.waterBonus||0))-(Date.now()-plot.plantedAt));
+  const pct2 = Math.floor(getGrowPct(plot)*100);
+  const s2 = SEEDS[plot.type];
+  showGardenMsg(`<span style="color:${s2.color}">${s2.plant}</span> is ${pct2}% grown — ${fmtMs(rem)} left. 💧 water to speed it up!`);
 }
 
 /* ── WATER MECHANIC ── */
@@ -1608,7 +1826,268 @@ function compostAction() {
   renderInventory();
 }
 
-/* ── SELECT SEED ── */
+/* ══════════════════════════════════════
+   🪙 COIN ECONOMY
+   Earn coins by: harvesting, selling seeds
+   Spend coins in the SHOP: buy time off plants,
+   buy water charges, buy seed slots, buy dig resets
+══════════════════════════════════════ */
+
+// Coin values for selling seeds (much less than harvest reward — selling is for cleaning your bag)
+const SELL_PRICES = { COMMON:1, UNCOMMON:3, RARE:10, EPIC:28, LEGENDARY:80 };
+
+function addCoins(amount, showMsg=true) {
+  if (!G.data) return;
+  G.data.coins = (G.data.coins||0) + amount;
+  updateCoinUI();
+  if (showMsg && amount > 0) {
+    showGardenMsg(`+${amount}🪙 coins!`);
+  }
+  saveData();
+}
+
+function spendCoins(amount) {
+  if (!G.data || (G.data.coins||0) < amount) return false;
+  G.data.coins -= amount;
+  updateCoinUI();
+  saveData();
+  return true;
+}
+
+function updateCoinUI() {
+  const el = document.getElementById('coinStat');
+  if (el) el.textContent = '🪙 '+(G.data ? (G.data.coins||0) : 0);
+  const shopCoins = document.getElementById('shopCoinsDisplay');
+  if (shopCoins) shopCoins.textContent = (G.data ? (G.data.coins||0) : 0)+'🪙';
+}
+
+/* ── SELL SEEDS ── */
+function openSellModal() {
+  const modal = document.getElementById('sellModal');
+  if (!modal) return;
+  renderSellModal();
+  modal.style.display = 'flex';
+}
+function closeSellModal() {
+  const modal = document.getElementById('sellModal');
+  if (modal) modal.style.display = 'none';
+}
+function renderSellModal() {
+  const el = document.getElementById('sellModalList');
+  if (!el || !G.data) return;
+  const disc = G.data.discoveries || [];
+  let html = '';
+  let hasAny = false;
+  Object.keys(SEEDS).forEach(key => {
+    const count = G.data.seeds[key]||0;
+    if (count <= 0) return;
+    hasAny = true;
+    const s = SEEDS[key];
+    const price = SELL_PRICES[s.rarity]||1;
+    const totalVal = price * count;
+    html += `<div class="sell-row">
+      <span class="sell-emoji">${s.emoji}</span>
+      <div class="sell-info">
+        <div class="sell-name" style="color:${RARITY_COL[s.rarity]}">${s.name}</div>
+        <div class="sell-count">×${count} · ${price}🪙 each</div>
+      </div>
+      <div class="sell-btns">
+        <button onclick="sellSeeds('${key}',1)" class="sell-btn sell-1">Sell 1<br><span style="color:#FFD700;font-size:8px;">${price}🪙</span></button>
+        ${count >= 5 ? `<button onclick="sellSeeds('${key}',5)" class="sell-btn sell-5">Sell 5<br><span style="color:#FFD700;font-size:8px;">${price*5}🪙</span></button>` : ''}
+        ${count >= 10 ? `<button onclick="sellSeeds('${key}',count,true)" class="sell-btn sell-all" data-key="${key}">All<br><span style="color:#FFD700;font-size:8px;">${totalVal}🪙</span></button>` : ''}
+      </div>
+    </div>`;
+  });
+  if (!hasAny) html = '<div style="padding:16px;color:var(--muted);font-size:12px;">no seeds to sell!</div>';
+  el.innerHTML = html;
+  // Fix the sell-all buttons to use correct count
+  el.querySelectorAll('.sell-all').forEach(btn => {
+    const key = btn.dataset.key;
+    const cnt = G.data.seeds[key]||0;
+    const pr = SELL_PRICES[SEEDS[key].rarity]||1;
+    btn.querySelector('span').textContent = (pr*cnt)+'🪙';
+    btn.onclick = () => sellSeeds(key, cnt, true);
+  });
+  updateCoinUI();
+}
+function sellSeeds(key, count, all=false) {
+  if (!G.data || !SEEDS[key]) return;
+  const have = G.data.seeds[key]||0;
+  const qty = all ? have : Math.min(count, have);
+  if (qty <= 0) return;
+  const price = SELL_PRICES[SEEDS[key].rarity]||1;
+  const earned = price * qty;
+  G.data.seeds[key] -= qty;
+  addCoins(earned, false);
+  showGardenMsg(`💰 sold ${qty}× ${SEEDS[key].emoji} ${SEEDS[key].name} for ${earned}🪙`);
+  renderInventory();
+  renderSellModal();
+  saveData();
+}
+
+/* ── SHOP ── */
+function openShop() {
+  const modal = document.getElementById('shopModal');
+  if (!modal) return;
+  renderShop();
+  modal.style.display = 'flex';
+}
+function closeShop() {
+  const modal = document.getElementById('shopModal');
+  if (modal) modal.style.display = 'none';
+}
+function renderShop() {
+  const el = document.getElementById('shopItemsList');
+  if (!el || !G.data) return;
+  const coins = G.data.coins||0;
+
+  // Compute time-skip cost based on current plots
+  const activePlots = [0,1,2,3,4,5,6,7,8].filter(i=>{
+    return i < G.unlockedPlots && G.data['plot'+i] && !isReady(G.data['plot'+i]);
+  });
+
+  const shopItems = [
+    {
+      id:'skip15',icon:'⏩',name:'Skip 15 Minutes',
+      desc:'Instantly skip 15 minutes of grow time on ALL growing plants.',
+      cost:8, action:'shopSkipTime(15)'
+    },
+    {
+      id:'skip1h',icon:'⚡',name:'Skip 1 Hour',
+      desc:'Skip a whole hour from every growing plant at once.',
+      cost:30, action:'shopSkipTime(60)'
+    },
+    {
+      id:'skip6h',icon:'🚀',name:'Skip 6 Hours',
+      desc:'Big skip — 6 hours off all plants. Great for long grows.',
+      cost:120, action:'shopSkipTime(360)'
+    },
+    {
+      id:'skip1d',icon:'🌟',name:'Skip 24 Hours',
+      desc:'Skip an entire day on all plots. Legendary plants love this.',
+      cost:400, action:'shopSkipTime(1440)'
+    },
+    {
+      id:'water3',icon:'💧',name:'+3 Water Charges',
+      desc:'Instantly adds 3 water charges to your bucket.',
+      cost:5, action:'shopBuyWater(3)'
+    },
+    {
+      id:'water10',icon:'🪣',name:'Full Water Refill',
+      desc:'Completely refills your water to maximum.',
+      cost:15, action:'shopBuyWater(999)'
+    },
+    {
+      id:'digReset',icon:'⛏️',name:'Dig Cooldown Reset',
+      desc:'Reset your dig cooldown so you can dig RIGHT NOW.',
+      cost:12, action:'shopResetDig()'
+    },
+    {
+      id:'rareSeed',icon:'🌸',name:'Mystery Rare Seed',
+      desc:'Buy a random RARE or better seed from the shop.',
+      cost:25, action:'shopBuyRareSeed()'
+    },
+    {
+      id:'epicSeed',icon:'🌀',name:'Mystery Epic Seed',
+      desc:'Buy a random EPIC or better seed. Big investment, big reward.',
+      cost:90, action:'shopBuyEpicSeed()'
+    },
+    {
+      id:'legendSeed',icon:'🌊',name:'Mystery Legendary Seed',
+      desc:'One random LEGENDARY seed. Extremely rare. Worth it.',
+      cost:350, action:'shopBuyLegendarySeed()'
+    },
+    {
+      id:'xpBoost',icon:'⭐',name:'+50 XP Boost',
+      desc:'Instantly gain 50 XP toward your next level.',
+      cost:20, action:'shopBuyXP(50)'
+    },
+    {
+      id:'xpBoostBig',icon:'💎',name:'+300 XP Mega Boost',
+      desc:'Jump ahead with 300 XP. Great for prestige grinders.',
+      cost:100, action:'shopBuyXP(300)'
+    },
+  ];
+
+  let html = '';
+  shopItems.forEach(item => {
+    const canAfford = coins >= item.cost;
+    html += `<div class="shop-item${canAfford?'':' cant-afford'}">
+      <div class="shop-icon">${item.icon}</div>
+      <div class="shop-info">
+        <div class="shop-name">${item.name}</div>
+        <div class="shop-desc">${item.desc}</div>
+      </div>
+      <button class="shop-buy-btn" onclick="${item.action}" ${canAfford?'':'disabled'}>
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;">${item.cost}🪙</div>
+        <div style="font-size:9px;margin-top:2px;">BUY</div>
+      </button>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function shopSkipTime(minutes) {
+  const ms = minutes * 60 * 1000;
+  const cost = minutes <= 15 ? 8 : minutes <= 60 ? 30 : minutes <= 360 ? 120 : 400;
+  if (!spendCoins(cost)) { showGardenMsg('🪙 not enough coins!'); return; }
+  let skipped = 0;
+  for (let i = 0; i < G.unlockedPlots; i++) {
+    const plot = G.data['plot'+i];
+    if (!plot || isReady(plot)) continue;
+    plot.waterBonus = (plot.waterBonus||0) + ms;
+    skipped++;
+  }
+  if (skipped === 0) { addCoins(cost); showGardenMsg('⚠️ no plants currently growing!'); }
+  else showGardenMsg(`⏩ skipped ${minutes >= 60 ? (minutes/60)+'h' : minutes+'m'} on ${skipped} plant${skipped>1?'s':''}!`);
+  renderShop();
+  saveData();
+}
+function shopBuyWater(amount) {
+  const cost = amount >= 999 ? 15 : 5;
+  if (!spendCoins(cost)) { showGardenMsg('🪙 not enough coins!'); return; }
+  if (amount >= 999) { G.data.waterCharges = G.maxWater; showGardenMsg('🪣 water fully refilled!'); }
+  else { G.data.waterCharges = Math.min((G.data.waterCharges||0)+amount, G.maxWater); showGardenMsg(`💧 +${amount} water charges!`); }
+  updateWaterUI(); renderShop(); saveData();
+}
+function shopResetDig() {
+  if (!spendCoins(12)) { showGardenMsg('🪙 not enough coins!'); return; }
+  G.data.lastDig = 0;
+  updateDigCooldownUI();
+  showGardenMsg('⛏️ dig cooldown reset!');
+  renderShop();
+}
+function shopBuyRareSeed() {
+  if (!spendCoins(25)) { showGardenMsg('🪙 not enough coins!'); return; }
+  const pool = Object.keys(SEEDS).filter(k=>SEEDS[k].rarity==='RARE'||SEEDS[k].rarity==='EPIC');
+  const key = pool[Math.floor(Math.random()*pool.length)];
+  addSeed(key);
+  showGardenMsg(`🌸 mystery seed: ${SEEDS[key].emoji} ${SEEDS[key].name}!`);
+  renderShop();
+}
+function shopBuyEpicSeed() {
+  if (!spendCoins(90)) { showGardenMsg('🪙 not enough coins!'); return; }
+  const pool = Object.keys(SEEDS).filter(k=>SEEDS[k].rarity==='EPIC'||SEEDS[k].rarity==='LEGENDARY');
+  const key = pool[Math.floor(Math.random()*pool.length)];
+  addSeed(key);
+  showGardenMsg(`🌀 epic mystery seed: ${SEEDS[key].emoji} ${SEEDS[key].name}!`);
+  renderShop();
+}
+function shopBuyLegendarySeed() {
+  if (!spendCoins(350)) { showGardenMsg('🪙 not enough coins!'); return; }
+  const pool = Object.keys(SEEDS).filter(k=>SEEDS[k].rarity==='LEGENDARY');
+  const key = pool[Math.floor(Math.random()*pool.length)];
+  addSeed(key);
+  showGardenMsg(`🌊 LEGENDARY: ${SEEDS[key].emoji} ${SEEDS[key].name}!`);
+  renderShop();
+}
+function shopBuyXP(amount) {
+  const cost = amount <= 50 ? 20 : 100;
+  if (!spendCoins(cost)) { showGardenMsg('🪙 not enough coins!'); return; }
+  addXP(amount);
+  showGardenMsg(`⭐ +${amount} XP!`);
+  renderShop();
+}
 function selectSeed(type) {
   if (!G.data) return;
   if ((G.data.seeds[type]||0) <= 0) { showGardenMsg('no '+SEEDS[type].name+'s in your bag'); return; }
@@ -1958,6 +2437,150 @@ function loadLeaderboard() {
   });
 }
 
+function loadLeaderboard() {
+  const el = document.getElementById('leaderboardList');
+  if (!el) return;
+  el.innerHTML = '<span style="font-size:11px;color:var(--muted);">loading...</span>';
+
+  const orderField = lbTab==='size' ? 'seasonBestSize' : lbTab==='harvest' ? 'harvested' : 'xp';
+
+  getDb().then(db => {
+    db.collection('garden_lb_v2').orderBy(orderField,'desc').limit(15).get().then(snap => {
+      if (snap.empty) {
+        el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">🌱 no entries yet — set your name and harvest something!</div>';
+        return;
+      }
+      const rankEmoji = ['🥇','🥈','🥉'];
+      let html = '';
+      snap.docs.forEach((doc, i) => {
+        const d = doc.data();
+        const isMe = doc.id === G.playerId;
+        const rankClass = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+        const pStr = d.prestigeStr || '';
+        let scoreHtml = '';
+        if (lbTab === 'size') {
+          const sz = d.seasonBestSize || 0;
+          const plant = d.seasonBestPlant || '🌱 —';
+          const pct = Math.min(sz / 130 * 100, 100);
+          scoreHtml = `<div style="text-align:right;">
+            <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:#FFD700;">${sz}cm</div>
+            <div style="font-size:9px;color:var(--muted);">${plant}</div>
+            <div class="lb-size-bar" style="width:60px;margin-top:3px;"><div class="lb-size-fill" style="width:${pct}%"></div></div>
+          </div>`;
+        } else if (lbTab === 'harvest') {
+          scoreHtml = `<span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#11ED34;">${d.harvested||0} 🌾</span>`;
+        } else {
+          scoreHtml = `<span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#FFD700;">${d.xp||0} ⭐</span>`;
+        }
+        // Encode doc data for profile click
+        const safeData = encodeURIComponent(JSON.stringify({id:doc.id,...d}));
+        html += `<div class="lb-row${isMe?' me':''}" style="align-items:flex-start;cursor:pointer;" onclick="openProfile(decodeURIComponent('${safeData}'))">
+          <span class="lb-rank ${rankClass}">${rankEmoji[i]||('#'+(i+1))}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:4px;">
+              ${pStr ? `<span style="font-size:10px;">${pStr}</span>` : ''}
+              <span class="lb-name">${d.name||'Gardener'}${isMe?' <span style="color:var(--muted);font-size:9px;">(you)</span>':''}</span>
+            </div>
+            <div style="font-size:9px;color:var(--muted);">LVL ${d.level||1}${d.prestige>0?' · '+d.prestige+'× prestige':''} · tap to view profile</div>
+          </div>
+          ${scoreHtml}
+        </div>`;
+      });
+      el.innerHTML = html;
+    }).catch(() => {
+      el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">leaderboard offline — scores save locally</div>';
+    });
+  }).catch(() => {
+    el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--muted);">leaderboard offline — scores save locally</div>';
+  });
+}
+
+/* ── PLAYER PROFILE ── */
+function openProfile(dataStr) {
+  const d = JSON.parse(dataStr);
+  const modal = document.getElementById('profileModal');
+  const content = document.getElementById('profileContent');
+  const pStr = d.prestigeStr || '';
+  const isMe = d.id === G.playerId;
+
+  const bigPlant = d.seasonBestPlant || '🌱 none yet';
+  const bigSize = d.seasonBestSize || 0;
+
+  content.innerHTML = `
+    <div class="profile-header">
+      <div class="profile-avatar">${d.prestigeStr ? '✨' : '🌿'}</div>
+      <div>
+        <div class="profile-name">${d.name||'Gardener'}${isMe?' (you)':''}</div>
+        <div class="profile-title">${d.level>=50?'Garden God':d.level>=40?'Legendary Cultivar':d.level>=30?'Garden Lord':d.level>=20?'Horticulturist':d.level>=10?'Botanist':'Sprout'} · LVL ${d.level||1}</div>
+        ${pStr ? `<div class="profile-prestige">${pStr} ${'Prestige '+d.prestige}</div>` : ''}
+      </div>
+    </div>
+    <div class="profile-grid">
+      <div class="profile-stat">
+        <div class="profile-stat-val">${d.harvested||0}</div>
+        <div class="profile-stat-lbl">🌾 Total Harvested</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-val">${d.xp||0}</div>
+        <div class="profile-stat-lbl">⭐ Total XP</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-val" style="color:#FFD700;">${bigSize}cm</div>
+        <div class="profile-stat-lbl">📏 Biggest Plant (Season)</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-val">${bigPlant}</div>
+        <div class="profile-stat-lbl">🏆 Season Best</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-val">LVL ${d.level||1}</div>
+        <div class="profile-stat-lbl">📈 Current Level</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-val" style="color:#ff88ff;">${d.prestige||0}</div>
+        <div class="profile-stat-lbl">✨ Prestiges</div>
+      </div>
+    </div>
+    ${isMe && G.data ? `
+    <div style="padding:8px 14px;border-top:0.5px solid rgba(255,255,255,0.06);">
+      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);margin-bottom:8px;">YOUR BEST SIZES</div>
+      ${Object.entries(G.data.bestSizes||{}).slice(0,8).map(([k,v])=>{
+        const s = SEEDS[k]; if(!s) return '';
+        return `<div class="profile-season-row"><span>${s.emoji} ${s.plant}</span><span class="profile-season-badge">${v}cm</span></div>`;
+      }).join('')}
+    </div>` : ''}
+  `;
+  modal.classList.add('open');
+}
+function closeProfile() {
+  document.getElementById('profileModal').classList.remove('open');
+}
+
+/* ── SIZE REVEAL POPUP ── */
+function showSizeReveal(s, size, isRecord, godRoll, coins, bonusSeed) {
+  // Remove old reveal if any
+  const old = document.getElementById('sizeRevealEl');
+  if (old) old.remove();
+
+  const div = document.createElement('div');
+  div.id = 'sizeRevealEl';
+  div.className = 'size-reveal' + (isRecord ? ' record' : '');
+
+  let label = isRecord ? '🏆 PERSONAL RECORD!' : godRoll ? '⚡ GOD ROLL!' : '✨ Harvested!';
+  let labelColor = isRecord ? '#FFD700' : godRoll ? '#ff8800' : RARITY_COL[s.rarity];
+
+  div.innerHTML = `
+    <div style="font-size:28px;margin-bottom:6px;">${s.emoji}</div>
+    <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:${labelColor};margin-bottom:4px;">${label}</div>
+    <div style="font-size:20px;font-weight:900;color:${s.color};margin-bottom:2px;">${s.plant}</div>
+    <div style="font-family:'Press Start 2P',monospace;font-size:18px;color:#FFD700;margin:6px 0;">${size}cm</div>
+    <div style="font-size:10px;color:var(--muted);">+${coins}🪙 · bonus: ${bonusSeed}</div>
+  `;
+
+  document.body.appendChild(div);
+  setTimeout(() => { if (div.parentNode) div.remove(); }, 3200);
+}
+
 /* ── HELP PANEL ── */
 function initHelpPanel() {
   // Close help when clicking outside
@@ -2129,7 +2752,7 @@ function drawPlot(ctx, W, H, idx) {
     const pct = getGrowPct(plot);
     const s = SEEDS[plot.type];
 
-    // Growth arc
+    // Growth arc around pot rim
     if (pct < 1) {
       ctx.beginPath();
       ctx.arc(cx, potY, potW/2+9, -Math.PI/2, -Math.PI/2+pct*Math.PI*2);
@@ -2139,18 +2762,26 @@ function drawPlot(ctx, W, H, idx) {
 
     drawPlantVisual(ctx, cx, potY, potH, W, H, plot.type, pct, s, plot.waterCount||0);
 
-    // Ready glow
     if (pct >= 1) {
+      // READY — pulse and show HARVEST label
       const pulse = 0.55 + 0.45*Math.sin(G.now*0.004);
       ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 14*pulse;
       ctx.fillStyle = `rgba(255,215,0,${0.85+0.15*pulse})`;
       ctx.font = `bold 9px "Press Start 2P"`; ctx.textAlign = 'center';
-      ctx.fillText('HARVEST', cx, H-10); ctx.shadowBlur = 0;
+      ctx.fillText('HARVEST', cx, H-20); ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,215,0,0.6)';
+      ctx.font = '6px "Press Start 2P"'; ctx.textAlign = 'center';
+      ctx.fillText('tap to reveal size!', cx, H-8);
     } else {
-      const remMs = (SEEDS[plot.type].growMs - (plot.waterBonus||0)) - (G.now - plot.plantedAt);
-      ctx.fillStyle = 'rgba(255,255,255,0.22)';
-      ctx.font = '7px "Press Start 2P"'; ctx.textAlign = 'center';
-      ctx.fillText(fmtMs(remMs), cx, H-10);
+      // GROWING — just show time remaining and "Growing..."
+      const remMs = Math.max(0, (SEEDS[plot.type].growMs - (plot.waterBonus||0)) - (G.now - plot.plantedAt));
+      const growPulse = 0.5 + 0.5*Math.sin(G.now*0.002);
+      ctx.fillStyle = `rgba(100,255,140,${0.4+0.3*growPulse})`;
+      ctx.font = '6px "Press Start 2P"'; ctx.textAlign = 'center';
+      ctx.fillText('Growing...', cx, H-18);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.font = '6px "Press Start 2P"';
+      ctx.fillText(fmtMs(remMs), cx, H-7);
     }
   } else {
     ctx.fillStyle = 'rgba(255,255,255,0.08)';

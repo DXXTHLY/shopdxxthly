@@ -240,21 +240,25 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 .plot-canvas {
   display: block; width: 100%; height: 240px;
 }
-/* dot indicator below slider */
-.plots-dots {
+/* ── PLOTS SCROLLBAR (replaces dots) ── */
+.plots-scrollbar {
   display: flex; justify-content: center; align-items: center;
-  gap: 5px; padding: 6px 0 4px;
+  padding: 6px 20px 5px;
   background: var(--card);
+  border-bottom: 0.5px solid var(--border);
 }
-.plots-dot {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: rgba(255,255,255,0.15);
-  transition: background 0.2s, transform 0.2s;
-  cursor: pointer;
+.plots-track {
+  position: relative;
+  width: 100%; max-width: 200px; height: 3px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 99px; overflow: hidden;
 }
-.plots-dot.active {
-  background: #11ED34;
-  transform: scale(1.4);
+.plots-thumb {
+  position: absolute; top: 0; height: 100%;
+  background: rgba(0,255,200,0.55);
+  border-radius: 99px;
+  box-shadow: 0 0 6px rgba(0,255,180,0.4);
+  transition: left 0.15s ease, width 0.15s ease;
 }
 /* water btn on each plot */
 .water-btn-wrap {
@@ -816,7 +820,11 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
         <div class="water-btn-wrap"><button class="water-btn" id="waterBtn3" onclick="waterPlot(event,3)" title="Water this plant">💧</button></div>
       </div>
     </div>
-    <div class="plots-dots" id="plotsDots"></div>
+    <div class="plots-scrollbar" id="plotsDots">
+      <div class="plots-track" id="plotsTrack">
+        <div class="plots-thumb" id="plotsThumb"></div>
+      </div>
+    </div>
     </div>
 
     <!-- Status message -->
@@ -2499,20 +2507,15 @@ function rebuildPlotDots() {
   const row = document.getElementById('plotsRow');
   if (!dotsEl || !row) return;
   const n = G.unlockedPlots;
-  // Only show dots if more than 4 plots
   if (n <= 4) { dotsEl.style.display = 'none'; return; }
   dotsEl.style.display = 'flex';
-  // One dot per plot
-  dotsEl.innerHTML = '';
-  for (let i = 0; i < n; i++) {
-    const d = document.createElement('div');
-    d.className = 'plots-dot' + (i === 0 ? ' active' : '');
-    d.id = 'pdot'+i;
-    d.onclick = (function(idx){ return function(){ scrollToPlot(idx); }; })(i);
-    dotsEl.appendChild(d);
+  const thumb = document.getElementById('plotsThumb');
+  if (thumb) {
+    const visibleRatio = Math.min(4 / n, 1);
+    thumb.style.width = (visibleRatio * 100) + '%';
   }
-  // Sync dots on scroll
   row.onscroll = syncPlotDots;
+  syncPlotDots();
 }
 
 function scrollToPlot(idx) {
@@ -2524,13 +2527,14 @@ function scrollToPlot(idx) {
 
 function syncPlotDots() {
   const row = document.getElementById('plotsRow');
-  if (!row) return;
-  const plotW = row.scrollWidth / G.unlockedPlots;
-  const activeIdx = Math.round(row.scrollLeft / plotW);
-  for (let i = 0; i < G.unlockedPlots; i++) {
-    const d = document.getElementById('pdot'+i);
-    if (d) d.classList.toggle('active', i === activeIdx);
-  }
+  const thumb = document.getElementById('plotsThumb');
+  if (!row || !thumb) return;
+  const maxScroll = row.scrollWidth - row.clientWidth;
+  if (maxScroll <= 0) { thumb.style.left = '0%'; return; }
+  const pct = row.scrollLeft / maxScroll;
+  const visibleRatio = Math.min(4 / G.unlockedPlots, 1);
+  const maxLeft = (1 - visibleRatio) * 100;
+  thumb.style.left = (pct * maxLeft) + '%';
 }
 
 /* ── PRESTIGE ── */

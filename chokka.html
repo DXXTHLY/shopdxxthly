@@ -1730,7 +1730,36 @@ function clickPlot(idx) {
     const waterBonus = Math.min((plot.waterCount||0) * 2, 15);
     const godRoll = Math.random() < 0.05; // 5% chance of god roll (top end)
     const rollMin = godRoll ? sMin + (sMax - sMin) * 0.82 : sMin;
-    const finalSize = Math.round(rollMin + Math.random() * (sMax + waterBonus - rollMin));
+
+    // Base roll — normal range
+    let baseSize = rollMin + Math.random() * (sMax + waterBonus - rollMin);
+
+    // ── OVERFLOW TIER SYSTEM ──
+    // Every plant uses the same system — a lucky Clover can beat a World Tree.
+    // Tiers stack via sequential checks, each exponentially rarer.
+    let overflowTier = 0;
+    if (Math.random() < 1/20) {         // Tier 1 — 1 in 20
+      overflowTier = 1;
+      baseSize = sMax + waterBonus + Math.random() * sMax * 0.5;
+      if (Math.random() < 1/5) {        // Tier 2 — 1 in 100
+        overflowTier = 2;
+        baseSize = sMax * 1.5 + waterBonus + Math.random() * sMax;
+        if (Math.random() < 1/5) {      // Tier 3 — 1 in 500
+          overflowTier = 3;
+          baseSize = sMax * 2.5 + waterBonus + Math.random() * sMax * 2.5;
+          if (Math.random() < 1/10) {   // Tier 4 — 1 in 5,000
+            overflowTier = 4;
+            baseSize = sMax * 5 + waterBonus + Math.random() * sMax * 5;
+            if (Math.random() < 1/10) { // Tier 5 — 1 in 50,000
+              overflowTier = 5;
+              baseSize = sMax * 10 + waterBonus + Math.random() * sMax * 10;
+            }
+          }
+        }
+      }
+    }
+
+    const finalSize = Math.round(baseSize);
 
     G.data[key] = null;
     G.data.harvested = (G.data.harvested||0) + 1;
@@ -1778,7 +1807,7 @@ function clickPlot(idx) {
     addXP(xpMap[s.rarity]||5);
 
     // Big reveal popup
-    showSizeReveal(s, finalSize, isRecord, godRoll, coinsEarned, SEEDS[bonus].emoji+' '+SEEDS[bonus].name);
+    showSizeReveal(s, finalSize, isRecord, godRoll, coinsEarned, SEEDS[bonus].emoji+' '+SEEDS[bonus].name, overflowTier);
 
     spawnHarvestParticles(idx);
     updatePlotLocks();
@@ -2700,7 +2729,9 @@ function loadLeaderboard() {
         if (lbTab === 'size') {
           const sz = d.seasonBestSize || 0;
           const plant = d.seasonBestPlant || '🌱 —';
-          const pct = Math.min(sz / 130 * 100, 100);
+          // Scale bar relative to the top score in this batch, not a hard 130cm cap
+          const topSz = Math.max(...allDocs.slice(0,15).map(e => e.d.seasonBestSize||0), 1);
+          const pct = Math.min(sz / topSz * 100, 100);
           scoreHtml = `<div style="text-align:right;">
             <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:#FFD700;">${sz}cm</div>
             <div style="font-size:9px;color:var(--muted);">${plant}</div>
@@ -2802,28 +2833,72 @@ function closeProfile() {
 }
 
 /* ── SIZE REVEAL POPUP ── */
-function showSizeReveal(s, size, isRecord, godRoll, coins, bonusSeed) {
+function showSizeReveal(s, size, isRecord, godRoll, coins, bonusSeed, overflowTier) {
   // Remove old reveal if any
   const old = document.getElementById('sizeRevealEl');
   if (old) old.remove();
 
   const div = document.createElement('div');
   div.id = 'sizeRevealEl';
-  div.className = 'size-reveal' + (isRecord ? ' record' : '');
 
-  let label = isRecord ? '🏆 PERSONAL RECORD!' : godRoll ? '⚡ GOD ROLL!' : '✨ Harvested!';
-  let labelColor = isRecord ? '#FFD700' : godRoll ? '#ff8800' : RARITY_COL[s.rarity];
+  // Label + colour based on overflow tier or other special flags
+  let label, labelColor, borderCol, glowCol, extraLine = '';
+  overflowTier = overflowTier || 0;
+
+  if (overflowTier >= 5) {
+    label = '🌌 BEYOND REALITY';
+    labelColor = '#ffffff'; borderCol = 'rgba(255,255,255,0.9)'; glowCol = 'rgba(255,255,255,0.5)';
+    extraLine = '<div style="font-size:9px;color:rgba(255,255,255,0.6);margin-top:4px;font-family:\'Press Start 2P\',monospace;">1 IN 50,000 · YOU ARE A LEGEND</div>';
+  } else if (overflowTier === 4) {
+    label = '💀 IMPOSSIBLE';
+    labelColor = '#ff00ff'; borderCol = 'rgba(255,0,255,0.9)'; glowCol = 'rgba(255,0,255,0.4)';
+    extraLine = '<div style="font-size:9px;color:rgba(255,100,255,0.7);margin-top:4px;font-family:\'Press Start 2P\',monospace;">1 IN 5,000 · FREAK OF NATURE</div>';
+  } else if (overflowTier === 3) {
+    label = '⚠️ ANOMALY';
+    labelColor = '#ff6600'; borderCol = 'rgba(255,102,0,0.9)'; glowCol = 'rgba(255,102,0,0.4)';
+    extraLine = '<div style="font-size:9px;color:rgba(255,150,50,0.7);margin-top:4px;font-family:\'Press Start 2P\',monospace;">1 IN 500 · WHAT ARE THE ODDS</div>';
+  } else if (overflowTier === 2) {
+    label = '🌟 OVERFLOW';
+    labelColor = '#FFD700'; borderCol = 'rgba(255,215,0,0.8)'; glowCol = 'rgba(255,215,0,0.35)';
+    extraLine = '<div style="font-size:9px;color:rgba(255,215,0,0.6);margin-top:4px;font-family:\'Press Start 2P\',monospace;">1 IN 100 · WAY PAST MAX</div>';
+  } else if (overflowTier === 1) {
+    label = '📈 OVERSIZED';
+    labelColor = '#00FFcc'; borderCol = 'rgba(0,255,200,0.6)'; glowCol = 'rgba(0,255,200,0.25)';
+    extraLine = '<div style="font-size:9px;color:rgba(0,255,200,0.5);margin-top:4px;font-family:\'Press Start 2P\',monospace;">1 IN 20 · ABOVE AVERAGE</div>';
+  } else if (isRecord) {
+    label = '🏆 PERSONAL RECORD!';
+    labelColor = '#FFD700'; borderCol = 'rgba(255,215,0,0.9)'; glowCol = 'rgba(255,215,0,0.4)';
+  } else if (godRoll) {
+    label = '⚡ GOD ROLL!';
+    labelColor = '#ff8800'; borderCol = 'rgba(255,136,0,0.7)'; glowCol = 'rgba(255,136,0,0.3)';
+  } else {
+    label = '✨ Harvested!';
+    labelColor = RARITY_COL[s.rarity]; borderCol = 'rgba(255,255,255,0.1)'; glowCol = 'transparent';
+  }
+
+  // Record badge on top of overflow
+  const recordBadge = isRecord && overflowTier > 0
+    ? '<div style="font-size:9px;color:#FFD700;font-family:\'Press Start 2P\',monospace;margin-top:3px;">🏆 NEW RECORD!</div>'
+    : '';
+
+  div.className = 'size-reveal' + (overflowTier >= 2 || isRecord ? ' record' : '');
+  div.style.borderColor = borderCol;
+  div.style.boxShadow = `0 0 ${40 + overflowTier*20}px ${glowCol}, 0 8px 40px rgba(0,0,0,0.8)`;
 
   div.innerHTML = `
-    <div style="font-size:28px;margin-bottom:6px;">${s.emoji}</div>
+    <div style="font-size:${28 + overflowTier*4}px;margin-bottom:6px;">${s.emoji}</div>
     <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:${labelColor};margin-bottom:4px;">${label}</div>
     <div style="font-size:20px;font-weight:900;color:${s.color};margin-bottom:2px;">${s.plant}</div>
-    <div style="font-family:'Press Start 2P',monospace;font-size:18px;color:#FFD700;margin:6px 0;">${size}cm</div>
+    <div style="font-family:'Press Start 2P',monospace;font-size:${18 + overflowTier*3}px;color:${overflowTier>=2?labelColor:'#FFD700'};margin:6px 0;">${size}cm</div>
     <div style="font-size:10px;color:var(--muted);">+${coins}🪙 · bonus: ${bonusSeed}</div>
+    ${extraLine}
+    ${recordBadge}
   `;
 
   document.body.appendChild(div);
-  setTimeout(() => { if (div.parentNode) div.remove(); }, 3200);
+  // Longer display for rarer results
+  const displayMs = 2800 + overflowTier * 800;
+  setTimeout(() => { if (div.parentNode) div.remove(); }, displayMs);
 }
 
 

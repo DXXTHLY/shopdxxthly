@@ -240,26 +240,32 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 .plot-canvas {
   display: block; width: 100%; height: 240px;
 }
-/* ── PLOTS SCROLLBAR (replaces dots) ── */
+/* ── PLOTS SCROLLBAR ── */
 .plots-scrollbar {
   display: flex; justify-content: center; align-items: center;
-  padding: 6px 20px 5px;
+  padding: 10px 20px;
   background: var(--card);
   border-bottom: 0.5px solid var(--border);
 }
 .plots-track {
   position: relative;
-  width: 100%; max-width: 200px; height: 3px;
+  width: 100%; max-width: 260px; height: 8px;
   background: rgba(255,255,255,0.07);
-  border-radius: 99px; overflow: hidden;
+  border-radius: 99px;
+  cursor: pointer;
+  touch-action: none;
 }
 .plots-thumb {
   position: absolute; top: 0; height: 100%;
-  background: rgba(0,255,200,0.55);
+  background: rgba(0,255,200,0.65);
   border-radius: 99px;
-  box-shadow: 0 0 6px rgba(0,255,180,0.4);
-  transition: left 0.15s ease, width 0.15s ease;
+  box-shadow: 0 0 8px rgba(0,255,180,0.5);
+  transition: width 0.15s ease;
+  cursor: grab;
+  min-width: 32px;
+  touch-action: none;
 }
+.plots-thumb:active { cursor: grabbing; background: rgba(0,255,200,0.9); }
 /* water btn on each plot */
 .water-btn-wrap {
   position: absolute; top: 5px; right: 5px; z-index: 4;
@@ -2505,17 +2511,73 @@ function rebuildPlots() {
 function rebuildPlotDots() {
   const dotsEl = document.getElementById('plotsDots');
   const row = document.getElementById('plotsRow');
-  if (!dotsEl || !row) return;
+  const track = document.getElementById('plotsTrack');
+  const thumb = document.getElementById('plotsThumb');
+  if (!dotsEl || !row || !track || !thumb) return;
   const n = G.unlockedPlots;
   if (n <= 4) { dotsEl.style.display = 'none'; return; }
   dotsEl.style.display = 'flex';
-  const thumb = document.getElementById('plotsThumb');
-  if (thumb) {
-    const visibleRatio = Math.min(4 / n, 1);
-    thumb.style.width = (visibleRatio * 100) + '%';
-  }
+
+  // Set thumb width based on visible ratio
+  const visibleRatio = Math.min(4 / n, 1);
+  thumb.style.width = (visibleRatio * 100) + '%';
+
+  // Sync thumb on plot scroll
   row.onscroll = syncPlotDots;
   syncPlotDots();
+
+  // Remove old listeners by cloning
+  const newTrack = track.cloneNode(true);
+  track.parentNode.replaceChild(newTrack, track);
+  const newThumb = newTrack.querySelector('#plotsThumb');
+
+  function getScrollFromPointer(clientX) {
+    const rect = newTrack.getBoundingClientRect();
+    const thumbW = newThumb.offsetWidth;
+    const trackW = newTrack.offsetWidth;
+    const maxLeft = trackW - thumbW;
+    const relX = Math.min(Math.max(clientX - rect.left - thumbW / 2, 0), maxLeft);
+    const pct = relX / maxLeft;
+    const maxScroll = row.scrollWidth - row.clientWidth;
+    row.scrollLeft = pct * maxScroll;
+  }
+
+  // Mouse drag
+  let dragging = false;
+  newThumb.addEventListener('mousedown', function(e) {
+    dragging = true; e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    getScrollFromPointer(e.clientX);
+  });
+  document.addEventListener('mouseup', function() { dragging = false; });
+
+  // Touch drag
+  newThumb.addEventListener('touchstart', function(e) {
+    dragging = true; e.preventDefault();
+  }, { passive: false });
+  document.addEventListener('touchmove', function(e) {
+    if (!dragging) return;
+    getScrollFromPointer(e.touches[0].clientX);
+  }, { passive: true });
+  document.addEventListener('touchend', function() { dragging = false; });
+
+  // Click on track (not thumb) to jump
+  newTrack.addEventListener('click', function(e) {
+    if (e.target === newThumb) return;
+    getScrollFromPointer(e.clientX);
+  });
+
+  // Re-sync when plots scroll
+  row.onscroll = function() {
+    const maxScroll = row.scrollWidth - row.clientWidth;
+    if (maxScroll <= 0) { newThumb.style.left = '0%'; return; }
+    const pct = row.scrollLeft / maxScroll;
+    const vRatio = Math.min(4 / G.unlockedPlots, 1);
+    const maxLeft = (1 - vRatio) * 100;
+    newThumb.style.left = (pct * maxLeft) + '%';
+  };
 }
 
 function scrollToPlot(idx) {

@@ -795,6 +795,7 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
       <div style="display:flex;align-items:center;gap:6px;">
         <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#ff88ff;" id="prestigeBadge" title="Prestige rank"></span>
         <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:#FFD700;" id="gardenLevelBadge">LVL 1</span>
+        <button onclick="popoutGarden()" title="Pop out garden" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.18);border-radius:6px;color:rgba(240,238,248,0.6);font-size:11px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s,border-color 0.15s;flex-shrink:0;" onmouseover="this.style.background='rgba(255,255,255,0.12)';this.style.color='#fff';this.style.borderColor='rgba(255,255,255,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(240,238,248,0.6)';this.style.borderColor='rgba(255,255,255,0.18)'">⧉</button>
       </div>
     </div>
 
@@ -972,11 +973,11 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
         </div>
         <div class="help-section">
           <div class="help-head">🌸 Seasons</div>
-          <div class="help-body">Seasons last 30 days and cycle through Spring, Summer, Autumn and Winter. Some plants grow faster and drop more often in their season. The leaderboard resets each season — new champion every month!</div>
+          <div class="help-body">Seasons change weekly. Some plants grow faster and drop more often in their season. The leaderboard resets each season — new champion every week!</div>
         </div>
         <div class="help-section">
           <div class="help-head">🏆 Leaderboard</div>
-          <div class="help-body">Set your name in the Board tab. You're scored on: biggest plant, total harvests, or total XP. The board resets every 30 days — check back each month to defend your title!</div>
+          <div class="help-body">Set your name in the Board tab. You're scored on: biggest plant, total harvests, or total XP. Check back each season!</div>
         </div>
 
         <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);">
@@ -1350,7 +1351,7 @@ const G = {
   waterCooldownMs: 10 * 60 * 1000,
   maxWater: 5,
   waterPct: 0.20,
-  season: SEASONS[Math.floor((Date.now() / (1000*60*60*24*30)) % 4)],
+  season: SEASONS[Math.floor((Date.now() / (1000*60*60*24*7)) % 4)],
   waterDrops: {},
   unlockedPlots: 4,   // grows with level
   godMode: false,     // level 50 reward
@@ -1388,11 +1389,11 @@ function defaultData() {
   };
 }
 
-// Season key = "Season-MonthNumber" so it resets every 30 days
+// Season key = "Season-WeekNumber" so it resets weekly per season
 function getCurrentSeasonKey() {
-  const month = Math.floor(Date.now() / (1000*60*60*24*30));
-  const seasonIdx = month % 4;
-  return SEASONS[seasonIdx].replace(/\s/g,'') + '-' + month;
+  const week = Math.floor(Date.now() / (1000*60*60*24*7));
+  const seasonIdx = week % 4;
+  return SEASONS[seasonIdx].replace(/\s/g,'') + '-' + week;
 }
 
 function saveData() {
@@ -1415,7 +1416,7 @@ function loadSavedData() {
 
 /* ── Season ── */
 function getCurrentSeason() {
-  return SEASONS[Math.floor((Date.now() / (1000*60*60*24*30)) % 4)];
+  return SEASONS[Math.floor((Date.now() / (1000*60*60*24*7)) % 4)];
 }
 
 /* ── INIT ── */
@@ -3703,6 +3704,45 @@ function lerpCol(a,b,t) {
 }
 
 // Start!
+function popoutGarden() {
+  // Grab full page source and rewrite it for standalone garden-only mode
+  const fullHtml = document.documentElement.outerHTML;
+
+  // Build a stripped version: keep all <style>, <script>, fonts — but only show the garden card
+  const popHtml = fullHtml
+    // Mark body so we can style the popout differently
+    .replace('<body>', '<body class="popout-mode">');
+
+  const win = window.open('', 'chokka-garden-popout',
+    'width=440,height=720,resizable=yes,scrollbars=yes,location=no,menubar=no,toolbar=no,status=no'
+  );
+  if (!win) { alert('Please allow popups for this page to use the garden popout!'); return; }
+
+  win.document.open();
+  win.document.write(popHtml);
+  win.document.close();
+
+  // Once loaded, hide everything except the garden card + its dependencies
+  win.addEventListener('load', function() {
+    try {
+      const style = win.document.createElement('style');
+      style.textContent = `
+        body.popout-mode { padding: 0 !important; background: #0a0a0f !important; }
+        body.popout-mode #bg { display: none !important; }
+        body.popout-mode .wrap > *:not(.garden-card):not(.label[style*="margin-top"]) { display: none !important; }
+        body.popout-mode .wrap { max-width: 100% !important; padding: 0 !important; gap: 0 !important; }
+        body.popout-mode .label { display: none !important; }
+        body.popout-mode .garden-card { border-radius: 0 !important; border-left: none !important; border-right: none !important; }
+        /* hide the popout button inside the popout itself */
+        body.popout-mode button[onclick="popoutGarden()"] { display: none !important; }
+        /* hide seed found toast overlap */
+        body.popout-mode .seed-found-toast { font-size: 11px !important; }
+      `;
+      win.document.head.appendChild(style);
+    } catch(e) {}
+  });
+}
+
 initGarden();
 </script>
 </body>

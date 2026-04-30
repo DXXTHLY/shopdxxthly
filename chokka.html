@@ -1581,7 +1581,10 @@ function applyLevelRewards(lvl) {
   if (reward.type === 'dig_speed') {
     G.digCooldownMs = Math.round(4 * 60 * 1000 * reward.val);
   } else if (reward.type === 'plot') {
-    G.unlockedPlots = reward.val;
+    // Never reduce below what the player has already bought or currently has
+    const bought = (G.data && G.data.boughtPlots) || 0;
+    G.unlockedPlots = Math.max(reward.val, bought, G.unlockedPlots);
+    if (G.data) G.data.boughtPlots = G.unlockedPlots;
     rebuildPlots();
   } else if (reward.type === 'water') {
     G.maxWater = reward.val;
@@ -1593,13 +1596,15 @@ function applyLevelRewards(lvl) {
 }
 
 function reapplyAllLevelRewards() {
-  // Re-apply all earned rewards on load
+  // Re-apply all earned rewards on load — boughtPlots is always the floor
   const lvl = getLevel();
   G.digCooldownMs = 4 * 60 * 1000;
   G.maxWater = 5;
-  G.unlockedPlots = 2; // everyone starts with 2
   G.godMode = false;
-  // Harvest-based early unlocks (plots 3 & 4, i.e. index 2 & 3)
+  // Always start from whatever the player has saved — never go below it
+  const bought = (G.data && G.data.boughtPlots) || 0;
+  G.unlockedPlots = Math.max(2, bought);
+  // Harvest-based early unlocks (plots 3 & 4)
   const harv = (G.data && G.data.harvested) || 0;
   if (harv >= 1) G.unlockedPlots = Math.max(G.unlockedPlots, 3);
   if (harv >= 5) G.unlockedPlots = Math.max(G.unlockedPlots, 4);
@@ -1611,10 +1616,9 @@ function reapplyAllLevelRewards() {
     if (r.type === 'plot')       G.unlockedPlots = Math.max(G.unlockedPlots, r.val);
     if (r.type === 'god_mode')   G.godMode = true;
   }
-  // Apply any extra pots bought from the shop (overrides level-based count)
-  if (G.data && G.data.boughtPlots && G.data.boughtPlots > G.unlockedPlots) {
-    G.unlockedPlots = G.data.boughtPlots;
-  }
+  // Final safety — always respect boughtPlots, then persist
+  G.unlockedPlots = Math.max(G.unlockedPlots, bought);
+  if (G.data) G.data.boughtPlots = G.unlockedPlots;
 }
 
 function addXP(amt) {

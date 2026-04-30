@@ -972,11 +972,11 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
         </div>
         <div class="help-section">
           <div class="help-head">🌸 Seasons</div>
-          <div class="help-body">Seasons change weekly. Some plants grow faster and drop more often in their season. The leaderboard resets each season — new champion every week!</div>
+          <div class="help-body">Seasons last 30 days and cycle through Spring, Summer, Autumn and Winter. Some plants grow faster and drop more often in their season. The leaderboard resets each season — new champion every month!</div>
         </div>
         <div class="help-section">
           <div class="help-head">🏆 Leaderboard</div>
-          <div class="help-body">Set your name in the Board tab. You're scored on: biggest plant, total harvests, or total XP. Check back each season!</div>
+          <div class="help-body">Set your name in the Board tab. You're scored on: biggest plant, total harvests, or total XP. The board resets every 30 days — check back each month to defend your title!</div>
         </div>
 
         <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);">
@@ -1350,7 +1350,7 @@ const G = {
   waterCooldownMs: 10 * 60 * 1000,
   maxWater: 5,
   waterPct: 0.20,
-  season: SEASONS[Math.floor((Date.now() / (1000*60*60*24*7)) % 4)],
+  season: SEASONS[Math.floor((Date.now() / (1000*60*60*24*30)) % 4)],
   waterDrops: {},
   unlockedPlots: 4,   // grows with level
   godMode: false,     // level 50 reward
@@ -1388,11 +1388,11 @@ function defaultData() {
   };
 }
 
-// Season key = "Season-WeekNumber" so it resets weekly per season
+// Season key = "Season-MonthNumber" so it resets every 30 days
 function getCurrentSeasonKey() {
-  const week = Math.floor(Date.now() / (1000*60*60*24*7));
-  const seasonIdx = week % 4;
-  return SEASONS[seasonIdx].replace(/\s/g,'') + '-' + week;
+  const month = Math.floor(Date.now() / (1000*60*60*24*30));
+  const seasonIdx = month % 4;
+  return SEASONS[seasonIdx].replace(/\s/g,'') + '-' + month;
 }
 
 function saveData() {
@@ -1415,7 +1415,7 @@ function loadSavedData() {
 
 /* ── Season ── */
 function getCurrentSeason() {
-  return SEASONS[Math.floor((Date.now() / (1000*60*60*24*7)) % 4)];
+  return SEASONS[Math.floor((Date.now() / (1000*60*60*24*30)) % 4)];
 }
 
 /* ── INIT ── */
@@ -1581,10 +1581,7 @@ function applyLevelRewards(lvl) {
   if (reward.type === 'dig_speed') {
     G.digCooldownMs = Math.round(4 * 60 * 1000 * reward.val);
   } else if (reward.type === 'plot') {
-    // Never reduce below what the player has already bought or currently has
-    const bought = (G.data && G.data.boughtPlots) || 0;
-    G.unlockedPlots = Math.max(reward.val, bought, G.unlockedPlots);
-    if (G.data) G.data.boughtPlots = G.unlockedPlots;
+    G.unlockedPlots = reward.val;
     rebuildPlots();
   } else if (reward.type === 'water') {
     G.maxWater = reward.val;
@@ -1596,15 +1593,13 @@ function applyLevelRewards(lvl) {
 }
 
 function reapplyAllLevelRewards() {
-  // Re-apply all earned rewards on load — boughtPlots is always the floor
+  // Re-apply all earned rewards on load
   const lvl = getLevel();
   G.digCooldownMs = 4 * 60 * 1000;
   G.maxWater = 5;
+  G.unlockedPlots = 2; // everyone starts with 2
   G.godMode = false;
-  // Always start from whatever the player has saved — never go below it
-  const bought = (G.data && G.data.boughtPlots) || 0;
-  G.unlockedPlots = Math.max(2, bought);
-  // Harvest-based early unlocks (plots 3 & 4)
+  // Harvest-based early unlocks (plots 3 & 4, i.e. index 2 & 3)
   const harv = (G.data && G.data.harvested) || 0;
   if (harv >= 1) G.unlockedPlots = Math.max(G.unlockedPlots, 3);
   if (harv >= 5) G.unlockedPlots = Math.max(G.unlockedPlots, 4);
@@ -1616,9 +1611,10 @@ function reapplyAllLevelRewards() {
     if (r.type === 'plot')       G.unlockedPlots = Math.max(G.unlockedPlots, r.val);
     if (r.type === 'god_mode')   G.godMode = true;
   }
-  // Final safety — always respect boughtPlots, then persist
-  G.unlockedPlots = Math.max(G.unlockedPlots, bought);
-  if (G.data) G.data.boughtPlots = G.unlockedPlots;
+  // Apply any extra pots bought from the shop (overrides level-based count)
+  if (G.data && G.data.boughtPlots && G.data.boughtPlots > G.unlockedPlots) {
+    G.unlockedPlots = G.data.boughtPlots;
+  }
 }
 
 function addXP(amt) {

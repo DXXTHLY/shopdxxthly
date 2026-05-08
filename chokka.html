@@ -135,6 +135,55 @@ canvas#bg { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events
 .drink-count.bump{animation:bump 0.3s ease;}
 @keyframes bump{0%{transform:scale(1)}50%{transform:scale(1.4)}100%{transform:scale(1)}}
 
+/* ── UNIFIED CHAT ── */
+.chat-wrap{background:var(--card);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.chat-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:0.5px solid var(--border);cursor:pointer;user-select:none;transition:background 0.15s;}
+.chat-header:hover{background:rgba(255,255,255,0.03);}
+.chat-header-left{display:flex;align-items:center;gap:8px;}
+.chat-header-title{font-size:12px;font-weight:600;color:var(--text);letter-spacing:0.03em;}
+.chat-platform-pills{display:flex;gap:5px;}
+.chat-pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;border:0.5px solid;}
+.chat-pill.tw{color:#9b59e8;border-color:rgba(132,7,230,0.4);background:rgba(132,7,230,0.1);}
+.chat-pill.kk{color:#11ED34;border-color:rgba(17,237,52,0.35);background:rgba(17,237,52,0.08);}
+.chat-toggle-icon{color:var(--muted);font-size:14px;transition:transform 0.25s;line-height:1;}
+.chat-toggle-icon.open{transform:rotate(180deg);}
+.chat-body-wrap{overflow:hidden;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1);}
+.chat-body-wrap.collapsed{max-height:0 !important;}
+.chat-msgs{height:420px;overflow-y:auto;padding:8px 0;display:flex;flex-direction:column;gap:2px;scroll-behavior:smooth;}
+.chat-msgs::-webkit-scrollbar{width:4px;}
+.chat-msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:99px;}
+.chat-msg{display:flex;align-items:flex-start;gap:8px;padding:4px 12px;border-radius:6px;animation:msg-in 0.18s ease;transition:background 0.1s;}
+.chat-msg:hover{background:rgba(255,255,255,0.03);}
+@keyframes msg-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.chat-msg-badge{flex-shrink:0;margin-top:2px;width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;}
+.chat-msg-badge.tw{background:rgba(132,7,230,0.18);border:0.5px solid rgba(132,7,230,0.35);}
+.chat-msg-badge.kk{background:rgba(17,237,52,0.12);border:0.5px solid rgba(17,237,52,0.3);}
+.chat-msg-badge svg{width:10px;height:10px;}
+.chat-msg-content{flex:1;min-width:0;}
+.chat-msg-user{font-size:11px;font-weight:700;margin-bottom:1px;}
+.chat-msg-user.tw{color:#9b59e8;}
+.chat-msg-user.kk{color:#11ED34;}
+.chat-msg-text{font-size:12px;color:var(--text);line-height:1.45;word-break:break-word;opacity:0.9;}
+.chat-msg-time{font-size:10px;color:var(--muted);flex-shrink:0;margin-top:3px;}
+.chat-footer{padding:8px 12px;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(0,0,0,0.15);}
+.chat-status{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.chat-status-dot{width:5px;height:5px;border-radius:50%;background:#11ED34;animation:pulse 1.4s ease-in-out infinite;}
+.chat-clear-btn{font-size:10px;color:var(--muted);background:none;border:0.5px solid var(--border);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'Inter',sans-serif;transition:color 0.15s,border-color 0.15s;}
+.chat-clear-btn:hover{color:var(--text);border-color:var(--border-h);}
+.chat-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;height:100%;color:var(--muted);font-size:12px;opacity:0.6;}
+.chat-empty-icon{font-size:28px;opacity:0.4;}
+
+/* ── CHAT SEND ── */
+.chat-send-wrap{border-top:0.5px solid var(--border);}
+.chat-send-tabs{display:flex;border-bottom:0.5px solid var(--border);}
+.chat-send-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 8px;font-size:11px;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:'Inter',sans-serif;transition:color 0.15s,border-color 0.15s,background 0.15s;}
+.chat-send-tab:hover{color:var(--text);background:rgba(255,255,255,0.03);}
+.chat-send-tab.active#sendTabTw{color:#9b59e8;border-bottom-color:#9b59e8;}
+.chat-send-tab.active#sendTabKk{color:#11ED34;border-bottom-color:#11ED34;}
+.chat-send-note{padding:6px 14px;font-size:11px;color:var(--muted);background:rgba(0,0,0,0.15);border-bottom:0.5px solid var(--border);}
+.chat-send-frame-wrap{width:100%;height:320px;background:#000;}
+.chat-send-frame-wrap iframe{width:100%;height:100%;border:none;display:block;}
+
 /* ── TOAST ── */
 /* ── DARK SCROLLBAR (matches bg) ── */
 * {
@@ -644,6 +693,16 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 }
 .shop-action-btn:hover { background:rgba(17,237,52,0.16); box-shadow:0 0 14px rgba(17,237,52,0.2); }
 .shop-action-btn:active { transform:scale(0.93); }
+.harvest-all-btn {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  padding:10px 8px;border-radius:10px;border:0.5px solid rgba(255,215,0,0.35);
+  background:rgba(255,215,0,0.08);color:#FFD700;cursor:pointer;
+  font-family:'Inter',sans-serif;transition:background 0.15s,box-shadow 0.15s,transform 0.12s;
+  flex:1;min-width:0;
+}
+.harvest-all-btn:hover { background:rgba(255,215,0,0.18); box-shadow:0 0 14px rgba(255,215,0,0.2); }
+.harvest-all-btn:active { transform:scale(0.93); }
+.harvest-all-btn:disabled { opacity:0.35; cursor:not-allowed; }
 
 
 /* find seed notification (big toast) */
@@ -687,17 +746,7 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
   <button class="secret-close" onclick="closeSecret()">close [esc]</button>
 </div>
 
-<!-- Quiet easter egg overlay -->
-<div class="secret-overlay" id="quietOverlay" style="gap:0.75rem;">
-  <div style="font-size:48px;animation:spin-hue 3s linear infinite;">🎧</div>
-  <h2 style="color:#8407E6;">THE QUIET SIDE</h2>
-  <p style="color:rgba(240,238,248,0.6);font-size:12px;max-width:280px;text-align:center;line-height:1.8;">
-    when the lobbies go quiet...<br>chokk puts on the headphones<br>and disappears into the music.
-  </p>
-  <p style="font-family:'Press Start 2P',monospace;font-size:8px;color:#8407E6;letter-spacing:0.15em;margin-top:0.25rem;">you found the quiet corner.</p>
-  <p style="font-size:11px;color:rgba(240,238,248,0.3);margin-top:0.25rem;">🤫 not many people click this</p>
-  <button class="secret-close" style="border-color:rgba(132,7,230,0.5);color:#8407E6;" onclick="closeQuietEgg()">close [esc]</button>
-</div>
+
 
 <div class="wrap">
 
@@ -712,7 +761,7 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
       <span class="badge">Streamer</span>
       <span class="badge" onclick="gamerClick()" style="cursor:pointer;" title="click me...">Gamer</span>
       <span class="badge surf" onclick="showSurfGame()" title="click me...">CS:GO Surfer</span>
-      <span class="badge quiet" onclick="showQuietEgg()" style="cursor:pointer;" title="...">Quiet</span>
+      <a href="https://mantlesoftware.net/imposter" target="_blank" class="badge quiet" style="cursor:pointer;text-decoration:none;" title="...">Quiet</a>
     </div>
   </div>
 
@@ -782,6 +831,51 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
     </div>
     <div class="embed-body" id="embedBody"></div>
     <div class="embed-note"><span id="embedHint"></span><button class="close-btn" onclick="closeEmbed()">Close</button></div>
+  </div>
+
+  <!-- ═══════════ UNIFIED CHAT ═══════════ -->
+  <div class="label" style="margin-top:0.25rem;">💬 Live Chat</div>
+  <div class="chat-wrap" id="chatWrap">
+    <div class="chat-header" onclick="toggleChat()">
+      <div class="chat-header-left">
+        <div class="chat-platform-pills">
+          <span class="chat-pill tw">
+            <svg width="9" height="9" viewBox="0 0 40 40" fill="none" style="display:inline;vertical-align:middle;margin-right:3px"><path d="M23.9 33.6h-5.2l-6.5 6.5v-6.5H4.5V10.4L11 3.9h24.5V22L23.9 33.6zM32.9 6.5H12.2v19.4h5.2V31l5.2-5.2h5.2l5.2-5.2V6.5zM26.5 11.7H29v7.7h-2.6V11.7zM20 11.7h2.6v7.7H20V11.7z" fill="#9b59e8"/></svg>Twitch
+          </span>
+          <span class="chat-pill kk">
+            <svg width="9" height="9" viewBox="0 0 40 40" fill="none" style="display:inline;vertical-align:middle;margin-right:3px"><path d="M6 4.23h10.13v7.01h3.38V7.73h3.37V4.23H33v10.52h-3.37v3.51h-3.37v3.51h3.37v3.51H33v10.52H22.88v-3.51H19.5v-3.51h-3.38v7.01H6V4.23z" fill="#11ED34"/></svg>Kick
+          </span>
+        </div>
+        <span class="chat-header-title">unified chat</span>
+      </div>
+      <span class="chat-toggle-icon open" id="chatToggleIcon">▾</span>
+    </div>
+    <div class="chat-body-wrap" id="chatBodyWrap">
+      <div class="chat-msgs" id="chatMsgs">
+        <div class="chat-empty"><span class="chat-empty-icon">💬</span><span>Connecting to chat…</span></div>
+      </div>
+      <div class="chat-footer">
+        <div class="chat-status"><span class="chat-status-dot"></span><span id="chatStatusTxt">Listening for messages…</span></div>
+        <button class="chat-clear-btn" onclick="clearChatHistory()">Clear</button>
+      </div>
+      <!-- ── CHAT INPUT TABS ── -->
+      <div class="chat-send-wrap">
+        <div class="chat-send-tabs">
+          <button class="chat-send-tab active" id="sendTabTw" onclick="switchSendTab('tw')">
+            <svg width="10" height="10" viewBox="0 0 40 40" fill="none"><path d="M23.9 33.6h-5.2l-6.5 6.5v-6.5H4.5V10.4L11 3.9h24.5V22L23.9 33.6zM32.9 6.5H12.2v19.4h5.2V31l5.2-5.2h5.2l5.2-5.2V6.5zM26.5 11.7H29v7.7h-2.6V11.7zM20 11.7h2.6v7.7H20V11.7z" fill="#9b59e8"/></svg>
+            Chat as Twitch
+          </button>
+          <button class="chat-send-tab" id="sendTabKk" onclick="switchSendTab('kk')">
+            <svg width="10" height="10" viewBox="0 0 40 40" fill="none"><path d="M6 4.23h10.13v7.01h3.38V7.73h3.37V4.23H33v10.52h-3.37v3.51h-3.37v3.51h3.37v3.51H33v10.52H22.88v-3.51H19.5v-3.51h-3.38v7.01H6V4.23z" fill="#11ED34"/></svg>
+            Chat as Kick
+          </button>
+        </div>
+        <div class="chat-send-note">logged into <span id="sendPlatformName" style="color:#9b59e8;font-weight:600;">Twitch</span>? just type below ↓</div>
+        <div class="chat-send-frame-wrap">
+          <iframe id="chatSendFrame" src="https://www.twitch.tv/embed/chokkatsuchi/chat?parent=dxxthly.github.io&darkpopout" allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ═══════════ GARDEN v2 ═══════════ -->
@@ -879,6 +973,10 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
         <button id="compostBtn" class="compost-btn" onclick="compostAction()">
           <span style="font-size:18px;">♻️</span>
           <span style="font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:0.08em;">COMPOST</span>
+        </button>
+        <button id="harvestAllBtn" class="harvest-all-btn" onclick="harvestAllAction()">
+          <span style="font-size:18px;">🌾</span>
+          <span style="font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:0.08em;">HARVEST</span>
         </button>
         <button class="sell-action-btn" onclick="openSellModal()">
           <span style="font-size:18px;">💰</span>
@@ -1090,6 +1188,171 @@ function openEmbed(id,e){addRipple(e);var p=document.getElementById('embedPanel'
 function switchTab(id){document.querySelectorAll('.etab').forEach(function(b){b.classList.toggle('active',b.dataset.id===id);});var c=cfg[id];document.getElementById('embedBody').innerHTML='<iframe src="'+c.src+'" allowfullscreen allow="autoplay; encrypted-media"></iframe>';document.getElementById('embedHint').innerHTML=c.hint;}
 function closeEmbed(){document.getElementById('embedPanel').classList.remove('open');document.getElementById('embedBody').innerHTML='';}
 
+/* ══ UNIFIED CHAT (Twitch + Kick merged feed, localStorage history) ══ */
+(function(){
+  var STORAGE_KEY = 'chokka_chat_history_v2';
+  var MAX_MSGS = 200;
+  var chatOpen = true;
+  var chatHistory = [];
+  var twWs = null, kkWs = null;
+
+  var TWITCH_ICON = '<svg width="10" height="10" viewBox="0 0 40 40" fill="none"><path d="M23.9 33.6h-5.2l-6.5 6.5v-6.5H4.5V10.4L11 3.9h24.5V22L23.9 33.6zM32.9 6.5H12.2v19.4h5.2V31l5.2-5.2h5.2l5.2-5.2V6.5zM26.5 11.7H29v7.7h-2.6V11.7zM20 11.7h2.6v7.7H20V11.7z" fill="#9b59e8"/></svg>';
+  var KICK_ICON   = '<svg width="10" height="10" viewBox="0 0 40 40" fill="none"><path d="M6 4.23h10.13v7.01h3.38V7.73h3.37V4.23H33v10.52h-3.37v3.51h-3.37v3.51h3.37v3.51H33v10.52H22.88v-3.51H19.5v-3.51h-3.38v7.01H6V4.23z" fill="#11ED34"/></svg>';
+
+  function loadHistory() {
+    try { chatHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e) { chatHistory = []; }
+  }
+  function saveHistory() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(chatHistory.slice(-MAX_MSGS))); } catch(e) {}
+  }
+  function timeStr() {
+    var d = new Date(); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+  }
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function renderMsg(msg) {
+    return '<div class="chat-msg">'+
+      '<div class="chat-msg-badge '+msg.src+'">'+( msg.src==='tw' ? TWITCH_ICON : KICK_ICON )+'</div>'+
+      '<div class="chat-msg-content">'+
+        '<div class="chat-msg-user '+msg.src+'">'+escHtml(msg.user)+'</div>'+
+        '<div class="chat-msg-text">'+escHtml(msg.text)+'</div>'+
+      '</div>'+
+      '<div class="chat-msg-time">'+msg.time+'</div>'+
+    '</div>';
+  }
+  function pushMsg(src, user, text) {
+    var msg = {src:src, user:user, text:text, time:timeStr()};
+    chatHistory.push(msg);
+    if (chatHistory.length > MAX_MSGS) chatHistory = chatHistory.slice(-MAX_MSGS);
+    saveHistory();
+    var el = document.getElementById('chatMsgs');
+    if (!el) return;
+    // Remove empty state
+    var empty = el.querySelector('.chat-empty');
+    if (empty) empty.remove();
+    var div = document.createElement('div');
+    div.innerHTML = renderMsg(msg);
+    el.appendChild(div.firstChild);
+    // Auto-scroll if near bottom
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 80) el.scrollTop = el.scrollHeight;
+  }
+  function renderAllHistory() {
+    var el = document.getElementById('chatMsgs');
+    if (!el) return;
+    if (chatHistory.length === 0) {
+      el.innerHTML = '<div class="chat-empty"><span class="chat-empty-icon">💬</span><span>Connecting to chat…</span></div>';
+      return;
+    }
+    el.innerHTML = chatHistory.map(renderMsg).join('');
+    el.scrollTop = el.scrollHeight;
+  }
+
+  /* ── TWITCH IRC via WebSocket ── */
+  function connectTwitch() {
+    try { if (twWs) twWs.close(); } catch(e){}
+    twWs = new WebSocket('wss://irc-ws.chat.twitch.tv');
+    twWs.onopen = function() {
+      twWs.send('PASS oauth:justinfan'+Math.floor(Math.random()*99999));
+      twWs.send('NICK justinfan'+Math.floor(Math.random()*99999));
+      twWs.send('JOIN #chokkatsuchi');
+    };
+    twWs.onmessage = function(e) {
+      var raw = e.data;
+      if (raw.indexOf('PING') === 0) { twWs.send('PONG :tmi.twitch.tv'); return; }
+      var match = raw.match(/^:(\w+)!\w+@\w+\.tmi\.twitch\.tv PRIVMSG #\w+ :(.+)$/m);
+      if (match) pushMsg('tw', match[1], match[2].trim());
+    };
+    twWs.onclose = function() { setTimeout(connectTwitch, 5000); };
+    twWs.onerror = function() { twWs.close(); };
+  }
+
+  /* ── KICK chat via WebSocket (Pusher-compatible) ── */
+  function connectKick() {
+    try { if (kkWs) kkWs.close(); } catch(e){}
+    // Kick uses Pusher protocol on their public cluster
+    kkWs = new WebSocket('wss://ws-us2.pusher.com/app/eb1d5f283081a78b932c?protocol=7&client=js&version=7.6.0&flash=false');
+    kkWs.onopen = function() {
+      kkWs.send(JSON.stringify({event:'pusher:subscribe',data:{auth:'',channel:'chatrooms.16067235.v2'}}));
+    };
+    kkWs.onmessage = function(e) {
+      try {
+        var msg = JSON.parse(e.data);
+        if (msg.event === 'pusher:connection_established') {
+          // Send subscribe after connection
+          kkWs.send(JSON.stringify({event:'pusher:subscribe',data:{auth:'',channel:'chatrooms.16067235.v2'}}));
+        }
+        if (msg.event === 'App\\Events\\ChatMessageEvent' || msg.event === 'ChatMessageEvent') {
+          var d = typeof msg.data === 'string' ? JSON.parse(msg.data) : msg.data;
+          if (d && d.sender && d.content) pushMsg('kk', d.sender.username, d.content);
+        }
+      } catch(err){}
+    };
+    kkWs.onclose = function() { setTimeout(connectKick, 5000); };
+    kkWs.onerror = function() { kkWs.close(); };
+  }
+
+  window.toggleChat = function() {
+    chatOpen = !chatOpen;
+    var wrap = document.getElementById('chatBodyWrap');
+    var icon = document.getElementById('chatToggleIcon');
+    if (chatOpen) {
+      wrap.style.maxHeight = wrap.scrollHeight + 'px';
+      wrap.classList.remove('collapsed');
+      icon.classList.add('open');
+      // re-measure after transition
+      setTimeout(function(){ wrap.style.maxHeight = '500px'; }, 350);
+    } else {
+      wrap.style.maxHeight = wrap.scrollHeight + 'px';
+      requestAnimationFrame(function(){
+        wrap.classList.add('collapsed');
+        icon.classList.remove('open');
+      });
+    }
+  };
+
+  window.clearChatHistory = function() {
+    chatHistory = [];
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e){}
+    var el = document.getElementById('chatMsgs');
+    if (el) el.innerHTML = '<div class="chat-empty"><span class="chat-empty-icon">💬</span><span>Chat cleared. Listening for new messages…</span></div>';
+  };
+
+  window.addEventListener('DOMContentLoaded', function() {
+    loadHistory();
+    renderAllHistory();
+    // Set initial height for collapse transition
+    var wrap = document.getElementById('chatBodyWrap');
+    if (wrap) wrap.style.maxHeight = '500px';
+    connectTwitch();
+    connectKick();
+    var status = document.getElementById('chatStatusTxt');
+    if (status) status.textContent = 'Twitch + Kick • '+chatHistory.length+' saved messages';
+    // Fix chat input iframe src with real hostname
+    var inputFrame = document.getElementById('chatInputFrame');
+    if (inputFrame) {
+      inputFrame.src = 'https://www.twitch.tv/embed/chokkatsuchi/chat?parent=' + (location.hostname || 'localhost') + '&darkpopout';
+    }
+  });
+})();
+
+var currentSendTab = 'tw';
+function switchSendTab(tab) {
+  if (currentSendTab === tab) return;
+  currentSendTab = tab;
+  document.getElementById('sendTabTw').classList.toggle('active', tab === 'tw');
+  document.getElementById('sendTabKk').classList.toggle('active', tab === 'kk');
+  var frame = document.getElementById('chatSendFrame');
+  var note = document.getElementById('sendPlatformName');
+  if (tab === 'tw') {
+    frame.src = 'https://www.twitch.tv/embed/chokkatsuchi/chat?parent=dxxthly.github.io&darkpopout';
+    if (note) { note.textContent = 'Twitch'; note.style.color = '#9b59e8'; }
+  } else {
+    frame.src = 'https://kick.com/chokkatsuchi/chatroom';
+    if (note) { note.textContent = 'Kick'; note.style.color = '#11ED34'; }
+  }
+}
+
 function addRipple(e){var el=e.currentTarget;var r=document.createElement('span');var rect=el.getBoundingClientRect();var size=Math.max(rect.width,rect.height);r.className='ripple';r.style.cssText='width:'+size+'px;height:'+size+'px;left:'+(e.clientX-rect.left-size/2)+'px;top:'+(e.clientY-rect.top-size/2)+'px;';el.appendChild(r);setTimeout(function(){r.remove();},600);}
 
 var toastTimer;
@@ -1107,10 +1370,8 @@ function nameClic(){nameClicks++;if(nameClicks===3){showToastMsg('real one 🤙'
 function showToastMsg(msg){var t=document.getElementById('toast');t.textContent=msg;t.style.borderColor='rgba(132,7,230,0.5)';t.style.color='#9b59e8';t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');t.textContent='Link copied!';t.style.borderColor='rgba(17,237,52,0.4)';t.style.color='#11ED34';},2500);}
 
 var konami=[38,38,40,40,37,39,37,39,66,65],kpos=0;
-document.addEventListener('keydown',function(e){if(e.keyCode===konami[kpos]){kpos++;if(kpos===konami.length){document.getElementById('secretOverlay').classList.add('show');kpos=0;}}else{kpos=0;}if(e.key==='Escape'){closeSecret();closeQuietEgg();}});
+document.addEventListener('keydown',function(e){if(e.keyCode===konami[kpos]){kpos++;if(kpos===konami.length){document.getElementById('secretOverlay').classList.add('show');kpos=0;}}else{kpos=0;}if(e.key==='Escape'){closeSecret();}});
 function closeSecret(){document.getElementById('secretOverlay').classList.remove('show');}
-function showQuietEgg(){document.getElementById('quietOverlay').classList.add('show');}
-function closeQuietEgg(){document.getElementById('quietOverlay').classList.remove('show');}
 
 /* ── SHARED FIREBASE (single instance, used by cheers + garden) ── */
 var _fbReady = null;
@@ -1326,15 +1587,43 @@ const SEEDS = {
   worldtree:   { name:'World Seed',    plant:'World Tree',      emoji:'🌍', color:'#44ff88', growMs:24*3600*1000,   rarity:'LEGENDARY', weight:0.4,hint:'24 hrs',  desc:'A seed said to contain all other plants within it.', minSize:70, maxSize:130 },
   rainbow:     { name:'Rainbow Pip',   plant:'Rainbow Garden',  emoji:'🌈', color:'#ff88cc', growMs:18*3600*1000,   rarity:'LEGENDARY', weight:0.7,hint:'18 hrs',  desc:'Every petal is a different colour. No two are ever alike.', minSize:50, maxSize:100 },
   void:        { name:'Void Lotus',    plant:'Void Lotus',      emoji:'⚫', color:'#6600ff', growMs:15*3600*1000,   rarity:'LEGENDARY', weight:0.6,hint:'15 hrs',  desc:'A flower that absorbs all light. Dark as the void itself.', minSize:55, maxSize:108 },
+
+  // ── 🌿 WEED STRAINS (EPIC / LEGENDARY — ultra rare) ──
+  og_kush:      { name:'OG Kush Seed',      plant:'OG Kush',          emoji:'🌿', color:'#55cc44', growMs:6*3600*1000,    rarity:'EPIC',      weight:1.8, hint:'6 hrs',   desc:'The classic. Earthy pine with a hint of fuel. The blueprint.', minSize:40, maxSize:78 },
+  purple_haze:  { name:'Haze Spore',        plant:'Purple Haze',      emoji:'🔮', color:'#aa44ff', growMs:8*3600*1000,    rarity:'EPIC',      weight:1.5, hint:'8 hrs',   desc:'Jimi would approve. Purple pistils, cerebral highs.', minSize:45, maxSize:82 },
+  blue_dream:   { name:'Dream Seed',        plant:'Blue Dream',       emoji:'💙', color:'#4488ff', growMs:7*3600*1000,    rarity:'EPIC',      weight:1.5, hint:'7 hrs',   desc:'Sweet blueberry aroma. The most popular strain in the garden.', minSize:42, maxSize:80 },
+  gorilla_glue: { name:'Glue Nug',          plant:'Gorilla Glue #4',  emoji:'🦍', color:'#886644', growMs:9*3600*1000,    rarity:'EPIC',      weight:1.2, hint:'9 hrs',   desc:'So sticky it glues your fingers together at harvest time.', minSize:50, maxSize:90 },
+  sour_diesel:  { name:'Diesel Pip',        plant:'Sour Diesel',      emoji:'⛽', color:'#dddd22', growMs:7.5*3600*1000,  rarity:'EPIC',      weight:1.4, hint:'7.5 hrs', desc:'Pungent fuel smell. Fast-acting, fast-growing.', minSize:44, maxSize:82 },
+  wedding_cake: { name:'Cake Crumb',        plant:'Wedding Cake',     emoji:'🎂', color:'#ffccdd', growMs:8.5*3600*1000,  rarity:'EPIC',      weight:1.2, hint:'8.5 hrs', desc:'Rich, tangy vanilla flavor. Save it for a special occasion.', minSize:48, maxSize:88 },
+  zkittlez:     { name:'Zkittle Seed',      plant:'Zkittlez',         emoji:'🍬', color:'#ff66aa', growMs:6.5*3600*1000,  rarity:'EPIC',      weight:1.3, hint:'6.5 hrs', desc:'Taste the rainbow. Every terpene hits different.', minSize:40, maxSize:76 },
+  runtz:        { name:'Runtz Bud',         plant:'Runtz',            emoji:'🍭', color:'#cc88ff', growMs:9*3600*1000,    rarity:'EPIC',      weight:1.1, hint:'9 hrs',   desc:'Candy-sweet and loud. One of the most hyped strains alive.', minSize:46, maxSize:84 },
+  mac1:         { name:'MAC Seed',          plant:'MAC #1',           emoji:'🌙', color:'#aaaaff', growMs:10*3600*1000,   rarity:'EPIC',      weight:1.0, hint:'10 hrs',  desc:'Miracle Alien Cookies. Dense nugs with extraterrestrial terpenes.', minSize:50, maxSize:92 },
+  gelato:       { name:'Gelato Pip',        plant:'Gelato #33',       emoji:'🍦', color:'#ff99cc', growMs:8*3600*1000,    rarity:'EPIC',      weight:1.2, hint:'8 hrs',   desc:'Dessert-tier. Creamy, sweet, and absolutely dangerous.', minSize:44, maxSize:82 },
+  sherb:        { name:'Sherbet Seed',      plant:'Sherblato',        emoji:'🍧', color:'#ffaaee', growMs:7*3600*1000,    rarity:'EPIC',      weight:1.3, hint:'7 hrs',   desc:'Fruity sherbet meets sunset. Garden golden hour vibes.', minSize:40, maxSize:78 },
+  lemon_haze:   { name:'Lemon Pip',         plant:'Super Lemon Haze', emoji:'🍋', color:'#ffee44', growMs:6*3600*1000,    rarity:'EPIC',      weight:1.4, hint:'6 hrs',   desc:'Zesty citrus explosion. Sativa energy in plant form.', minSize:38, maxSize:75 },
+  white_widow:  { name:'Widow Seed',        plant:'White Widow',      emoji:'🕷️', color:'#eeeeff', growMs:7.5*3600*1000,  rarity:'EPIC',      weight:1.1, hint:'7.5 hrs', desc:'Covered in white crystals. A classic European staple.', minSize:42, maxSize:80 },
+  ak47:         { name:'AK Seed',           plant:'AK-47',            emoji:'💥', color:'#cc8833', growMs:8*3600*1000,    rarity:'EPIC',      weight:1.0, hint:'8 hrs',   desc:'Don\'t let the name scare you. It\'s a gentle giant in the garden.', minSize:45, maxSize:85 },
+  bruce_banner: { name:'Banner Seed',       plant:'Bruce Banner #3',  emoji:'💚', color:'#44ee44', growMs:9.5*3600*1000,  rarity:'EPIC',      weight:0.9, hint:'9.5 hrs', desc:'Named for a reason. One of the strongest plants in the game.', minSize:52, maxSize:95 },
+  // LEGENDARY WEED STRAINS — absurdly rare
+  god_bud:      { name:'God Bud',           plant:'God\'s Gift',      emoji:'✝️', color:'#cc44ff', growMs:14*3600*1000,   rarity:'LEGENDARY', weight:0.35,hint:'14 hrs',  desc:'They say it fell from the sky. No one knows who made it first.', minSize:60, maxSize:115 },
+  chemdawg:     { name:'Chem Seed',         plant:'Chemdawg',         emoji:'🧪', color:'#88ffaa', growMs:12*3600*1000,   rarity:'LEGENDARY', weight:0.4, hint:'12 hrs',  desc:'The legendary mystery strain. Parent of OG and Sour D. Origin unknown.', minSize:58, maxSize:112 },
+  trainwreck:   { name:'Wreck Seed',        plant:'Trainwreck',       emoji:'🚂', color:'#ff6622', growMs:13*3600*1000,   rarity:'LEGENDARY', weight:0.35,hint:'13 hrs',  desc:'Hits like a freight train. Grows tall and proud.', minSize:62, maxSize:118 },
+  obama_kush:   { name:'Presidential Seed', plant:'Obama Kush',       emoji:'🇺🇸', color:'#3355ff', growMs:16*3600*1000,   rarity:'LEGENDARY', weight:0.3, hint:'16 hrs',  desc:'Reserved for the highest office in the garden.', minSize:60, maxSize:115 },
+  alien_og:     { name:'Alien Seed',        plant:'Alien OG',         emoji:'👽', color:'#44ffcc', growMs:15*3600*1000,   rarity:'LEGENDARY', weight:0.3, hint:'15 hrs',  desc:'Not from this world. Impossible to find, impossible to forget.', minSize:65, maxSize:120 },
+  pineapple_ex: { name:'Pineapple X Seed',  plant:'Pineapple Express', emoji:'🍍', color:'#ffcc00', growMs:11*3600*1000,   rarity:'LEGENDARY', weight:0.45,hint:'11 hrs',  desc:'Made famous by a movie. Grown by legends. Pineapple and mango terps.', minSize:55, maxSize:108 },
+  cereal_milk:  { name:'Cereal Seed',       plant:'Cereal Milk',      emoji:'🥣', color:'#ffeecc', growMs:14*3600*1000,   rarity:'LEGENDARY', weight:0.35,hint:'14 hrs',  desc:'Tastes like the milk left in the bowl after Fruit Loops. Somehow perfect.', minSize:58, maxSize:112 },
+  strawberry_f: { name:'Strawberry Seed',   plant:'Strawberry Fields', emoji:'🍓', color:'#ff4466', growMs:12*3600*1000,   rarity:'LEGENDARY', weight:0.4, hint:'12 hrs',  desc:'Strawberry fields forever. Sweet, red-haired, and absolutely elite.', minSize:55, maxSize:108 },
+  mimosa:       { name:'Mimosa Seed',       plant:'Mimosa',           emoji:'🥂', color:'#ffcc44', growMs:13*3600*1000,   rarity:'LEGENDARY', weight:0.38,hint:'13 hrs',  desc:'Brunch-worthy. Citrusy, uplifting, and dangerously good.', minSize:58, maxSize:110 },
+  biscotti:     { name:'Biscotti Seed',     plant:'Biscotti',         emoji:'🍪', color:'#cc8833', growMs:16*3600*1000,   rarity:'LEGENDARY', weight:0.28,hint:'16 hrs',  desc:'Cookie Fam genetics. Earthy and sweet with a knockout finish.', minSize:65, maxSize:122 },
 };
 
 const RARITY_COL = { COMMON:'#88cc44', UNCOMMON:'#00FFEE', RARE:'#CC44FF', EPIC:'#FF6600', LEGENDARY:'#FFD700' };
 const SEASONS = ['🌸 Spring','☀️ Summer','🍂 Autumn','❄️ Winter'];
 const SEASON_BOOSTS = {
-  '🌸 Spring':  { uncommon:1.4, sakura:2.0, tulip:1.6, rose:1.4, lavender:1.3, daisy:1.5, lily:1.4, orchid:1.3 },
-  '☀️ Summer':  { fire:1.8, tropic:2.0, sunflower:2.0, cactus:1.6, common:1.3, ginger:1.5, magma:1.4, seaweed:1.3 },
-  '🍂 Autumn':  { mushroom:1.8, shadow:1.5, vine:1.4, bonsai:1.5, haunted:1.8, venom:1.3, fern:1.4, herb:1.3 },
-  '❄️ Winter':  { ice:2.0, crystal:1.6, legendary:1.3, aurora:1.6, storm:1.4, frost:1.5, clover:0.7, daisy:0.6 }
+  '🌸 Spring':  { uncommon:1.4, sakura:2.0, tulip:1.6, rose:1.4, lavender:1.3, daisy:1.5, lily:1.4, orchid:1.3, mimosa:1.5, strawberry_f:1.4 },
+  '☀️ Summer':  { fire:1.8, tropic:2.0, sunflower:2.0, cactus:1.6, common:1.3, ginger:1.5, magma:1.4, seaweed:1.3, sour_diesel:1.5, lemon_haze:1.6, pineapple_ex:1.4 },
+  '🍂 Autumn':  { mushroom:1.8, shadow:1.5, vine:1.4, bonsai:1.5, haunted:1.8, venom:1.3, fern:1.4, herb:1.3, og_kush:1.5, gorilla_glue:1.4, chemdawg:1.3 },
+  '❄️ Winter':  { ice:2.0, crystal:1.6, legendary:1.3, aurora:1.6, storm:1.4, frost:1.5, clover:0.7, daisy:0.6, white_widow:1.6, blue_dream:1.3 }
 };
 
 const G = {
@@ -1865,6 +2154,70 @@ function waterAllAction() {
   else showGardenMsg('🚿 watered '+watered+' plant'+(watered>1?'s':'')+'! ('+G.data.waterCharges+' water left)');
   updateWaterUI();
   saveData();
+}
+
+function harvestAllAction() {
+  if (!G.data) return;
+  let readyPlots = [];
+  for (let i = 0; i < G.unlockedPlots; i++) {
+    const plot = G.data['plot'+i];
+    if (plot && isReady(plot)) readyPlots.push(i);
+  }
+  if (readyPlots.length === 0) {
+    showGardenMsg('🌾 nothing ready to harvest yet!');
+    return;
+  }
+  // Harvest each ready plot silently (no popup per-plant), collect totals
+  let totalCoins = 0, totalXP = 0, seedsFound = [];
+  readyPlots.forEach(function(idx) {
+    const key = 'plot'+idx;
+    const plot = G.data[key];
+    const s = SEEDS[plot.type];
+    const sMin = s.minSize||10, sMax = s.maxSize||40;
+    const waterBonus = Math.min((plot.waterCount||0)*2, 15);
+    const godRoll = Math.random() < 0.05;
+    const rollMin = godRoll ? sMin+(sMax-sMin)*0.82 : sMin;
+    let baseSize = rollMin + Math.random()*(sMax+waterBonus-rollMin);
+    let overflowTier = 0;
+    if (Math.random()<1/20){overflowTier=1;baseSize=sMax+waterBonus+Math.random()*sMax*0.5;
+      if(Math.random()<1/5){overflowTier=2;baseSize=sMax*1.5+waterBonus+Math.random()*sMax;
+        if(Math.random()<1/5){overflowTier=3;baseSize=sMax*2.5+waterBonus+Math.random()*sMax*2.5;
+          if(Math.random()<1/10){overflowTier=4;baseSize=sMax*5+waterBonus+Math.random()*sMax*5;
+            if(Math.random()<1/10){overflowTier=5;baseSize=sMax*10+waterBonus+Math.random()*sMax*10;}}}}}
+    const finalSize = Math.round(baseSize);
+    G.data[key] = null;
+    G.data.harvested = (G.data.harvested||0) + 1;
+    if (!G.data.bestSizes) G.data.bestSizes = {};
+    if (!G.data.harvestCounts) G.data.harvestCounts = {};
+    G.data.harvestCounts[plot.type] = (G.data.harvestCounts[plot.type]||0) + 1;
+    if (finalSize > (G.data.bestSizes[plot.type]||0)) G.data.bestSizes[plot.type] = finalSize;
+    const seasonKey = getCurrentSeasonKey();
+    if (!G.data.seasonBest) G.data.seasonBest = {};
+    if (!G.data.seasonBest[seasonKey]) G.data.seasonBest[seasonKey] = {type:null,size:0};
+    if (finalSize > (G.data.seasonBest[seasonKey].size||0)) G.data.seasonBest[seasonKey] = {type:plot.type,size:finalSize,name:s.plant,emoji:s.emoji};
+    const coinMap = {COMMON:2,UNCOMMON:5,RARE:15,EPIC:40,LEGENDARY:120};
+    const coins = (coinMap[s.rarity]||2) + Math.floor(finalSize/8);
+    G.data.coins = (G.data.coins||0) + coins;
+    totalCoins += coins;
+    const xpMap = {COMMON:5,UNCOMMON:12,RARE:30,EPIC:75,LEGENDARY:200};
+    totalXP += xpMap[s.rarity]||5;
+    const bonus = rollSeed();
+    addSeed(bonus, true);
+    seedsFound.push(SEEDS[bonus].emoji);
+    spawnHarvestParticles(idx);
+  });
+  addXP(totalXP);
+  updateCoinUI();
+  updatePlotLocks();
+  renderStats();
+  renderCodex();
+  updateLeaderboard();
+  saveData();
+  // Check early-game plot unlocks
+  const harvNow = G.data.harvested;
+  if (harvNow >= 1 && G.unlockedPlots < 3) { G.unlockedPlots=3; G.data.boughtPlots=Math.max(G.data.boughtPlots||0,3); rebuildPlots(); }
+  if (harvNow >= 5 && G.unlockedPlots < 4) { G.unlockedPlots=4; G.data.boughtPlots=Math.max(G.data.boughtPlots||0,4); rebuildPlots(); }
+  showGardenMsg('🌾 harvested '+readyPlots.length+' plant'+(readyPlots.length>1?'s':'')+' — +🪙'+totalCoins+' +⭐'+totalXP+'xp  '+seedsFound.join(' '));
 }
 
 function spawnRainDrops(idx) {

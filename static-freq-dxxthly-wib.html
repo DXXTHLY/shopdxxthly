@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DXXTHLY — "When I Breathe" and the Art of Saying the Unsayable | Static Freq</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --text: #d8d4cc;
+    --muted: #666;
+    --accent: #e8c84a;
+    --accent2: #4a9ee8;
+    --white: #f0ece4;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Libre Baskerville', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.8;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Top bar */
+  .top-bar {
+    background: var(--accent);
+    color: #0e0e0e;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 7px 0;
+  }
+
+  .top-bar a {
+    color: #0e0e0e;
+    text-decoration: none;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(0,0,0,0.3);
+  }
+
+  /* Masthead */
+  .masthead {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 0 20px;
+  }
+
+  .masthead-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .pub-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 6vw, 72px);
+    letter-spacing: 0.06em;
+    color: var(--white);
+    line-height: 1;
+  }
+
+  .pub-name span {
+    color: var(--accent);
+  }
+
+  .pub-meta {
+    text-align: right;
+  }
+
+  .pub-tagline {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .pub-date {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+  }
+
+  /* Nav */
+  .site-nav {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .nav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  .nav-inner a {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 12px 20px;
+    display: block;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .nav-inner a:hover { color: var(--white); }
+  .nav-inner a.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Hero */
+  .hero {
+    border-bottom: 1px solid var(--border);
+    padding: 60px 0 52px;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: 'DXXTHLY';
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(120px, 18vw, 240px);
+    color: rgba(255,255,255,0.025);
+    letter-spacing: 0.04em;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .hero-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-kicker {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .hero-kicker::before {
+    content: '';
+    display: block;
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .hero-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 7vw, 96px);
+    letter-spacing: 0.02em;
+    line-height: 0.95;
+    color: var(--white);
+    margin-bottom: 24px;
+    max-width: 800px;
+  }
+
+  .hero-headline em {
+    color: var(--accent);
+    font-style: normal;
+  }
+
+  .hero-dek {
+    font-size: 18px;
+    line-height: 1.6;
+    color: #a09890;
+    max-width: 580px;
+    margin-bottom: 28px;
+    font-style: italic;
+  }
+
+  .hero-byline {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .hero-byline strong { color: var(--text); }
+
+  .tag {
+    display: inline-block;
+    background: var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+
+  .tag.hot {
+    background: var(--accent);
+    color: #0e0e0e;
+    font-weight: 700;
+  }
+
+  /* Layout */
+  .page-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 56px;
+    padding: 52px 0 80px;
+    align-items: start;
+  }
+
+  /* Prose */
+  .prose p {
+    margin-bottom: 1.7em;
+    color: var(--text);
+  }
+
+  .prose p.intro {
+    font-size: 19px;
+    line-height: 1.7;
+    color: var(--white);
+    font-style: italic;
+  }
+
+  .prose h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.06em;
+    color: var(--white);
+    margin: 2.6em 0 0.8em;
+    border-left: 3px solid var(--accent);
+    padding-left: 14px;
+  }
+
+  /* Pull quote */
+  .pull-quote {
+    background: var(--surface2);
+    border-top: 2px solid var(--accent);
+    padding: 28px 28px 24px;
+    margin: 36px 0;
+  }
+
+  .pull-quote blockquote {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.03em;
+    line-height: 1.25;
+    color: var(--white);
+  }
+
+  .pull-quote blockquote em {
+    color: var(--accent);
+    font-style: normal;
+  }
+
+  .pull-quote cite {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 14px;
+    font-style: normal;
+  }
+
+  /* Lyric callout */
+  .lyric-block {
+    border-left: 2px solid var(--accent2);
+    padding: 18px 24px;
+    margin: 28px 0;
+    background: rgba(74, 158, 232, 0.05);
+  }
+
+  .lyric-block p {
+    font-style: italic;
+    color: #b0c8e0;
+    font-size: 16px;
+    line-height: 1.9;
+    margin-bottom: 0;
+  }
+
+  .lyric-block .lyric-credit {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 10px;
+    display: block;
+    font-style: normal;
+  }
+
+  /* Stats */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    margin: 36px 0;
+  }
+
+  .stat {
+    background: var(--surface);
+    padding: 22px 18px;
+    text-align: center;
+  }
+
+  .stat-n {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    display: block;
+    line-height: 1;
+  }
+
+  .stat-l {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-top: 6px;
+  }
+
+  /* Sidebar */
+  .sidebar { position: sticky; top: 28px; }
+
+  .sb-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 22px;
+    margin-bottom: 24px;
+  }
+
+  .sb-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sb-block p {
+    font-size: 13px;
+    line-height: 1.65;
+    color: #a09080;
+    margin-bottom: 0.7em;
+  }
+
+  .sb-block p:last-child { margin-bottom: 0; }
+
+  .sb-block strong { color: var(--text); font-weight: 700; }
+
+  .track-list {
+    list-style: none;
+  }
+
+  .track-list li {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+  }
+
+  .track-list li:last-child { border-bottom: none; }
+
+  .t-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    min-width: 18px;
+  }
+
+  .t-title { color: var(--text); font-weight: 700; }
+  .t-album { color: var(--muted); font-size: 11px; font-style: italic; display: block; }
+
+  .spotify-block {
+    background: #000;
+    border: 1px solid #1db954;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .spotify-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #1db954;
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  .copyright-block {
+    font-family: 'Space Mono', monospace;
+    font-size: 9.5px;
+    color: var(--muted);
+    line-height: 1.9;
+    letter-spacing: 0.06em;
+    margin-top: 10px;
+  }
+
+  /* Footer */
+  footer {
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 32px 0;
+  }
+
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .footer-left .pub-name {
+    font-size: 28px;
+  }
+
+  .footer-right {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: right;
+    line-height: 2;
+  }
+
+  .footer-disclaimer {
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+    padding-top: 18px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: #444;
+    text-align: center;
+    line-height: 1.9;
+  }
+
+  a { color: var(--accent2); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  a:hover { border-bottom-color: var(--accent2); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-inner { animation: fadeIn 0.6s ease both; }
+  .content-grid { animation: fadeIn 0.6s ease 0.1s both; }
+
+  @media (max-width: 760px) {
+    .content-grid { grid-template-columns: 1fr; }
+    .sidebar { position: static; }
+    .masthead-inner { flex-direction: column; align-items: flex-start; }
+    .pub-meta { text-align: left; }
+    .hero::before { display: none; }
+    .page-wrap { padding: 0 18px; }
+  }
+</style>
+</head>
+<body>
+
+
+<!-- Masthead -->
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="pub-name">STATIC<span>FREQ</span></div>
+    <div class="pub-meta">
+      <span class="pub-tagline">Underground music · no filters · no sponsors</span>
+      <span class="pub-date">Saturday, May 24, 2026</span>
+    </div>
+  </div>
+</header>
+
+<!-- Nav -->
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a href="#">News</a>
+    <a href="#" class="active">Features</a>
+    <a href="#">Reviews</a>
+    <a href="#">Premieres</a>
+    <a href="#">Interviews</a>
+    <a href="#">Playlists</a>
+    <a href="#">About</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-kicker">
+      <span>Emerging Artist · Feature</span>
+      <span class="tag hot">Trending</span>
+    </div>
+    <h1 class="hero-headline">DXXTHLY AND THE ART OF SAYING THE <em>UNSAYABLE</em></h1>
+    <p class="hero-dek">Before any label came calling, before any radio programmer took notice, "When I Breathe" was just a song on a beach in Florida. Then people started asking questions.</p>
+    <div class="hero-byline">
+      <span>By <strong>Marcus Osei</strong></span>
+      <span>·</span>
+      <span>May 24, 2026</span>
+      <span>·</span>
+      <span>Features Desk</span>
+      <span class="tag">6 min read</span>
+    </div>
+  </div>
+</section>
+
+<!-- Content -->
+<div class="page-wrap">
+  <div class="content-grid">
+
+    <article class="prose">
+
+      <p class="intro">There's a reason certain songs don't need a press campaign. They carry something in them that travels on its own — passed phone to phone, speaker to speaker, person to person. DXXTHLY's "When I Breathe" is one of those songs. The question worth asking is why.</p>
+
+      <p>By any conventional measure, this shouldn't be a story. The artist behind it — Brian, 33, operating out of the US — has no label machine behind him, no management steering his rollout, no playlist curator whispering in the right ears. He releases music under the name DXXTHLY through his own imprint, 9911263 Records DK, and distributes it himself across YouTube, SoundCloud, and Spotify. The track dropped July 21, 2025, into what should have been silence.</p>
+
+      <p>Instead, by some chain of events that nobody has fully mapped, it ended up playing on a beach in Florida. Someone heard it. Asked around. Told someone else. Now radio programmers are reaching out. For an artist with no infrastructure, that's not a lucky break. That's the song doing its job.</p>
+
+      <div class="stats-row">
+        <div class="stat">
+          <span class="stat-n">98</span>
+          <span class="stat-l">Tracks in catalog</span>
+        </div>
+        <div class="stat">
+          <span class="stat-n">0</span>
+          <span class="stat-l">Label support</span>
+        </div>
+        <div class="stat">
+          <span class="stat-n">1</span>
+          <span class="stat-l">Song changing that</span>
+        </div>
+      </div>
+
+      <h2>What the Song Actually Does</h2>
+
+      <p>Writing about lyrics is a minefield. Most criticism either over-explains or patronizes. But "When I Breathe" earns a closer look because the writing is doing real structural work — not just feeling, but architecture.</p>
+
+      <p>The central conceit is grief as a physical condition. Not heartbreak as metaphor but heartbreak as something lodged in the body, in the chest, in the act of breathing itself. That's the hook and it's the right one: specific enough to feel true, universal enough to land on a stranger's beach playlist and stop them cold.</p>
+
+      <div class="lyric-block">
+        <p>
+          i still feel you in my chest when i breathe<br>
+          even though you left, you never really leave<br>
+          ghost in my phone, name in my dreams<br>
+          why does loving you still feel like a disease?<br>
+          why does pain like this still sound like peace?
+        </p>
+        <span class="lyric-credit">— DXXTHLY, "When I Breathe" (L1F3, 2025)</span>
+      </div>
+
+      <p>That last line is where it earns its place. "Why does pain like this still sound like peace?" is not a typical pop lyric. It doesn't reach for resolution. It sits in the contradiction and asks you to stay there with it. That's harder to write than it looks and considerably harder to make feel effortless.</p>
+
+      <div class="pull-quote">
+        <blockquote><em>"Heaven in the shape of a weapon"</em> — four words that do the work of a paragraph.</blockquote>
+        <cite>— StaticFreq on DXXTHLY's "When I Breathe"</cite>
+      </div>
+
+      <p>The verses operate differently from the hook — less melodic, more like dispatches. Cold nights. Love notes in an ashtray. New tattoos. A panic attack. They read like inventory taken after a disaster, which is exactly the right mode. The writing doesn't editorialize; it lists. And the accumulation hits harder than any single image could.</p>
+
+      <p>The standout line — and it is a standout — is buried mid-second verse: <em>"you were a melody, soft and spoken felony / tore me apart with your therapy."</em> The internal rhyme scheme there is doing serious heavy lifting. "Melody / felony" is the kind of pairing that sounds obvious in retrospect but isn't. Neither is "therapy" as the vehicle of destruction rather than healing. That's a real idea expressed in a real way, and it sticks.</p>
+
+      <div class="lyric-block">
+        <p>
+          love scars, new tats<br>
+          hate myself and i'm used to that<br>
+          lips red, eyes black<br>
+          tryna find peace in a panic attack
+        </p>
+        <span class="lyric-credit">— DXXTHLY, "When I Breathe" (L1F3, 2025)</span>
+      </div>
+
+      <p>And then there's the question buried near the end: <em>"you ever miss someone who ruined you the best?"</em> That's the line people screenshot. That's the line that ends up in someone's notes app at 2am. It says something true that most people haven't found the words for, which is the entire job description of a song.</p>
+
+      <h2>Who DXXTHLY Is</h2>
+
+      <p>Brian makes music the way a lot of people probably wish they could — purely on his own terms, without anyone else's input or interference. His catalog runs to nearly a hundred tracks across hip-hop, rock, and metal, sometimes all three within a single project. There's no genre strategy. There's just whatever he felt like making.</p>
+
+      <p>What makes his situation unusual isn't just the independence — plenty of artists claim that and mean something considerably less — it's the context in which he builds. He has a neurological condition that causes his hands to shake constantly. He deals with anxiety that makes conventional employment genuinely difficult. He has been sober since July 3rd, 2023. And in that time, he has shipped music, a browser-based indie game, and a 3D-printed hardware device that real people buy. All of it alone.</p>
+
+      <p>That's not a sympathy angle. It's context for understanding what it means when someone makes something. "When I Breathe" didn't come from a studio session funded by an advance. It came from a person building things because building things is how you stay upright. That tends to come through in the music, and in this case it does.</p>
+
+      <h2>What Comes Next</h2>
+
+      <p>Radio interest in a self-distributed, zero-infrastructure act is legitimately unusual in 2026. The music industry has enough mechanisms to copy and promote things once someone else has proven they work — but the initial proving usually requires a label to absorb the risk. DXXTHLY is bypassing that entirely, which means if the momentum holds, whoever does come calling will be arriving late to something that was already happening.</p>
+
+      <p>Whether that translates into anything concrete remains open. But the catalog is there, the quality is there, and the song has already demonstrated it can find an audience without anyone's help. The beach was just the beginning.</p>
+
+      <p style="font-size:13.5px; color: var(--muted); font-style: italic; margin-top: 2em;">DXXTHLY's music is available now on Spotify, YouTube, and SoundCloud. "When I Breathe" is out via 9911263 Records DK. StaticFreq is independent editorial coverage — no sponsorship, no label relationships, no promotional arrangements.</p>
+
+    </article>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+
+      <div class="spotify-block">
+        <span class="spotify-label">@ Find on TikTok</span>
+        <a href="https://www.tiktok.com/@dxxthly" target="_blank" style="display:flex; align-items:center; gap:12px; padding:14px 0; text-decoration:none; border-bottom:none;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.32 6.32 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg>
+          <span style="font-family:'Space Mono',monospace; font-size:13px; color:#fff; letter-spacing:0.06em;">@dxxthly</span>
+        </a>
+        <div class="copyright-block">
+          Released: July 21, 2025<br>
+          © 2025 9911263 Records DK<br>
+          ℗ 2025 9911263 Records DK
+        </div>
+      </div>
+
+      <div class="sb-block">
+        <span class="sb-label">Artist Profile</span>
+        <p><strong>Name:</strong> DXXTHLY (Brian)</p>
+        <p><strong>Age:</strong> 33</p>
+        <p><strong>Location:</strong> United States</p>
+        <p><strong>Label:</strong> 9911263 Records DK (self-distributed)</p>
+        <p><strong>Genres:</strong> Hip-hop, rock, metal</p>
+        <p><strong>Catalog:</strong> 98 tracks</p>
+        <p><strong>Sober since:</strong> July 3, 2023</p>
+      </div>
+
+      <div class="sb-block">
+        <span class="sb-label">Selected Tracks</span>
+        <ul class="track-list">
+          <li><span class="t-num">01</span><span><span class="t-title">When I Breathe</span><span class="t-album">L1F3</span></span></li>
+          <li><span class="t-num">02</span><span><span class="t-title">Taste Like You</span><span class="t-album">To You</span></span></li>
+          <li><span class="t-num">03</span><span><span class="t-title">To You</span><span class="t-album">To You</span></span></li>
+          <li><span class="t-num">04</span><span><span class="t-title">Heart in the Trunk</span><span class="t-album">Country Tang</span></span></li>
+          <li><span class="t-num">05</span><span><span class="t-title">Shadows in My Veins</span><span class="t-album">kull</span></span></li>
+          <li><span class="t-num">06</span><span><span class="t-title">Feel Again</span><span class="t-album">kull</span></span></li>
+          <li><span class="t-num">07</span><span><span class="t-title">Dear Dad</span><span class="t-album">Single</span></span></li>
+          <li><span class="t-num">08</span><span><span class="t-title">Reflection</span><span class="t-album">different</span></span></li>
+          <li><span class="t-num">09</span><span><span class="t-title">Not Like You</span><span class="t-album">Silence Was Louder</span></span></li>
+          <li><span class="t-num">10</span><span><span class="t-title">Falling Through Mystic</span><span class="t-album">Mystic City RP</span></span></li>
+        </ul>
+      </div>
+
+      <div class="sb-block">
+        <span class="sb-label">Editorial Note</span>
+        <p>This piece is unsolicited independent coverage. StaticFreq received no compensation, access, or advance material from DXXTHLY or any affiliated party. Coverage decisions are made solely at editorial discretion.</p>
+        <p style="margin-top:10px; font-family:'Space Mono',monospace; font-size:9px; color:var(--muted); letter-spacing:0.1em;">Published 05.24.26 · StaticFreq</p>
+      </div>
+
+    </aside>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="page-wrap">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <div class="pub-name">STATIC<span style="color:var(--accent)">FREQ</span></div>
+        <div style="font-family:'Space Mono',monospace; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-top:6px;">Underground Music · No Filters · No Sponsors</div>
+      </div>
+      <div class="footer-right">
+        <div>Independent &amp; Non-Sponsored</div>
+        <div>Vol. III · Issue 24 · May 2026</div>
+      </div>
+    </div>
+    <div class="footer-disclaimer">
+      All editorial content is independent and non-sponsored. StaticFreq is not affiliated with any record label, management company, or artist representation.<br>
+      Coverage decisions are made solely at editorial discretion.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

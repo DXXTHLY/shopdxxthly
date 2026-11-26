@@ -828,6 +828,7 @@ body.split-mode{padding:1.25rem 1.25rem 2rem;}
 body.split-mode .split-btn{top:auto;bottom:16px;left:16px;right:auto;}
 body.split-mode .wrap{max-width:1360px;flex-direction:row;align-items:flex-start;gap:1.25rem;}
 .split-col{display:flex;flex-direction:column;gap:1rem;min-width:0;}
+.split-col > *{flex-shrink:0;}
 body.split-mode .split-left{flex:1 1 0;}
 body.split-mode .split-right{flex:0 0 min(560px,44vw);position:sticky;top:1.25rem;max-height:calc(100vh - 2.5rem);overflow-y:auto;overflow-x:hidden;padding-right:2px;}
 body.split-mode .header{display:grid;grid-template-columns:auto 1fr;column-gap:18px;align-items:center;text-align:left;padding:0.25rem 0 0.25rem 0.25rem;}
@@ -1143,7 +1144,7 @@ function avatarFallback(img) {
         <div class="help-section"><div class="help-head">📏 Plant Size</div><div class="help-body">Every harvest rolls a random height. Rare oversized rolls go from 1 in 20 all the way up to 1 in 50,000, so even a lucky clover can beat a World Tree. The tallest plant each week wins the board.</div></div>
         <div class="help-section"><div class="help-head">⭐ Levels &amp; Prestige</div><div class="help-body">Levels unlock free pots, faster digging, more water and better seed odds. At Level 50 you can prestige: your level resets, but you earn a ✨ star and +10% coins from every harvest after that.</div></div>
         <div class="help-section"><div class="help-head">🌿 Strains &amp; THC</div><div class="help-body">Weed strains grow full plants with fan leaves and buds. Every bud harvest rolls a THC %: MIDS, GOOD, FIRE 🔥 (1.5× coins), TOP SHELF (2×) or EXOTIC 💎 (3×). Golden plants, fertilizer and the Terpene Lab all raise THC. At 4:20 (AM and PM, and all day on April 20th) strains drop 5× as often and buds get +3% THC.</div></div>
-        <div class="help-section"><div class="help-head">🏆 Late Game</div><div class="help-body">Spend your coins in the shop. <b>Upgrades</b> are permanent and stay through prestige (faster growth, bigger plants, more coins, better odds). <b>Machines</b> automate your garden: the Auto-Harvester, Auto-Planter, a Weather Machine and a Seed Vault. <b>Crates</b> include the Bud Box and Mythic seeds. <b>Style</b> has pot skins and leaderboard titles. You can expand the greenhouse up to 40 pots. After LVL 50, XP keeps counting toward <b>Mastery</b> ranks, each worth +2% coins forever.</div></div>
+        <div class="help-section"><div class="help-head">🏆 Late Game</div><div class="help-body">Spend your coins in the shop. <b>Upgrades</b> are permanent and stay through prestige (faster growth, bigger plants, more coins, better odds). <b>Machines</b> automate your garden: the Auto-Harvester, Auto-Planter, a Weather Machine and a Seed Vault. <b>Crates</b> (Bud Box, Bouquet, Mythic seeds and more) open the moment you buy them, and the seeds go straight into your bag. <b>Style</b> has pot skins and leaderboard titles. You can expand the greenhouse up to 40 pots. After LVL 50, XP keeps counting toward <b>Mastery</b> ranks, each worth +2% coins forever.</div></div>
         <div class="help-section"><div class="help-head">⌨️ Shortcuts</div><div class="help-body"><span class="kbd">G</span> dig · <span class="kbd">W</span> water all · <span class="kbd">P</span> plant all · <span class="kbd">H</span> harvest all</div></div>
         <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);">
           <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:0.1em;margin-bottom:10px;">🌈 RARITY TIERS</div>
@@ -2453,12 +2454,28 @@ function buyCrate(id,qty){
   const got=[];
   for(let i=0;i<qty;i++) crateRoll(c).forEach(k=>{ addSeed(k,true); got.push(k); });
   const best=got.slice().sort((a,b)=>RARITY_ORDER[SEEDS[b].rarity]-RARITY_ORDER[SEEDS[a].rarity])[0];
-  showSeedFoundToast(best);
   const counts={}; got.forEach(k=>counts[k]=(counts[k]||0)+1);
+  showCrateReveal(c,counts,best);
   showGardenMsg('🎁 opened '+qty+'× '+c.name+': '+Object.keys(counts).map(k=>SEEDS[k].emoji+(counts[k]>1?'×'+counts[k]:'')).join(' '));
   sfx(RARITY_ORDER[SEEDS[best].rarity]>=4?'golden':'coin');
   if(RARITY_ORDER[SEEDS[best].rarity]>=4) confetti();
   refresh(); renderShop();
+}
+function showCrateReveal(c,counts,best){
+  const old=document.getElementById('sizeRevealEl'); if(old) old.remove();
+  const keys=Object.keys(counts).sort((a,b)=>RARITY_ORDER[SEEDS[b].rarity]-RARITY_ORDER[SEEDS[a].rarity]);
+  const bc=RARITY_COL[SEEDS[best].rarity];
+  const div=document.createElement('div');
+  div.id='sizeRevealEl'; div.className='size-reveal record';
+  div.style.borderColor=bc; div.style.boxShadow='0 0 50px '+bc+'55, 0 8px 40px rgba(0,0,0,0.8)'; div.style.zIndex='9900';
+  div.innerHTML='<div style="font-size:34px;margin-bottom:6px;">'+c.icon+'</div>'+
+    '<div style="font-family:\'Press Start 2P\',monospace;font-size:8px;color:'+bc+';margin-bottom:10px;">'+esc(c.name.toUpperCase())+' OPENED!</div>'+
+    '<div style="display:flex;flex-direction:column;gap:5px;max-height:240px;overflow-y:auto;min-width:220px;">'+keys.map(k=>{ const s=SEEDS[k];
+      return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:9px;background:rgba(255,255,255,0.04);border:0.5px solid '+RARITY_COL[s.rarity]+'55;text-align:left;"><span style="font-size:20px;">'+s.emoji+'</span><div style="flex:1;"><div style="font-size:12px;font-weight:700;color:'+RARITY_COL[s.rarity]+'">'+s.name+(counts[k]>1?' ×'+counts[k]:'')+'</div><div style="font-size:9px;color:var(--muted);">'+s.rarity+' · '+s.plant+' · '+s.hint+(s.weed?' · 🌿':'')+'</div></div></div>'; }).join('')+'</div>'+
+    '<div style="font-size:10px;color:var(--muted);margin-top:10px;">added to your 🎒 bag — tap to close</div>';
+  div.onclick=()=>div.remove();
+  document.body.appendChild(div);
+  setTimeout(()=>{ if(div.parentNode) div.remove(); },6000);
 }
 function spend(n){ G.data.coins-=n; G.data.coinsSpent=(G.data.coinsSpent||0)+n; }
 
@@ -2481,7 +2498,7 @@ function renderShop(){
     html=shopItems().map(it=>shopRow(it.icon,it.name,it.desc,buyBtn('shopBuy(\''+it.id+'\')',it.cost,'BUY',coins>=it.cost),(coins>=it.cost?'':'cant-afford')+(it.hot?' seasonal':''))).join('');
     if(G.unlockedPlots>=MAX_PLOTS) html+=shopRow('🪴','All Planters Unlocked','All '+MAX_PLOTS+' pots owned. Absolute unit of a garden.','<div style="font-size:9px;color:var(--muted);font-weight:700;">MAXED</div>','cant-afford');
   } else if(shopTab==='crates'){
-    html='<div class="shop-section-head">10× PACKS ARE 10% OFF</div>'+CRATES.map(c=>{
+    html='<div class="shop-section-head">CRATES OPEN INSTANTLY · SEEDS GO STRAIGHT TO YOUR BAG · 10× PACKS 10% OFF</div>'+CRATES.map(c=>{
       const ok1=coins>=c.cost, c10=Math.round(c.cost*10*0.9), ok10=coins>=c10;
       return shopRow(c.icon,c.name,c.desc,'<div style="display:flex;flex-direction:column;gap:4px;">'+buyBtn('buyCrate(\''+c.id+'\',1)',c.cost,'×1',ok1)+buyBtn('buyCrate(\''+c.id+'\',10)',c10,'×10',ok10)+'</div>',(ok1?'':'cant-afford')+(c.id==='myth'||c.id==='bud'?' seasonal':''));
     }).join('');

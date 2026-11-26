@@ -819,6 +819,25 @@ body.popout-mode .wrap{max-width:100%;gap:0;}
 body.popout-mode .garden-card{border-radius:0;border-left:none;border-right:none;}
 body.popout-mode #popBtn{display:none;}
 @media (max-width:420px){.act-btn .al{font-size:6px;}.garden-title-txt{font-size:7px;}.gtab{font-size:6px;}}
+
+/* ── watch + play split view ── */
+.split-btn{position:fixed;top:14px;right:14px;z-index:60;display:none;align-items:center;gap:7px;padding:9px 14px;border-radius:99px;border:0.5px solid rgba(155,89,232,0.5);background:rgba(19,19,26,0.92);backdrop-filter:blur(10px);color:#f0eef8;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 24px rgba(132,7,230,0.25);transition:transform .15s,border-color .15s,box-shadow .15s;}
+.split-btn:hover{transform:translateY(-1px);border-color:rgba(17,237,52,0.6);box-shadow:0 4px 28px rgba(17,237,52,0.25);}
+@media (min-width:960px){ body:not(.popout-mode) .split-btn{display:flex;} }
+body.split-mode{padding:1.25rem 1.25rem 2rem;}
+body.split-mode .split-btn{top:auto;bottom:16px;left:16px;right:auto;}
+body.split-mode .wrap{max-width:1360px;flex-direction:row;align-items:flex-start;gap:1.25rem;}
+.split-col{display:flex;flex-direction:column;gap:1rem;min-width:0;}
+body.split-mode .split-left{flex:1 1 0;}
+body.split-mode .split-right{flex:0 0 min(560px,44vw);position:sticky;top:1.25rem;max-height:calc(100vh - 2.5rem);overflow-y:auto;overflow-x:hidden;padding-right:2px;}
+body.split-mode .header{display:grid;grid-template-columns:auto 1fr;column-gap:18px;align-items:center;text-align:left;padding:0.25rem 0 0.25rem 0.25rem;}
+body.split-mode .avatar-ring{grid-row:1 / 4;width:76px;height:76px;margin:0;}
+body.split-mode .badges{justify-content:flex-start;}
+body.split-mode .name,body.split-mode .tagline{margin-bottom:0.35rem;}
+body.split-mode .egg-hint{display:none;}
+body.split-mode .platforms{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+body.split-mode .chat-msgs{height:300px;}
+body.split-mode .embed-panel{box-shadow:0 0 40px rgba(132,7,230,0.12);}
 </style>
 <script>
 function avatarFallback(img) {
@@ -835,6 +854,7 @@ function avatarFallback(img) {
 <body>
 <canvas id="bg"></canvas>
 <canvas id="fx"></canvas>
+<button class="split-btn" id="splitBtn" onclick="toggleSplit()" title="stream + chat on the left, garden on the right">🖥️ Watch + Play</button>
 <div class="toast" id="toast">Link copied!</div>
 
 <div class="seed-found-toast" id="seedFoundToast">
@@ -4031,6 +4051,47 @@ function lerpCol(a,b,t) {
 }
 
 initGarden();
+
+/* ══ WATCH + PLAY SPLIT VIEW ══ */
+const SPLIT_KEY='chokxxi-split-view';
+let _splitOrder=null;
+function canSplit(){ return window.innerWidth>=960 && !IS_POPOUT; }
+function setSplit(on){
+  const wrap=document.querySelector('.wrap'), body=document.body;
+  if(on===body.classList.contains('split-mode')) return;
+  if(on){
+    _splitOrder=[...wrap.children];
+    const card=document.querySelector('.garden-card'), label=card.previousElementSibling;
+    const L=document.createElement('div'); L.className='split-col split-left';
+    const R=document.createElement('div'); R.className='split-col split-right';
+    wrap.append(L,R);
+    _splitOrder.forEach(el=>{ if(el!==card&&el!==label) L.appendChild(el); });
+    R.append(label,card);
+    document.getElementById('liveBanner').after(document.getElementById('embedPanel'));
+    body.classList.add('split-mode');
+    const ep=document.getElementById('embedPanel');
+    if(!ep.classList.contains('open')){ ep.classList.add('open'); switchTab(_live.tw&&!_live.kick?'tw':'kick'); }
+    if(document.getElementById('chatBodyWrap').classList.contains('collapsed')) toggleChat();
+  } else {
+    const cols=[...wrap.querySelectorAll(':scope > .split-col')];
+    _splitOrder.forEach(el=>wrap.appendChild(el));
+    cols.forEach(c=>c.remove());
+    body.classList.remove('split-mode');
+  }
+  document.getElementById('splitBtn').innerHTML = on ? '↩ Normal view' : '🖥️ Watch + Play';
+  setTimeout(()=>{ if(typeof syncPlotDots==='function') syncPlotDots(); },60);
+}
+function toggleSplit(){
+  const on=!document.body.classList.contains('split-mode');
+  try{ localStorage.setItem(SPLIT_KEY,on?'1':'0'); }catch(e){}
+  setSplit(on);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+window.addEventListener('resize',()=>{
+  const want=localStorage.getItem(SPLIT_KEY)==='1';
+  if(!canSplit()) setSplit(false); else if(want) setSplit(true);
+});
+if(canSplit() && localStorage.getItem(SPLIT_KEY)==='1') setSplit(true);
 </script>
 </body>
 </html>

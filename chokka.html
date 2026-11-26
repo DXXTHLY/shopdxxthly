@@ -727,6 +727,13 @@ body.rainbow .plink{animation:rbg 1s linear infinite;}
 .sft-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
 /* ═══════════ v3 ═══════════ */
+.shop-tabs{display:flex;gap:4px;padding:8px 12px;border-bottom:0.5px solid rgba(255,255,255,0.07);overflow-x:auto;scrollbar-width:none;}
+.shop-tab{flex-shrink:0;font-size:10px;font-weight:700;padding:6px 10px;border-radius:8px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;}
+.shop-tab.on{color:#FFD700;border-color:rgba(255,215,0,0.45);background:rgba(255,215,0,0.1);}
+.up-bar{display:flex;gap:2px;margin-top:5px;}
+.up-bar span{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.08);}
+.up-bar span.on{background:linear-gradient(90deg,#11ED34,#FFD700);}
+.mini-btn:disabled{opacity:.35;cursor:default;}
 .badge.live.offline{background:var(--card2);border-color:var(--border);color:var(--muted);}
 .badge.live.offline .dot{background:#666;animation:none;box-shadow:none;}
 .live-banner{display:none;align-items:center;justify-content:center;gap:9px;padding:11px 14px;border-radius:var(--r);background:linear-gradient(90deg,rgba(201,6,18,0.22),rgba(132,7,230,0.18));border:0.5px solid rgba(255,51,71,0.5);color:#fff;font-size:13px;font-weight:600;text-decoration:none;animation:live-pulse-b 2s ease-in-out infinite;cursor:pointer;}
@@ -1021,6 +1028,7 @@ function avatarFallback(img) {
           <div class="bag-tools">
             <button class="mini-btn on" id="sortRarity" onclick="setBagSort('rarity')">Rarity</button>
             <button class="mini-btn" id="sortCount" onclick="setBagSort('count')">Count</button>
+            <button class="mini-btn" id="sortWeed" onclick="setBagSort('weed')" title="strains only">🌿</button>
             <button id="invToggleBtn" class="gh-btn" onclick="toggleInventory()" title="expand bag">▼</button>
           </div>
         </div>
@@ -1084,6 +1092,7 @@ function avatarFallback(img) {
         <button class="lb-season-tab" id="lbTabHarvest" onclick="switchLbTab('harvest')">🌾 Harvests</button>
         <button class="lb-season-tab" id="lbTabXP" onclick="switchLbTab('xp')">⭐ XP</button>
         <button class="lb-season-tab" id="lbTabCodex" onclick="switchLbTab('codex')">📖 Codex</button>
+        <button class="lb-season-tab" id="lbTabThc" onclick="switchLbTab('thc')">🌿 THC</button>
       </div>
       <div style="padding:6px 14px 4px;font-family:'Press Start 2P',monospace;font-size:6px;color:var(--muted);" id="lbSeasonLabel">📏 BIGGEST PLANT THIS SEASON</div>
       <div class="leaderboard-section"><div id="leaderboardList"><span style="font-size:11px;color:var(--muted);">loading...</span></div></div>
@@ -1107,10 +1116,12 @@ function avatarFallback(img) {
         <div class="help-section"><div class="help-head">💧 Watering</div><div class="help-body">Each watering cuts 20% off the grow time and adds a little size. Water refills 1 charge every 10 min (every 5 min when it's raining). Watering a wilted plant revives it.</div></div>
         <div class="help-section"><div class="help-head">🌦️ Weather</div><div class="help-body">The weather changes every hour. 🌧️ Rain: water refills twice as fast and plants grow bigger. 🌬️ Windy: twice as many seed drops. 🌈 Rainbow: golden plants 5× more likely and +25% coins. 🌕 Blood Moon: Epic and Legendary seeds drop twice as often.</div></div>
         <div class="help-section"><div class="help-head">📜 Quests &amp; 🔥 Streaks</div><div class="help-body">You get 3 new daily quests at midnight. Clear all three for a bonus seed. Visit every day to build your streak: days 3 and 7 give free rare and epic seeds.</div></div>
-        <div class="help-section"><div class="help-head">♻️ Compost</div><div class="help-body">Turn 10 Common, 15 Uncommon, 20 Rare or 30 Epic seeds of one kind into one rarer seed. The better the seeds you put in, the better the seed you get back.</div></div>
+        <div class="help-section"><div class="help-head">♻️ Compost</div><div class="help-body">Turn 10 Common, 15 Uncommon, 20 Rare, 30 Epic or 40 Legendary seeds of one kind into one rarer seed. Composting Legendaries can give you a MYTHIC. The better the seeds you put in, the better the seed you get back.</div></div>
         <div class="help-section"><div class="help-head">🥀 Wilting</div><div class="help-body">Once a plant is ready, it starts wilting after another full grow time (at least 2 hours). Wilted plants only give 65%. If you ignore one for 6× that long, it dies. Water a wilted plant to revive it.</div></div>
         <div class="help-section"><div class="help-head">📏 Plant Size</div><div class="help-body">Every harvest rolls a random height. Rare oversized rolls go from 1 in 20 all the way up to 1 in 50,000, so even a lucky clover can beat a World Tree. The tallest plant each week wins the board.</div></div>
         <div class="help-section"><div class="help-head">⭐ Levels &amp; Prestige</div><div class="help-body">Levels unlock free pots, faster digging, more water and better seed odds. At Level 50 you can prestige: your level resets, but you earn a ✨ star and +10% coins from every harvest after that.</div></div>
+        <div class="help-section"><div class="help-head">🌿 Strains &amp; THC</div><div class="help-body">Weed strains grow full plants with fan leaves and buds. Every bud harvest rolls a THC %: MIDS, GOOD, FIRE 🔥 (1.5× coins), TOP SHELF (2×) or EXOTIC 💎 (3×). Golden plants, fertilizer and the Terpene Lab all raise THC. At 4:20 (AM and PM, and all day on April 20th) strains drop 5× as often and buds get +3% THC.</div></div>
+        <div class="help-section"><div class="help-head">🏆 Late Game</div><div class="help-body">Spend your coins in the shop. <b>Upgrades</b> are permanent and stay through prestige (faster growth, bigger plants, more coins, better odds). <b>Machines</b> automate your garden: the Auto-Harvester, Auto-Planter, a Weather Machine and a Seed Vault. <b>Crates</b> include the Bud Box and Mythic seeds. <b>Style</b> has pot skins and leaderboard titles. You can expand the greenhouse up to 40 pots. After LVL 50, XP keeps counting toward <b>Mastery</b> ranks, each worth +2% coins forever.</div></div>
         <div class="help-section"><div class="help-head">⌨️ Shortcuts</div><div class="help-body"><span class="kbd">G</span> dig · <span class="kbd">W</span> water all · <span class="kbd">P</span> plant all · <span class="kbd">H</span> harvest all</div></div>
         <div style="margin-top:14px;padding-top:12px;border-top:0.5px solid var(--border);">
           <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--muted);letter-spacing:0.1em;margin-bottom:10px;">🌈 RARITY TIERS</div>
@@ -1120,6 +1131,7 @@ function avatarFallback(img) {
             <div style="display:flex;align-items:center;gap:8px;font-size:11px;"><span style="width:10px;height:10px;border-radius:50%;background:#CC44FF;flex-shrink:0;"></span><span style="color:#CC44FF;font-weight:700;min-width:72px;">RARE</span><span style="color:var(--muted);">Longer grows, big sizes.</span></div>
             <div style="display:flex;align-items:center;gap:8px;font-size:11px;"><span style="width:10px;height:10px;border-radius:50%;background:#FF6600;flex-shrink:0;"></span><span style="color:#FF6600;font-weight:700;min-width:72px;">EPIC</span><span style="color:var(--muted);">Hours to grow. Serious coins.</span></div>
             <div style="display:flex;align-items:center;gap:8px;font-size:11px;"><span style="width:10px;height:10px;border-radius:50%;background:#FFD700;flex-shrink:0;"></span><span style="color:#FFD700;font-weight:700;min-width:72px;">LEGENDARY</span><span style="color:var(--muted);">8–24 hrs. Board-breaking sizes.</span></div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:11px;"><span style="width:10px;height:10px;border-radius:50%;background:#ff4df0;flex-shrink:0;box-shadow:0 0 8px #ff4df0;"></span><span style="color:#ff4df0;font-weight:700;min-width:72px;">MYTHIC</span><span style="color:var(--muted);">30–44 hrs. Only drop after LVL 30 or a prestige (or from crates and compost).</span></div>
           </div>
         </div>
         <div style="text-align:center;font-size:9px;color:rgba(255,255,255,0.18);margin-top:16px;">made for chokk 🌿</div>
@@ -1180,6 +1192,7 @@ function avatarFallback(img) {
       <span class="shop-coins-label">Your coins</span>
       <span class="shop-coins-val" id="shopCoinsDisplay">0🪙</span>
     </div>
+    <div class="shop-tabs" id="shopTabs"></div>
     <div class="modal-scroll" id="shopItemsList"></div>
   </div>
 </div>
@@ -1672,9 +1685,58 @@ const SEEDS = {
   strawberry_f: { name:'Strawberry Seed',   plant:'Strawberry Fields', emoji:'🍓', color:'#ff4466', growMs:12*3600*1000,   rarity:'LEGENDARY', weight:0.4, hint:'12 hrs',  desc:'Strawberry fields forever. Sweet, red-haired, and absolutely elite.', minSize:55, maxSize:108 },
   mimosa:       { name:'Mimosa Seed',       plant:'Mimosa',           emoji:'🥂', color:'#ffcc44', growMs:13*3600*1000,   rarity:'LEGENDARY', weight:0.38,hint:'13 hrs',  desc:'Brunch-worthy. Citrusy, uplifting, and dangerously good.', minSize:58, maxSize:110 },
   biscotti:     { name:'Biscotti Seed',     plant:'Biscotti',         emoji:'🍪', color:'#cc8833', growMs:16*3600*1000,   rarity:'LEGENDARY', weight:0.28,hint:'16 hrs',  desc:'Cookie Fam genetics. Earthy and sweet with a knockout finish.', minSize:65, maxSize:122 },
-};
 
-const RARITY_COL = { COMMON:'#88cc44', UNCOMMON:'#00FFEE', RARE:'#CC44FF', EPIC:'#FF6600', LEGENDARY:'#FFD700' };
+  // ── 🌺 MORE FLOWERS & FRUIT ──
+  poppy:       { name:'Poppy Seed',     plant:'Red Poppy',        emoji:'🌺', color:'#ff3344', growMs:7*60e3,    rarity:'COMMON',    weight:44, desc:'Bright red and wild. Pops up everywhere.', minSize:12, maxSize:30 },
+  marigold:    { name:'Marigold Seed',  plant:'Marigold',         emoji:'🌼', color:'#ffaa22', growMs:9*60e3,    rarity:'COMMON',    weight:42, desc:'Golden-orange blooms that keep the pests away.', minSize:14, maxSize:32 },
+  bluebell:    { name:'Bluebell Bulb',  plant:'Bluebell',         emoji:'🔔', color:'#5577ff', growMs:11*60e3,   rarity:'COMMON',    weight:40, desc:'Tiny bells that ring silently in the breeze.', minSize:10, maxSize:26 },
+  blueberry:   { name:'Blueberry Seed', plant:'Blueberry Bush',   emoji:'🫐', color:'#4455cc', growMs:14*60e3,   rarity:'COMMON',    weight:38, desc:'Little antioxidant bombs. Snack while you garden.', minSize:14, maxSize:34 },
+  watermelon:  { name:'Melon Seed',     plant:'Watermelon Patch', emoji:'🍉', color:'#ff5566', growMs:24*60e3,   rarity:'COMMON',    weight:34, desc:'Huge, heavy and full of summer.', minSize:20, maxSize:48 },
+  hibiscus:    { name:'Hibiscus Pod',   plant:'Hibiscus',         emoji:'🌺', color:'#ff4488', growMs:27*60e3,   rarity:'UNCOMMON',  weight:16, desc:'Tropical trumpet flower. Makes a great tea.', minSize:24, maxSize:50 },
+  peony:       { name:'Peony Bulb',     plant:'Peony',            emoji:'🌸', color:'#ffaacc', growMs:33*60e3,   rarity:'UNCOMMON',  weight:15, desc:'Big, fluffy, ridiculously pretty.', minSize:22, maxSize:46 },
+  dahlia:      { name:'Dahlia Tuber',   plant:'Dinnerplate Dahlia',emoji:'🏵️', color:'#ff6644', growMs:38*60e3,  rarity:'UNCOMMON',  weight:13, desc:'Blooms as big as a dinner plate.', minSize:28, maxSize:58 },
+  peach:       { name:'Peach Pit',      plant:'Peach Tree',       emoji:'🍑', color:'#ffaa88', growMs:42*60e3,   rarity:'UNCOMMON',  weight:13, desc:'Soft, sweet and fuzzy.', minSize:30, maxSize:60 },
+  cherry:      { name:'Cherry Pit',     plant:'Cherry Tree',      emoji:'🍒', color:'#dd1144', growMs:36*60e3,   rarity:'UNCOMMON',  weight:14, desc:'Twin cherries on every stem.', minSize:28, maxSize:56 },
+  lotus:       { name:'Lotus Pod',      plant:'Sacred Lotus',     emoji:'🪷', color:'#ff99cc', growMs:70*60e3,   rarity:'RARE',      weight:7,  desc:'Rises from the mud spotless. Pure zen.', minSize:26, maxSize:56 },
+  wisteria:    { name:'Wisteria Pod',   plant:'Wisteria Cascade', emoji:'💜', color:'#b388ff', growMs:80*60e3,   rarity:'RARE',      weight:6,  desc:'Purple waterfalls of blossoms.', minSize:40, maxSize:80 },
+  jadevine:    { name:'Jade Pod',       plant:'Jade Vine',        emoji:'🌿', color:'#33ffbb', growMs:95*60e3,   rarity:'RARE',      weight:5,  desc:'Claws of turquoise flowers. Almost unreal.', minSize:35, maxSize:70 },
+  avocado:     { name:'Avocado Pit',    plant:'Avocado Tree',     emoji:'🥑', color:'#558833', growMs:85*60e3,   rarity:'RARE',      weight:6,  desc:'Takes forever. Worth every slice of toast.', minSize:38, maxSize:72 },
+  blackrose:   { name:'Black Rose Hip', plant:'Black Rose',       emoji:'🥀', color:'#880033', growMs:4*3600e3,  rarity:'EPIC',      weight:3,  desc:'Petals dark as midnight. Thorns sharper than regret.', minSize:34, maxSize:70 },
+  moonflower:  { name:'Moon Seed',      plant:'Moonflower',       emoji:'🌙', color:'#ddeeff', growMs:5*3600e3,  rarity:'EPIC',      weight:2.5,desc:'Only opens under moonlight. Glows softly silver.', minSize:36, maxSize:74 },
+  ghostorchid: { name:'Ghost Pod',      plant:'Ghost Orchid',     emoji:'🤍', color:'#eeffff', growMs:13*3600e3, rarity:'LEGENDARY', weight:0.5,desc:'Floats like a phantom with no visible leaves.', minSize:55, maxSize:110 },
+  corpseflower:{ name:'Titan Corm',     plant:'Corpse Flower',    emoji:'🟥', color:'#aa2255', growMs:20*3600e3, rarity:'LEGENDARY', weight:0.35,desc:'The biggest flower on Earth. Smells absolutely horrible.', minSize:90, maxSize:160 },
+
+  // ── 🌿 MORE STRAINS ──
+  northern_lights:{ name:'Northern Seed', plant:'Northern Lights',   emoji:'🌌', color:'#66ffcc', growMs:2*3600e3,   rarity:'RARE', weight:3.5, desc:'Resinous and relaxing. A classic indica that practically glows.', minSize:30, maxSize:60, weed:true },
+  green_crack:    { name:'Crack Seed',    plant:'Green Crack',       emoji:'⚡', color:'#88ff33', growMs:100*60e3,   rarity:'RARE', weight:3.5, desc:'Zippy mango sativa. Gets you up and gardening.', minSize:30, maxSize:58, weed:true },
+  durban:         { name:'Durban Seed',   plant:'Durban Poison',     emoji:'🧪', color:'#ccff44', growMs:110*60e3,   rarity:'RARE', weight:3,   desc:'Pure African sativa. Sweet, earthy, energizing.', minSize:32, maxSize:62, weed:true },
+  blue_cheese:    { name:'Cheese Seed',   plant:'Blue Cheese',       emoji:'🧀', color:'#88aaff', growMs:2.2*3600e3, rarity:'RARE', weight:3,   desc:'Funky, creamy, blueberry stank. Divisive but legendary.', minSize:28, maxSize:56, weed:true },
+  jack_herer:     { name:'Jack Seed',     plant:'Jack Herer',        emoji:'🌲', color:'#55bb55', growMs:2.4*3600e3, rarity:'RARE', weight:2.8, desc:'Piney, spicy sativa named after the hemp hero himself.', minSize:34, maxSize:66, weed:true },
+  gsc:            { name:'Cookie Seed',   plant:'Girl Scout Cookies',emoji:'🍪', color:'#cc9966', growMs:7*3600e3,   rarity:'EPIC', weight:1.3, desc:'Sweet and earthy with dense, frosty nugs.', minSize:42, maxSize:80, weed:true },
+  gdp:            { name:'Grape Ape Seed',plant:'Granddaddy Purple', emoji:'🍇', color:'#8844dd', growMs:8*3600e3,   rarity:'EPIC', weight:1.2, desc:'Deep purple buds that smell like grape candy.', minSize:44, maxSize:84, weed:true },
+  purple_punch:   { name:'Punch Seed',    plant:'Purple Punch',      emoji:'🥊', color:'#aa33cc', growMs:7.5*3600e3, rarity:'EPIC', weight:1.2, desc:'Grape drink and blueberry muffins. Knockout finish.', minSize:42, maxSize:80, weed:true },
+  gushers:        { name:'Gusher Seed',   plant:'Gushers',           emoji:'💦', color:'#ff55cc', growMs:8.5*3600e3, rarity:'EPIC', weight:1.0, desc:'Tropical candy terps that burst on the first hit.', minSize:44, maxSize:84, weed:true },
+  icecream_cake:  { name:'Cake Seed',     plant:'Ice Cream Cake',    emoji:'🍰', color:'#ffeedd', growMs:9*3600e3,   rarity:'EPIC', weight:1.0, desc:'Vanilla dough, sugary and creamy. Sleepy dessert.', minSize:46, maxSize:86, weed:true },
+  skywalker:      { name:'Jedi Seed',     plant:'Skywalker OG',      emoji:'🌠', color:'#6688ff', growMs:9.5*3600e3, rarity:'EPIC', weight:0.9, desc:'Heavy, spicy and out of this galaxy.', minSize:48, maxSize:90, weed:true },
+  apple_fritter:  { name:'Fritter Seed',  plant:'Apple Fritter',     emoji:'🍏', color:'#aadd44', growMs:15*3600e3,  rarity:'LEGENDARY', weight:0.3,  desc:'Baked apples and cinnamon. Insanely loud and sticky.', minSize:62, maxSize:120, weed:true },
+  lcg:            { name:'LCG Seed',      plant:'Lemon Cherry Gelato',emoji:'🍒', color:'#ff6677', growMs:16*3600e3, rarity:'LEGENDARY', weight:0.28, desc:'Hype-tier exotic. Sour cherry, lemon zest, creamy finish.', minSize:64, maxSize:122, weed:true },
+  permanent_marker:{ name:'Marker Seed',  plant:'Permanent Marker',  emoji:'🖊️', color:'#5566ff', growMs:17*3600e3,  rarity:'LEGENDARY', weight:0.25, desc:'Smells exactly like a Sharpie. Somehow that is a flex.', minSize:66, maxSize:125, weed:true },
+  jealousy:       { name:'Jealousy Seed', plant:'Jealousy',          emoji:'😒', color:'#44ddaa', growMs:16*3600e3,  rarity:'LEGENDARY', weight:0.25, desc:'Everyone else in the garden is jealous. Rightfully.', minSize:64, maxSize:122, weed:true },
+  silver_haze:    { name:'Silver Seed',   plant:'Super Silver Haze', emoji:'🥈', color:'#ccddee', growMs:14*3600e3,  rarity:'LEGENDARY', weight:0.3,  desc:'Frosted silver with citrus haze. Triple crown winner.', minSize:60, maxSize:118, weed:true },
+
+  // ── 🔮 MYTHIC ──
+  celestial_lotus:{ name:'Star Lotus Seed', plant:'Celestial Lotus', emoji:'🪷', color:'#ff9ff3', growMs:30*3600e3, rarity:'MYTHIC', weight:0.08, desc:'Blooms with a thousand tiny stars inside every petal.', minSize:90, maxSize:190 },
+  eden_apple:     { name:'Eden Core',       plant:'Tree of Eden',    emoji:'🍎', color:'#ff2244', growMs:36*3600e3, rarity:'MYTHIC', weight:0.06, desc:'The original forbidden fruit. One bite and you know everything.', minSize:100, maxSize:210 },
+  chrono_orchid:  { name:'Chrono Spore',    plant:'Chrono Orchid',   emoji:'🕰️', color:'#ffe066', growMs:32*3600e3, rarity:'MYTHIC', weight:0.06, desc:'Petals tick like a clock. It already knows when you will harvest it.', minSize:95, maxSize:200 },
+  singularity:    { name:'Singularity Seed',plant:'Event Horizon',   emoji:'🕳️', color:'#7b2fff', growMs:42*3600e3, rarity:'MYTHIC', weight:0.04, desc:'So dense that light bends around it. Do not stare.', minSize:110, maxSize:230 },
+  dragonheart:    { name:"Dragon's Heart",  plant:'Heartflame Tree', emoji:'❤️‍🔥', color:'#ff4400', growMs:40*3600e3, rarity:'MYTHIC', weight:0.05, desc:'Beats like a heart and burns like a forge.', minSize:105, maxSize:220 },
+  kush_gods:      { name:'Olympus Seed',    plant:'Kush of the Gods',emoji:'⚡', color:'#ffdd44', growMs:36*3600e3, rarity:'MYTHIC', weight:0.05, desc:'Zeus himself rolled this. Golden trichomes crackle with lightning.', minSize:100, maxSize:210, weed:true },
+  galactic_gas:   { name:'Nebula Kush Seed',plant:'Galactic Gas',    emoji:'🛸', color:'#44ffee', growMs:44*3600e3, rarity:'MYTHIC', weight:0.04, desc:'Grown in zero gravity. The gassiest strain in the known universe.', minSize:110, maxSize:225, weed:true },
+};
+['og_kush','purple_haze','blue_dream','gorilla_glue','sour_diesel','wedding_cake','zkittlez','runtz','mac1','gelato','sherb','lemon_haze','white_widow','ak47','bruce_banner','god_bud','chemdawg','trainwreck','obama_kush','alien_og','pineapple_ex','cereal_milk','strawberry_f','mimosa','biscotti'].forEach(k=>{ if(SEEDS[k]) SEEDS[k].weed=true; });
+Object.keys(SEEDS).forEach(k=>{ const x=SEEDS[k]; if(!x.hint){ const m=x.growMs/60000; x.hint = m<90 ? Math.round(m)+' min' : (Math.round(m/6)/10)+' hrs'; } });
+
+const RARITY_COL = { COMMON:'#88cc44', UNCOMMON:'#00FFEE', RARE:'#CC44FF', EPIC:'#FF6600', LEGENDARY:'#FFD700', MYTHIC:'#ff4df0' };
 const SEASONS = ['🌸 Spring','☀️ Summer','🍂 Autumn','❄️ Winter'];
 const SEASON_BOOSTS = {
   '🌸 Spring':  { uncommon:1.4, sakura:2.0, tulip:1.6, rose:1.4, lavender:1.3, daisy:1.5, lily:1.4, orchid:1.3, mimosa:1.5, strawberry_f:1.4 },
@@ -1687,12 +1749,12 @@ const SEASON_BOOSTS = {
    GARDEN v3
 ══════════════════════════════════════════ */
 const SAVE_KEY = 'chokka-garden-save-v3';
-const MAX_PLOTS = 25;
-const RARITY_ORDER = { COMMON:0, UNCOMMON:1, RARE:2, EPIC:3, LEGENDARY:4 };
-const COIN_MAP = { COMMON:2, UNCOMMON:5, RARE:15, EPIC:40, LEGENDARY:120 };
-const XP_MAP = { COMMON:5, UNCOMMON:12, RARE:30, EPIC:75, LEGENDARY:200 };
-const SELL_PRICES = { COMMON:1, UNCOMMON:3, RARE:10, EPIC:28, LEGENDARY:80 };
-const COMPOST_COST = { COMMON:10, UNCOMMON:15, RARE:20, EPIC:30 };
+const MAX_PLOTS = 40;
+const RARITY_ORDER = { COMMON:0, UNCOMMON:1, RARE:2, EPIC:3, LEGENDARY:4, MYTHIC:5 };
+const COIN_MAP = { COMMON:2, UNCOMMON:5, RARE:15, EPIC:40, LEGENDARY:120, MYTHIC:600 };
+const XP_MAP = { COMMON:5, UNCOMMON:12, RARE:30, EPIC:75, LEGENDARY:200, MYTHIC:800 };
+const SELL_PRICES = { COMMON:1, UNCOMMON:3, RARE:10, EPIC:28, LEGENDARY:80, MYTHIC:400 };
+const COMPOST_COST = { COMMON:10, UNCOMMON:15, RARE:20, EPIC:30, LEGENDARY:40 };
 const GOLDEN_CHANCE = 0.02;
 const MIN_WILT_MS = 2 * 3600e3;
 const DEATH_MULT = 6;
@@ -1764,6 +1826,8 @@ const WEATHERS = [
   { id:'moon',    icon:'🌕', name:'Blood Moon', desc:'Epic and Legendary seeds drop 2× as often.', w:8 },
 ];
 function getWeather(){
+  const o=G.data&&G.data.wxOverride;
+  if(o&&Date.now()<o.until){ const f=WEATHERS.find(x=>x.id===o.id); if(f) return f; }
   const hr=Math.floor(Date.now()/3600e3);
   const r=seededRand('wx-'+hr)();
   const tot=WEATHERS.reduce((a,w)=>a+w.w,0);
@@ -1777,7 +1841,7 @@ function updateWeather(announce){
   const changed=!G.weather || G.weather.id!==w.id;
   G.weather=w;
   const el=document.getElementById('weatherBadge');
-  if(el){ el.textContent=w.icon+' '+w.name; el.title=w.desc+' · changes in ~'+(60-new Date().getMinutes())+'m'; }
+  if(el){ el.textContent=w.icon+' '+w.name; el.title=w.desc+' · changes in ~'+(60-new Date().getMinutes())+'m'; if(isFourTwenty()){ el.textContent+=' · 🌿 4:20'; el.title+=' · 4:20 — weed seeds drop 5× and buds get +3% THC'; } }
   if(changed && announce && w.id!=='clear'){ showGardenMsg(w.icon+' <b>'+w.name+'</b> rolled in: '+w.desc); sfx('seed'); }
 }
 
@@ -1884,6 +1948,7 @@ function reapplyAllLevelRewards(){
     if(r.type==='rare_boost') G.rareBoost=r.val;
     if(r.type==='god_mode') G.godMode=true;
   }
+  G.maxWater+=2*upLvl('barrel');
   G.unlockedPlots=Math.min(MAX_PLOTS, freePlots()+(d.potsBought||0));
 }
 function checkPlotUnlocks(){
@@ -1898,10 +1963,12 @@ function checkPlotUnlocks(){
 }
 function addXP(amt){
   if(!G.data||!amt) return;
-  const prev=getLevel();
+  const prev=getLevel(), pm=masteryLevel();
   G.data.xp=(G.data.xp||0)+Math.round(amt);
   const next=getLevel();
   updateXPBar();
+  const nm=masteryLevel();
+  if(pm>0&&nm>pm){ showGardenMsg('🌀 <span style="color:#ff4df0">MASTERY '+nm+'!</span> +2% coins forever'); sfx('level'); confetti(); }
   if(next>prev){
     const water=[]; for(let l=prev+1;l<=next;l++){ const r=LEVEL_REWARDS[l]; if(r&&r.type==='water') water.push(l); }
     checkPlotUnlocks();
@@ -1916,7 +1983,7 @@ function updateXPBar(){
   if(!G.data) return;
   const lvl=getLevel(), bar=document.getElementById('xpBar'), txt=document.getElementById('xpBarTxt');
   document.getElementById('gardenLevelBadge').textContent='LVL '+lvl;
-  if(lvl>=50){ bar.style.width='100%'; txt.textContent='MAX LEVEL'; return; }
+  if(lvl>=50){ const m=masteryLevel(), base=LEVEL_XP[49]+(m-1)*150000; bar.style.width=Math.min((G.data.xp-base)/150000*100,100)+'%'; txt.textContent='MASTERY '+m+' · '+fmtNum(G.data.xp-base)+'/150k'; document.getElementById('gardenLevelBadge').textContent='LVL 50 · M'+m; return; }
   const a=getXpForLevel(lvl), b=getXpToNextLevel(lvl);
   bar.style.width=Math.min((G.data.xp-a)/(b-a)*100,100)+'%';
   txt.textContent=fmtNum(G.data.xp-a)+' / '+fmtNum(b-a)+' XP';
@@ -1928,9 +1995,11 @@ function rollSeed(){
   const keys=seedKeys();
   const w=keys.map(k=>{
     const r=SEEDS[k].rarity; let m=SEEDS[k].weight*(boost[k]||1);
-    if(RARITY_ORDER[r]>=2) m*=G.rareBoost;
+    if(RARITY_ORDER[r]>=2) m*=G.rareBoost*(1+0.1*upLvl('botany'));
+    if(r==='MYTHIC' && (G.data.maxLevelEver||1)<30 && !(G.data.prestige>0)) m=0;
+    if(SEEDS[k].weed && isFourTwenty()) m*=5;
     if(G.godMode && r==='EPIC') m*=2;
-    if(wx('moon') && (r==='EPIC'||r==='LEGENDARY')) m*=2;
+    if(wx('moon') && RARITY_ORDER[r]>=3) m*=2;
     return m;
   });
   const total=w.reduce((a,b)=>a+b,0);
@@ -1943,15 +2012,15 @@ function addSeed(type,silent){
   G.data.seeds[type]=(G.data.seeds[type]||0)+1;
   G.data.totalFound=(G.data.totalFound||0)+1;
   if(!G.data.discoveries.includes(type)){ G.data.discoveries.push(type); if(G.tab==='codex') renderCodex(); }
-  if(!silent){ showSeedFoundToast(type); sfx(RARITY_ORDER[SEEDS[type].rarity]>=3?'golden':'seed'); }
+  if(!silent){ showSeedFoundToast(type); sfx(RARITY_ORDER[SEEDS[type].rarity]>=3?'golden':'seed'); if(SEEDS[type].rarity==='MYTHIC') confetti(); }
   renderInventory(); renderStats(); saveData();
 }
 
 /* ── plot state ── */
-function effGrowMs(p){ return Math.max(SEEDS[p.type].growMs-(p.waterBonus||0),1000); }
+function effGrowMs(p){ return Math.max(SEEDS[p.type].growMs*growMult()-(p.waterBonus||0),1000); }
 function readyAt(p){ return Math.max(p.plantedAt+effGrowMs(p), p.revivedAt||0); }
 function getGrowPct(p){ if(!p||!p.plantedAt) return 0; return Math.min((Date.now()-p.plantedAt)/effGrowMs(p),1); }
-function wiltDelay(p){ return Math.max(SEEDS[p.type].growMs, MIN_WILT_MS); }
+function wiltDelay(p){ return Math.max(SEEDS[p.type].growMs, MIN_WILT_MS)*(1+0.5*upLvl('preserve')); }
 function plotState(p){
   if(!p) return 'empty';
   const ra=readyAt(p), now=Date.now();
@@ -1968,8 +2037,10 @@ function plantSeed(idx,type){
   const key='plot'+idx;
   if(G.data[key] || (G.data.seeds[type]||0)<=0) return null;
   G.data.seeds[type]--;
-  const gch=GOLDEN_CHANCE*(wx('rainbow')?5:1);
-  G.data[key]={ type, plantedAt:Date.now(), waterBonus:0, waterCount:0, golden:Math.random()<gch };
+  const gch=(GOLDEN_CHANCE+0.005*upLvl('midas'))*(wx('rainbow')?5:1);
+  let gold=Math.random()<gch;
+  if(!gold && (G.data.goldCoat||0)>0){ gold=true; G.data.goldCoat--; }
+  G.data[key]={ type, plantedAt:Date.now(), waterBonus:0, waterCount:0, golden:gold };
   if(G.selectedSeed===type && G.data.seeds[type]<=0){ G.selectedSeed=null; document.getElementById('seedInfoBar').classList.remove('visible'); }
   questEvent('plant');
   addXP(2);
@@ -2047,10 +2118,13 @@ function harvestPlot(idx){
   const s=SEEDS[plot.type], wilted=st==='wilted', d=G.data;
   const roll=rollSize(s,plot);
   let mult=1; if(plot.golden) mult*=1.5; if(plot.fert) mult*=1.3; if(wilted) mult*=0.65;
+  mult*=1+0.06*upLvl('roots');
   const size=Math.max(1,Math.round(roll.base*mult));
   let coins=(COIN_MAP[s.rarity]||2)+Math.floor(size/8);
   if(plot.golden) coins*=3; if(wx('rainbow')) coins*=1.25; if(wilted) coins*=0.65;
-  coins=Math.max(1,Math.round(coins*(1+0.1*(d.prestige||0))));
+  const bud=s.weed?rollThc(s,plot,wilted):null;
+  if(bud) coins*=bud.gmult;
+  coins=Math.max(1,Math.round(coins*coinMult()));
   let xp=(XP_MAP[s.rarity]||5)*(plot.golden?2:1); if(wilted) xp=Math.round(xp*0.65);
 
   d[key]=null;
@@ -2063,15 +2137,18 @@ function harvestPlot(idx){
   if(size>(d.seasonBest[sk].size||0)) d.seasonBest[sk]={type:plot.type,size,name:s.plant,emoji:s.emoji};
   if(plot.golden) d.goldenCount=(d.goldenCount||0)+1;
   d.bestTier=Math.max(d.bestTier||0, roll.tier);
+  if(bud){ d.budHarvests=(d.budHarvests||0)+1; d.bestThc=Math.max(d.bestThc||0,bud.thc); }
+  if(s.rarity==='MYTHIC') d.mythicHarvests=(d.mythicHarvests||0)+1;
   d.coins+=coins;
 
   const bonus=[], nb=1+(plot.fert?1:0)+(plot.golden?1:0);
   for(let i=0;i<nb;i++){ const b=rollSeed(); addSeed(b,true); bonus.push(b); }
   questEvent('harvest'); questEvent('coins',coins);
   if(RARITY_ORDER[s.rarity]>=2) questEvent('harvestRare');
+  if(bud) questEvent('harvestBud');
   addXP(xp);
   spawnHarvestParticles(idx,plot.golden);
-  return { s, type:plot.type, size, isRecord, godRoll:roll.godRoll, coins, xp, bonus, overflowTier:roll.tier, golden:!!plot.golden, wilted };
+  return { s, type:plot.type, size, isRecord, godRoll:roll.godRoll, coins, xp, bonus, overflowTier:roll.tier, golden:!!plot.golden, wilted, bud };
 }
 function afterHarvest(){ checkPlotUnlocks(); refresh(); if(G.tab==='codex') renderCodex(); queueLbUpdate(); }
 function harvestAllAction(){
@@ -2162,14 +2239,14 @@ function updateWaterUI(){
 /* ── compost ── */
 function compostAction(){
   if(!G.data) return;
-  const order=['COMMON','UNCOMMON','RARE','EPIC'];
+  const order=['COMMON','UNCOMMON','RARE','EPIC','LEGENDARY'];
   let pick=null;
   for(const r of order){ pick=seedKeys().find(k=>SEEDS[k].rarity===r && (G.data.seeds[k]||0)>=COMPOST_COST[r]); if(pick) break; }
-  if(!pick){ showGardenMsg('♻️ need 10 Common, 15 Uncommon, 20 Rare or 30 Epic of ONE kind'); sfx('err'); return; }
+  if(!pick){ showGardenMsg('♻️ need 10 Common, 15 Uncommon, 20 Rare, 30 Epic or 40 Legendary of ONE kind'); sfx('err'); return; }
   const inR=SEEDS[pick].rarity, cost=COMPOST_COST[inR];
   G.data.seeds[pick]-=cost;
   G.data.compostCount=(G.data.compostCount||0)+1;
-  const pool={ COMMON:{RARE:50,EPIC:12,LEGENDARY:2}, UNCOMMON:{RARE:60,EPIC:20,LEGENDARY:4}, RARE:{EPIC:55,LEGENDARY:15}, EPIC:{EPIC:30,LEGENDARY:70} }[inR];
+  const pool={ COMMON:{RARE:50,EPIC:12,LEGENDARY:2}, UNCOMMON:{RARE:60,EPIC:20,LEGENDARY:4}, RARE:{EPIC:55,LEGENDARY:15}, EPIC:{EPIC:30,LEGENDARY:70}, LEGENDARY:{LEGENDARY:65,MYTHIC:35} }[inR];
   const cands=seedKeys().filter(k=>pool[SEEDS[k].rarity]);
   const tot=cands.reduce((a,k)=>a+pool[SEEDS[k].rarity],0);
   let r=Math.random()*tot, result=cands[0];
@@ -2224,61 +2301,259 @@ function sellSeeds(key,qty,quiet){
   return earned;
 }
 function sellBulk(mode){
+  const vault=hasMach('vault');
   let n=0, earned=0;
   seedKeys().forEach(k=>{
     const have=G.data.seeds[k]||0; if(!have) return;
     let q=0;
     if(mode==='extras') q=have-1;
-    else if(SEEDS[k].rarity===mode) q=have;
-    if(q>0){ earned+=sellSeeds(k,q,true); n+=q; }
+    else if(SEEDS[k].rarity===mode) q=vault?have-1:have;
+    if(q>0){ let e=sellSeeds(k,q,true); if(vault){ G.data.coins+=e; e*=2; } earned+=e; n+=q; }
   });
   if(!n){ showGardenMsg('💰 nothing to sell there'); sfx('err'); return; }
-  showGardenMsg('💰 sold '+n+' seeds for '+earned+'🪙'); sfx('coin');
+  showGardenMsg('💰 sold '+n+' seeds for '+fmtNum(earned)+'🪙'+(vault?' (🏦 vault 2× bonus)':'')); sfx('coin');
   refresh(); renderSellModal();
 }
 
 /* ── SHOP ── */
+/* ═══ late game: upgrades, machines, cosmetics, crates ═══ */
+const UPGRADES=[
+  {id:'green',    icon:'🌿',name:'Green Fingers', d:l=>'Plants grow '+(l*5)+'% faster', per:'+5% grow speed', max:10,base:400, mult:1.75},
+  {id:'roots',    icon:'📏',name:'Deep Roots',    d:l=>'+'+(l*6)+'% harvest size',       per:'+6% size',        max:10,base:500, mult:1.8},
+  {id:'merchant', icon:'💰',name:'Merchant',      d:l=>'+'+(l*10)+'% harvest coins',     per:'+10% coins',      max:10,base:600, mult:1.8},
+  {id:'midas',    icon:'✨',name:'Midas Soil',    d:l=>'+'+(l*0.5)+'% golden chance',    per:'+0.5% golden',    max:10,base:800, mult:1.85},
+  {id:'botany',   icon:'🔬',name:'Botany Lab',    d:l=>'+'+(l*10)+'% Rare+ seed odds',   per:'+10% rare odds',  max:10,base:1000,mult:1.9},
+  {id:'shovel',   icon:'⛏️',name:'Lucky Shovel',  d:l=>(l*10)+'% chance to dig 2 seeds', per:'+10% double dig', max:10,base:350, mult:1.7},
+  {id:'barrel',   icon:'🛢️',name:'Rain Barrel',   d:l=>'+'+(l*2)+' max water',           per:'+2 max water',    max:10,base:300, mult:1.6},
+  {id:'magnet',   icon:'🧲',name:'Seed Magnet',   d:l=>'+'+(l*8)+'% passive drops',      per:'+8% drops',       max:5, base:500, mult:1.9},
+  {id:'preserve', icon:'🧊',name:'Cold Storage',  d:l=>'Plants wilt '+(l*50)+'% slower', per:'+50% wilt time',  max:5, base:700, mult:2.0},
+  {id:'sprinkler',icon:'💦',name:'Sprinkler',     d:l=>'Free-waters '+l+' plant(s) every 5 min', per:'+1 plant',max:5, base:1500,mult:2.2},
+  {id:'terps',    icon:'🌿',name:'Terpene Lab',   d:l=>'+'+(l*1.5).toFixed(1)+'% THC on every bud', per:'+1.5% THC', max:8, base:900, mult:1.9},
+];
+const MACHINES=[
+  {id:'autoHarvest',icon:'🤖',name:'Auto-Harvester',desc:'Harvests ready plants and clears dead ones every 30s while the page is open.',cost:12000},
+  {id:'autoPlant',  icon:'🦾',name:'Auto-Planter',  desc:'Fills empty pots with your best seeds every 30s.',cost:8000},
+  {id:'weather',    icon:'🌪️',name:'Weather Machine',desc:'Once a day, pick the weather for the next hour.',cost:30000},
+  {id:'vault',      icon:'🏦',name:'Seed Vault',     desc:'Keeps 1 of every seed safe when you use the bulk sell buttons, and doubles bulk sell prices.',cost:5000},
+];
+const POT_SKINS={
+  terracotta:{name:'Terracotta',icon:'🟫',cost:0,     body:'#1d120a'},
+  obsidian:  {name:'Obsidian',  icon:'⬛',cost:2000,  body:'#0b0a14',rim:'#6a4cff'},
+  neon:      {name:'Neon',      icon:'🟩',cost:4000,  body:'#06161a',rim:'#00ffcc'},
+  sakura:    {name:'Sakura',    icon:'🌸',cost:6000,  body:'#24101a',rim:'#ff9ecf'},
+  gold:      {name:'Solid Gold',icon:'🟨',cost:10000, body:'#3a2a06',rim:'#FFD700'},
+  diamond:   {name:'Diamond',   icon:'💎',cost:25000, body:'#0c2230',rim:'#aeefff'},
+  rainbow:   {name:'Rainbow',   icon:'🌈',cost:50000, body:'#1a1022',rim:'hue'},
+};
+const TITLES=[
+  {id:'weekend',name:'Weekend Gardener 🌱',cost:1000},
+  {id:'budcon', name:'Bud Connoisseur 🌿', cost:5000},
+  {id:'sage',   name:'Certified Stoner Sage 💨',cost:10000},
+  {id:'baron',  name:'Seed Baron 🎩',      cost:15000},
+  {id:'tycoon', name:'Plant Tycoon 💼',    cost:25000},
+  {id:'surf',   name:'Surf Server Legend 🏄',cost:40000},
+  {id:'deity',  name:'Botanical Deity 👑', cost:100000},
+];
+function upLvl(id){ return (G.data&&G.data.up&&G.data.up[id])||0; }
+function upCost(u){ return Math.round(u.base*Math.pow(u.mult,upLvl(u.id))); }
+function hasMach(id){ return !!(G.data&&G.data.mach&&G.data.mach[id]); }
+function machOn(id){ return hasMach(id) && !(G.data.machOff&&G.data.machOff[id]); }
+function growMult(){ return 1-0.05*upLvl('green'); }
+function potSkin(){ return POT_SKINS[(G.data&&G.data.potSkin)||'terracotta']||POT_SKINS.terracotta; }
+function potSkinRim(){ const s=potSkin(); if(!s.rim) return null; return s.rim==='hue' ? 'hsl('+((G.now/15)%360)+',100%,65%)' : s.rim; }
+function masteryLevel(){ if(!G.data||getLevel()<50) return 0; return Math.min(99, 1+Math.floor(((G.data.xp||0)-LEVEL_XP[49])/150000)); }
+function coinMult(){ return (1+0.1*(G.data.prestige||0))*(1+0.1*upLvl('merchant'))*(1+0.02*masteryLevel()); }
+function isFourTwenty(){ const d=new Date(); return (d.getMonth()===3&&d.getDate()===20) || ((d.getHours()===4||d.getHours()===16)&&d.getMinutes()>=20&&d.getMinutes()<40); }
+const THC_RANGE={ RARE:[14,22], EPIC:[18,27], LEGENDARY:[22,32], MYTHIC:[28,38] };
+function rollThc(s,plot,wilted){
+  const r=THC_RANGE[s.rarity]||[10,18];
+  let thc=r[0]+Math.random()*(r[1]-r[0]);
+  if(plot.golden) thc+=3; if(plot.fert) thc+=1.5; if(wilted) thc-=5;
+  thc+=upLvl('terps')*1.5; if(isFourTwenty()) thc+=3;
+  thc=Math.max(5,Math.round(thc*10)/10);
+  const grade = thc>=34?['EXOTIC 💎',3]: thc>=29?['TOP SHELF',2]: thc>=25?['FIRE 🔥',1.5]: thc>=20?['GOOD',1.2]:['MIDS',1];
+  return { thc, grade:grade[0], gmult:grade[1] };
+}
+
 function growingPlots(){ return plotsWhere(p=>plotState(p)==='growing'); }
-function potCost(){ return 60+(G.data.potsBought||0)*20; }
+function potCost(){
+  const n=G.unlockedPlots;
+  if(n<25) return 60+(G.data.potsBought||0)*20;
+  return Math.round(2500*Math.pow(1.22,n-25));
+}
 function shopItems(){
   const items=[
     {id:'skip15',icon:'⏩',name:'Skip 15 Minutes',desc:'Take 15 min off every growing plant.',cost:8,buy:()=>skipTime(15)},
     {id:'skip1h',icon:'⚡',name:'Skip 1 Hour',desc:'Take an hour off every growing plant.',cost:30,buy:()=>skipTime(60)},
     {id:'skip6h',icon:'🚀',name:'Skip 6 Hours',desc:'Big skip, great for long grows.',cost:120,buy:()=>skipTime(360)},
     {id:'skip1d',icon:'🌟',name:'Skip 24 Hours',desc:'Skip a whole day. Legendaries love this.',cost:400,buy:()=>skipTime(1440)},
+    {id:'warp',icon:'⏳',name:'Time Warp',desc:'Every growing plant finishes INSTANTLY. Mythic grows love this.',cost:1500,buy:timeWarp},
     {id:'water3',icon:'💧',name:'+3 Water',desc:'Can overfill up to 2× your max.',cost:5,buy:buyWater3},
     {id:'waterFull',icon:'🪣',name:'Full Water Refill',desc:'Fill your bucket to max.',cost:15,buy:waterFull},
     {id:'digReset',icon:'⛏️',name:'Dig Cooldown Reset',desc:'Dig again right now.',cost:12,buy:resetDig},
-    {id:'fert',icon:'🧪',name:'Super Fertilizer',desc:'All growing plants: +30% size and +1 bonus seed at harvest.',cost:35,buy:fertAll},
-    {id:'gold',icon:'✨',name:'Golden Spray',desc:'Turns a random growing plant GOLDEN (3× coins, 1.5× size).',cost:150,buy:goldSpray},
-    {id:'rare',icon:'🌸',name:'Mystery Rare Seed',desc:'A random Rare or Epic seed.',cost:25,buy:()=>buySeed(['RARE','EPIC'])},
-    {id:'epic',icon:'🌀',name:'Mystery Epic Seed',desc:'A random Epic or Legendary seed.',cost:90,buy:()=>buySeed(['EPIC','LEGENDARY'])},
-    {id:'leg',icon:'🌊',name:'Mystery Legendary Seed',desc:'One random Legendary seed.',cost:350,buy:()=>buySeed(['LEGENDARY'])},
-    {id:'xp50',icon:'⭐',name:'+50 XP',desc:'A little push toward your next level.',cost:20,buy:()=>{ addXP(50); return true; }},
-    {id:'xp300',icon:'💎',name:'+300 XP Mega Boost',desc:'Big jump for prestige grinders.',cost:100,buy:()=>{ addXP(300); return true; }},
+    {id:'fert',icon:'🧪',name:'Super Fertilizer',desc:'All growing plants: +30% size, +1.5% THC, +1 bonus seed.',cost:35,buy:fertAll},
+    {id:'gold',icon:'✨',name:'Golden Spray',desc:'Turns a random growing plant GOLDEN.',cost:150,buy:goldSpray},
+    {id:'coat',icon:'🥇',name:'Golden Coating ×5',desc:'Your next 5 plantings are guaranteed GOLDEN.'+(G.data.goldCoat?' (you have '+G.data.goldCoat+' left)':''),cost:2000,buy:()=>{ G.data.goldCoat=(G.data.goldCoat||0)+5; showGardenMsg('🥇 next '+G.data.goldCoat+' plantings will be GOLDEN!'); }},
+    {id:'xp50',icon:'⭐',name:'+50 XP',desc:'A little push.',cost:20,buy:()=>{ addXP(50); }},
+    {id:'xp300',icon:'💎',name:'+300 XP',desc:'Bigger push.',cost:100,buy:()=>{ addXP(300); }},
+    {id:'xp5k',icon:'🌠',name:'+5,000 XP',desc:'For prestige and Mastery grinders.',cost:1200,buy:()=>{ addXP(5000); }},
   ];
-  if(G.unlockedPlots<MAX_PLOTS) items.unshift({id:'pot',icon:'🪴',name:'Extra Planter',desc:'You have '+G.unlockedPlots+'/'+MAX_PLOTS+' pots. Each one costs a bit more.',cost:potCost(),buy:buyPot,hot:true});
-  else items.push({id:'potmax',icon:'🪴',name:'All Planters Unlocked',desc:'Garden fully expanded!',maxed:true});
+  if(G.unlockedPlots<MAX_PLOTS) items.unshift({id:'pot',icon:'🪴',name:'Extra Planter',desc:'You have '+G.unlockedPlots+'/'+MAX_PLOTS+' pots.'+(G.unlockedPlots>=25?' Greenhouse expansion pots cost more.':''),cost:potCost(),buy:buyPot,hot:true});
   return items;
 }
+const CRATES=[
+  {id:'rare',icon:'🌸',name:'Mystery Rare Seed',desc:'A random Rare or Epic seed.',cost:25,pool:['RARE','EPIC']},
+  {id:'epic',icon:'🌀',name:'Mystery Epic Seed',desc:'A random Epic or Legendary seed.',cost:90,pool:['EPIC','LEGENDARY']},
+  {id:'leg',icon:'🌊',name:'Mystery Legendary Seed',desc:'One random Legendary seed.',cost:350,pool:['LEGENDARY']},
+  {id:'bud',icon:'🌿',name:'Bud Box',desc:'A random weed strain — Rare to Mythic. Small chance of Kush of the Gods.',cost:500,bud:true},
+  {id:'flower',icon:'💐',name:'Bouquet Crate',desc:'3 random flower seeds, Uncommon or better.',cost:150,flower:true},
+  {id:'myth',icon:'🔮',name:'Mythic Seed',desc:'One MYTHIC seed. 30–44 hour grows, 200cm+ sizes, huge payouts.',cost:5000,pool:['MYTHIC']},
+];
+const FLOWER_KEYS=['hibiscus','peony','dahlia','lotus','wisteria','jadevine','blackrose','moonflower','ghostorchid','corpseflower','rose','lavender','lily','orchid','sakura','tropic','rare','sovereign','rainbow','celestial_lotus','chrono_orchid'];
+function crateRoll(c){
+  if(c.bud){
+    const keys=seedKeys().filter(k=>SEEDS[k].weed);
+    const w={RARE:60,EPIC:30,LEGENDARY:9,MYTHIC:1};
+    const tot=keys.reduce((a,k)=>a+(w[SEEDS[k].rarity]||0)/keys.filter(x=>SEEDS[x].rarity===SEEDS[k].rarity).length,0);
+    let r=Math.random()*tot;
+    for(const k of keys){ r-=(w[SEEDS[k].rarity]||0)/keys.filter(x=>SEEDS[x].rarity===SEEDS[k].rarity).length; if(r<=0) return [k]; }
+    return [keys[0]];
+  }
+  if(c.flower){ const f=FLOWER_KEYS.filter(k=>SEEDS[k]&&RARITY_ORDER[SEEDS[k].rarity]>=1&&SEEDS[k].rarity!=='MYTHIC'); return [0,1,2].map(()=>f[Math.floor(Math.random()*f.length)]); }
+  const pool=seedKeys().filter(k=>c.pool.includes(SEEDS[k].rarity));
+  return [pool[Math.floor(Math.random()*pool.length)]];
+}
+function buyCrate(id,qty){
+  const c=CRATES.find(x=>x.id===id); if(!c) return;
+  const cost=c.cost*qty*(qty>=10?0.9:1);
+  if((G.data.coins||0)<cost){ showGardenMsg('🪙 not enough coins!'); sfx('err'); return; }
+  spend(cost);
+  const got=[];
+  for(let i=0;i<qty;i++) crateRoll(c).forEach(k=>{ addSeed(k,true); got.push(k); });
+  const best=got.slice().sort((a,b)=>RARITY_ORDER[SEEDS[b].rarity]-RARITY_ORDER[SEEDS[a].rarity])[0];
+  showSeedFoundToast(best);
+  const counts={}; got.forEach(k=>counts[k]=(counts[k]||0)+1);
+  showGardenMsg('🎁 opened '+qty+'× '+c.name+': '+Object.keys(counts).map(k=>SEEDS[k].emoji+(counts[k]>1?'×'+counts[k]:'')).join(' '));
+  sfx(RARITY_ORDER[SEEDS[best].rarity]>=4?'golden':'coin');
+  if(RARITY_ORDER[SEEDS[best].rarity]>=4) confetti();
+  refresh(); renderShop();
+}
+function spend(n){ G.data.coins-=n; G.data.coinsSpent=(G.data.coinsSpent||0)+n; }
+
+let shopTab='items';
 function openShop(){ renderShop(); openModal('shopModal'); }
+function setShopTab(t){ shopTab=t; renderShop(); document.getElementById('shopItemsList').scrollTop=0; }
+function shopRow(icon,name,desc,btnHtml,cls){
+  return '<div class="shop-item'+(cls?' '+cls:'')+'"><div class="shop-icon">'+icon+'</div><div class="shop-info"><div class="shop-name">'+name+'</div><div class="shop-desc">'+desc+'</div></div>'+btnHtml+'</div>';
+}
+function buyBtn(onclick,cost,label,ok){
+  return '<button class="shop-buy-btn" onclick="'+onclick+'"'+(ok?'':' disabled')+'><div style="font-family:\'Press Start 2P\',monospace;font-size:7px;">'+(cost===0?'FREE':fmtNum(cost)+'🪙')+'</div><div style="font-size:9px;margin-top:2px;">'+(label||'BUY')+'</div></button>';
+}
 function renderShop(){
   const el=document.getElementById('shopItemsList'); if(!el||!G.data) return;
   const coins=G.data.coins||0;
-  el.innerHTML=shopItems().map(it=>{
-    if(it.maxed) return '<div class="shop-item cant-afford"><div class="shop-icon">'+it.icon+'</div><div class="shop-info"><div class="shop-name">'+it.name+'</div><div class="shop-desc">'+it.desc+'</div></div><div style="font-size:9px;color:var(--muted);font-weight:700;">MAXED</div></div>';
-    const ok=coins>=it.cost;
-    return '<div class="shop-item'+(ok?'':' cant-afford')+(it.hot?' seasonal':'')+'"><div class="shop-icon">'+it.icon+'</div><div class="shop-info"><div class="shop-name">'+it.name+'</div><div class="shop-desc">'+it.desc+'</div></div>'+
-      '<button class="shop-buy-btn" onclick="shopBuy(\''+it.id+'\')"'+(ok?'':' disabled')+'><div style="font-family:\'Press Start 2P\',monospace;font-size:7px;">'+fmtNum(it.cost)+'🪙</div><div style="font-size:9px;margin-top:2px;">BUY</div></button></div>';
-  }).join('');
+  const tabs=[['items','🧰 Items'],['crates','🎁 Crates'],['upgrades','⬆️ Upgrades'],['machines','🤖 Machines'],['style','🎨 Style']];
+  document.getElementById('shopTabs').innerHTML=tabs.map(t=>'<button class="shop-tab'+(shopTab===t[0]?' on':'')+'" onclick="setShopTab(\''+t[0]+'\')">'+t[1]+'</button>').join('');
+  let html='';
+  if(shopTab==='items'){
+    html=shopItems().map(it=>shopRow(it.icon,it.name,it.desc,buyBtn('shopBuy(\''+it.id+'\')',it.cost,'BUY',coins>=it.cost),(coins>=it.cost?'':'cant-afford')+(it.hot?' seasonal':''))).join('');
+    if(G.unlockedPlots>=MAX_PLOTS) html+=shopRow('🪴','All Planters Unlocked','All '+MAX_PLOTS+' pots owned. Absolute unit of a garden.','<div style="font-size:9px;color:var(--muted);font-weight:700;">MAXED</div>','cant-afford');
+  } else if(shopTab==='crates'){
+    html='<div class="shop-section-head">10× PACKS ARE 10% OFF</div>'+CRATES.map(c=>{
+      const ok1=coins>=c.cost, c10=Math.round(c.cost*10*0.9), ok10=coins>=c10;
+      return shopRow(c.icon,c.name,c.desc,'<div style="display:flex;flex-direction:column;gap:4px;">'+buyBtn('buyCrate(\''+c.id+'\',1)',c.cost,'×1',ok1)+buyBtn('buyCrate(\''+c.id+'\',10)',c10,'×10',ok10)+'</div>',(ok1?'':'cant-afford')+(c.id==='myth'||c.id==='bud'?' seasonal':''));
+    }).join('');
+  } else if(shopTab==='upgrades'){
+    html='<div class="shop-section-head">PERMANENT · KEPT THROUGH PRESTIGE</div>'+UPGRADES.map(u=>{
+      const l=upLvl(u.id), maxed=l>=u.max, c=upCost(u);
+      const bar='<div class="up-bar">'+Array.from({length:u.max},(_,i)=>'<span class="'+(i<l?'on':'')+'"></span>').join('')+'</div>';
+      const desc=(l?'<b style="color:#11ED34">Now: '+u.d(l)+'</b> · ':'')+(maxed?'MAXED':'Next: '+u.per)+bar;
+      return shopRow(u.icon,u.name+' <span style="color:var(--muted);font-size:9px;">LV '+l+'/'+u.max+'</span>',desc, maxed?'<div style="font-size:9px;color:#FFD700;font-weight:700;">MAX</div>':buyBtn('buyUpgrade(\''+u.id+'\')',c,'UPGRADE',coins>=c), maxed?'':(coins>=c?'':'cant-afford'));
+    }).join('');
+  } else if(shopTab==='machines'){
+    html=MACHINES.map(m=>{
+      if(hasMach(m.id)){
+        let ctl='';
+        if(m.id==='weather'){
+          const used=G.data.wxMachineDay===dayKey();
+          ctl='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">'+WEATHERS.filter(w=>w.id!=='clear').map(w=>'<button class="mini-btn'+(used?'':' gold')+'" '+(used?'disabled':'')+' onclick="useWeatherMachine(\''+w.id+'\')">'+w.icon+' '+w.name+'</button>').join('')+'</div>'+(used?'<div style="font-size:9px;color:var(--muted);margin-top:4px;">used today — recharges at midnight</div>':'');
+          return shopRow(m.icon,m.name+' <span style="color:#11ED34;font-size:9px;">OWNED</span>',m.desc+ctl,'','');
+        }
+        const on=machOn(m.id);
+        return shopRow(m.icon,m.name+' <span style="color:#11ED34;font-size:9px;">OWNED</span>',m.desc,(m.id==='vault'?'<div style="font-size:9px;color:#11ED34;font-weight:700;">ACTIVE</div>':'<button class="mini-btn'+(on?' gold':'')+'" onclick="toggleMachine(\''+m.id+'\')">'+(on?'ON':'OFF')+'</button>'),'');
+      }
+      return shopRow(m.icon,m.name,m.desc,buyBtn('buyMachine(\''+m.id+'\')',m.cost,'BUY',coins>=m.cost),coins>=m.cost?'seasonal':'cant-afford');
+    }).join('');
+  } else if(shopTab==='style'){
+    const owned=G.data.ownedPots||['terracotta'], cur=G.data.potSkin||'terracotta';
+    html='<div class="shop-section-head">POT SKINS</div>'+Object.keys(POT_SKINS).map(k=>{
+      const p=POT_SKINS[k], has=owned.includes(k);
+      const btn= cur===k ? '<div style="font-size:9px;color:#11ED34;font-weight:700;">EQUIPPED</div>' : has ? '<button class="mini-btn gold" onclick="equipPot(\''+k+'\')">EQUIP</button>' : buyBtn('buyPotSkin(\''+k+'\')',p.cost,'BUY',coins>=p.cost);
+      return shopRow(p.icon,p.name+' Pots','<span style="display:inline-block;width:40px;height:8px;border-radius:4px;background:'+p.body+';border:1px solid '+(p.rim==='hue'?'#ff88ff':(p.rim||'#555'))+';vertical-align:middle;"></span>',btn,'');
+    }).join('');
+    const ot=G.data.ownedTitles||[], ct=G.data.title||'';
+    html+='<div class="shop-section-head">LEADERBOARD TITLES</div>'+TITLES.map(t=>{
+      const has=ot.includes(t.id);
+      const btn= ct===t.id ? '<button class="mini-btn" onclick="equipTitle(\'\')">REMOVE</button>' : has ? '<button class="mini-btn gold" onclick="equipTitle(\''+t.id+'\')">EQUIP</button>' : buyBtn('buyTitle(\''+t.id+'\')',t.cost,'BUY',coins>=t.cost);
+      return shopRow('🏷️',esc(t.name),'Shows under your name on the board.',btn,'');
+    }).join('');
+  }
+  el.innerHTML=html;
   updateCoinUI();
 }
 function shopBuy(id){
-  const it=shopItems().find(i=>i.id===id); if(!it||it.maxed) return;
+  const it=shopItems().find(i=>i.id===id); if(!it) return;
   if((G.data.coins||0)<it.cost){ showGardenMsg('🪙 not enough coins!'); sfx('err'); return; }
   if(it.buy()===false){ sfx('err'); return; }
-  G.data.coins-=it.cost;
+  spend(it.cost);
   sfx('coin'); refresh(); renderShop();
+}
+function buyUpgrade(id){
+  const u=UPGRADES.find(x=>x.id===id); if(!u) return;
+  const l=upLvl(id), c=upCost(u);
+  if(l>=u.max) return;
+  if((G.data.coins||0)<c){ showGardenMsg('🪙 not enough coins!'); sfx('err'); return; }
+  spend(c);
+  G.data.up=G.data.up||{}; G.data.up[id]=l+1;
+  reapplyAllLevelRewards(); updateWaterUI();
+  showGardenMsg(u.icon+' <b>'+u.name+'</b> → LV '+(l+1)+': '+u.d(l+1));
+  sfx('level'); refresh(); renderShop();
+}
+function buyMachine(id){
+  const m=MACHINES.find(x=>x.id===id); if(!m||hasMach(id)) return;
+  if((G.data.coins||0)<m.cost){ showGardenMsg('🪙 not enough coins!'); sfx('err'); return; }
+  spend(m.cost);
+  G.data.mach=G.data.mach||{}; G.data.mach[id]=true;
+  showGardenMsg(m.icon+' <b>'+m.name+'</b> installed!'); sfx('golden'); confetti();
+  refresh(); renderShop(); machineTick();
+}
+function toggleMachine(id){ G.data.machOff=G.data.machOff||{}; G.data.machOff[id]=!G.data.machOff[id]; saveData(); renderShop(); }
+function useWeatherMachine(id){
+  if(!hasMach('weather')||G.data.wxMachineDay===dayKey()) return;
+  G.data.wxMachineDay=dayKey();
+  G.data.wxOverride={ id, until:Date.now()+3600e3 };
+  updateWeather(true); saveData(); renderShop(); sfx('golden');
+}
+function buyPotSkin(k){
+  const p=POT_SKINS[k]; if(!p) return;
+  if((G.data.coins||0)<p.cost){ sfx('err'); return; }
+  spend(p.cost); G.data.ownedPots=(G.data.ownedPots||['terracotta']).concat(k); G.data.potSkin=k;
+  showGardenMsg('🎨 '+p.name+' pots equipped!'); sfx('golden'); refresh(); renderShop();
+}
+function equipPot(k){ G.data.potSkin=k; saveData(); renderShop(); }
+function buyTitle(id){
+  const t=TITLES.find(x=>x.id===id); if(!t) return;
+  if((G.data.coins||0)<t.cost){ sfx('err'); return; }
+  spend(t.cost); G.data.ownedTitles=(G.data.ownedTitles||[]).concat(id); G.data.title=id;
+  showGardenMsg('🏷️ title unlocked: '+esc(t.name)); sfx('golden'); refresh(); renderShop(); queueLbUpdate();
+}
+function equipTitle(id){ G.data.title=id; saveData(); renderShop(); queueLbUpdate(); }
+function titleName(id){ const t=TITLES.find(x=>x.id===id); return t?t.name:''; }
+
+function timeWarp(){
+  const g=growingPlots(); if(!g.length){ showGardenMsg('⚠️ nothing is growing!'); return false; }
+  g.forEach(i=>{ const p=G.data['plot'+i]; p.plantedAt=Date.now()-effGrowMs(p)-1000; spawnHarvestParticles(i,true); });
+  showGardenMsg('⏳ TIME WARP! '+g.length+' plant'+(g.length>1?'s':'')+' fully grown');
 }
 function skipTime(min){
   const g=growingPlots(); if(!g.length){ showGardenMsg('⚠️ no plants are growing right now!'); return false; }
@@ -2325,6 +2600,38 @@ function buyPot(){
   queueLbUpdate();
 }
 
+/* ── machines tick ── */
+function machineTick(){
+  if(!G.data) return;
+  let changed=false;
+  const sp=upLvl('sprinkler');
+  if(sp>0 && Date.now()-(G.data.lastSprinkle||0)>=5*60e3){
+    G.data.lastSprinkle=Date.now();
+    const order=plotsWhere(p=>plotState(p)==='wilted').concat(growingPlots()).slice(0,sp);
+    order.forEach(i=>{ if(waterOne(G.data['plot'+i])){ spawnRainDrops(i); changed=true; } });
+  }
+  if(machOn('autoHarvest')){
+    const dead=plotsWhere(p=>plotState(p)==='dead');
+    dead.forEach(i=>{ G.data['plot'+i]=null; changed=true; });
+    const ready=plotsWhere(p=>isReady(p));
+    if(ready.length){
+      const res=ready.map(i=>harvestPlot(i)).filter(Boolean);
+      const coins=res.reduce((a,r)=>a+r.coins,0);
+      showGardenMsg('🤖 auto-harvested '+res.length+' plant'+(res.length>1?'s':'')+' · +🪙'+fmtNum(coins));
+      const big=res.slice().sort((a,b)=>(b.overflowTier-a.overflowTier)||((b.golden?1:0)-(a.golden?1:0)))[0];
+      if(big&&(big.overflowTier>=2||big.golden||RARITY_ORDER[big.s.rarity]>=5)){ showSizeReveal(big); sfx('golden'); }
+      else sfx('harvest');
+      afterHarvest(); changed=true;
+    }
+  }
+  if(machOn('autoPlant')){
+    let n=0;
+    for(const i of plotsWhere(p=>!p)){ const t=bestSeedToPlant(); if(!t) break; if(plantSeed(i,t)) n++; }
+    if(n){ changed=true; if(!machOn('autoHarvest')) showGardenMsg('🦾 auto-planted '+n+' seed'+(n>1?'s':'')); }
+  }
+  if(changed) refresh();
+}
+
 /* ── seed select / bag ── */
 function selectSeed(type){
   if(!G.data) return;
@@ -2340,7 +2647,7 @@ function selectSeed(type){
     bar.classList.add('visible');
   } else bar.classList.remove('visible');
 }
-function setBagSort(m){ G.bagSort=m; document.getElementById('sortRarity').classList.toggle('on',m==='rarity'); document.getElementById('sortCount').classList.toggle('on',m==='count'); renderInventory(); }
+function setBagSort(m){ G.bagSort=m; document.getElementById('sortRarity').classList.toggle('on',m==='rarity'); document.getElementById('sortCount').classList.toggle('on',m==='count'); document.getElementById('sortWeed').classList.toggle('on',m==='weed'); renderInventory(); }
 let invExpanded=false;
 function toggleInventory(){
   invExpanded=!invExpanded;
@@ -2351,7 +2658,8 @@ function toggleInventory(){
 }
 function renderInventory(){
   const el=document.getElementById('gardenInventory'); if(!el||!G.data) return;
-  const keys=seedKeys().filter(k=>(G.data.seeds[k]||0)>0);
+  let keys=seedKeys().filter(k=>(G.data.seeds[k]||0)>0);
+  if(G.bagSort==='weed') keys=keys.filter(k=>SEEDS[k].weed);
   if(G.bagSort==='count') keys.sort((a,b)=>G.data.seeds[b]-G.data.seeds[a]);
   else keys.sort((a,b)=>RARITY_ORDER[SEEDS[b].rarity]-RARITY_ORDER[SEEDS[a].rarity]);
   el.innerHTML = keys.length ? keys.map(k=>{
@@ -2369,6 +2677,7 @@ function digAction(){
   G.data.lastDig=Date.now();
   sfx('dig');
   addSeed(rollSeed());
+  if(Math.random()<0.1*upLvl('shovel')){ addSeed(rollSeed(),true); setTimeout(()=>showGardenMsg('⛏️ lucky shovel — dug up a 2nd seed!'),50); }
   questEvent('dig');
   addXP(3);
   updateDigCooldownUI();
@@ -2388,7 +2697,7 @@ function startPassiveDrops(){
   if(G.passiveTimer) clearInterval(G.passiveTimer);
   G.passiveTimer=setInterval(()=>{
     if(!G.data||document.hidden) return;
-    const ch=Math.min(0.95, G.passiveDropChance*(wx('wind')?2:1));
+    const ch=Math.min(0.95, G.passiveDropChance*(wx('wind')?2:1)*(1+0.08*upLvl('magnet')));
     if(Math.random()<ch) addSeed(rollSeed());
   }, G.passiveDropIntervalMs);
 }
@@ -2403,6 +2712,7 @@ const QUEST_POOL=[
   {id:'rare',icon:'🌸',txt:'Harvest {n} Rare-or-better plant(s)',ev:'harvestRare',n:[1,2],c:40,x:50},
   {id:'compost',icon:'♻️',txt:'Compost seeds {n} time(s)',ev:'compost',n:[1,1],c:30,x:40},
   {id:'coins',icon:'🪙',txt:'Earn {n} coins',ev:'coins',n:[40,120],c:0.4,x:0.5},
+  {id:'bud',icon:'🌿',txt:'Harvest {n} weed strain(s)',ev:'harvestBud',n:[1,3],c:30,x:40},
   {id:'cheers',icon:'🍺',txt:'Cheers with Chokk {n} times',ev:'cheers',n:[1,3],c:5,x:5},
 ];
 function questDef(id){ return QUEST_POOL.find(q=>q.id===id); }
@@ -2485,7 +2795,19 @@ const ACHS=[
   {id:'tier3',icon:'⚠️',name:'Anomaly',desc:'Land a 1-in-500 size roll',test:d=>d.bestTier>=3,coins:250},
   {id:'rich',icon:'💰',name:'Money Bags',desc:'Hold 1,000 coins at once',test:d=>d.coins>=1000,coins:100},
   {id:'pots10',icon:'🪴',name:'Estate Owner',desc:'Own 10 planters',test:()=>G.unlockedPlots>=10,coins:150},
-  {id:'pots25',icon:'🏡',name:'Land Baron',desc:'Own all 25 planters',test:()=>G.unlockedPlots>=MAX_PLOTS,coins:1000},
+  {id:'pots25',icon:'🏡',name:'Land Baron',desc:'Own 25 planters',test:()=>G.unlockedPlots>=25,coins:1000},
+  {id:'pots40',icon:'🏰',name:'Greenhouse Emperor',desc:'Own all 40 planters',test:()=>G.unlockedPlots>=MAX_PLOTS,coins:10000},
+  {id:'bud1',icon:'🌿',name:'Home Grown',desc:'Harvest your first bud',test:d=>(d.budHarvests||0)>=1,coins:50},
+  {id:'bud50',icon:'💨',name:'Head Grower',desc:'Harvest 50 buds',test:d=>(d.budHarvests||0)>=50,coins:1000},
+  {id:'thc25',icon:'🔥',name:'Fire Grower',desc:'Grow a bud over 25% THC',test:d=>(d.bestThc||0)>=25,coins:300},
+  {id:'thc34',icon:'💎',name:'Exotic Cultivator',desc:'Grow EXOTIC bud (34%+ THC)',test:d=>(d.bestThc||0)>=34,coins:3000},
+  {id:'myth1',icon:'🔮',name:'Myth Maker',desc:'Harvest a Mythic plant',test:d=>(d.mythicHarvests||0)>=1,coins:2500},
+  {id:'m1',icon:'🌀',name:'Beyond 50',desc:'Reach Mastery 1',test:()=>masteryLevel()>=1,coins:1000},
+  {id:'m10',icon:'♾️',name:'Ascended',desc:'Reach Mastery 10',test:()=>masteryLevel()>=10,coins:10000},
+  {id:'spend50k',icon:'💸',name:'Big Spender',desc:'Spend 50,000 coins',test:d=>(d.coinsSpent||0)>=50000,coins:2500},
+  {id:'upmax',icon:'⬆️',name:'Maxed Out',desc:'Max any upgrade',test:()=>UPGRADES.some(u=>upLvl(u.id)>=u.max),coins:2000},
+  {id:'robot',icon:'🤖',name:'Automation',desc:'Install the Auto-Harvester',test:()=>hasMach('autoHarvest'),coins:500},
+  {id:'drip',icon:'🌈',name:'Drip',desc:'Own Rainbow pots',test:d=>(d.ownedPots||[]).includes('rainbow'),coins:5000},
   {id:'l10',icon:'🌿',name:'Rising Grower',desc:'Reach level 10',test:()=>getLevel()>=10,coins:50},
   {id:'l25',icon:'🌸',name:'Master Gardener',desc:'Reach level 25',test:()=>getLevel()>=25,coins:250},
   {id:'p1',icon:'💫',name:'Reborn',desc:'Prestige once',test:d=>d.prestige>=1,coins:500},
@@ -2559,7 +2881,7 @@ function renderCodex(){
   let html=found.map(k=>{
     const s=SEEDS[k], b=best[k]||0, c=counts[k]||0;
     return '<div class="codex-card discovered" style="border-color:'+RARITY_COL[s.rarity]+'33"><div style="display:flex;align-items:center;gap:6px;"><div class="codex-emo">'+s.emoji+'</div><div><div class="codex-name" style="color:'+RARITY_COL[s.rarity]+'">'+s.name+'</div><div class="codex-rarity" style="color:'+RARITY_COL[s.rarity]+'">'+s.rarity+'</div></div></div>'+
-      '<div class="codex-time">→ '+s.plant+' · '+s.hint+' · '+s.minSize+'–'+s.maxSize+'cm</div><div class="codex-desc">'+s.desc+'</div>'+
+      '<div class="codex-time">→ '+s.plant+' · '+s.hint+' · '+s.minSize+'–'+s.maxSize+'cm'+(s.weed?' · <span style="color:#7dff7d">🌿 strain</span>':'')+'</div><div class="codex-desc">'+s.desc+'</div>'+
       '<div class="codex-best-size">'+(b?'📏 Record: '+b+'cm':'📏 Not grown yet')+'</div>'+(c?'<div class="codex-harvest-count">🌾 Harvested ×'+c+'</div>':'')+'</div>';
   }).join('');
   missing.sort((a,b)=>RARITY_ORDER[SEEDS[a].rarity]-RARITY_ORDER[SEEDS[b].rarity]).slice(0,8).forEach(k=>{
@@ -2668,9 +2990,9 @@ function doPrestige(){
 let lbTab='size', LB_ROWS=[], _lbT=null;
 function switchLbTab(tab){
   lbTab=tab;
-  const ids={size:'lbTabSize',harvest:'lbTabHarvest',xp:'lbTabXP',codex:'lbTabCodex'};
+  const ids={size:'lbTabSize',harvest:'lbTabHarvest',xp:'lbTabXP',codex:'lbTabCodex',thc:'lbTabThc'};
   Object.keys(ids).forEach(t=>document.getElementById(ids[t]).classList.toggle('active',t===tab));
-  document.getElementById('lbSeasonLabel').textContent={size:'📏 BIGGEST PLANT THIS SEASON',harvest:'🌾 TOTAL HARVESTS',xp:'⭐ CURRENT XP',codex:'📖 SPECIES DISCOVERED'}[tab];
+  document.getElementById('lbSeasonLabel').textContent={size:'📏 BIGGEST PLANT THIS SEASON',harvest:'🌾 TOTAL HARVESTS',xp:'⭐ CURRENT XP',codex:'📖 SPECIES DISCOVERED',thc:'🌿 HIGHEST THC EVER GROWN'}[tab];
   loadLeaderboard();
 }
 function saveLbName(){
@@ -2689,6 +3011,7 @@ function updateLeaderboard(){
     prestigeStr:'✨'.repeat(Math.min(p,5)), prestige:p,
     harvested:G.data.harvested||0, xp:G.data.xp||0, coins:G.data.coins||0, level:getLevel(),
     discovered:G.data.discoveries.length, golden:G.data.goldenCount||0, plots:G.unlockedPlots,
+    bestThc:G.data.bestThc||0, title:titleName(G.data.title||''), mastery:masteryLevel(), budHarvests:G.data.budHarvests||0,
     seasonKey:sk, seasonBestSize:sb.size||0, seasonBestPlant:(sb.emoji||'🌱')+' '+(sb.name||'none'),
     ts:Date.now()
   },{merge:true})).then(()=>{ if(G.tab==='board') loadLeaderboard(); }).catch(err=>console.warn('leaderboard write failed',err&&err.message));
@@ -2697,6 +3020,7 @@ function lbVal(d){
   if(lbTab==='size') return d.seasonKey===getCurrentSeasonKey() ? (d.seasonBestSize||0) : 0;
   if(lbTab==='harvest') return d.harvested||0;
   if(lbTab==='codex') return d.discovered||0;
+  if(lbTab==='thc') return d.bestThc||0;
   return d.xp||0;
 }
 function loadLeaderboard(){
@@ -2719,19 +3043,20 @@ function lbRowHtml(r,i,topV,medal){
   const d=r.d, isMe=r.id===G.playerId, v=lbVal(d);
   let score;
   if(lbTab==='size') score='<div style="text-align:right;"><div style="font-family:\'Press Start 2P\',monospace;font-size:7px;color:#FFD700;">'+fmtNum(v)+'cm</div><div style="font-size:9px;color:var(--muted);">'+esc(d.seasonBestPlant||'')+'</div><div class="lb-size-bar" style="width:60px;margin-top:3px;"><div class="lb-size-fill" style="width:'+Math.min(v/topV*100,100)+'%"></div></div></div>';
+  else if(lbTab==='thc') score='<span style="font-family:\'Press Start 2P\',monospace;font-size:8px;color:#7dff7d;">'+(+v).toFixed(1)+'% 🌿</span>';
   else score='<span style="font-family:\'Press Start 2P\',monospace;font-size:8px;color:'+(lbTab==='harvest'?'#11ED34':lbTab==='codex'?'#CC44FF':'#FFD700')+';">'+fmtNum(v)+(lbTab==='harvest'?' 🌾':lbTab==='codex'?' 📖':' ⭐')+'</span>';
   return '<div class="lb-row'+(isMe?' me':'')+'" style="align-items:flex-start;cursor:pointer;" onclick="openProfileIdx('+LB_ROWS.indexOf(r)+')">'+
     '<span class="lb-rank '+(['gold','silver','bronze'][i]||'')+'">'+(medal[i]||'#'+(i+1))+'</span><div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:4px;">'+
     (d.prestigeStr?'<span style="font-size:10px;">'+esc(d.prestigeStr)+'</span>':'')+'<span class="lb-name">'+esc(d.name||'Gardener')+(isMe?' <span style="color:var(--muted);font-size:9px;">(you)</span>':'')+'</span></div>'+
-    '<div style="font-size:9px;color:var(--muted);">LVL '+(parseInt(d.level)||1)+(d.prestige>0?' · '+parseInt(d.prestige)+'× prestige':'')+'</div></div>'+score+'</div>';
+    (d.title?'<div style="font-size:9px;color:#FFD700;">'+esc(d.title)+'</div>':'')+'<div style="font-size:9px;color:var(--muted);">LVL '+(parseInt(d.level)||1)+(d.mastery>0?' · M'+parseInt(d.mastery):'')+(d.prestige>0?' · '+parseInt(d.prestige)+'× prestige':'')+'</div></div>'+score+'</div>';
 }
 function openProfileIdx(i){ const r=LB_ROWS[i]; if(r) openProfile(Object.assign({id:r.id},r.d)); }
 function openProfile(d){
   const isMe=d.id===G.playerId, lvl=parseInt(d.level)||1, sk=getCurrentSeasonKey();
   const size=d.seasonKey===sk?(d.seasonBestSize||0):0;
   const stat=(v,l,c)=>'<div class="profile-stat"><div class="profile-stat-val"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="profile-stat-lbl">'+l+'</div></div>';
-  let html='<div class="profile-header"><div class="profile-avatar">'+(d.prestige>0?'✨':'🌿')+'</div><div><div class="profile-name">'+esc(d.name||'Gardener')+(isMe?' (you)':'')+'</div><div class="profile-title">'+esc(getLevelTitle(lvl))+' · LVL '+lvl+'</div>'+(d.prestige>0?'<div class="profile-prestige">'+esc(d.prestigeStr||'')+' Prestige '+parseInt(d.prestige)+'</div>':'')+'</div></div>'+
-    '<div class="profile-grid">'+stat(fmtNum(d.harvested),'🌾 Harvested')+stat(fmtNum(d.xp),'⭐ XP')+stat(fmtNum(size)+'cm','📏 Biggest (season)','#FFD700')+stat(esc(size?d.seasonBestPlant:'—'),'🏆 Season best')+stat(d.discovered||'?','📖 Species found')+stat(d.golden||0,'✨ Golden harvests','#FFD700')+'</div>';
+  let html='<div class="profile-header"><div class="profile-avatar">'+(d.prestige>0?'✨':'🌿')+'</div><div><div class="profile-name">'+esc(d.name||'Gardener')+(isMe?' (you)':'')+'</div><div class="profile-title">'+(d.title?'<span style="color:#FFD700">'+esc(d.title)+'</span> · ':'')+esc(getLevelTitle(lvl))+' · LVL '+lvl+'</div>'+(d.prestige>0?'<div class="profile-prestige">'+esc(d.prestigeStr||'')+' Prestige '+parseInt(d.prestige)+'</div>':'')+'</div></div>'+
+    '<div class="profile-grid">'+stat(fmtNum(d.harvested),'🌾 Harvested')+stat(fmtNum(d.xp),'⭐ XP')+stat(fmtNum(size)+'cm','📏 Biggest (season)','#FFD700')+stat(esc(size?d.seasonBestPlant:'—'),'🏆 Season best')+stat(d.discovered||'?','📖 Species found')+stat(d.golden||0,'✨ Golden harvests','#FFD700')+stat(d.bestThc?(+d.bestThc).toFixed(1)+'%':'—','🌿 Best THC','#7dff7d')+stat(d.mastery?'M'+parseInt(d.mastery):'—','🌀 Mastery','#ff4df0')+'</div>';
   if(isMe){
     const best=Object.entries(G.data.bestSizes).sort((a,b)=>b[1]-a[1]).slice(0,8);
     html+='<div style="padding:8px 14px;border-top:0.5px solid rgba(255,255,255,0.06);"><div style="font-family:\'Press Start 2P\',monospace;font-size:7px;color:var(--muted);margin-bottom:8px;">YOUR BIGGEST PLANTS</div>'+
@@ -2754,6 +3079,7 @@ function showSizeReveal(r){
   let label,lc,bc,gc,sub='';
   if(t>0){ [label,lc,bc,gc,sub]=T[t]; }
   else if(r.golden){ label='✨ GOLDEN HARVEST'; lc='#FFD700'; bc='rgba(255,215,0,0.9)'; gc='rgba(255,215,0,0.45)'; sub='3× COINS · 2× XP'; }
+  else if(s.rarity==='MYTHIC'){ label='🔮 MYTHIC HARVEST'; lc='#ff4df0'; bc='rgba(255,77,240,0.9)'; gc='rgba(255,77,240,0.45)'; sub='BEYOND LEGENDARY'; }
   else if(r.isRecord){ label='🏆 PERSONAL RECORD!'; lc='#FFD700'; bc='rgba(255,215,0,0.9)'; gc='rgba(255,215,0,0.4)'; }
   else if(r.godRoll){ label='⚡ GOD ROLL!'; lc='#ff8800'; bc='rgba(255,136,0,0.7)'; gc='rgba(255,136,0,0.3)'; }
   else if(r.wilted){ label='🥀 Wilted harvest (65%)'; lc='#cc8844'; bc='rgba(204,136,68,0.5)'; gc='transparent'; }
@@ -2769,6 +3095,7 @@ function showSizeReveal(r){
     '<div style="font-size:20px;font-weight:900;color:'+(r.golden?'#FFD700':s.color)+';margin-bottom:2px;">'+(r.golden?'Golden ':'')+s.plant+'</div>'+
     '<div style="font-family:\'Press Start 2P\',monospace;font-size:'+(18+t*3)+'px;color:'+(t>=2?lc:'#FFD700')+';margin:6px 0;">'+fmtNum(r.size)+'cm</div>'+
     '<div style="font-size:10px;color:var(--muted);">+'+r.coins+'🪙 · +'+r.xp+'xp · bonus: '+r.bonus.map(b=>SEEDS[b].emoji+' '+SEEDS[b].name).join(', ')+'</div>'+
+    (r.bud?'<div style="font-size:12px;color:#7dff7d;margin-top:6px;font-weight:800;">🌿 '+r.bud.thc+'% THC · '+r.bud.grade+(r.bud.gmult>1?' · '+r.bud.gmult+'× coins':'')+'</div>':'')+
     (sub?'<div style="font-size:8px;color:'+lc+';opacity:.75;margin-top:6px;font-family:\'Press Start 2P\',monospace;">'+sub+'</div>':'')+
     tags.map(x=>'<div style="font-size:8px;color:#FFD700;font-family:\'Press Start 2P\',monospace;margin-top:4px;">'+x+'</div>').join('')+
     '<div style="font-size:9px;color:rgba(255,255,255,0.25);margin-top:8px;">tap to close</div>';
@@ -2922,6 +3249,7 @@ function initGarden(){
   if(dead) welcome.push('<span style="color:#ff5566">💀 '+dead+' died while you were gone</span>');
   refresh(); renderCodex(); updateDigCooldownUI();
   startPassiveDrops(); startWaterRefill();
+  setInterval(machineTick,30000); setTimeout(machineTick,3000);
   setInterval(()=>{
     updateWeather(true); updateActionBadges();
     if(G.season!==getCurrentSeason()){ G.season=getCurrentSeason(); document.getElementById('seasonBadge').textContent=G.season; showGardenMsg('🗓️ a new season begins: '+G.season+'!'); }
@@ -2958,15 +3286,19 @@ function drawPlot(ctx, W, H, idx) {
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
   }
 
+  if (plot && SEEDS[plot.type].rarity==='MYTHIC' && st!=='dead') {
+    const h=(G.now/25)%360, g=ctx.createRadialGradient(cx,potY-H*0.3,2,cx,potY-H*0.3,W*0.8);
+    g.addColorStop(0,'hsla('+h+',100%,65%,0.18)'); g.addColorStop(1,'transparent'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  }
   // pot
   ctx.beginPath(); ctx.ellipse(cx, potY+potH+5, potW*0.38, 5, 0, 0, Math.PI*2); ctx.fillStyle='rgba(0,0,0,0.45)'; ctx.fill();
   ctx.beginPath();
   ctx.moveTo(cx-potW/2, potY); ctx.lineTo(cx+potW/2, potY);
   ctx.lineTo(cx+potW/2-potW*0.1, potY+potH); ctx.lineTo(cx-potW/2+potW*0.1, potY+potH); ctx.closePath();
-  ctx.fillStyle = plot ? (plot.golden ? '#2a2008' : '#1d120a') : '#131008'; ctx.fill();
+  ctx.fillStyle = plot&&plot.golden ? '#2a2008' : (plot ? potSkin().body : lerpCol(potSkin().body,'#000000',0.3)); ctx.fill();
   ctx.beginPath(); ctx.moveTo(cx-potW/2+potW*0.1+5, potY+potH*0.7); ctx.lineTo(cx+potW/2-potW*0.1-5, potY+potH*0.7);
   ctx.strokeStyle=plot&&plot.golden?'rgba(255,215,0,0.25)':'rgba(255,255,255,0.05)'; ctx.lineWidth=1; ctx.stroke();
-  const rimCol = !plot ? 'rgba(255,255,255,0.1)' : st==='dead' ? '#553322' : st==='wilted' ? '#aa6633' : plot.golden ? '#FFD700' : SEEDS[plot.type].color;
+  const rimCol = !plot ? (potSkinRim()||'rgba(255,255,255,0.1)') : st==='dead' ? '#553322' : st==='wilted' ? '#aa6633' : plot.golden ? '#FFD700' : (potSkinRim()||SEEDS[plot.type].color);
   ctx.beginPath(); ctx.ellipse(cx, potY, potW/2+3, potH*0.13, 0, 0, Math.PI*2);
   ctx.fillStyle = plot ? '#261608' : '#181208'; ctx.fill();
   ctx.strokeStyle = rimCol; ctx.lineWidth = plot ? 1.8 : 0.5;
@@ -3068,20 +3400,21 @@ function drawPlantVisual(ctx, cx, potY, potH, W, H, type, pct, s, waterCount) {
     }
   }
 
+  if(s.weed){ drawWeedPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); return; }
   // Draw by plant type
   switch(type) {
-    case 'fire': case 'magma': case 'phoenix': drawFirePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
-    case 'ice': case 'aurora': drawIcePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
-    case 'crystal': case 'prism': drawCrystalPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
-    case 'shadow': case 'void': case 'haunted': drawShadowPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'fire': case 'magma': case 'phoenix': case 'dragonheart': drawFirePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'ice': case 'aurora': case 'moonflower': case 'ghostorchid': drawIcePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'crystal': case 'prism': case 'chrono_orchid': drawCrystalPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'shadow': case 'void': case 'haunted': case 'blackrose': case 'singularity': drawShadowPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     case 'mushroom': case 'venom': drawMushroomPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     case 'cactus': drawCactusPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     case 'bamboo': drawBambooPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     case 'storm': case 'lightning': drawStormPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
-    case 'galaxy': case 'cosmos': case 'nebula': drawGalaxyPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'galaxy': case 'cosmos': case 'nebula': case 'celestial_lotus': drawGalaxyPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     case 'legendary': case 'worldtree': drawWavePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     case 'carnivore': drawCarnivorePlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
-    case 'bonsai': drawBonsaiPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
+    case 'bonsai': case 'eden_apple': case 'avocado': drawBonsaiPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     case 'rainbow': drawRainbowPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     case 'dragonfruit': drawDragonPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t); break;
     default: drawDefaultPlant(ctx,cx,potY,actualStemH,stemTop,sway,pct,s,t,W); break;
@@ -3109,6 +3442,67 @@ function drawDefaultPlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t, W) {
     drawLeafShape(ctx,lx,ly,ld.dir,sz,s.color,pct);
   });
   if (pct>0.76) { const bp=Math.min((pct-0.76)/0.24,1); drawBloomShape(ctx,cx+sway,stemTop,bp,s,t); }
+}
+
+
+function drawFanLeaf(ctx,x,y,dir,sz,t){
+  if(sz<1) return;
+  ctx.save(); ctx.translate(x,y); ctx.rotate(dir*1.0+Math.sin(t*0.8)*0.06);
+  for(let f=0;f<7;f++){
+    const a=(f-3)*0.3, len=sz*(1-Math.abs(f-3)*0.17);
+    ctx.save(); ctx.rotate(a);
+    ctx.beginPath(); ctx.moveTo(0,0);
+    ctx.quadraticCurveTo(len*0.17,-len*0.5,0,-len);
+    ctx.quadraticCurveTo(-len*0.17,-len*0.5,0,0);
+    ctx.fillStyle=f%2?'#2f8f3a':'#3fae4a'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-len*0.9); ctx.strokeStyle='rgba(180,255,180,0.18)'; ctx.lineWidth=0.5; ctx.stroke();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+function drawBud(ctx,x,y,r,col,t,top){
+  if(r<0.8) return;
+  ctx.save();
+  ctx.shadowColor=col; ctx.shadowBlur=top?12:5;
+  const n=top?11:5;
+  for(let i=0;i<n;i++){
+    const a=i*2.4, rr=r*0.6*Math.sqrt(i/n);
+    const bx=x+Math.cos(a)*rr, by=y+Math.sin(a)*rr*(top?1.7:1)-(top?r*0.3:0);
+    ctx.beginPath(); ctx.arc(bx,by,r*0.45,0,Math.PI*2);
+    ctx.fillStyle=i%3===0?col:lerpCol('#5cb84a',col,0.45); ctx.fill();
+  }
+  ctx.shadowBlur=0;
+  ctx.strokeStyle='#ff9944'; ctx.lineWidth=0.8;
+  for(let i=0;i<(top?7:3);i++){
+    const a=i*1.9+t*0.2;
+    ctx.beginPath(); ctx.moveTo(x+Math.cos(a)*r*0.3,y+Math.sin(a)*r*0.5); ctx.lineTo(x+Math.cos(a)*r*0.8,y+Math.sin(a)*r*0.9-2); ctx.stroke();
+  }
+  for(let i=0;i<(top?6:2);i++){
+    const a=i*2.2+t;
+    ctx.globalAlpha=0.45+0.55*Math.abs(Math.sin(t*2.5+i)); ctx.fillStyle='#ffffff';
+    ctx.beginPath(); ctx.arc(x+Math.cos(a)*r*0.65,y+Math.sin(a)*r*0.9-(top?r*0.3:0),0.9,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawWeedPlant(ctx,cx,potY,stemH,stemTop,sway,pct,s,t){
+  drawStem(ctx,cx,potY,stemH,stemTop,sway,'#3d8a2e',Math.max(1.5,pct*3.5));
+  const nodes=[0.26,0.44,0.6,0.76];
+  nodes.forEach((n,i)=>{
+    if(pct<n*0.9) return;
+    const lp=Math.min((pct-n*0.9)/0.2,1), x=cx+sway*n, y=potY-stemH*n;
+    drawFanLeaf(ctx,x,y,-1,lp*(17-i*2.6),t+i);
+    drawFanLeaf(ctx,x,y,1,lp*(17-i*2.6),t+i+0.5);
+  });
+  if(pct>0.5){
+    const bp=Math.min((pct-0.5)/0.5,1);
+    nodes.forEach(n=>{ if(pct>=n) drawBud(ctx,cx+sway*n,potY-stemH*n-3,bp*4.5,s.color,t,false); });
+    drawBud(ctx,cx+sway,stemTop+8,bp*9,s.color,t,true);
+  }
+  if(pct>=1 && s.rarity==='MYTHIC'){
+    ctx.save(); ctx.strokeStyle='rgba(255,240,120,'+(0.4+0.4*Math.random())+')'; ctx.lineWidth=1;
+    ctx.beginPath(); let px=cx+sway, py=stemTop-6; ctx.moveTo(px,py);
+    for(let i=0;i<4;i++){ px+= (Math.random()-0.5)*14; py-=6; ctx.lineTo(px,py); } ctx.stroke(); ctx.restore();
+  }
 }
 
 function drawFirePlant(ctx, cx, potY, stemH, stemTop, sway, pct, s, t) {
@@ -3612,7 +4006,7 @@ function drawLeafShape(ctx, x, y, dir, sz, col, pct) {
 }
 
 function drawBloomShape(ctx, x, y, bp, s, t) {
-  const petals = s.rarity==='LEGENDARY'?8 : s.rarity==='EPIC'?7 : s.rarity==='RARE'?6 : 5;
+  const petals = s.rarity==='MYTHIC'?10 : s.rarity==='LEGENDARY'?8 : s.rarity==='EPIC'?7 : s.rarity==='RARE'?6 : 5;
   const sz = bp*15;
   ctx.save(); ctx.translate(x,y); ctx.rotate(t*0.25);
   ctx.shadowColor=s.color; ctx.shadowBlur=16*bp;

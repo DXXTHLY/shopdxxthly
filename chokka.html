@@ -839,6 +839,12 @@ body.split-mode .egg-hint{display:none;}
 body.split-mode .platforms{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 body.split-mode .chat-msgs{height:300px;}
 body.split-mode .embed-panel{box-shadow:0 0 40px rgba(132,7,230,0.12);}
+
+.plots-scrollbar{gap:6px;padding:8px 12px;}
+.plot-nav{flex-shrink:0;width:30px;height:26px;border-radius:7px;border:0.5px solid rgba(0,255,200,0.35);background:rgba(0,255,200,0.08);color:#00ffc8;font-size:15px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;transition:background .15s,transform .1s,opacity .15s;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+.plot-nav:hover:not(:disabled){background:rgba(0,255,200,0.2);box-shadow:0 0 10px rgba(0,255,200,0.3);}
+.plot-nav:active:not(:disabled){transform:scale(0.9);}
+.plot-nav:disabled{opacity:0.25;cursor:default;}
 </style>
 <script>
 function avatarFallback(img) {
@@ -1027,7 +1033,7 @@ function avatarFallback(img) {
     <div class="plots-scroll-outer" id="plotsScrollOuter">
       <div class="plots-row" id="plotsRow"></div>
       <div class="plots-scrollbar" id="plotsDots">
-        <div class="plots-track" id="plotsTrack"><div class="plots-thumb" id="plotsThumb"></div></div>
+        <button class="plot-nav" id="navFirst" onclick="plotNav(-4)" title="back 4 pots">«</button><button class="plot-nav" id="navPrev" onclick="plotNav(-1)" title="back 1 pot">‹</button><div class="plots-track" id="plotsTrack"><div class="plots-thumb" id="plotsThumb"></div></div><button class="plot-nav" id="navNext" onclick="plotNav(1)" title="forward 1 pot">›</button><button class="plot-nav" id="navLast" onclick="plotNav(4)" title="forward 4 pots">»</button>
       </div>
     </div>
 
@@ -3003,7 +3009,22 @@ function rebuildPlotDots(){
   thumb.style.width=(Math.min(4/G.unlockedPlots,1)*100)+'%';
   syncPlotDots();
 }
+function plotNav(n){
+  const row=document.getElementById('plotsRow'), w=document.getElementById('plotwrap0');
+  if(!row||!w) return;
+  const step=w.offsetWidth||row.clientWidth/4;
+  const target=Math.round((row.scrollLeft+n*step)/step)*step;
+  row.scrollTo({left:Math.max(0,Math.min(target,row.scrollWidth-row.clientWidth)),behavior:'smooth'});
+}
+function updatePlotNav(){
+  const row=document.getElementById('plotsRow'); if(!row) return;
+  const max=row.scrollWidth-row.clientWidth;
+  const atStart=row.scrollLeft<=2, atEnd=row.scrollLeft>=max-2;
+  ['navFirst','navPrev'].forEach(id=>{ const b=document.getElementById(id); if(b) b.disabled=atStart; });
+  ['navNext','navLast'].forEach(id=>{ const b=document.getElementById(id); if(b) b.disabled=atEnd; });
+}
 function syncPlotDots(){
+  updatePlotNav();
   const row=document.getElementById('plotsRow'), thumb=document.getElementById('plotsThumb');
   const max=row.scrollWidth-row.clientWidth;
   if(max<=0){ thumb.style.left='0%'; return; }
